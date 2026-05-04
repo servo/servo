@@ -18,13 +18,13 @@ use js::rust::wrappers::{Construct1, JS_GetProperty};
 use js::rust::wrappers2::SameValue;
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::DomTypeHolder;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
 };

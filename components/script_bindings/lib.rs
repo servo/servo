@@ -15,7 +15,9 @@ extern crate log;
 #[macro_use]
 extern crate malloc_size_of_derive;
 
+pub mod assert;
 pub mod callback;
+pub mod cell;
 mod constant;
 mod constructor;
 pub mod conversions;

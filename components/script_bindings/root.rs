@@ -11,8 +11,8 @@ use js::gc::{Handle, Traceable as JSTraceable};
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use style::thread_state;
 
+use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
 use crate::inheritance::Castable;
 use crate::reflector::{DomObject, MutDomObject, Reflector};
@@ -441,10 +441,6 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
             }
         }
     });
-}
-
-pub fn assert_in_script() {
-    debug_assert!(thread_state::get().is_script());
 }
 
 /// Get a slice of references to DOM objects.

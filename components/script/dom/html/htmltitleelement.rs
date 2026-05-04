@@ -101,9 +101,9 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn pop(&self) {
+    fn pop(&self, cx: &mut js::context::JSContext) {
         if let Some(s) = self.super_type() {
-            s.pop();
+            s.pop(cx);
         }
 
         self.popped.set(true);

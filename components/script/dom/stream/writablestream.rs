@@ -18,12 +18,12 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     QueuingStrategy, QueuingStrategySize,
 };

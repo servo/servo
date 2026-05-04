@@ -9,6 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
@@ -16,7 +17,6 @@ use servo_bluetooth_traits::{
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};

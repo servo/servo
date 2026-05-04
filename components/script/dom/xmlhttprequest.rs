@@ -33,6 +33,7 @@ use net_traits::{
     FetchMetadata, FilteredMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     trim_http_whitespace,
 };
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
 use script_bindings::trace::RootedTraceableBox;
@@ -45,7 +46,6 @@ use url::Position;
 use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,

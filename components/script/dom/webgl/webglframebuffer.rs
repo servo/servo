@@ -8,6 +8,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use euclid::Size2D;
+use script_bindings::cell::DomRefCell;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
@@ -16,7 +17,6 @@ use servo_canvas_traits::webgl::{
 #[cfg(feature = "webxr")]
 use webxr_api::Viewport;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};

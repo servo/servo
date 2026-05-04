@@ -119,6 +119,7 @@ impl Document {
         Some(match &*command_id.str().to_lowercase() {
             "backcolor" => CommandName::BackColor,
             "bold" => CommandName::Bold,
+            "createlink" => CommandName::CreateLink,
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontname" => CommandName::FontName,
@@ -131,6 +132,7 @@ impl Document {
             "subscript" => CommandName::Subscript,
             "superscript" => CommandName::Superscript,
             "underline" => CommandName::Underline,
+            "unlink" => CommandName::Unlink,
             _ => return None,
         })
     }

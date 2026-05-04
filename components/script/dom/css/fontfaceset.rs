@@ -7,9 +7,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use fonts::FontContextWebFontMethods;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::TrustedPromise;

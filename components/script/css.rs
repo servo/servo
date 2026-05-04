@@ -33,6 +33,7 @@ pub(crate) fn parser_context_for_document<'a>(
         /* namespaces = */ Default::default(),
         Some(error_reporter),
         None,
+        /* attr_taint = */ Default::default(),
     )
 }
 
@@ -55,6 +56,7 @@ pub(crate) fn parser_context_for_document_with_reporter<'a>(
         /* namespaces = */ Default::default(),
         Some(error_reporter),
         None,
+        /* attr_taint = */ Default::default(),
     )
 }
 
@@ -74,5 +76,6 @@ pub(crate) fn parser_context_for_anonymous_content<'a>(
         /* namespaces = */ Default::default(),
         None,
         None,
+        /* attr_taint = */ Default::default(),
     )
 }

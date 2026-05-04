@@ -9,10 +9,10 @@
 
 use std::cell::Ref;
 
+use script_bindings::cell::DomRefCell;
 use servo_base::text::Utf16CodeUnitLength;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};

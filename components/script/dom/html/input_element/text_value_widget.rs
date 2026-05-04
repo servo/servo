@@ -5,10 +5,10 @@
 use std::cell::Ref;
 
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::root::Dom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;

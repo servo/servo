@@ -129,6 +129,7 @@ impl MediaList {
             /* namespaces = */ Default::default(),
             None,
             None,
+            /* attr_taint = */ Default::default(),
         );
         let mut parser_input = ParserInput::new(media_query);
         let mut parser = Parser::new(&mut parser_input);

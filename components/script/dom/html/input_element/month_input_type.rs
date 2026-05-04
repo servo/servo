@@ -4,9 +4,9 @@
 use std::cmp::Ordering;
 
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use time::{Month, OffsetDateTime};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString};
 use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::input_element::HTMLInputElement;

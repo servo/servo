@@ -31,6 +31,7 @@ use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::time_profile;
+use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -43,7 +44,6 @@ use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
 
 use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -1934,9 +1934,14 @@ impl TreeSink for Sink {
         self.current_line.set(line_number);
     }
 
+    #[expect(unsafe_code)]
     fn pop(&self, node: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         let node = DomRoot::from_ref(&**node);
-        vtable_for(&node).pop();
+        vtable_for(&node).pop(cx);
     }
 
     fn allow_declarative_shadow_roots(&self, intended_parent: &Dom<Node>) -> bool {
@@ -2082,7 +2087,7 @@ fn create_element_for_token(
     // checkedness based on the element's attributes.)
     if let Some(html_element) = element.downcast::<HTMLElement>() {
         if element.is_resettable() && !html_element.is_form_associated_custom_element() {
-            element.reset(CanGc::from_cx(cx));
+            element.reset(cx);
         }
     }
 

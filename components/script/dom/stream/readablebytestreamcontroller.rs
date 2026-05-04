@@ -14,6 +14,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
+use script_bindings::cell::DomRefCell;
 
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
@@ -22,7 +23,6 @@ use crate::dom::bindings::buffer_source::{
     Constructor, HeapBufferSource, byte_size, create_array_buffer_with_size,
     create_buffer_source_with_constructor,
 };
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};

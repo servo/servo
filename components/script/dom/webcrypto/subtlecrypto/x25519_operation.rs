@@ -29,6 +29,7 @@ const X25519_OID_STRING: &str = "1.3.101.110";
 
 const PRIVATE_KEY_LENGTH: usize = 32;
 const PUBLIC_KEY_LENGTH: usize = 32;
+pub(crate) const SECRET_LENGTH: usize = 32;
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-derive-bits>
 pub(crate) fn derive_bits(

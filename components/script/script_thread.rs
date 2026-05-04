@@ -72,6 +72,7 @@ use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::{JSContext, temp_cx};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
@@ -112,7 +113,6 @@ use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use crate::devtools::DevtoolsState;
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::input_type::SpecificInputType;

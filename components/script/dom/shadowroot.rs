@@ -9,6 +9,7 @@ use std::collections::hash_map::Entry;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use js::rust::{HandleValue, MutableHandleValue};
+use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::error::{ErrorResult, Fallible};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
@@ -20,7 +21,6 @@ use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;

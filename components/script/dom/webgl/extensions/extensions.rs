@@ -13,9 +13,10 @@ use script_bindings::str::DOMString;
 use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 type GLenum = u32;
 
+use script_bindings::cell::DomRefCell;
+
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
 use super::{WebGLExtension, WebGLExtensionSpec, ext};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;

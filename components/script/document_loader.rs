@@ -8,10 +8,10 @@
 
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
+use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::temp_cx;
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;

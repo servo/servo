@@ -9,6 +9,7 @@ use std::collections::VecDeque;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::NullValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -22,7 +23,6 @@ use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
 use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
@@ -41,7 +41,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-const INVALID_ENTRY_NAMES: &[&str] = &[
+pub(crate) const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
     "unloadEventStart",
     "unloadEventEnd",
@@ -192,6 +192,10 @@ impl Performance {
             global,
             can_gc,
         )
+    }
+
+    pub(crate) fn time_origin(&self) -> CrossProcessInstant {
+        self.time_origin
     }
 
     pub(crate) fn to_dom_high_res_time_stamp(
@@ -656,57 +660,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         mark_options: RootedTraceableBox<PerformanceMarkOptions>,
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
-        // <https://w3c.github.io/user-timing/#the-performancemark-constructor>
-        // The PerformanceMark constructor must run the following steps:
-        // Step 1.1. If the current global object is a Window object and markName uses the same name
-        // as a read only attribute in the PerformanceTiming interface, throw a SyntaxError.
-        let global = self.global();
-        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
-            return Err(Error::Syntax(None));
-        }
-        // Step 1.2 - 1.4. Note: These are handled by the PerformanceMark constructor below.
-
-        // Step 1.5. Set entry’s startTime attribute as follows:
-        let start_time = match mark_options.startTime {
-            // Step 1.5.1. If markOptions’s startTime member exists, then:
-            Some(start_time) => {
-                // Step 1.5.1.1. If markOptions’s startTime is negative, throw a TypeError.
-                if start_time.is_sign_negative() {
-                    return Err(Error::Type(c"startTime must not be negative".to_owned()));
-                }
-                // Step 1.5.1.2. Otherwise, set entry’s startTime to the value of markOptions’s startTime.
-                self.time_origin + Duration::microseconds(start_time.mul_add(1000.0, 0.0) as i64)
-            },
-            // Step 1.5.2. Otherwise, set it to the value that would be returned by the Performance object’s now() method.
-            None => CrossProcessInstant::now(),
-        };
-
-        // Step 1.6. Set entry’s duration attribute to 0.
-        let entry = PerformanceMark::new(
-            &global,
-            mark_name,
-            start_time,
-            Duration::ZERO,
-            Default::default(),
-        );
-
-        // Step 1.7. If markOptions’s detail is null, set entry’s detail to null.
-        rooted!(&in(cx) let mut detail = NullValue());
-
-        // Step 1.8 Otherwise:
-        if !mark_options.detail.get().is_null_or_undefined() {
-            // Step 1.8.1. Let record be the result of calling the StructuredSerialize algorithm on markOptions’s detail.
-            let record = structuredclone::write(cx.into(), mark_options.detail.handle(), None)?;
-
-            // Step 1.8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-            structuredclone::read(
-                &self.global(),
-                record,
-                detail.handle_mut(),
-                CanGc::from_cx(cx),
-            )?;
-        }
-        entry.set_detail(detail.handle());
+        let entry =
+            PerformanceMark::new_with_proto(cx, &self.global(), None, mark_name, mark_options)?;
 
         // Step 2. Queue a PerformanceEntry entry.
         // Step 3. Add entry to the performance entry buffer. (This is done in queue_entry itself)

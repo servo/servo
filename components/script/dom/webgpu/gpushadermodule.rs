@@ -5,10 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUShaderModuleDescriptor, GPUShaderModuleMethods,
 };

@@ -10,6 +10,7 @@ use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
 use layout_api::ElementsFromPointFlags;
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, ErrorResult};
@@ -24,7 +25,6 @@ use stylo_atoms::Atom;
 use webrender_api::units::LayoutPoint;
 
 use crate::dom::Document;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;

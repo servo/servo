@@ -29,10 +29,11 @@ use net_traits::{
 };
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use pixels::RasterImage;
+use script_bindings::assert::assert_in_script;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
-use script_bindings::root::assert_in_script;
 use script_bindings::weakref::WeakRef;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::WebViewId;
@@ -52,7 +53,6 @@ use webrender_api::{
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
 };

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelectors, KeyframesRule};
 use style::stylesheets::{CssRuleType, StylesheetInDocument};
 use style::values::KeyframesName;
 
@@ -79,7 +79,7 @@ impl CSSKeyframesRule {
         let selector = selector.str();
         let mut input = ParserInput::new(&selector);
         let mut input = Parser::new(&mut input);
-        if let Ok(sel) = KeyframeSelector::parse(&mut input) {
+        if let Ok(sel) = KeyframeSelectors::parse(&mut input) {
             let guard = self.css_rule.shared_lock().read();
             // This finds the *last* element matching a selector
             // because that's the rule that applies. Thus, rposition

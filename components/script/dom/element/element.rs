@@ -27,6 +27,7 @@ use js::rust::HandleObject;
 use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
+use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
@@ -63,7 +64,6 @@ use xml5ever::serialize::TraversalScope::{
 use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, is_relevant_attribute};
-use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{

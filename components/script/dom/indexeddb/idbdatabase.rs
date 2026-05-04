@@ -7,12 +7,12 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel::channel;
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
     IDBDatabaseMethods, IDBObjectStoreParameters, IDBTransactionOptions,
 };

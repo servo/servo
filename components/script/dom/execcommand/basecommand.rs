@@ -20,6 +20,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
 use crate::dom::execcommand::commands::bold::execute_bold_command;
+use crate::dom::execcommand::commands::createlink::execute_createlink_command;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
 use crate::dom::execcommand::commands::fontname::execute_fontname_command;
@@ -34,6 +35,7 @@ use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_comm
 use crate::dom::execcommand::commands::subscript::execute_subscript_command;
 use crate::dom::execcommand::commands::superscript::execute_superscript_command;
 use crate::dom::execcommand::commands::underline::execute_underline_command;
+use crate::dom::execcommand::commands::unlink::execute_unlink_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
@@ -536,6 +538,7 @@ impl CommandName {
         match self {
             CommandName::BackColor => execute_backcolor_command(cx, document, selection, value),
             CommandName::Bold => execute_bold_command(cx, document, selection),
+            CommandName::CreateLink => execute_createlink_command(cx, document, selection, value),
             CommandName::DefaultParagraphSeparator => {
                 execute_default_paragraph_separator_command(document, value)
             },
@@ -550,6 +553,7 @@ impl CommandName {
             CommandName::Subscript => execute_subscript_command(cx, document, selection),
             CommandName::Superscript => execute_superscript_command(cx, document, selection),
             CommandName::Underline => execute_underline_command(cx, document, selection),
+            CommandName::Unlink => execute_unlink_command(cx, selection),
             _ => false,
         }
     }

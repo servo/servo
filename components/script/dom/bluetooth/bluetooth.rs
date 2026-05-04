@@ -11,7 +11,7 @@ use servo_bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequen
 use js::realm::CurrentRealm;
 use script_bindings::cformat;
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
+use script_bindings::cell::{Ref, DomRefCell};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothDataFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;

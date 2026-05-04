@@ -2612,7 +2612,13 @@ pub(crate) fn check_support_for_algorithm(
             };
 
             match normalized_algorithm {
-                DeriveBitsAlgorithm::Ecdh(_) | DeriveBitsAlgorithm::X25519(_) => true,
+                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => length.is_none_or(|length| {
+                    ecdh_operation::secret_length(&normalized_algorithm)
+                        .is_ok_and(|secret_length| secret_length * 8 >= length)
+                }),
+                DeriveBitsAlgorithm::X25519(_) => {
+                    length.is_none_or(|length| x25519_operation::SECRET_LENGTH as u32 * 8 >= length)
+                },
                 DeriveBitsAlgorithm::Hkdf(_) => length.is_some_and(|length| length % 8 == 0),
                 DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
                     length.is_some_and(|length| length % 8 == 0) &&

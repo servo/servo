@@ -10,11 +10,11 @@ use euclid::default::{Point2D, Rect, Size2D};
 use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
 use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
 use servo_constellation_traits::SerializableImageBitmap;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapMethods, ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
     ResizeQuality,

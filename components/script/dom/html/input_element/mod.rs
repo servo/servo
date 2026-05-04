@@ -21,6 +21,7 @@ use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegE
 use js::rust::wrappers2::{DateGetMsecSinceEpoch, ObjectIsDate};
 use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::{ScriptSelection, SharedSelection};
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
@@ -35,7 +36,6 @@ use webdriver::error::ErrorStatus;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;

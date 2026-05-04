@@ -27,14 +27,13 @@ use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
-use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
-use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
@@ -55,7 +54,6 @@ use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
@@ -1634,6 +1632,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     #[cfg(feature = "gamepad")]
     fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+        use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+        use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+
         let trusted_window = Trusted::new(&*self.window);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>

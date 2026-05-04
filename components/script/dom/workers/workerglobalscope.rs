@@ -27,6 +27,7 @@ use net_traits::request::{
 use net_traits::response::HttpsState;
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
 use script_bindings::reflector::DomObject;
 use script_bindings::root::rooted_heap_handle;
@@ -39,7 +40,6 @@ use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };

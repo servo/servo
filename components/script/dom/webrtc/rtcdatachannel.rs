@@ -10,6 +10,7 @@ use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::match_domstring_ascii;
 use script_bindings::weakref::WeakRef;
@@ -19,7 +20,6 @@ use servo_media::webrtc::{
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
     RTCDataChannelInit, RTCDataChannelMethods, RTCDataChannelState,
 };

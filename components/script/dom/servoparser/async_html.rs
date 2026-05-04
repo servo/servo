@@ -604,7 +604,7 @@ impl Tokenizer {
                 }
             },
             ParseOperation::Pop { node } => {
-                vtable_for(&self.get_node(&node)).pop();
+                vtable_for(&self.get_node(&node)).pop(cx);
             },
             ParseOperation::CreatePI { node, target, data } => {
                 let pi = ProcessingInstruction::new(

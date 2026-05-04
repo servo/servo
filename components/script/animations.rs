@@ -10,6 +10,7 @@ use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use libc::c_void;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -21,7 +22,6 @@ use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::animationevent::AnimationEvent;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;

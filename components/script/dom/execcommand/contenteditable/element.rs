@@ -18,6 +18,7 @@ use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::execcommand::commands::fontsize::font_size_to_css_font;
 use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
+use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::node::node::{Node, NodeTraits};
 
@@ -39,7 +40,17 @@ impl Element {
             },
             // Step 2. If command is "createLink" or "unlink":
             CommandName::CreateLink | CommandName::Unlink => {
-                // TODO
+                // Step 2.1. If element is an a element and has an href attribute,
+                // return the value of that attribute.
+                if let Some(anchor) = self.downcast::<HTMLAnchorElement>() {
+                    return anchor
+                        .upcast::<Element>()
+                        .get_attribute(&local_name!("href"))
+                        .map(|attr| DOMString::from(&**attr.value()));
+                }
+
+                // Step 2.2. Return null.
+                return None;
             },
             // Step 3. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {

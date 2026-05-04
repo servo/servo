@@ -8,10 +8,10 @@ use std::fmt;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
+use script_bindings::cell::{DomRefCell, Ref};
 use stylo_dom::ElementState;
 
 use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};

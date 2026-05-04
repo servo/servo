@@ -14,13 +14,13 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
+use script_bindings::cell::DomRefCell;
 use script_bindings::realms::InRealm;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::TransformStreamData;
 
 use super::readablestream::CrossRealmTransformReadable;
 use super::writablestream::CrossRealmTransformWritable;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     QueuingStrategy, QueuingStrategySize,
 };
