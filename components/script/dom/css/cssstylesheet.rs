@@ -389,8 +389,11 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
     fn GetCssRules(&self, cx: &mut JSContext) -> Fallible<DomRoot<CSSRuleList>> {
+        // If the origin-clean flag is unset, we throw an error as it the API implicity allows modification of CSS rules.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "The origin-clean flag was not set when getting CSS rules.".to_string(),
+            )));
         }
         Ok(self.rulelist(cx))
     }
@@ -399,12 +402,15 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(format!(
+                "Could not insert rule into index {} because the origin_clean flag is not set.",
+                index
+            ))));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some("".to_string())));
         }
 
         self.rulelist(cx)
@@ -415,12 +421,18 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(format!(
+                "Could not delete rule at index {} because the origin_clean flag is not set.",
+                index
+            ))));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(format!(
+                "Could not delete rule at index {} because the disallow flag is set.",
+                index
+            ))));
         }
         self.rulelist(cx).remove_rule(index)
     }
@@ -476,7 +488,9 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
         if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(
+                "Could not replace stylesheet because the modification is not allowed, or the stylesheet was not from defined CSS constructor.".to_string(),
+            )));
         }
 
         // Step 3. Set the disallow modification flag.
@@ -510,7 +524,9 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
         // throw a NotAllowedError DOMException.
         if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(
+                "Could not update the CSS stylesheet due to modification not being allowed, or the sheet not being constructed by intended CSS constructor.".to_string(),
+            )));
         }
         self.do_replace_sync(text);
         Ok(())
