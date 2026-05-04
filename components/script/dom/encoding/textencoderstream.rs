@@ -19,11 +19,11 @@ use js::rust::{
 };
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::stream::readablestream::ReadableStream;

@@ -6,11 +6,11 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::realms::{AlreadyInRealm, InRealm};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::{DOMString, USVString};
 
 use crate::dom::bindings::codegen::Bindings::CredentialBinding::CredentialMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

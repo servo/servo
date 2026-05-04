@@ -5,10 +5,10 @@ use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::import::base::SafeJSContext;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::KeyPath;

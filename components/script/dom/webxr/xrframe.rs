@@ -7,13 +7,14 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::Float32Array;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Frame, LayerId, SubImages};
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::dom::xrhittestresult::XRHitTestResult;

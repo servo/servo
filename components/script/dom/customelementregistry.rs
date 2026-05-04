@@ -20,6 +20,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
 use super::bindings::trace::HashMapTracedValues;
@@ -36,7 +37,7 @@ use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;

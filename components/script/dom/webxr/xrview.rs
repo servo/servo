@@ -7,13 +7,13 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, View};
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;

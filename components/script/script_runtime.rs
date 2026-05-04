@@ -60,6 +60,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
+use script_bindings::reflector::DomObject;
 use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use script_bindings::settings_stack::run_a_script;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
@@ -78,7 +79,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
     LiveDOMReferences, Trusted, TrustedPromise, trace_refcounted_objects,
 };
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;

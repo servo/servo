@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
 use js::context::JSContext;
 use script_bindings::error::Error;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -18,7 +19,6 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::domname::{is_valid_doctype_name, namespace_from_domstring};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};

@@ -5,12 +5,12 @@
 use dom_struct::dom_struct;
 use regex::Regex;
 use script_bindings::cformat;
+use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::codegen::Bindings::BluetoothUUIDBinding::BluetoothUUIDMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 

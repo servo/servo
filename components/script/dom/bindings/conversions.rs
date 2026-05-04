@@ -42,10 +42,10 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleObject, MutableHandleValue};
 pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
+use script_bindings::reflector::DomObject;
 use script_bindings::script_runtime::JSContext;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper

@@ -23,12 +23,12 @@ use js::rust::wrappers2::{
 };
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

@@ -43,6 +43,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
@@ -63,7 +64,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;

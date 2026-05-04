@@ -5,9 +5,9 @@
 use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
+use script_bindings::reflector::DomObject;
 
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;

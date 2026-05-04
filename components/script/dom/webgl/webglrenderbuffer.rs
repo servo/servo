@@ -6,6 +6,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
@@ -16,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXT
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webgl::webglobject::WebGLObject;

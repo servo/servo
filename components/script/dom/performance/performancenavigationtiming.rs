@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 
 use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
@@ -11,7 +12,6 @@ use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding:
     NavigationTimingType, PerformanceNavigationTimingMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;

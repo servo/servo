@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -17,7 +18,6 @@ use crate::dom::bindings::codegen::Bindings::WheelEventBinding::WheelEventMethod
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};

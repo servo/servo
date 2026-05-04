@@ -11,6 +11,7 @@ use embedder_traits::{
 };
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
@@ -24,7 +25,7 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
     MediaSessionPlaybackState,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::weakref::MutableWeakRef;

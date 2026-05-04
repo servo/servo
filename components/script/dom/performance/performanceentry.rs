@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::Reflector;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use strum::VariantArray;
 use time::Duration;
@@ -10,7 +11,7 @@ use time::Duration;
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 
 /// All supported entry types, in alphabetical order.

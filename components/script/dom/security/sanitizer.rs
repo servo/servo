@@ -10,6 +10,7 @@ use html5ever::{Namespace, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElement,
@@ -19,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
 use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
 use crate::dom::bindings::domname::is_valid_attribute_local_name;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::CONTENT_EVENT_HANDLER_NAMES;
