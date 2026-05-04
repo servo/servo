@@ -118,6 +118,7 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 dirs = "6.0"
 egui = { version = "0.34.1" }
 egui-file-dialog = "0.13.0"
+egui-system-fonts = "0.34.0"
 egui-winit = { version = "0.34.1", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { version = "0.34.1", features = ["winit"] }
 gilrs = "0.11.1"

@@ -3,10 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
-use std::fs;
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
-use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -14,16 +10,12 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
-    WidgetInfo, WidgetType, pos2,
+    Button, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2, WidgetInfo,
+    WidgetType, pos2,
 };
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
-use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
-use log::info;
 use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
@@ -82,99 +74,6 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
-fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
-    let mut fonts = FontDefinitions::default();
-    let mut loaded_font_names = Vec::new();
-
-    for (path_str, font_name) in font_candidates.iter() {
-        let font_path = Path::new(path_str);
-        if font_path.exists() {
-            match fs::read(font_path) {
-                Ok(bytes) => {
-                    if !fonts.font_data.contains_key(*font_name) {
-                        fonts
-                            .font_data
-                            .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
-                        loaded_font_names.push(font_name.to_string());
-                        info!("Loaded font: {}", font_name);
-                    }
-                },
-                Err(error) => {
-                    info!("Failed to read font {}: {}", font_name, error);
-                },
-            }
-        }
-    }
-
-    if !loaded_font_names.is_empty() {
-        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
-        for font_name in loaded_font_names.iter() {
-            proportional.insert(0, font_name.clone());
-        }
-    }
-
-    fonts
-}
-
-#[cfg(target_os = "windows")]
-fn configure_fonts() -> FontDefinitions {
-    load_cjk_fonts(&[
-        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
-        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
-    ])
-}
-
-#[cfg(any(target_os = "linux", target_os = "freebsd"))]
-fn configure_fonts() -> FontDefinitions {
-    load_cjk_fonts(&[
-        (
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "Noto Sans CJK",
-        ), // Ubuntu/Debian
-        (
-            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-            "Noto Sans CJK",
-        ), // Fedora/Arch
-        // FreeBSD splits the Noto CJK fonts into regional subsets
-        (
-            "/usr/local/share/fonts/noto/NotoSansCJKhk-Regular.otf",
-            "Noto Sans CJK HK",
-        ),
-        (
-            "/usr/local/share/fonts/noto/NotoSansCJKjp-Regular.otf",
-            "Noto Sans CJK JP",
-        ),
-        (
-            "/usr/local/share/fonts/noto/NotoSansCJKkr-Regular.otf",
-            "Noto Sans CJK KR",
-        ),
-        (
-            "/usr/local/share/fonts/noto/NotoSansCJKsc-Regular.otf",
-            "Noto Sans CJK SC",
-        ),
-        (
-            "/usr/local/share/fonts/noto/NotoSansCJKtc-Regular.otf",
-            "Noto Sans CJK TC",
-        ),
-        (
-            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-            "WenQuanYi Micro Hei",
-        ), // common fallback
-        (
-            "/usr/local/share/fonts/wqy/wqy-microhei.ttc",
-            "WenQuanYi Micro Hei",
-        ), // FreeBSD
-    ])
-}
-
-#[cfg(target_os = "macos")]
-fn configure_fonts() -> FontDefinitions {
-    // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
-    // does not support CJK. Add them for Mac.
-    FontDefinitions::default()
-}
-
 impl Drop for Gui {
     fn drop(&mut self) {
         self.rendering_context
@@ -203,8 +102,7 @@ impl Gui {
             false,
         );
 
-        let font_definitions = configure_fonts();
-        context.egui_ctx.set_fonts(font_definitions);
+        egui_system_fonts::set_auto(&context.egui_ctx, egui_system_fonts::FontStyle::Sans);
 
         context
             .egui_winit

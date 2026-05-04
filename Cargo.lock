@@ -2119,6 +2119,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-system-fonts"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f12533054ca28d8933c8557956efd0e8092e5cbf5252feada6c7daa9cec6eef"
+dependencies = [
+ "egui",
+ "log",
+ "system-fonts",
+]
+
+[[package]]
 name = "egui-winit"
 version = "0.34.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9039,6 +9050,7 @@ dependencies = [
  "dpi",
  "egui",
  "egui-file-dialog",
+ "egui-system-fonts",
  "egui-winit",
  "egui_glow",
  "env_filter",
@@ -9702,6 +9714,16 @@ dependencies = [
  "pkg-config",
  "toml",
  "version-compare",
+]
+
+[[package]]
+name = "system-fonts"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f369feb844d5e08bb4e938c3f88ff359261bc94c7553ddb34e174447120b64d6"
+dependencies = [
+ "fontdb",
+ "sys-locale",
 ]
 
 [[package]]
