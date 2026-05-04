@@ -232,34 +232,34 @@ cfg_if! {
             }
 
             fn on_enter(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
-                if let Some(span) = ctx.span(id) {
-                    let metadata = span.metadata();
-                    if metadata.fields().field("servo_profiling").is_some() {
-                        #[cfg(debug_assertions)]
-                        HITRACE_NAME_STACK.with_borrow_mut(|stack|
-                            stack.push(metadata.name().to_owned()));
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+                let extensions = span.extensions();
+                // The HitraceFields extension being missing implies `servo_profiling` was set.
+                let Some(fields) = extensions.get::<HitraceFields>() else {
+                    return;
+                };
+                // We can't take the String out of the extensions, so
+                //  unfortunately, this won't reuse the allocation.
+                let custom_args = std::ffi::CString::new(fields.0.as_str())
+                        .expect("Failed to convert to CString");
 
-                        let custom_args = {
-                            let extensions = span.extensions();
-                            std::ffi::CString::new(
-                                extensions
-                                    .get::<HitraceFields>()
-                                    // We can't take the String out of the extensions, so
-                                    // unfortunately this won't reuse the allocation.
-                                    .map(|fields| fields.0.as_str())
-                                    .unwrap_or_default(),
-                            )
-                            .expect("Failed to convert to CString")
-                        };
+                let metadata = span.metadata();
+                let level = (*metadata.level()).into();
+                let name = metadata.name();
 
-                        hitrace::start_trace_ex(
-                            (*metadata.level()).into(),
-                            &std::ffi::CString::new(metadata.name())
-                                .expect("Failed to convert str to CString"),
-                            &custom_args,
-                        );
-                    }
-                }
+                #[cfg(debug_assertions)]
+                HITRACE_NAME_STACK.with_borrow_mut(|stack|
+                    stack.push(name.to_owned()));
+
+                hitrace::start_trace_ex(
+                    level,
+                    &std::ffi::CString::new(name)
+                        .expect("Failed to convert str to CString"),
+                    &custom_args,
+                );
+
             }
 
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
@@ -279,26 +279,31 @@ cfg_if! {
 
 
             fn on_exit(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
-                if let Some(metadata) = ctx.metadata(id) {
-                    if metadata.fields().field("servo_profiling").is_some() {
-                        hitrace::finish_trace();
-
-                        #[cfg(debug_assertions)]
-                        HITRACE_NAME_STACK.with_borrow_mut(|stack| {
-                            if stack.last().map(|name| &**name) != Some(metadata.name()) {
-                                log::error!(
-                                    "Tracing span out of order: {} (stack: {:?})",
-                                    metadata.name(),
-                                    stack
-                                );
-                            }
-                            if !stack.is_empty() {
-                                stack.pop();
-                            }
-                        });
-                    }
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+                if span.extensions().get::<HitraceFields>().is_none() {
+                    return;
                 }
+
+                hitrace::finish_trace();
+
+                #[cfg(debug_assertions)]
+                HITRACE_NAME_STACK.with_borrow_mut(|stack| {
+                    let metadata = span.metadata();
+                    if stack.last().map(|name| &**name) != Some(metadata.name()) {
+                        log::error!(
+                            "Tracing span out of order: {} (stack: {:?})",
+                            metadata.name(),
+                            stack
+                        );
+                    }
+                    if !stack.is_empty() {
+                        stack.pop();
+                    }
+                });
             }
+
         }
     }
 }
