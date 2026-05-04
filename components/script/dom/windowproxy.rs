@@ -46,6 +46,7 @@ use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -135,6 +136,38 @@ pub(crate) struct WindowProxy {
     /// The window proxies the script thread knows.
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
+}
+
+/// Recursively searches the descendant navigables of `document` in DOM
+/// tree order, returning the first non-discarded `WindowProxy` whose
+/// target name matches `target_name`.
+///
+/// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
+fn search_navigable_subtree(
+    document: &Document,
+    target_name: &DOMString,
+) -> Option<DomRoot<WindowProxy>> {
+    for iframe in document.iframes().iter() {
+        let proxy = match iframe.GetContentWindow() {
+            Some(p) => p,
+            None => continue,
+        };
+        if proxy.is_browsing_context_discarded() {
+            continue;
+        }
+        // TODO: sandboxing check omitted, see
+        // <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
+        if proxy.get_name() == *target_name {
+            return Some(proxy);
+        }
+        // Recurse into nested documents before moving to the next sibling.
+        if let Some(nested_doc) = iframe.GetContentDocument() {
+            if let Some(found) = search_navigable_subtree(&nested_doc, target_name) {
+                return Some(found);
+            }
+        }
+    }
+    None
 }
 
 impl WindowProxy {
@@ -615,6 +648,36 @@ impl WindowProxy {
         Ok(target_document.browsing_context())
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
+    pub(crate) fn find_navigable_by_target_name(
+        &self,
+        target_name: &DOMString,
+    ) -> Option<DomRoot<WindowProxy>> {
+        // Search currentNavigable's document first.
+        if let Some(doc) = self.document() {
+            if let Some(found) = search_navigable_subtree(&doc, target_name) {
+                return Some(found);
+            }
+        }
+
+        // Search the traversable's document if current is not the top.
+        let top = self.top();
+        if top.browsing_context_id() != self.browsing_context_id() {
+            if let Some(top_doc) = top.document() {
+                if let Some(found) = search_navigable_subtree(&top_doc, target_name) {
+                    return Some(found);
+                }
+            }
+        }
+
+        // TODO: restrict to familiar browsing contexts only
+        // <https://html.spec.whatwg.org/multipage/#familiar-with>
+        match ScriptThread::find_window_proxy_by_name(target_name) {
+            Some(proxy) if !proxy.is_browsing_context_discarded() => Some(proxy),
+            _ => None,
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
     pub(crate) fn choose_browsing_context(
         &self,
@@ -643,7 +706,9 @@ impl WindowProxy {
                 // TODO: expand the search to all 'familiar' bc,
                 // including auxiliaries familiar by way of their opener.
                 // See https://html.spec.whatwg.org/multipage/#familiar-with
-                match ScriptThread::find_window_proxy_by_name(&name) {
+                // Find a navigable by target name.
+                // <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
+                match self.find_navigable_by_target_name(&name) {
                     Some(proxy) => (Some(proxy), false),
                     None => (self.create_auxiliary_browsing_context(name, noopener), true),
                 }
