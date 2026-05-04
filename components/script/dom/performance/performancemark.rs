@@ -27,20 +27,11 @@ impl_performance_entry_struct!(
 );
 
 impl PerformanceMark {
-    pub(crate) fn set_detail(&self, handle: HandleValue<'_>) {
+    fn set_detail(&self, handle: HandleValue<'_>) {
         self.detail.set(handle.get());
     }
-}
 
-impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
-    #[expect(non_snake_case)]
-    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
-        retval.set(self.detail.get())
-    }
-
-    // https://w3c.github.io/user-timing/#the-performancemark-constructor
-    #[expect(non_snake_case)]
-    fn Constructor(
+    pub(crate) fn new_with_proto(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         _proto: Option<HandleObject>,
@@ -54,7 +45,7 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
             return Err(Error::Syntax(None));
         }
 
-        // Step 2 - 4. Note: These are handled by the PerformanceMark constructor below.
+        // Step 2 - 4. Note: These are handled by the PerformanceMark default constructor below.
 
         // Step 5. Set entry’s startTime attribute as follows:
         let start_time = match mark_options.startTime {
@@ -95,5 +86,24 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
         entry.set_detail(detail.handle());
 
         Ok(entry)
+    }
+}
+
+impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
+    #[expect(non_snake_case)]
+    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.detail.get())
+    }
+
+    // https://w3c.github.io/user-timing/#the-performancemark-constructor
+    #[expect(non_snake_case)]
+    fn Constructor(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        mark_name: DOMString,
+        mark_options: RootedTraceableBox<PerformanceMarkOptions>,
+    ) -> Fallible<DomRoot<PerformanceMark>> {
+        PerformanceMark::new_with_proto(cx, global, proto, mark_name, mark_options)
     }
 }
