@@ -170,6 +170,7 @@ cfg_if! {
         use std::fmt::Write;
 
         use tracing::field::{Field, Visit};
+        use tracing::Level;
         use tracing::span::Id;
         use tracing::Subscriber;
         use tracing_subscriber::Layer;
@@ -209,6 +210,21 @@ cfg_if! {
             static HITRACE_NAME_STACK: RefCell<Vec<String>> = RefCell::default();
         }
 
+        /// Map a tracing level to a HiTrace level.
+        ///
+        /// The log-level of hitrace itself can only be configured globally,
+        /// which drastically increases the amount of data that needs to be saved.
+        /// For our purposes, the tracing-rs internal filtering is sufficient,
+        /// and we don't need additional `debug` log level on the hitrace side,
+        /// so we just map anything below INFO to INFO.
+        fn convert_level(tracing_level: Level) -> hitrace::api_19::HiTraceOutputLevel {
+            if tracing_level < Level::INFO {
+                Level::INFO.into()
+            } else {
+                tracing_level.into()
+            }
+        }
+
         impl<S: Subscriber + for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>>
             Layer<S> for HitraceLayer
         {
@@ -246,7 +262,7 @@ cfg_if! {
                         .expect("Failed to convert to CString");
 
                 let metadata = span.metadata();
-                let level = (*metadata.level()).into();
+                let level = convert_level(*metadata.level());
                 let name = metadata.name();
 
                 #[cfg(debug_assertions)]
@@ -265,10 +281,12 @@ cfg_if! {
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
                 let mut fields = HitraceFields::default();
                 event.record(&mut fields);
+                let metadata = event.metadata();
+                let level = convert_level(*metadata.level());
 
                 hitrace::start_trace_ex(
-                    (*event.metadata().level()).into(),
-                    &std::ffi::CString::new(event.metadata().name())
+                    level,
+                    &std::ffi::CString::new(metadata.name())
                         .expect("Failed to convert str to CString"),
                     &std::ffi::CString::new(fields.0)
                         .expect("Failed to convert str to CString"),
