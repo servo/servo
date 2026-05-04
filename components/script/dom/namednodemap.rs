@@ -45,7 +45,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
         let index: usize = index as _;
-        if self.owner.attrs().borrow().len() < index {
+        if self.owner.attrs().borrow().len() <= index {
             None
         } else {
             Some(self.owner.attrs().ensure_dom(index, &self.owner))
