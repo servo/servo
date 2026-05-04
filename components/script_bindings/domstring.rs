@@ -1241,6 +1241,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic]
     fn test_match_panic() {
         let s = DOMString::from("abcd");
@@ -1250,6 +1251,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic]
     fn test_match_panic2() {
         let s = DOMString::from("abcd");
