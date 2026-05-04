@@ -65,7 +65,7 @@ impl PerformanceMark {
 
         // Step 6. Set entry’s duration attribute to 0.
         let entry = PerformanceMark::new(
-            &global,
+            global,
             mark_name,
             start_time,
             Duration::ZERO,
@@ -81,7 +81,7 @@ impl PerformanceMark {
             let record = structuredclone::write(cx.into(), mark_options.detail.handle(), None)?;
 
             // Step 8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-            structuredclone::read(&global, record, detail.handle_mut(), CanGc::from_cx(cx))?;
+            structuredclone::read(global, record, detail.handle_mut(), CanGc::from_cx(cx))?;
         }
         entry.set_detail(detail.handle());
 
@@ -90,13 +90,11 @@ impl PerformanceMark {
 }
 
 impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
-    #[expect(non_snake_case)]
     fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 
     // https://w3c.github.io/user-timing/#the-performancemark-constructor
-    #[expect(non_snake_case)]
     fn Constructor(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
