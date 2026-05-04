@@ -114,15 +114,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "accountable-refcell"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6afea9052e0b2d90e38572691d87194b2e5d8d6899b9b850b22aaab17e486252"
-dependencies = [
- "backtrace",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8076,7 +8067,6 @@ dependencies = [
 name = "servo-malloc-size-of"
 version = "0.2.0"
 dependencies = [
- "accountable-refcell",
  "app_units",
  "atomic_refcell",
  "content-security-policy",
@@ -8732,7 +8722,6 @@ dependencies = [
 name = "servo-script-bindings"
 version = "0.2.0"
 dependencies = [
- "accountable-refcell",
  "bitflags 2.11.1",
  "crossbeam-channel",
  "encoding_rs",

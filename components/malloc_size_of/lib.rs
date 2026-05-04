@@ -1109,12 +1109,6 @@ impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
     }
 }
 
-impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.borrow().size_of(ops)
-    }
-}
-
 impl MallocSizeOf for servo_arc::Arc<ComputedValues> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.conditional_size_of(ops)

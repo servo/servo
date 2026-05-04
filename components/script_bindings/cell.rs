@@ -5,11 +5,8 @@
 //! A shareable mutable container for the DOM.
 
 use std::cell::{BorrowError, BorrowMutError};
-#[cfg(not(feature = "refcell_backtrace"))]
 pub use std::cell::{Ref, RefCell, RefMut};
 
-#[cfg(feature = "refcell_backtrace")]
-pub use accountable_refcell::{Ref, RefCell, RefMut};
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
 
