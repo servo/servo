@@ -42,7 +42,9 @@ impl PerformanceMark {
         // Step 1. If the current global object is a Window object and markName uses the same name
         // as a read only attribute in the PerformanceTiming interface, throw a SyntaxError.
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some(
+                "Read-only attribute cannot be used as a mark name".to_owned(),
+            )));
         }
 
         // Step 2 - 4. Note: These are handled by the PerformanceMark default constructor below.
@@ -94,7 +96,7 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
         retval.set(self.detail.get())
     }
 
-    // https://w3c.github.io/user-timing/#the-performancemark-constructor
+    /// <https://w3c.github.io/user-timing/#the-performancemark-constructor>
     fn Constructor(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
