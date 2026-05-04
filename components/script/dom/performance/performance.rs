@@ -41,7 +41,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-const INVALID_ENTRY_NAMES: &[&str] = &[
+pub(crate) const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
     "unloadEventStart",
     "unloadEventEnd",
@@ -192,6 +192,10 @@ impl Performance {
             global,
             can_gc,
         )
+    }
+
+    pub(crate) fn time_origin(&self) -> CrossProcessInstant {
+        self.time_origin
     }
 
     pub(crate) fn to_dom_high_res_time_stamp(
@@ -699,12 +703,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             let record = structuredclone::write(cx.into(), mark_options.detail.handle(), None)?;
 
             // Step 1.8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-            structuredclone::read(
-                &self.global(),
-                record,
-                detail.handle_mut(),
-                CanGc::from_cx(cx),
-            )?;
+            structuredclone::read(&global, record, detail.handle_mut(), CanGc::from_cx(cx))?;
         }
         entry.set_detail(detail.handle());
 
