@@ -86,7 +86,7 @@ pub(crate) struct GPUBuffer {
     #[conditional_malloc_size_of]
     pending_map: DomRefCell<Option<Rc<Promise>>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
-    mapping: DomRefCell<Option<ActiveBufferMapping>>,
+    mapping: DomRefCell<Option<RootedTraceableBox<ActiveBufferMapping>>>,
 }
 
 impl GPUBuffer {
@@ -96,7 +96,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<ActiveBufferMapping>,
+        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
         label: USVString,
     ) -> Self {
         Self {
@@ -120,7 +120,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<ActiveBufferMapping>,
+        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
         label: USVString,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -165,8 +165,10 @@ impl GPUBuffer {
 
         let buffer = WebGPUBuffer(id);
         let mapping = if descriptor.mappedAtCreation {
-            ActiveBufferMapping::new(GPUMapModeConstants::WRITE, 0..descriptor.size)?
-                .map(|m| *m.into_box())
+            Some(ActiveBufferMapping::new(
+                GPUMapModeConstants::WRITE,
+                0..descriptor.size,
+            )?)
         } else {
             None
         };
@@ -420,8 +422,7 @@ impl GPUBuffer {
                 HostMap::Write => GPUMapModeConstants::WRITE,
             },
             wgpu_mapping.range,
-        )
-        .map(|m| *m.into_box())?;
+        );
 
         match mapping {
             Err(error) => {
