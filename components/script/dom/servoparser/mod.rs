@@ -1544,6 +1544,9 @@ impl FetchResponseListener for ParserContext {
             parser.document.set_redirect_count(timing.redirect_count);
             parser.document.set_redirect_start(timing.redirect_start);
             parser.document.set_redirect_end(timing.redirect_end);
+            parser
+                .document
+                .set_secure_connection_start(timing.secure_connection_start);
         }
 
         parser.last_chunk_received.set(true);
