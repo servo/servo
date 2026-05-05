@@ -79,5 +79,5 @@ jobs:
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         env:
-         - CI_PULL_REQUEST_BODY: ${{ github.event.issue.pull_request.body }}
+          CI_PULL_REQUEST_BODY: ${{ github.event.issue.pull_request.body }}
         run: ./mach test-tidy --no-progress --all --github-annotations
