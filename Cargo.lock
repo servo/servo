@@ -8565,6 +8565,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "memmap2",
+ "ndk",
  "num-traits",
  "objc2 0.6.4",
  "objc2-core-foundation",
