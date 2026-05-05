@@ -915,14 +915,16 @@ struct InitiatingScriptFetchInfo {
 }
 
 #[expect(unsafe_code)]
+/// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
 fn active_script_fetch_info(cx: &mut JSContext, global: &GlobalScope) -> InitiatingScriptFetchInfo {
     rooted!(&in(cx) let mut value = UndefinedValue());
     unsafe { JS_GetScriptedCallerPrivate(cx, value.handle_mut()) };
 
     let reference_private = value.handle().into_handle();
-    let initiating_script = unsafe { module_script_from_reference_private(&reference_private) };
 
     // Step 7. Let initiating script be the active script.
+    let initiating_script = unsafe { module_script_from_reference_private(&reference_private) };
+
     let (fetch_options, base_url) = match initiating_script {
         // Step 9.6.7. If initiating script is not null, then:
         Some(script) => (
@@ -932,7 +934,7 @@ fn active_script_fetch_info(cx: &mut JSContext, global: &GlobalScope) -> Initiat
                 cryptographic_nonce: script.options.cryptographic_nonce.clone(),
                 // integrity metadata is the empty string,
                 integrity_metadata: String::new(),
-                //  parser metadata is "not-parser-inserted",
+                // parser metadata is "not-parser-inserted",
                 parser_metadata: ParserMetadata::NotParserInserted,
                 // credentials mode is initiating script's fetch options's credentials mode,
                 credentials_mode: script.options.credentials_mode,
@@ -951,6 +953,7 @@ fn active_script_fetch_info(cx: &mut JSContext, global: &GlobalScope) -> Initiat
             global.api_base_url(),
         ),
     };
+
     InitiatingScriptFetchInfo {
         fetch_options,
         base_url,
