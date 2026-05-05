@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use fonts::FontContextWebFontMethods;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
@@ -13,7 +14,7 @@ use script_bindings::like::Setlike;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -36,24 +37,24 @@ pub(crate) struct FontFaceSet {
 }
 
 impl FontFaceSet {
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Self {
+    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: Promise::new(global, can_gc),
+            promise: Promise::new2(cx, global),
             set_entries: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
-            Box::new(FontFaceSet::new_inherited(global, can_gc)),
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(FontFaceSet::new_inherited(cx, global)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -74,11 +75,11 @@ impl FontFaceSet {
     }
 
     /// Fulfill the font ready promise, returning true if it was not already fulfilled beforehand.
-    pub(crate) fn fulfill_ready_promise_if_needed(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn fulfill_ready_promise_if_needed(&self, cx: &mut JSContext) -> bool {
         if self.promise.is_fulfilled() {
             return false;
         }
-        self.promise.resolve_native(self, can_gc);
+        self.promise.resolve_native(self, CanGc::from_cx(cx));
         true
     }
 
@@ -157,10 +158,15 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
-    fn Load(&self, _font: DOMString, _text: DOMString, can_gc: CanGc) -> Rc<Promise> {
+    fn Load(
+        &self,
+        cx: &mut js::context::JSContext,
+        _font: DOMString,
+        _text: DOMString,
+    ) -> Rc<Promise> {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
-        let promise = Promise::new(&self.global(), can_gc);
+        let promise = Promise::new2(cx, &self.global());
 
         // TODO: Step 3. Find the matching font faces from font face set using the font and text
         // arguments passed to the function, and let font face list be the return value (ignoring
