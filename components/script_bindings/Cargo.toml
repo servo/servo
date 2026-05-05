@@ -20,7 +20,6 @@ name = "script_bindings"
 path = "lib.rs"
 
 [dependencies]
-accountable-refcell = { workspace = true, optional = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 deny_public_fields = { workspace = true }
@@ -61,7 +60,6 @@ serde_json = { workspace = true }
 [features]
 bluetooth = []
 gamepad = []
-refcell_backtrace = ["accountable-refcell"]
 testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []

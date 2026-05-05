@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
@@ -26,7 +27,6 @@ use crate::dom::media::mediadeviceinfo::MediaDeviceInfo;
 use crate::dom::media::mediastream::MediaStream;
 use crate::dom::media::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
-use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -76,10 +76,10 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
-    fn EnumerateDevices(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn EnumerateDevices(&self, cx: &mut JSContext) -> Rc<Promise> {
         // Step 1.
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+        let mut realm = CurrentRealm::assert(cx);
+        let p = Promise::new_in_realm(&mut realm);
 
         // Step 2.
         // XXX These steps should be run in parallel.
@@ -96,19 +96,19 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
                     .map(|device| {
                         // XXX The media backend has no way to group devices yet.
                         MediaDeviceInfo::new(
+                            cx,
                             &self.global(),
                             &device.device_id,
                             device.kind.convert(),
                             &device.label,
                             "",
-                            can_gc,
                         )
                     })
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
 
-        p.resolve_native(&result_list, can_gc);
+        p.resolve_native(&result_list, CanGc::from_cx(cx));
 
         // Step 3.
         p
