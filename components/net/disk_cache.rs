@@ -65,7 +65,7 @@ impl DiskCache {
     /// Creates a new [`DiskCache`] if the preference if set.
     /// Creates the sqlite table if it does not exist and starts the db connection.
     /// TODO: Implement WAL and other sqlite pragma.
-    fn new() -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
+    pub(crate) fn new() -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         let disk_cache_path = pref!(network_http_disk_cache);
         if disk_cache_path.is_empty() {
             (None, MemoryCacheLifecycle::empty())
@@ -79,14 +79,14 @@ impl DiskCache {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
-            let Ok(table_exists) = db.table_exists(None, "disk_cache_table") else {
+            let Ok(table_exists) = db.table_exists(None, "disk_cache") else {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
             if !table_exists {
                 if let Err(e) = db.execute(
-                    "CREATE TABLE disk_cache_table (
-                key VARCHAR PRIMARY KEY,
+                    "CREATE TABLE disk_cache (
+                key TEXT PRIMARY KEY,
                 data BLOB NOT NULL,
                 size INTEGER NOT NULL,
                 insertion_timestamp INTEGER NOT NULL);",
@@ -131,36 +131,6 @@ impl DiskCache {
                 },
             )
         }
-    }
-
-    /// Create a [`DiskCache`] from the disk if enabled in preferences.
-    /// It is filled with all
-    /// the responses except `number_of_responses` which were read from the
-    /// [`DiskCache`] and then removed and returned for adding to the memory cache.
-    /// Currently unimplemented.
-    #[expect(clippy::type_complexity)]
-    pub(crate) fn maybe_from_disk(
-        _number_of_responses: usize,
-    ) -> (
-        Option<Arc<DiskCache>>,
-        MemoryCacheLifecycle,
-        Vec<(CacheKey, Vec<CachedResource>)>,
-    ) {
-        let (disk_cache, lifecycle) = DiskCache::new();
-
-        // Notice that CachedResponse have a duration which needs to be adjusted for restoring.
-        (disk_cache, lifecycle, vec![])
-    }
-
-    /// Stores the given responses to the disk cache, assuming the cache will not be used afterwards.
-    /// Currently not implemented
-    pub(crate) fn store_cache_to_disk<
-        T: Iterator<Item = (CacheKey, Arc<TokioRwLock<Vec<CachedResource>>>)>,
-    >(
-        &self,
-        _resources: T,
-    ) {
-        error!("Currently not implemented");
     }
 
     /// Restores a cache entry from the disk if it exists.

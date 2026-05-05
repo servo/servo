@@ -679,7 +679,6 @@ impl ResourceChannelManager {
                     servo_base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
                 }
                 self.resource_manager.exit();
-                http_state.http_cache.store_to_disk();
 
                 let _ = sender.send(());
                 return false;

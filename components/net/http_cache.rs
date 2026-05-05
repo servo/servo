@@ -175,7 +175,7 @@ impl Default for HttpCache {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle, cached_responses) = DiskCache::maybe_from_disk(size);
+        let (disk_cache, lifecycle) = DiskCache::new();
         let memory_cache = Cache::with(
             size,
             size as u64,
@@ -183,10 +183,6 @@ impl Default for HttpCache {
             DefaultHashBuilder::new(),
             lifecycle,
         );
-
-        for (key, value) in cached_responses {
-            memory_cache.insert(key, std::sync::Arc::new(TokioRwLock::new(value)));
-        }
 
         Self {
             entries: memory_cache,
@@ -941,15 +937,6 @@ impl HttpCache {
             }
         } else {
             CachedResourcesOrGuard::Guard(guard)
-        }
-    }
-
-    /// Stores the http cache to disk if enabled.
-    /// This will consume the in memory cache.
-    #[servo_tracing::instrument(skip(self))]
-    pub fn store_to_disk(&self) {
-        if let Some(disk_cache) = &self.disk_cache {
-            disk_cache.store_cache_to_disk(self.entries.drain())
         }
     }
 }
