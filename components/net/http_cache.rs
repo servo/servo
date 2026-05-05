@@ -146,6 +146,13 @@ type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
     MemoryCacheLifecycle,
 >;
 
+/// Is this state assigned to the private or public side.
+#[derive(Debug, MallocSizeOf, PartialEq)]
+pub(crate) enum HttpCacheAssignment {
+    Public,
+    Private,
+}
+
 /// A simple memory cache.
 /// Elements will be evicted based on the cache heuristic. We weight elements
 /// by the number of entries per given url. We evict currently a whole url.
@@ -170,12 +177,12 @@ impl MallocSizeOf for HttpCache {
     }
 }
 
-impl Default for HttpCache {
-    fn default() -> Self {
+impl HttpCache {
+    pub(crate) fn new(assignment: HttpCacheAssignment) -> Self {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle) = DiskCache::new();
+        let (disk_cache, lifecycle) = DiskCache::new(assignment);
         let memory_cache = Cache::with(
             size,
             size as u64,

@@ -9,13 +9,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use rusqlite::Row;
-use sea_query::{Expr, ExprTrait, Iden, Query, SqliteQueryBuilder};
+use sea_query::{ColumnDef, Expr, ExprTrait, Iden, Query, SqliteQueryBuilder, Table};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
-use crate::http_cache::{CacheEntry, CacheKey, CachedResource, MemoryCacheLifecycle};
+use crate::http_cache::{
+    CacheEntry, CacheKey, CachedResource, HttpCacheAssignment, MemoryCacheLifecycle,
+};
 
 #[derive(MallocSizeOf)]
 pub(crate) struct DiskCacheMetadata {
@@ -34,12 +36,16 @@ impl From<&Row<'_>> for DiskCacheMetadata {
     }
 }
 
+/// This data structure will be per [`HttpCacheAssignment`]. Currently, we only store HttpCacheAssignment::Public and otherwise return zero.
+/// As this data structure stores the state of the cache, if other instances share the same sqlite database, special care has to be taken
+/// to ensure conistency.
 #[derive(MallocSizeOf)]
 struct DiskCacheInner {
     entries: VecDeque<DiskCacheMetadata>,
     size: usize,
     #[ignore_malloc_size_of = "Find a better way"]
     db: rusqlite::Connection,
+    cache_assignment: HttpCacheAssignment,
 }
 
 #[derive(MallocSizeOf)]
@@ -77,9 +83,12 @@ impl DiskCache {
     /// Creates a new [`DiskCache`] if the preference if set.
     /// Creates the sqlite table if it does not exist and starts the db connection.
     /// TODO: Implement WAL and other sqlite pragma.
-    pub(crate) fn new() -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
+    pub(crate) fn new(
+        cache_assignment: HttpCacheAssignment,
+    ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         let disk_cache_path = pref!(network_http_disk_cache);
-        if disk_cache_path.is_empty() {
+        // For private browsing we currently do not want to store any disk cache.
+        if disk_cache_path.is_empty() || cache_assignment == HttpCacheAssignment::Private {
             (None, MemoryCacheLifecycle::empty())
         } else {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
@@ -91,22 +100,27 @@ impl DiskCache {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
-            let Ok(table_exists) = db.table_exists(None, "disk_cache") else {
+            let _ = db.execute("PRAGMA journal_mode = WAL;", ());
+            let query = Table::create()
+                .table(DiskCacheTable::Table)
+                .if_not_exists()
+                .col(
+                    ColumnDef::new(DiskCacheTable::Key)
+                        .text()
+                        .not_null()
+                        .primary_key(),
+                )
+                .col(ColumnDef::new(DiskCacheTable::Data).blob().not_null())
+                .col(ColumnDef::new(DiskCacheTable::Size).integer().not_null())
+                .col(
+                    ColumnDef::new(DiskCacheTable::InsertionTimestamp)
+                        .integer()
+                        .not_null(),
+                )
+                .build(SqliteQueryBuilder);
+            if let Err(e) = db.execute(query.as_str(), ()) {
+                error!("Could not create table. DB Error {:?}", e);
                 return (None, MemoryCacheLifecycle::empty());
-            };
-
-            if !table_exists {
-                if let Err(e) = db.execute(
-                    "CREATE TABLE disk_cache (
-                key TEXT PRIMARY KEY,
-                data BLOB NOT NULL,
-                size INTEGER NOT NULL,
-                insertion_timestamp INTEGER NOT NULL);",
-                    [],
-                ) {
-                    error!("Could not create table. DB Error {:?}", e);
-                    return (None, MemoryCacheLifecycle::empty());
-                }
             }
 
             let (query, values) = Query::select()
@@ -119,7 +133,6 @@ impl DiskCache {
                     error!("Could not get disk data");
                     return (None, MemoryCacheLifecycle::empty());
                 };
-
                 let entries = st
                     .query_map(&*values.as_params(), |row| Ok(DiskCacheMetadata::from(row)))
                     .unwrap()
@@ -129,7 +142,12 @@ impl DiskCache {
                 let size = entries.iter().map(|entry| entry.size).sum();
                 (entries, size)
             };
-            let inner = DiskCacheInner { entries, size, db };
+            let inner = DiskCacheInner {
+                entries,
+                size,
+                db,
+                cache_assignment,
+            };
             let disk_cache_data = std::sync::Arc::new(DiskCache {
                 inner: TokioMutex::new(inner),
                 path: disk_cache_path,
