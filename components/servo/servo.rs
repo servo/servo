@@ -1007,6 +1007,9 @@ impl Servo {
     ///   - Performs updates in `Paint`, such as queued pinch zoom events
     ///   - Runs delegate methods on all `WebView`s and `Servo` itself
     ///   - Maybe update the rendered `Paint` output, but *without* swapping buffers.
+    ///
+    /// The return value of this method indicates whether or not Servo, false indicates that Servo
+    /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
         self.0.spin_event_loop()
     }
