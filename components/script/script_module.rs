@@ -1458,11 +1458,8 @@ fn fetch_the_descendants_and_link_module_script(
         CanGc::from_cx(cx),
     );
 
-    let in_realm_proof = cx.into();
-    let comp = InRealm::Already(&in_realm_proof);
-
     run_a_callback::<DomTypeHolder, _>(global, || {
-        loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        loading_promise.append_native_handler(cx, &handler);
     });
 }
 
@@ -1521,9 +1518,6 @@ pub(crate) fn fetch_a_single_module_script(
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
 
-    let in_realm_proof = cx.into();
-    let comp = InRealm::Already(&in_realm_proof);
-
     run_a_callback::<DomTypeHolder, _>(global, || {
         let has_pending_fetch = pending.borrow().is_some();
 
@@ -1532,7 +1526,7 @@ pub(crate) fn fetch_a_single_module_script(
         // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
         // then queue a task on the networking task source to proceed with running the following steps.
         if has_pending_fetch {
-            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            promise.append_native_handler(cx, &handler);
 
             // Append an handler to the existing pending fetch, once resolved it will queue a task
             // to run onComplete.
@@ -1546,13 +1540,13 @@ pub(crate) fn fetch_a_single_module_script(
             // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
             let pending_promise = pending.borrow_mut().take();
             if let Some(promise) = pending_promise {
-                promise.append_native_handler(&continue_loading_handler, comp, CanGc::from_cx(cx));
+                promise.append_native_handler(cx, &continue_loading_handler);
                 let _ = pending.borrow_mut().insert(promise);
             }
             return;
         }
 
-        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        promise.append_native_handler(cx, &handler);
 
         let prev = pending.borrow_mut().replace(promise);
         assert!(prev.is_none());

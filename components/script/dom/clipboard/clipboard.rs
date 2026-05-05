@@ -28,7 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
@@ -233,11 +233,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        representation
-            .data
-            .append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        representation.data.append_native_handler(cx, &handler);
 
         // Step 3.4.2 Reject p with "NotFoundError" DOMException in realm.
         // Step 3.4.3 Return p.

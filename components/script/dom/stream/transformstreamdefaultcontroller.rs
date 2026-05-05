@@ -38,7 +38,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{DecompressionStream, TransformStream};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for TransformTransformPromiseRejection {}
@@ -196,9 +196,7 @@ impl TransformStreamDefaultController {
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        transform_promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        transform_promise.append_native_handler(realm, &handler);
 
         Ok(transform_promise)
     }

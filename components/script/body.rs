@@ -295,9 +295,7 @@ impl TransmitBodyConnectHandler {
 
                 let mut realm = enter_auto_realm(cx, &*global);
                 let realm = &mut realm.current_realm();
-                let in_realm_proof = realm.into();
-                let comp = InRealm::Already(&in_realm_proof);
-                promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+                promise.append_native_handler(realm, &handler);
             })
         );
     }

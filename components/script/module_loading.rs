@@ -33,7 +33,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
@@ -383,27 +383,23 @@ fn continue_dynamic_import(
                 Some(Box::new(OnRejectedHandler { promise: inner_promise })),
                 CanGc::from_cx(cx),
             );
-            let in_realm_proof = cx.into();
-            let in_realm = InRealm::Already(&in_realm_proof);
-            evaluate_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(cx));
+            evaluate_promise.append_native_handler(cx, &handler);
 
             // g. Return unused.
         }),
     ));
 
     let mut realm = enter_auto_realm(cx, &*global);
-    let mut realm = realm.current_realm();
+    let cx = &mut realm.current_realm();
     run_a_callback::<DomTypeHolder, _>(&*global, || {
         // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
         let handler = PromiseNativeHandler::new(
             &global,
             Some(link_and_evaluate),
             Some(Box::new(OnRejectedHandler { promise })),
-            CanGc::from_cx(&mut realm),
+            CanGc::from_cx(cx),
         );
-        let in_realm_proof = (&mut realm).into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-        load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
+        load_promise.append_native_handler(cx, &handler);
     });
     // Step 9. Return unused.
 }

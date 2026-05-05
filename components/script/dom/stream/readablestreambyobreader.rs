@@ -36,7 +36,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
@@ -394,12 +394,10 @@ impl ReadableStreamBYOBReader {
 
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            .append_native_handler(cx, &handler);
     }
 }
 

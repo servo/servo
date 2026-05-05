@@ -15,7 +15,6 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::cell::DomRefCell;
-use script_bindings::realms::InRealm;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::TransformStreamData;
 
@@ -110,9 +109,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
 
         let mut realm = enter_auto_realm(cx, &*self.writable.global());
         let realm = &mut realm.current_realm();
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        transform_result.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        transform_result.append_native_handler(realm, &handler);
     }
 }
 
@@ -697,12 +694,10 @@ impl TransformStream {
             );
             let mut realm = enter_auto_realm(cx, global);
             let realm = &mut realm.current_realm();
-            let in_realm_proof = realm.into();
-            let comp = InRealm::Already(&in_realm_proof);
             backpressure_change_promise
                 .as_ref()
                 .expect("Promise must be some by now.")
-                .append_native_handler(&handler, comp, CanGc::from_cx(realm));
+                .append_native_handler(realm, &handler);
 
             return Ok(result_promise);
         }
@@ -754,9 +749,7 @@ impl TransformStream {
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        cancel_promise.append_native_handler(cx, &handler);
 
         // Return controller.[[finishPromise]].
         let finish_promise = controller
@@ -813,9 +806,7 @@ impl TransformStream {
 
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        flush_promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        flush_promise.append_native_handler(realm, &handler);
         // Return controller.[[finishPromise]].
         let finish_promise = controller
             .get_finish_promise()
@@ -879,9 +870,7 @@ impl TransformStream {
             .expect("finish promise is not set");
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        cancel_promise.append_native_handler(cx, &handler);
         Ok(finish_promise)
     }
 

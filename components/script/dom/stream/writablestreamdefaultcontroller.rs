@@ -30,7 +30,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{AbortController, AbortSignal, TransformStream};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
@@ -507,10 +507,7 @@ impl WritableStreamDefaultController {
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        start_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        start_promise.append_native_handler(cx, &handler);
 
         Ok(())
     }
@@ -724,13 +721,11 @@ impl WritableStreamDefaultController {
                 );
                 let mut realm = enter_auto_realm(cx, global);
                 let realm = &mut realm.current_realm();
-                let in_realm_proof = realm.into();
-                let comp = InRealm::Already(&in_realm_proof);
                 backpressure_promise
                     .borrow()
                     .as_ref()
                     .expect("Promise must be some by now.")
-                    .append_native_handler(&handler, comp, CanGc::from_cx(realm));
+                    .append_native_handler(realm, &handler);
                 result_promise
             },
             UnderlyingSinkType::Transform(stream, _) => {
@@ -836,9 +831,7 @@ impl WritableStreamDefaultController {
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        sink_close_promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        sink_close_promise.append_native_handler(realm, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
@@ -930,9 +923,7 @@ impl WritableStreamDefaultController {
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        sink_write_promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        sink_write_promise.append_native_handler(realm, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-desired-size>

@@ -32,7 +32,7 @@ use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::types::ReadableStreamDefaultController;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, &[u8]);
@@ -168,10 +168,7 @@ impl ReadRequest {
 
                         let mut realm = enter_auto_realm(cx, &*global);
                         let cx = &mut realm.current_realm();
-                        let in_realm_proof = cx.into();
-                        let comp = InRealm::Already(&in_realm_proof);
-
-                        tick.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+                        tick.append_native_handler(cx, &handler);
                     },
                     Err(err) => {
                         // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
@@ -546,12 +543,10 @@ impl ReadableStreamDefaultReader {
 
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            .append_native_handler(cx, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
@@ -584,12 +579,10 @@ impl ReadableStreamDefaultReader {
 
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            .append_native_handler(cx, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>

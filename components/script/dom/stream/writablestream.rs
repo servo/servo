@@ -338,9 +338,7 @@ impl WritableStream {
 
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
-            let in_realm_proof = cx.into();
-            let comp = InRealm::Already(&in_realm_proof);
-            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            promise.append_native_handler(cx, &handler);
         }
     }
 

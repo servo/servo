@@ -30,7 +30,6 @@ use crate::dom::blob::Blob;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
-use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
@@ -297,20 +296,14 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                 });
                 let rejection_handler =
                     Box::new(RepresentationDataPromiseRejectionHandler { promise: p.clone() });
-                let in_realm_proof = realm.into();
-                let comp = InRealm::Already(&in_realm_proof);
+
                 let handler = PromiseNativeHandler::new(
                     &global,
                     Some(fulfillment_handler),
                     Some(rejection_handler),
                     CanGc::from_cx(realm),
                 );
-
-                representation_data_promise.append_native_handler(
-                    &handler,
-                    comp,
-                    CanGc::from_cx(realm),
-                );
+                representation_data_promise.append_native_handler(realm, &handler);
 
                 // Step 8.1.3 Return p.
                 return Ok(p);

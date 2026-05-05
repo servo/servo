@@ -22,16 +22,17 @@ use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
     JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject,
-    NewFunctionWithReserved, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
+    PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
-    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
-    ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
+    CallOriginalPromiseReject, CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState,
+    IsPromiseObject, NewPromiseObject, RejectPromise, ResolvePromise, SetAnyPromiseIsHandled,
+    SetPromiseUserInputEventHandlingState,
 };
+use js::rust::wrappers2::{AddPromiseReactions, NewFunctionWithReserved};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::settings_stack::run_a_script;
@@ -285,27 +286,26 @@ impl Promise {
     #[expect(unsafe_code)]
     pub(crate) fn append_native_handler(
         &self,
+        cx: &mut CurrentRealm,
         handler: &PromiseNativeHandler,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
-        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let resolve_func =
-                create_native_handler_function(*cx,
-                                               handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Resolve,
-                                               can_gc));
+        let in_realm_proof = cx.into();
+        let realm = InRealm::Already(&in_realm_proof);
 
-            rooted!(in(*cx) let reject_func =
-                create_native_handler_function(*cx,
+        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
+            rooted!(&in(cx) let resolve_func =
+                create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Reject,
-                                               can_gc));
+                                               NativeHandlerTask::Resolve));
+
+            rooted!(&in(cx) let reject_func =
+                create_native_handler_function(cx,
+                                               handler.reflector().get_jsobject(),
+                                               NativeHandlerTask::Reject));
 
             unsafe {
                 let ok = AddPromiseReactions(
-                    *cx,
+                    cx,
                     self.promise_obj(),
                     resolve_func.handle(),
                     reject_func.handle(),
@@ -390,19 +390,16 @@ unsafe extern "C" fn native_handler_callback(
 }
 
 #[expect(unsafe_code)]
-// The apparently-unused CanGc argument reflects the fact that the JS API calls
-// like NewFunctionWithReserved can trigger a GC.
 fn create_native_handler_function(
-    cx: *mut RawJSContext,
+    cx: &mut JSContext,
     holder: HandleObject,
     task: NativeHandlerTask,
-    _can_gc: CanGc,
 ) -> *mut JSObject {
     unsafe {
         let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
         assert!(!func.is_null());
 
-        rooted!(in(cx) let obj = JS_GetFunctionObject(func));
+        rooted!(&in(cx) let obj = JS_GetFunctionObject(func));
         assert!(!obj.is_null());
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER, &ObjectValue(*holder));
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
@@ -615,10 +612,7 @@ fn wait_for_all(
             Some(Box::new(rejection_handler.clone())),
             CanGc::from_cx(cx),
         );
-
-        let in_realm_proof = cx.into();
-        let realm = InRealm::Already(&in_realm_proof);
-        promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+        promise.append_native_handler(cx, &handler);
 
         // Set index to index + 1.
         // Note: done above with `enumerate`.

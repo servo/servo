@@ -61,7 +61,7 @@ use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::{enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
@@ -371,9 +371,6 @@ impl PipeTo {
     /// Wait for the writer to be ready,
     /// which implements the constraint that backpressure must be enforced.
     fn wait_for_writer_ready(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
-        let realm = cx.into();
-        let realm = InRealm::Already(&realm);
-
         {
             let mut state = self.state.borrow_mut();
             *state = PipeToState::PendingReady;
@@ -389,21 +386,18 @@ impl PipeTo {
                 Some(Box::new(self.clone())),
                 CanGc::from_cx(cx),
             );
-            ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+            ready_promise.append_native_handler(cx, &handler);
 
             // Note: if the writer is not ready,
             // in order to ensure progress we must
             // also react to the closure of the source(because source may close empty).
             let closed_promise = self.reader.Closed();
-            closed_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+            closed_promise.append_native_handler(cx, &handler);
         }
     }
 
     /// Read a chunk
     fn read_chunk(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
-        let realm = cx.into();
-        let realm = InRealm::Already(&realm);
-
         *self.state.borrow_mut() = PipeToState::PendingRead;
         let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
@@ -412,12 +406,12 @@ impl PipeTo {
             Some(Box::new(self.clone())),
             CanGc::from_cx(cx),
         );
-        chunk_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+        chunk_promise.append_native_handler(cx, &handler);
 
         // Note: in order to ensure progress we must
         // also react to the closure of the destination.
         let ready_promise = self.writer.Closed();
-        ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+        ready_promise.append_native_handler(cx, &handler);
     }
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
@@ -461,16 +455,13 @@ impl PipeTo {
         global: &GlobalScope,
         promise: Rc<Promise>,
     ) {
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
             CanGc::from_cx(cx),
         );
-        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        promise.append_native_handler(cx, &handler);
     }
 
     /// Errors must be propagated forward part of
@@ -651,8 +642,6 @@ impl PipeTo {
     /// The perform action part of
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
     fn perform_action(&self, cx: &mut CurrentRealm, global: &GlobalScope, action: ShutdownAction) {
-        let realm = cx.into();
-        let realm = InRealm::Already(&realm);
         rooted!(&in(cx) let mut error = UndefinedValue());
         if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
             error.set(shutdown_error.get());
@@ -735,7 +724,7 @@ impl PipeTo {
             Some(Box::new(self.clone())),
             CanGc::from_cx(cx),
         );
-        promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
+        promise.append_native_handler(cx, &handler);
         *self.shutdown_action_promise.borrow_mut() = Some(promise);
     }
 
@@ -1646,9 +1635,7 @@ impl ReadableStream {
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        source_cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        source_cancel_promise.append_native_handler(cx, &handler);
 
         // Return the result of reacting to sourceCancelPromise
         // with a fulfillment step that returns undefined.

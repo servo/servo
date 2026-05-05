@@ -1069,11 +1069,9 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             reject.map(SimpleHandler::new_boxed),
             CanGc::from_cx(realm),
         );
-        let p = Promise::new_in_realm(realm);
 
-        let in_realm_proof = realm.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        p.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+        let p = Promise::new_in_realm(realm);
+        p.append_native_handler(realm, &handler);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
