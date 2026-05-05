@@ -73,14 +73,6 @@ addEventListener("addDebuggee", event => {
 });
 
 
-// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
-const previewers = {
-    Function: [],
-    Array: [],
-    Object: [],
-    // TODO: Add Map, FormData etc
-};
-
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
 function createValueGrip(value, depth = 0) {
@@ -166,8 +158,11 @@ function extractOwnProperties(obj, depth) {
     return { ownProperties, ownPropertiesLength: totalLength };
 }
 
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
+const previewers = {};
+
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
-previewers.Function.push(function FunctionPreviewer(obj, depth) {
+previewers.Function = [ function FunctionPreviewer(obj, depth) {
     const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     let function_details = {
         name: obj.name,
@@ -187,10 +182,10 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
         ownPropertiesLength,
         function: function_details
     };
-});
+} ];
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
-previewers.Array.push(function ArrayPreviewer(obj, depth) {
+previewers.Array = [ function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const length = lengthDescriptor ? lengthDescriptor.value : 0;
 
@@ -220,11 +215,11 @@ previewers.Array.push(function ArrayPreviewer(obj, depth) {
         arrayLength: length,
         items: items,
     };
-});
+} ];
 
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
-previewers.Object.push(function ObjectPreviewer(obj, depth) {
+previewers.Object = [ function ObjectPreviewer(obj, depth) {
     const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
 
     if (depth > 1) {
@@ -236,7 +231,7 @@ previewers.Object.push(function ObjectPreviewer(obj, depth) {
         ownProperties,
         ownPropertiesLength,
     };
-});
+} ];
 
 function getPreview(obj, depth) {
     const className = obj.class;
