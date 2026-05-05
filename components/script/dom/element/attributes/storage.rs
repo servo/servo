@@ -271,7 +271,6 @@ impl AttributeStorage {
     }
 
     /// Remove an attribute by index, returning the entry.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn remove(&self, index: usize) -> AttributeEntry {
         self.0.borrow_mut().remove(index)
     }
