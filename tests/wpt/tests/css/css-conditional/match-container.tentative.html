@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<title>Element.matchContainer</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13551">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .size-container {
+    container-type: inline-size;
+  }
+  .style-container {
+    container-name: style-container;
+  }
+</style>
+<div id="root"></div>
+<script>
+function createTestElement(html) {
+  document.getElementById("root").innerHTML = html;
+  return document.getElementById("root").firstElementChild;
+}
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let qMatches = target.matchContainer("(width: 200px)");
+  assert_true(qMatches.matches, "Exact width should match.");
+  let qLess = target.matchContainer("(width < 100px)");
+  assert_false(qLess.matches, "Target width is 200px, so < 100px should not match.");
+  let qGreater = target.matchContainer("(width > 100px)");
+  assert_true(qGreater.matches, "Target width is 200px, so > 100px should match.");
+}, "Element.matchContainer correctly matches the size of its container query.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let invalidContainerQuery = target.matchContainer("(invalid-feature)");
+  assert_false(invalidContainerQuery.matches,
+    "matchContainer with invalid query should not match.");
+}, "Element.matchContainer handles an invalid query.");
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let syntaxError = target.matchContainer("???");
+  assert_false(syntaxError.matches,
+    "matchContainer with syntax error should not match.");
+  let emptyQuery = target.matchContainer("");
+  assert_false(emptyQuery.matches,
+    "matchContainer with empty string should not match.");
+}, "Element.matchContainer handles syntax errors and empty queries.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Initially matches at 200px.");
+  container.style.width = "50px";
+  assert_false(q.matches, "Should flip to false after shrinking below 100px.");
+  container.style.width = "300px";
+  assert_true(q.matches, "Should flip back to true after growing above 100px.");
+}, "Element.matchContainer .matches reflects container size changes dynamically.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" id="displaycase" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Initially matches.");
+  target.style.display = "none";
+  assert_true(q.matches,
+    "display:none target still resolves to its container; matches the " +
+    "container's preserved width. (Mirrors @container rule semantics, " +
+    "which evaluate for display:none descendants — required for the " +
+    "@container { display: none } toggle pattern to work.)");
+  target.style.display = "block";
+  assert_true(q.matches, "Still matches after re-display.");
+}, "Element.matchContainer .matches still evaluates when target is display:none.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Initially matches while in tree.");
+  target.remove();
+  assert_false(q.matches,
+    "Removed target has no container; should not match.");
+  container.appendChild(target);
+  assert_true(q.matches, "Re-inserted target should match again.");
+}, "Element.matchContainer .matches updates when the target is removed from and re-inserted into the dom tree.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="style-container" style="--my-prop: foo">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  assert_true(target.matchContainer("style(--my-prop: foo)").matches,
+    "Style query for matching custom property should match.");
+  assert_false(target.matchContainer("style(--my-prop: bar)").matches,
+    "Style query for non-matching custom property should not match.");
+  assert_false(target.matchContainer("style(--missing: foo)").matches,
+    "Style query for unset custom property should not match.");
+}, "Element.matchContainer matches style queries on a style container.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="style-container" style="--my-prop: foo">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("style(--my-prop: foo)");
+  assert_true(q.matches, "Initially matches.");
+  container.style.setProperty("--my-prop", "bar");
+  assert_false(q.matches, "Should flip to false after style change.");
+  container.style.setProperty("--my-prop", "foo");
+  assert_true(q.matches, "Should flip back to true after restoring value.");
+}, "Element.matchContainer .matches reflects custom property changes on the style container dynamically.");
+</script>

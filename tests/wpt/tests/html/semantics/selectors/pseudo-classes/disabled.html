@@ -76,5 +76,5 @@
     </fieldset>
   `;
   document.getElementById("fieldset2").appendChild(fieldset);
-  testSelectorIdsMatch("#fieldset2 :disabled", ["clubname", "clubnum", "fieldset_nested", "input_nested", "button_nested", "select_nested", "textarea_nested", "fieldset_nested2", "input_nested2"], "':disabled' should match elements that are appended to a disabled fieldset dynamically");
+  testSelectorIdsMatch("#fieldset2 :disabled", ["clubname", "clubnum", "fieldset_nested", "input_nested", "button_nested", "select_nested", "optgroup_nested", "option_nested", "textarea_nested", "fieldset_nested2", "input_nested2"], "':disabled' should match elements that are appended to a disabled fieldset dynamically");
 </script>

@@ -40,8 +40,8 @@ promise_test(async t => {
     ["navigate", "", null],
     ["currententrychange", "#1", { from, navigationType: "push" }],
     ["handler run", "#1", { from, navigationType: "push" }],
-    ["promise microtask", "#1", { from, navigationType: "push" }],
     ["navigatesuccess", "#1", { from, navigationType: "push" }],
+    ["promise microtask", "#1", null],
     ["transition.finished fulfilled", "#1", null],
   ]);
 }, "event and promise ordering for <a download> intercepted by intercept()");

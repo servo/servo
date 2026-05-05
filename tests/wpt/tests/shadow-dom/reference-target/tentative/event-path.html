@@ -524,6 +524,177 @@ promise_test(async (t) => {
 }, "toggle event propagates to source's shadow tree only; target in deeper shadow root");
 </script>
 
+<x-component id="outerI">
+<template shadowRootMode="open">
+    <button id="button" type="submit" form="middleI">Submit</button>
+    <x-component id="middleI">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerI">
+        <x-component id="innerI">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetForm">
+            <form id="targetForm"></form>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerI = document.getElementById("outerI");
+    const button = outerI.shadowRoot.getElementById("button");
+    const middleI = outerI.shadowRoot.getElementById("middleI");
+    const innerI = middleI.shadowRoot.getElementById("innerI");
+    const targetForm = innerI.shadowRoot.getElementById("targetForm");
+    let targetFormSubmitEventCount = 0;
+    let middleISubmitEventCount = 0;
+
+    outerI.addEventListener("submit", (e) => {
+        assert_unreached("submit event should not fire on outer component.");
+    }, {once: true});
+
+    innerI.addEventListener("submit", (e) => {
+        assert_unreached("submit event should not fire on inner component.");
+    }, {once: true});
+
+    targetForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        targetFormSubmitEventCount++;
+        assert_true(e instanceof SubmitEvent);
+        assert_equals(e.target, targetForm,
+                "target for event listener on targetForm is targetForm");
+        assert_equals(e.submitter, button,
+                "submitter for event listener on targetForm is button");
+    }, {once: true});
+
+    middleI.addEventListener("submit", (e) => {
+        middleISubmitEventCount++;
+        assert_true(e instanceof SubmitEvent);
+        assert_equals(e.target, middleI,
+                "target for event listener on middleI is middleI");
+        assert_equals(e.submitter, button,
+                "submitter for event listener on middleI is button");
+    }, {once: true});
+
+    button.click();
+    assert_equals(targetFormSubmitEventCount, 1, "submit handler on targetForm should have been called");
+    assert_equals(middleISubmitEventCount, 1, "submit handler on middleI should have been called");
+}, "submit event propagates to submitter's shadow tree only; target in deeper shadow root");
+</script>
+
+<x-component id="outerJ">
+<template shadowRootMode="open">
+    <style>
+        button {
+            interest-delay: 0s;
+        }
+    </style>
+    <button id="button" interestfor="middleJ">Interest</button>
+    <x-component id="middleJ">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerJ">
+        <x-component id="innerJ">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+            <div id="targetDiv"></div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+<button id="otherFocusTarget">Other</button>
+
+<script>
+function waitForRender() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+async function focusOn(element) {
+    element.focus();
+    await waitForRender();
+}
+
+promise_test(async (t) => {
+    const outerJ = document.getElementById("outerJ");
+    const button = outerJ.shadowRoot.getElementById("button");
+    const middleJ = outerJ.shadowRoot.getElementById("middleJ");
+    const innerJ = middleJ.shadowRoot.getElementById("innerJ");
+    const targetDiv = innerJ.shadowRoot.getElementById("targetDiv");
+    let targetDivInterestEventCount = 0;
+    let middleJInterestEventCount = 0;
+
+    outerJ.addEventListener("interest", (e) => {
+        assert_unreached("interest event should not fire on outer component.");
+    }, {once: true});
+
+    innerJ.addEventListener("interest", (e) => {
+        assert_unreached("interest event should not fire on inner component.");
+    }, {once: true});
+
+    targetDiv.addEventListener("interest", (e) => {
+        targetDivInterestEventCount++;
+        assert_true(e instanceof InterestEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+    }, {once: true});
+
+    middleJ.addEventListener("interest", (e) => {
+        middleJInterestEventCount++;
+        assert_true(e instanceof InterestEvent);
+        assert_equals(e.target, middleJ,
+                "target for event listener on middleJ is middleJ");
+        assert_equals(e.source, button,
+                "source for event listener on middleJ is button");
+    }, {once: true});
+
+    await focusOn(button);
+    assert_equals(targetDivInterestEventCount, 1, "interest handler on targetDiv should have been called");
+    assert_equals(middleJInterestEventCount, 1, "interest handler on middleJ should have been called");
+}, "interest event propagates to source's shadow tree only; target in deeper shadow root");
+
+promise_test(async (t) => {
+    const outerJ = document.getElementById("outerJ");
+    const button = outerJ.shadowRoot.getElementById("button");
+    const middleJ = outerJ.shadowRoot.getElementById("middleJ");
+    const innerJ = middleJ.shadowRoot.getElementById("innerJ");
+    const targetDiv = innerJ.shadowRoot.getElementById("targetDiv");
+    const otherFocusTarget = document.getElementById("otherFocusTarget");
+    let targetDivLoseInterestEventCount = 0;
+    let middleJLoseInterestEventCount = 0;
+
+    outerJ.addEventListener("loseinterest", (e) => {
+        assert_unreached("loseinterest event should not fire on outer component.");
+    }, {once: true});
+
+    innerJ.addEventListener("loseinterest", (e) => {
+        assert_unreached("loseinterest event should not fire on inner component.");
+    }, {once: true});
+
+    targetDiv.addEventListener("loseinterest", (e) => {
+        targetDivLoseInterestEventCount++;
+        assert_true(e instanceof InterestEvent);
+        assert_equals(e.target, targetDiv,
+                "target for loseinterest event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for loseinterest event listener on targetDiv is button");
+    }, {once: true});
+
+    middleJ.addEventListener("loseinterest", (e) => {
+        middleJLoseInterestEventCount++;
+        assert_true(e instanceof InterestEvent);
+        assert_equals(e.target, middleJ,
+                "target for loseinterest event listener on middleJ is middleJ");
+        assert_equals(e.source, button,
+                "source for loseinterest event listener on middleJ is button");
+    }, {once: true});
+
+    await focusOn(button);
+    await focusOn(otherFocusTarget);
+    assert_equals(targetDivLoseInterestEventCount, 1, "loseinterest handler on targetDiv should have been called");
+    assert_equals(middleJLoseInterestEventCount, 1, "loseinterest handler on middleJ should have been called");
+}, "loseinterest event propagates to source's shadow tree only; target in deeper shadow root");
+</script>
+
 </body>
 
 </html>

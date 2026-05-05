@@ -9,7 +9,7 @@ import { testFocusWasReset, testFocusWasNotReset } from "./resources/helpers.mjs
 
 testFocusWasReset(t => {
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept({ handler: () => new Promise(r => t.step_timeout(r, 0)) });
   }, { once: true });
 
   navigation.addEventListener("navigate", e => {
@@ -43,13 +43,13 @@ testFocusWasReset(t => {
   }, { once: true });
 
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept({ handler: () => new Promise(r => t.step_timeout(r, 0)) });
   }, { once: true });
 }, "after-transition + (not provided)");
 
 testFocusWasReset(t => {
   navigation.addEventListener("navigate", e => {
-    e.intercept({ focusReset: "manual" });
+    e.intercept({ handler: () => new Promise(r => t.step_timeout(r, 0)),  focusReset: "manual" });
   }, { once: true });
 
   navigation.addEventListener("navigate", e => {
