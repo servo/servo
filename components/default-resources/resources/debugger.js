@@ -95,7 +95,11 @@ function createValueGrip(value, depth = 0) {
         case "string":
             return { valueType: "string", stringValue: value };
         case "object":
+            // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#153>
             if (value === null) {
+                return { valueType: "null" };
+            }
+            if (value.optimizedOut || value.uninitialized || value.missingArguments) {
                 return { valueType: "null" };
             }
             // Debugger.Object - get preview using registered previewers
