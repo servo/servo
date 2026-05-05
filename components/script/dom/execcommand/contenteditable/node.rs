@@ -134,16 +134,48 @@ where
     let old_parent = node.GetParentNode();
     let old_index = node.index();
 
+    let selection = node
+        .owner_document()
+        .GetSelection(cx)
+        .expect("Must always have a selection");
+    let active_range = selection
+        .active_range()
+        .expect("Must always have an active range");
+
+    // Relevant only in the case where we have a single text node that is partially/fully selected.
+    // In that case, the spec algorithm would update the selection to the parent of the text node.
+    // However, this then breaks the algorithm to compute "effectively contained" nodes. To remedy
+    // that, we record the values here and reset them as part of step 2.
+    let end_offsets_if_previously_selected_single_text_node = if active_range.start_container() ==
+        active_range.end_container() &&
+        active_range.start_container().is::<Text>()
+    {
+        Some((active_range.start_offset(), active_range.end_offset()))
+    } else {
+        None
+    };
+
     if move_(cx).is_err() {
         unreachable!("Must always be able to move");
     }
 
-    let Some(selection) = node.owner_document().GetSelection(cx) else {
+    // Step 2. If a boundary point's node is the same as or a descendant of node, leave it unchanged,
+    // so it moves to the new location.
+    //
+    // From the spec:
+    // > This is actually implicit, but I state it anyway for completeness.
+    //
+    // However, this is not actually implicit. The caveat here are text nodes that are
+    // partially/fully selected. In these cases, we shouldn't update the offsets to the new parent,
+    // but instead retain them on the original text node. Therefore, if that's the case,
+    // update them here and immediately return.
+    if let Some((previous_start_offset, previous_end_offset)) =
+        end_offsets_if_previously_selected_single_text_node
+    {
+        active_range.set_start(node, previous_start_offset);
+        active_range.set_end(node, previous_end_offset);
         return;
-    };
-    let Some(active_range) = selection.active_range() else {
-        return;
-    };
+    }
 
     let new_parent = node.GetParentNode().expect("Must always have a new parent");
     let new_index = node.index();
@@ -152,11 +184,6 @@ where
     let mut start_offset = active_range.start_offset();
     let mut end_node = active_range.end_container();
     let mut end_offset = active_range.end_offset();
-
-    // Step 2. If a boundary point's node is the same as or a descendant of node, leave it unchanged, so it moves to the new location.
-    //
-    // From the spec:
-    // > This is actually implicit, but I state it anyway for completeness.
 
     // Step 3. If a boundary point's node is new parent and its offset is greater than new index, add one to its offset.
     if start_node == new_parent && start_offset > new_index {

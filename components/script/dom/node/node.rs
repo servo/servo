@@ -180,9 +180,10 @@ pub struct Node {
 
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if matches!(self.type_id(), NodeTypeId::Element(_)) {
-            let el = self.downcast::<Element>().unwrap();
-            el.fmt(f)
+        if let Some(element) = self.downcast::<Element>() {
+            element.fmt(f)
+        } else if let Some(character_data) = self.downcast::<CharacterData>() {
+            write!(f, "[Text({})]", character_data.data())
         } else {
             write!(f, "[Node({:?})]", self.type_id())
         }
