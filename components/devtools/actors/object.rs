@@ -59,7 +59,7 @@ pub(crate) struct ObjectPreview {
     pub items: Option<Vec<Value>>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FunctionPreview {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -85,6 +85,9 @@ pub(crate) struct ObjectActorMsg {
     extensible: bool,
     frozen: bool,
     sealed: bool,
+    #[serde(flatten)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    function: Option<FunctionPreview>,
     #[serde(skip_serializing_if = "Option::is_none")]
     preview: Option<ObjectPreview>,
 }
@@ -266,6 +269,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             extensible: true,
             frozen: false,
             sealed: false,
+            function: None,
             preview: None,
             own_property_length: None,
         };
@@ -284,6 +288,10 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             is_async: function.is_async,
             is_generator: function.is_generator,
         });
+
+        if self.class == "Function" {
+            msg.function = function.clone();
+        }
 
         let preview = ObjectPreview {
             kind: preview.kind.clone(),
