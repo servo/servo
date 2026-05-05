@@ -498,6 +498,45 @@ fn test_viewport_meta_tag_initial_scale() {
 }
 
 #[test]
+fn test_viewport_clamp_pinch_min_by_initial_scale() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let initial_scale: f64 = 1.0;
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                format!(
+                    "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale={}, minimum-scale=1.0\">",
+                    initial_scale
+                )
+                .as_str(),
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.adjust_pinch_zoom(0.5, DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
+}
+
+#[test]
 fn test_show_and_hide_ime() {
     let servo_test = ServoTest::new();
 
