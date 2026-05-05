@@ -46,11 +46,13 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone)] // FIXME: Debug trait was removed. May need to put this back later.
+#[derive(Clone)] // NB: Debug trait previously exists, but is now removed.
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
     pub(crate) language: Language,
+    #[allow(dead_code)]
+    // For now, this field is only used on Android platform, so this attribute is added.
     pub(crate) preferred_font_family: SmallVec<[FontGroupFamily; 8]>,
 }
 
