@@ -2666,7 +2666,9 @@ impl Handler {
         }
         Err(WebDriverError::new(
             ErrorStatus::Timeout,
-            "Timed out waiting for the top-level browsing context to be ready",
+            format!(
+                "Timed out waiting for the top-level browsing context {browsing_context_id} to be ready"
+            ),
         ))
     }
 
