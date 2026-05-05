@@ -952,28 +952,34 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-deletecontents>
     fn DeleteContents(&self, cx: &mut JSContext) -> ErrorResult {
-        // Step 1.
+        // Step 1. If this is collapsed, then return.
         if self.collapsed() {
             return Ok(());
         }
 
-        // Step 2.
+        // Step 2. Let originalStartNode, originalStartOffset, originalEndNode,
+        // and originalEndOffset be this’s start node, start offset, end node, and end offset, respectively.
         let start_node = self.start_container();
         let end_node = self.end_container();
         let start_offset = self.start_offset();
         let end_offset = self.end_offset();
 
-        // Step 3.
+        // Step 3. If originalStartNode is originalEndNode and it is a CharacterData node:
         if start_node == end_node {
             if let Some(text) = start_node.downcast::<CharacterData>() {
                 if end_offset > start_offset {
                     self.report_change();
                 }
+
+                // Step 3.1. Replace data of originalStartNode with originalStartOffset,
+                // originalEndOffset − originalStartOffset, and the empty string.
+                // Step 3.2. Return.
                 return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
             }
         }
 
-        // Step 4.
+        // Step 4. Let nodesToRemove be a list of all the nodes that are contained in this,
+        // in tree order, omitting any node whose parent is also contained in this.
         rooted_vec!(let mut contained_children);
         let ancestor = self.CommonAncestorContainer();
 
@@ -989,15 +995,21 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             }
         }
 
+        // Step 5. Let newNode and newOffset be null.
+        // Step 6. If originalStartNode is an inclusive ancestor of originalEndNode,
+        // then set newNode to originalStartNode and newOffset to originalStartOffset.
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
-            // Step 5.
             (DomRoot::from_ref(&*start_node), start_offset)
         } else {
-            // Step 6.
+            // Step 7. Otherwise:
             fn compute_reference(start_node: &Node, end_node: &Node) -> (DomRoot<Node>, u32) {
+                // Step 7.1. Let referenceNode be originalStartNode.
                 let mut reference_node = DomRoot::from_ref(start_node);
+                // Step 7.2. While referenceNode’s parent is non-null and
+                // is not an inclusive ancestor of originalEndNode: set referenceNode to its parent.
                 while let Some(parent) = reference_node.GetParentNode() {
                     if parent.is_inclusive_ancestor_of(end_node) {
+                        // Step 7.3. Set newNode to referenceNode’s parent and newOffset to referenceNode’s index + 1.
                         return (parent, reference_node.index() + 1);
                     }
                     reference_node = parent;
@@ -1008,7 +1020,13 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             compute_reference(&start_node, &end_node)
         };
 
-        // Step 7.
+        // Step 8. Set this’s start and end to (newNode, newOffset).
+        self.SetStart(&new_node, new_offset).unwrap();
+        self.SetEnd(&new_node, new_offset).unwrap();
+
+        // Step 9. If originalStartNode is a CharacterData node,
+        // then replace data of originalStartNode with originalStartOffset,
+        // originalStartNode’s length − originalStartOffset, and the empty string.
         if let Some(text) = start_node.downcast::<CharacterData>() {
             text.ReplaceData(
                 start_offset,
@@ -1018,19 +1036,17 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             .unwrap();
         }
 
-        // Step 8.
+        // Step 10. For each node of nodesToRemove, in tree order: remove node.
         for child in &*contained_children {
             child.remove_self(cx);
         }
 
-        // Step 9.
+        // Step 11. If originalEndNode is a CharacterData node,
+        // then replace data of originalEndNode with 0, originalEndOffset, and the empty string.
         if let Some(text) = end_node.downcast::<CharacterData>() {
             text.ReplaceData(0, end_offset, DOMString::new()).unwrap();
         }
 
-        // Step 10.
-        self.SetStart(&new_node, new_offset).unwrap();
-        self.SetEnd(&new_node, new_offset).unwrap();
         Ok(())
     }
 

@@ -187,10 +187,15 @@ pub(crate) fn execute_delete_command(
         // Step 9.1. If start offset is zero,
         // set start offset to the index of start node and then set start node to its parent.
         if start_offset == 0 {
+            // NOTE: This is not in the spec, but required in case we are traversing out of
+            // an editing host and end up at the root node. Since below we start deleting
+            // backwards and stop at the editing host, it's fine to stop at the root node
+            // as well.
+            let Some(parent) = start_node.GetParentNode() else {
+                break;
+            };
             start_offset = start_node.index();
-            start_node = start_node
-                .GetParentNode()
-                .expect("Must always have a parent");
+            start_node = parent;
             continue;
         }
         // Step 9.2. Otherwise, if start node has an editable invisible child with index start offset minus one,
