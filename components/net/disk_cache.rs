@@ -51,7 +51,6 @@ pub(crate) struct DiskCache {
     inner: TokioMutex<DiskCacheInner>,
 }
 
-#[derive(Iden)]
 /// Identifications for sea_query of the cache table.
 enum DiskCacheTable {
     Table,
@@ -59,6 +58,19 @@ enum DiskCacheTable {
     Data,
     Size,
     InsertionTimestamp,
+}
+
+// Mapping between Enum variant and its corresponding string value
+impl Iden for DiskCacheTable {
+    fn unquoted(&self) -> &str {
+        match self {
+            DiskCacheTable::Table => "disk_cache",
+            DiskCacheTable::Key => "key",
+            DiskCacheTable::Data => "data",
+            DiskCacheTable::Size => "size",
+            DiskCacheTable::InsertionTimestamp => "insertion_timestamp",
+        }
+    }
 }
 
 impl DiskCache {

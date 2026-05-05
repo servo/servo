@@ -511,7 +511,7 @@ impl Preferences {
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
             network_http_disk_cache: String::new(),
-            network_http_disk_cache_size: 1024 * 1024 * 1024,
+            network_http_disk_cache_size: 1024 * 1024 * 100, // Roughtly 100MB
             network_http_proxy_uri: String::new(),
             network_https_proxy_uri: String::new(),
             network_http_no_proxy: String::new(),
