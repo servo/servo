@@ -473,6 +473,11 @@ impl ScrollTree {
         &self.nodes[id.index]
     }
 
+    /// To sanity-check if the id is valid.
+    pub fn has_node(&self, id: ScrollTreeNodeId) -> bool {
+        id.index < self.nodes.len()
+    }
+
     /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
     /// panic if [`ScrollTree::build_display_list`] has not been called yet.
     pub fn webrender_id(&self, id: ScrollTreeNodeId) -> SpatialId {
@@ -620,6 +625,9 @@ impl ScrollTree {
         &self,
         node_id: ScrollTreeNodeId,
     ) -> Option<FastLayoutTransform> {
+        if !self.has_node(node_id) {
+            return None;
+        }
         self.cumulative_node_transform(node_id)
             .root_to_node_transform
     }

@@ -66,6 +66,9 @@ fn root_transform_for_layout_node(
         .and_then(Fragment::retrieve_box_fragment)?
         .borrow();
     let scroll_tree_node_id = box_fragment.spatial_tree_node()?;
+    if !scroll_tree.has_node(scroll_tree_node_id) {
+        return None;
+    }
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
