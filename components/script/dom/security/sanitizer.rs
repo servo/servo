@@ -15,7 +15,8 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElement,
     SanitizerElementNamespace, SanitizerElementNamespaceWithAttributes,
-    SanitizerElementWithAttributes, SanitizerMethods, SanitizerPresets,
+    SanitizerElementWithAttributes, SanitizerMethods, SanitizerPI, SanitizerPresets,
+    SanitizerProcessingInstruction,
 };
 use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
 use crate::dom::bindings::domname::is_valid_attribute_local_name;
@@ -163,15 +164,43 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
             config_replace_with_children_elements.sort_by(|item_a, item_b| item_a.compare(item_b));
         }
 
-        // TODO:
-        // Step 6. If config["processingInstructions"] exists:
-        // Step 6.1. Set config["processingInstructions"] to the result of sort in ascending order
-        // config["processingInstructions"], with piA["target"] being code unit less than
-        // piB["target"].
-        // Step 7. Otherwise:
-        // Step 7.1. Set config["removeProcessingInstructions"] to the result of sort in ascending
-        // order config["removeProcessingInstructions"], with piA["target"] being code unit less
-        // than piB["target"].
+        match &mut config.processingInstructions {
+            // Step 6. If config["processingInstructions"] exists:
+            Some(config_processing_instructions) => {
+                // Step 6.1. Set config["processingInstructions"] to the result of sort in ascending
+                // order config["processingInstructions"], with piA["target"] being code unit less
+                // than piB["target"].
+                config_processing_instructions.sort_by(
+                    |processing_instruction_a, processing_instruction_b| {
+                        if processing_instruction_a.target() < processing_instruction_b.target() {
+                            Ordering::Less
+                        } else {
+                            Ordering::Greater
+                        }
+                    },
+                )
+            },
+            // Step 7. Otherwise:
+            None => {
+                // Step 7.1. Set config["removeProcessingInstructions"] to the result of sort in
+                // ascending order config["removeProcessingInstructions"], with piA["target"] being
+                // code unit less than piB["target"].
+                if let Some(config_remove_processing_instructions) =
+                    &mut config.removeProcessingInstructions
+                {
+                    config_remove_processing_instructions.sort_by(
+                        |processing_instruction_a, processing_instruction_b| {
+                            if processing_instruction_a.target() < processing_instruction_b.target()
+                            {
+                                Ordering::Less
+                            } else {
+                                Ordering::Greater
+                            }
+                        },
+                    )
+                }
+            },
+        }
 
         match &mut config.attributes {
             // Step 8. If config["attributes"] exists:
@@ -470,6 +499,120 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         true
     }
 
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-allowprocessinginstruction>
+    fn AllowProcessingInstruction(&self, processing_instruction: SanitizerPI) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. Set pi to the result of canonicalize a sanitizer processing instruction with pi.
+        let processing_instruction = processing_instruction.canonicalize();
+
+        match &mut configuration.processingInstructions {
+            // Step 4. If configuration["processingInstructions"] exists:
+            Some(configuration_processing_instructions) => {
+                // Step 4.1. If configuration["processingInstructions"] contains pi:
+                if configuration_processing_instructions.contains_target(&processing_instruction) {
+                    // Step 4.1.1. Return false.
+                    return false;
+                }
+
+                // Step 4.2. Append pi to configuration["processingInstructions"].
+                configuration_processing_instructions.push(processing_instruction);
+
+                // Step 4.3. Return true.
+                true
+            },
+            // Step 5. Otherwise:
+            None => {
+                // Step 5.1. If configuration["removeProcessingInstructions"] contains pi:
+                if configuration
+                    .removeProcessingInstructions
+                    .as_ref()
+                    .is_some_and(|configuration_remove_processing_instructions| {
+                        configuration_remove_processing_instructions
+                            .contains_target(&processing_instruction)
+                    })
+                {
+                    // Step 5.1.1. Remove the item from
+                    // configuration["removeProcessingInstructions"] whose "target" is pi["target"].
+                    if let Some(configuration_remove_processing_instructions) =
+                        &mut configuration.removeProcessingInstructions
+                    {
+                        configuration_remove_processing_instructions
+                            .retain(|item| item.target() != processing_instruction.target())
+                    }
+
+                    // Step 5.1.2. Return true.
+                    return true;
+                }
+
+                // Step 5.2. Return false.
+                false
+            },
+        }
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-removeprocessinginstruction>
+    fn RemoveProcessingInstruction(&self, processing_instruction: SanitizerPI) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. Set pi to the result of canonicalize a sanitizer processing instruction with pi.
+        let processing_instruction = processing_instruction.canonicalize();
+
+        match &mut configuration.processingInstructions {
+            // Step 4. If configuration["processingInstructions"] exists:
+            Some(configuration_processing_instructions) => {
+                // Step 4.1. If configuration["processingInstructions"] contains pi:
+                if configuration_processing_instructions.contains_target(&processing_instruction) {
+                    // Step 4.1.1. Remove the item from configuration["processingInstructions"]
+                    // whose "target" is pi["target"].
+                    configuration_processing_instructions
+                        .retain(|item| item.target() != processing_instruction.target());
+
+                    // Step 4.1.2. Return true.
+                    return true;
+                }
+
+                // Step 4.2. Return false.
+                false
+            },
+            // Step 5. Otherwise:
+            None => {
+                // Step 5.1. If configuration["removeProcessingInstructions"] contains pi:
+                if configuration
+                    .removeProcessingInstructions
+                    .as_ref()
+                    .is_some_and(|configuration_remove_processing_instructions| {
+                        configuration_remove_processing_instructions
+                            .contains_target(&processing_instruction)
+                    })
+                {
+                    // Step 5.1.1. Return false.
+                    return false;
+                }
+
+                // Step 5.2. Append pi to configuration["removeProcessingInstructions"].
+                if let Some(configuration_remove_processing_instructions) =
+                    &mut configuration.removeProcessingInstructions
+                {
+                    configuration_remove_processing_instructions.push(processing_instruction);
+                } else {
+                    configuration.removeProcessingInstructions = Some(vec![processing_instruction]);
+                }
+
+                // Step 5.3. Return true.
+                true
+            },
+        }
+    }
+
     /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-allowattribute>
     fn AllowAttribute(&self, attribute: SanitizerAttribute) -> bool {
         // Step 1. Let configuration be this’s configuration.
@@ -701,11 +844,17 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             return false;
         }
 
-        // TODO:
         // Step 3. Assert: Either config["processingInstructions"] exists or
         // config["removeProcessingInstructions"] exists.
+        assert!(
+            self.processingInstructions.is_some() || self.removeProcessingInstructions.is_some()
+        );
+
         // Step 4. If config["processingInstructions"] exists and
         // config["removeProcessingInstructions"] exists, then return false.
+        if self.processingInstructions.is_some() && self.removeProcessingInstructions.is_some() {
+            return false;
+        }
 
         // Step 5. Assert: Either config["attributes"] exists or config["removeAttributes"] exists.
         assert!(self.attributes.is_some() || self.removeAttributes.is_some());
@@ -759,12 +908,28 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             return false;
         }
 
-        // TODO:
-        // Step 11. If config["processingInstructions"] exists:
-        // Step 11.1. If config["processingInstructions"] has duplicate targets, then return false.
-        // Step 12. Otherwise:
-        // Step 12.1. If config["removeProcessingInstructions"] has duplicate targets, then return
-        // false.
+        match &self.processingInstructions {
+            // Step 11. If config["processingInstructions"] exists:
+            Some(config_processing_instructions) => {
+                // Step 11.1. If config["processingInstructions"] has duplicate targets, then return
+                // false.
+                if config_processing_instructions.has_duplicate_targets() {
+                    return false;
+                }
+            },
+            // Step 12. Otherwise:
+            None => {
+                // Step 12.1. If config["removeProcessingInstructions"] has duplicate targets, then
+                // return false.
+                if self.removeProcessingInstructions.as_ref().is_some_and(
+                    |config_remove_processing_instructions| {
+                        config_remove_processing_instructions.has_duplicate_targets()
+                    },
+                ) {
+                    return false;
+                }
+            },
+        }
 
         match &self.attributes {
             // Step 13. If config["attributes"] exists:
@@ -1223,12 +1388,19 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             self.removeElements = Some(Vec::new());
         }
 
-        // TODO:
         // Step 2. If neither configuration["processingInstructions"] nor
         // configuration["removeProcessingInstructions"] exist:
-        // Step 2.1. If allowCommentsPIsAndDataAttributes is true, then set
-        // configuration["removeProcessingInstructions"] to « ».
-        // Step 2.2. Otherwise, set configuration["processingInstructions"] to « ».
+        if self.processingInstructions.is_none() && self.removeProcessingInstructions.is_none() {
+            // Step 2.1. If allowCommentsPIsAndDataAttributes is true, then set
+            // configuration["removeProcessingInstructions"] to « ».
+            if allow_comments_pis_and_data_attributes {
+                self.removeProcessingInstructions = Some(Vec::new());
+            }
+            // Step 2.2. Otherwise, set configuration["processingInstructions"] to « ».
+            else {
+                self.processingInstructions = Some(Vec::new());
+            }
+        }
 
         // Step 3. If neither configuration["attributes"] nor configuration["removeAttributes"]
         // exist, then set configuration["removeAttributes"] to « ».
@@ -1278,21 +1450,34 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                 .collect();
         }
 
-        // TODO:
         // Step 7. If configuration["processingInstructions"] exists:
-        // Step 7.1. Let processingInstructions be « ».
-        // Step 7.2. For each pi of configuration["processingInstructions"]:
-        // Step 7.2.1. Append the result of canonicalize a sanitizer processing instruction pi
-        // to processingInstructions.
-        // Step 7.3. Set configuration["processingInstructions"] to processingInstructions.
+        if let Some(processing_instructions) = &mut self.processingInstructions {
+            // Step 7.1. Let processingInstructions be « ».
+            // Step 7.2. For each pi of configuration["processingInstructions"]:
+            // Step 7.2.1. Append the result of canonicalize a sanitizer processing instruction pi
+            // to processingInstructions.
+            // Step 7.3. Set configuration["processingInstructions"] to processingInstructions.
+            *processing_instructions = processing_instructions
+                .iter()
+                .cloned()
+                .map(SanitizerPI::canonicalize)
+                .collect();
+        }
 
-        // TODO:
         // Step 8. If configuration["removeProcessingInstructions"] exists:
-        // Step 8.1. Let processingInstructions be « ».
-        // Step 8.2. For each pi of configuration["removeProcessingInstructions"]:
-        // Step 8.2.1. Append the result of canonicalize a sanitizer processing instruction
-        // pi to processingInstructions.
-        // Step 8.3. Set configuration["removeProcessingInstructions"] to processingInstructions.
+        if let Some(remove_processing_instructions) = &mut self.removeProcessingInstructions {
+            // Step 8.1. Let processingInstructions be « ».
+            // Step 8.2. For each pi of configuration["removeProcessingInstructions"]:
+            // Step 8.2.1. Append the result of canonicalize a sanitizer processing instruction
+            // pi to processingInstructions.
+            // Step 8.3. Set configuration["removeProcessingInstructions"] to
+            // processingInstructions.
+            *remove_processing_instructions = remove_processing_instructions
+                .iter()
+                .cloned()
+                .map(SanitizerPI::canonicalize)
+                .collect();
+        }
 
         // Step 9. If configuration["attributes"] exists:
         if let Some(attributes) = &mut self.attributes {
@@ -1339,6 +1524,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
 trait Canonicalization {
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element-with-attributes>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element>
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-processing-instruction>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-attribute>
     fn canonicalize(self) -> Self;
 }
@@ -1425,6 +1611,33 @@ impl Canonicalization for SanitizerElement {
         // Return the result of canonicalize a sanitizer name with element and the HTML namespace as
         // the default namespace.
         self.canonicalize_name(Some(ns!(html).to_string()))
+    }
+}
+impl Canonicalization for SanitizerPI {
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-processing-instruction>
+    fn canonicalize(self) -> Self {
+        // Step 1. Assert: pi is either a DOMString or a dictionary.
+        assert!(matches!(
+            self,
+            SanitizerPI::String(_) | SanitizerPI::SanitizerProcessingInstruction(_)
+        ));
+
+        // Step 2. If pi is a DOMString, then return «[ "target" → pi ]».
+        if let SanitizerPI::String(target) = self {
+            return SanitizerPI::SanitizerProcessingInstruction(SanitizerProcessingInstruction {
+                target,
+            });
+        }
+
+        // Step 3. Assert: pi is a dictionary and pi["target"] exists.
+        // NOTE: The latter is guaranteed by Rust type system.
+        assert!(matches!(
+            self,
+            SanitizerPI::SanitizerProcessingInstruction(_)
+        ));
+
+        // Step 4. Return «[ "target" → pi["target"] ]».
+        self
     }
 }
 
@@ -1997,6 +2210,53 @@ impl AttributeMember for SanitizerElementWithAttributes {
     }
 }
 
+/// Helper functions for accessing the "target" members of [`SanitizerPI`].
+trait TargetMember {
+    fn target(&self) -> &DOMString;
+}
+
+impl TargetMember for SanitizerPI {
+    fn target(&self) -> &DOMString {
+        match self {
+            SanitizerPI::String(string) => string,
+            SanitizerPI::SanitizerProcessingInstruction(dictionary) => &dictionary.target,
+        }
+    }
+}
+
+/// Supporting algorithms on lists of processing instructions, from the specification.
+trait TargetSlice<T>
+where
+    T: TargetMember,
+{
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-contains-a-target>
+    fn contains_target(&self, other: &T) -> bool;
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-has-duplicate-targets>
+    fn has_duplicate_targets(&self) -> bool;
+}
+
+impl<T> TargetSlice<T> for [T]
+where
+    T: TargetMember,
+{
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-contains-a-target>
+    fn contains_target(&self, other: &T) -> bool {
+        // A Sanitizer target list contains a target target if there exists an entry of list that is
+        // an ordered map, and where target equals entry["target"].
+        self.iter().any(|entry| entry.target() == other.target())
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-has-duplicate-targets>
+    fn has_duplicate_targets(&self) -> bool {
+        // A list list has duplicate targets, if for any item of list, there is more than one entry
+        // in list where item["target"] is entry["target"].
+        let mut used = HashSet::new();
+        self.iter()
+            .any(move |entry| !used.insert(entry.target().to_string()))
+    }
+}
+
 /// <https://wicg.github.io/sanitizer-api/#built-in-safe-default-configuration>
 fn built_in_safe_default_configuration() -> SanitizerConfig {
     const ELEMENTS: &[(&str, &Namespace, &[&str])] = &[
@@ -2294,6 +2554,8 @@ fn built_in_safe_default_configuration() -> SanitizerConfig {
         elements: Some(elements),
         removeElements: None,
         replaceWithChildrenElements: None,
+        processingInstructions: Some(Vec::new()),
+        removeProcessingInstructions: None,
         attributes: Some(attributes),
         removeAttributes: None,
         comments: Some(false),
@@ -2327,6 +2589,8 @@ fn built_in_safe_baseline_configuration() -> SanitizerConfig {
         elements: None,
         removeElements: Some(remove_elements),
         replaceWithChildrenElements: None,
+        processingInstructions: None,
+        removeProcessingInstructions: None,
         attributes: None,
         removeAttributes: Some(Vec::new()),
         comments: None,
