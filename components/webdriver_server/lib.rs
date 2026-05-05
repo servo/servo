@@ -2645,9 +2645,8 @@ impl Handler {
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> WebDriverResult<()> {
-        // There is no timeout specified in the spec (Step 8), so we use a default value.
-        // <https://w3c.github.io/webdriver/#new-session>
-        // We can't use the user defined value - it causes the webdriver timeout tests to fail.
+        // We cannot use provided timeout from configuration, as `fn wait_until_browsing_context_is_open` is not a standard step in spec.
+        // Some tests use `page_load = 0` deliberately, which would always fail with the function.
         const OPEN_BROWSING_CONTEXT_TIMEOUT: Duration =
             Duration::from_millis(DEFAULT_PAGE_LOAD_TIMEOUT);
         let now = Instant::now();
