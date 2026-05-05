@@ -31,8 +31,11 @@ pub use glyph::{GlyphInfo, ShapedText, ShapedTextSlice, ShapedTextSlicer};
 use icu_locid::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
+use smallvec::SmallVec;
 pub use system_font_service::SystemFontService;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
+
+use crate::FontGroupFamily;
 
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
@@ -43,11 +46,12 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)] // FIXME: Debug trait was removed. May need to put this back later.
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
     pub(crate) language: Language,
+    pub(crate) preferred_font_family: SmallVec<[FontGroupFamily; 8]>,
 }
 
 impl Default for FallbackFontSelectionOptions {
@@ -56,12 +60,18 @@ impl Default for FallbackFontSelectionOptions {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
             language: Language::UND,
+            preferred_font_family: SmallVec::new(),
         }
     }
 }
 
 impl FallbackFontSelectionOptions {
-    pub(crate) fn new(character: char, next_character: Option<char>, language: Language) -> Self {
+    pub(crate) fn new(
+        character: char,
+        next_character: Option<char>,
+        language: Language,
+        preferred_font_family: SmallVec<[FontGroupFamily; 8]>,
+    ) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -90,6 +100,7 @@ impl FallbackFontSelectionOptions {
             character,
             presentation_preference,
             language,
+            preferred_font_family,
         }
     }
 }

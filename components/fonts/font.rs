@@ -605,7 +605,7 @@ impl Font {
         self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "android")))]
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         _: &FallbackFontSelectionOptions,
@@ -657,7 +657,7 @@ pub struct FontGroup {
     descriptor: FontDescriptor,
     /// The families that have been loaded for this [`FontGroup`]. This correponds to the
     /// list of fonts specified in CSS.
-    families: SmallVec<[FontGroupFamily; 8]>,
+    pub(crate) families: SmallVec<[FontGroupFamily; 8]>,
     /// A list of fallbacks that have been used in this [`FontGroup`]. Currently this
     /// can grow indefinitely, but maybe in the future it should be an LRU cache.
     /// It's unclear if this is the right thing to do. Perhaps fallbacks should
@@ -700,7 +700,12 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, language);
+        let options = FallbackFontSelectionOptions::new(
+            codepoint,
+            next_codepoint,
+            language,
+            self.families.clone(),
+        );
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -858,8 +863,8 @@ impl FontGroup {
 /// font selection will select a single member that contains the necessary unicode
 /// character. Unicode ranges are specified by the [`FontGroupFamilyTemplate::template`]
 /// member.
-#[derive(MallocSizeOf)]
-struct FontGroupFamilyTemplate {
+#[derive(MallocSizeOf, Clone)]
+pub(crate) struct FontGroupFamilyTemplate {
     #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
     #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
@@ -905,10 +910,10 @@ impl FontGroupFamilyTemplate {
 /// families listed in the `font-family` CSS property. The corresponding font data is lazy-loaded,
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
-#[derive(MallocSizeOf)]
-struct FontGroupFamily {
-    family_descriptor: FontFamilyDescriptor,
-    members: OnceLock<Vec<FontGroupFamilyTemplate>>,
+#[derive(MallocSizeOf, Clone)]
+pub(crate) struct FontGroupFamily {
+    pub(crate) family_descriptor: FontFamilyDescriptor,
+    pub(crate) members: OnceLock<Vec<FontGroupFamilyTemplate>>,
 }
 
 impl From<FontFamilyDescriptor> for FontGroupFamily {
