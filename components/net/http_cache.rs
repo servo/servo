@@ -148,8 +148,10 @@ type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
 
 /// Is this state assigned to the private or public side.
 #[derive(Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum HttpCacheAssignment {
+pub enum HttpCacheAssignment {
+    /// Public Cache State, possibly stored to disk.
     Public,
+    /// Private Cache State, not stored to disk.
     Private,
 }
 
@@ -178,7 +180,8 @@ impl MallocSizeOf for HttpCache {
 }
 
 impl HttpCache {
-    pub(crate) fn new(assignment: HttpCacheAssignment) -> Self {
+    /// Create a new HttpCache with [`HttpCacheAssignment`]
+    pub fn new(assignment: HttpCacheAssignment) -> Self {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
