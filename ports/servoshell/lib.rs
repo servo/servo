@@ -179,12 +179,6 @@ cfg_if! {
         struct HitraceFields(String);
 
         impl HitraceFields {
-            /// Simplified recording for HiTrace.
-            ///
-            /// Field values can be recorded by `tracing-rs` after the span creation,
-            /// but we intentionally don't support this.
-            /// Otherwise, we would need to keep a list, so we can set the value
-            /// later when it is recorded.
             fn record_value(&mut self, field: &Field, value: &dyn fmt::Debug) {
                 if field.name() == "servo_profiling" {
                     return;
@@ -247,12 +241,30 @@ cfg_if! {
                 span.extensions_mut().insert(fields);
             }
 
+            fn on_record(
+                &self,
+                id: &Id,
+                values: &tracing::span::Record<'_>,
+                ctx: tracing_subscriber::layer::Context<'_, S>,
+            ) {
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+
+                let mut extensions = span.extensions_mut();
+                let Some(fields) = extensions.get_mut::<HitraceFields>() else {
+                    return;
+                };
+
+                values.record(fields);
+            }
+
             fn on_enter(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
                 let Some(span) = ctx.span(id) else {
                     return;
                 };
                 let extensions = span.extensions();
-                // The HitraceFields extension being missing implies `servo_profiling` was set.
+                // The HitraceFields extension being present implies `servo_profiling` was set.
                 let Some(fields) = extensions.get::<HitraceFields>() else {
                     return;
                 };
