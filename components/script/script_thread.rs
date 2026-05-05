@@ -1360,8 +1360,7 @@ impl ScriptThread {
     fn maybe_fulfill_font_ready_promises(&self, cx: &mut js::context::JSContext) {
         let mut sent_message = false;
         for (_, document) in self.documents.borrow().iter() {
-            sent_message =
-                document.maybe_fulfill_font_ready_promise(CanGc::from_cx(cx)) || sent_message;
+            sent_message = document.maybe_fulfill_font_ready_promise(cx) || sent_message;
         }
 
         if sent_message {
@@ -1372,11 +1371,11 @@ impl ScriptThread {
     /// If any `Pipeline`s are waiting to become ready for the purpose of taking a
     /// screenshot, check to see if the `Pipeline` is now ready and send a message to the
     /// Constellation, if so.
-    fn maybe_resolve_pending_screenshot_readiness_requests(&self, can_gc: CanGc) {
+    fn maybe_resolve_pending_screenshot_readiness_requests(&self, cx: &mut js::context::JSContext) {
         for (_, document) in self.documents.borrow().iter() {
             document
                 .window()
-                .maybe_resolve_pending_screenshot_readiness_requests(can_gc);
+                .maybe_resolve_pending_screenshot_readiness_requests(cx);
         }
     }
 
@@ -1531,7 +1530,7 @@ impl ScriptThread {
             self.needs_rendering_update.load(Ordering::Relaxed) && self.update_the_rendering(cx);
 
         self.maybe_fulfill_font_ready_promises(cx);
-        self.maybe_resolve_pending_screenshot_readiness_requests(CanGc::from_cx(cx));
+        self.maybe_resolve_pending_screenshot_readiness_requests(cx);
 
         // This must happen last to detect if any change above makes a rendering update necessary.
         self.maybe_schedule_rendering_opportunity_after_ipc_message(built_any_display_lists);
@@ -1955,11 +1954,7 @@ impl ScriptThread {
                 }
             },
             ScriptThreadMessage::RequestScreenshotReadiness(webview_id, pipeline_id) => {
-                self.handle_request_screenshot_readiness(
-                    webview_id,
-                    pipeline_id,
-                    CanGc::from_cx(cx),
-                );
+                self.handle_request_screenshot_readiness(webview_id, pipeline_id, cx);
             },
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response, cx);
@@ -4301,7 +4296,7 @@ impl ScriptThread {
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             let _ = self.senders.pipeline_to_constellation_sender.send((
@@ -4313,7 +4308,7 @@ impl ScriptThread {
             ));
             return;
         };
-        window.request_screenshot_readiness(can_gc);
+        window.request_screenshot_readiness(cx);
     }
 
     fn handle_embedder_control_response(

@@ -2702,12 +2702,15 @@ impl Window {
         )
     }
 
-    pub(crate) fn request_screenshot_readiness(&self, can_gc: CanGc) {
+    pub(crate) fn request_screenshot_readiness(&self, cx: &mut js::context::JSContext) {
         self.has_pending_screenshot_readiness_request.set(true);
-        self.maybe_resolve_pending_screenshot_readiness_requests(can_gc);
+        self.maybe_resolve_pending_screenshot_readiness_requests(cx);
     }
 
-    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self, can_gc: CanGc) {
+    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) {
         let pending_request = self.has_pending_screenshot_readiness_request.get();
         if !pending_request {
             return;
@@ -2736,7 +2739,7 @@ impl Window {
             return;
         }
 
-        if self.Document().Fonts(can_gc).waiting_to_fullfill_promise() {
+        if self.Document().Fonts(cx).waiting_to_fullfill_promise() {
             return;
         }
 

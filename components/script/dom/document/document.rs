@@ -2948,12 +2948,12 @@ impl Document {
     /// >    a font, or which depend on recently-loaded fonts
     ///
     /// Returns true if the promise was fulfilled.
-    pub(crate) fn maybe_fulfill_font_ready_promise(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn maybe_fulfill_font_ready_promise(&self, cx: &mut js::context::JSContext) -> bool {
         if !self.is_fully_active() {
             return false;
         }
 
-        let fonts = self.Fonts(can_gc);
+        let fonts = self.Fonts(cx);
         if !fonts.waiting_to_fullfill_promise() {
             return false;
         }
@@ -2970,7 +2970,7 @@ impl Document {
             return false;
         }
 
-        let result = fonts.fulfill_ready_promise_if_needed(can_gc);
+        let result = fonts.fulfill_ready_promise_if_needed(cx);
 
         // Add a rendering update after the `fonts.ready` promise is fulfilled just for
         // the sake of taking screenshots. This has the effect of delaying screenshots
@@ -6233,9 +6233,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
-    fn Fonts(&self, can_gc: CanGc) -> DomRoot<FontFaceSet> {
+    fn Fonts(&self, cx: &mut js::context::JSContext) -> DomRoot<FontFaceSet> {
         self.fonts
-            .or_init(|| FontFaceSet::new(&self.global(), None, can_gc))
+            .or_init(|| FontFaceSet::new(cx, &self.global(), None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hidden>
