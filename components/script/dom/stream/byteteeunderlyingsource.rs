@@ -121,7 +121,11 @@ impl ByteTeeUnderlyingSource {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn forward_reader_error(&self, this_reader: Rc<RefCell<ReaderType>>, can_gc: CanGc) {
+    pub(crate) fn forward_reader_error(
+        &self,
+        cx: &mut JSContext,
+        this_reader: Rc<RefCell<ReaderType>>,
+    ) {
         let this_reader = this_reader.borrow_mut();
         match &*this_reader {
             ReaderType::Default(reader) => {
@@ -131,6 +135,7 @@ impl ByteTeeUnderlyingSource {
                     .get()
                     .expect("Reader should be set.")
                     .byte_tee_append_native_handler_to_closed_promise(
+                        cx,
                         &self.branch_1.get().expect("Branch 1 should be set."),
                         &self.branch_2.get().expect("Branch 2 should be set."),
                         self.canceled_1.clone(),
@@ -138,7 +143,6 @@ impl ByteTeeUnderlyingSource {
                         self.cancel_promise.clone(),
                         self.reader_version.clone(),
                         expected_version,
-                        can_gc,
                     );
             },
             ReaderType::BYOB(reader) => {
@@ -148,6 +152,7 @@ impl ByteTeeUnderlyingSource {
                     .get()
                     .expect("Reader should be set.")
                     .byte_tee_append_native_handler_to_closed_promise(
+                        cx,
                         &self.branch_1.get().expect("Branch 1 should be set."),
                         &self.branch_2.get().expect("Branch 2 should be set."),
                         self.canceled_1.clone(),
@@ -155,7 +160,6 @@ impl ByteTeeUnderlyingSource {
                         self.cancel_promise.clone(),
                         self.reader_version.clone(),
                         expected_version,
-                        can_gc,
                     );
             },
         }
@@ -192,7 +196,7 @@ impl ByteTeeUnderlyingSource {
                 drop(reader);
 
                 // Attach error forwarding for the new reader.
-                self.forward_reader_error(self.reader.clone(), CanGc::from_cx(cx));
+                self.forward_reader_error(cx, self.reader.clone());
 
                 // IMPORTANT: now actually perform the pull we were asked to do.
                 return self.pull_with_default_reader(cx, global);
@@ -309,7 +313,7 @@ impl ByteTeeUnderlyingSource {
                 drop(reader);
 
                 // Perform forwardReaderError, given reader.
-                self.forward_reader_error(self.reader.clone(), CanGc::from_cx(cx));
+                self.forward_reader_error(cx, self.reader.clone());
 
                 // Retry the pull using the BYOB reader we just acquired.
                 self.pull_with_byob_reader(cx, view, for_branch2, global);

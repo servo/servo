@@ -214,8 +214,6 @@ impl Callback for PipeTo {
     /// - the state of a stored promise(in some cases).
     #[expect(unsafe_code)]
     fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
-        let in_realm_proof = cx.into();
-        let realm = InRealm::Already(&in_realm_proof);
         let global = self.reader.global();
 
         // Note: we only care about the result of writes when they are rejected,
@@ -307,7 +305,7 @@ impl Callback for PipeTo {
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front().cloned() {
-                    self.wait_on_pending_write(&global, write, realm, CanGc::from_cx(cx));
+                    self.wait_on_pending_write(cx, &global, write);
                     return;
                 }
 
@@ -459,18 +457,20 @@ impl PipeTo {
     /// but through the readiness of the writer).
     fn wait_on_pending_write(
         &self,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         promise: Rc<Promise>,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
+
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        promise.append_native_handler(&handler, realm, can_gc);
+        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
     }
 
     /// Errors must be propagated forward part of
@@ -618,8 +618,6 @@ impl PipeTo {
         global: &GlobalScope,
         action: Option<ShutdownAction>,
     ) {
-        let realm = cx.into();
-        let realm = InRealm::Already(&realm);
         // If shuttingDown is true, abort these substeps.
         // Set shuttingDown to true.
         if !self.shutting_down.replace(true) {
@@ -634,7 +632,7 @@ impl PipeTo {
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front() {
                     *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
-                    self.wait_on_pending_write(global, write.clone(), realm, CanGc::from_cx(cx));
+                    self.wait_on_pending_write(cx, global, write.clone());
                     return;
                 }
             }
@@ -725,7 +723,7 @@ impl PipeTo {
                 // Shutdown with an action consisting
                 // of getting a promise to wait for all of the actions in actions,
                 // and with error.
-                wait_for_all_promise(cx.into(), global, actions, realm, CanGc::from_cx(cx))
+                wait_for_all_promise(cx, global, actions)
             },
         };
 
@@ -1752,8 +1750,8 @@ impl ReadableStream {
         byte_tee_source_2.set_branch_2(&branch_2);
 
         // Perform forwardReaderError, given reader.
-        byte_tee_source_1.forward_reader_error(reader.clone(), CanGc::from_cx(cx));
-        byte_tee_source_2.forward_reader_error(reader, CanGc::from_cx(cx));
+        byte_tee_source_1.forward_reader_error(cx, reader.clone());
+        byte_tee_source_2.forward_reader_error(cx, reader);
 
         // Return « branch1, branch2 ».
         Ok(vec![branch_1, branch_2])
@@ -1848,12 +1846,12 @@ impl ReadableStream {
 
         // Upon rejection of reader.[[closedPromise]] with reason r,
         reader.default_tee_append_native_handler_to_closed_promise(
+            cx,
             &branch_1,
             &branch_2,
             canceled_1,
             canceled_2,
             cancel_promise,
-            CanGc::from_cx(cx),
         );
 
         // Return « branch_1, branch_2 ».

@@ -1058,20 +1058,22 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn PromiseNativeHandler(
         &self,
+        realm: &mut CurrentRealm,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            can_gc,
+            CanGc::from_cx(realm),
         );
-        let p = Promise::new_in_current_realm(comp, can_gc);
-        p.append_native_handler(&handler, comp, can_gc);
+        let p = Promise::new_in_realm(realm);
+
+        let in_realm_proof = realm.into();
+        let comp = InRealm::Already(&in_realm_proof);
+        p.append_native_handler(&handler, comp, CanGc::from_cx(realm));
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
