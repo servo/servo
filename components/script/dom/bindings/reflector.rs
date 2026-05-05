@@ -10,7 +10,7 @@ use crate::DomTypeHolder;
 use crate::dom::types::GlobalScope;
 use crate::realms::enter_realm;
 
-pub trait DomGlobal {
+pub(crate) trait DomGlobal {
     /// Returns the [relevant global] in whatever realm is currently active.
     ///
     /// [relevant global]: https://html.spec.whatwg.org/multipage/#concept-relevant-global
@@ -30,7 +30,7 @@ impl<T: DomGlobalGeneric<DomTypeHolder>> DomGlobal for T {
     }
 
     fn global(&self) -> DomRoot<GlobalScope> {
-        let realm = enter_realm(self as &T);
+        let realm = enter_realm(self);
         <Self as DomGlobalGeneric<DomTypeHolder>>::global_(self, InRealm::entered(&realm))
     }
 }
