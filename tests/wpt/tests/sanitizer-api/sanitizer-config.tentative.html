@@ -100,6 +100,14 @@ for (key of ["elements", "removeElements", "replaceWithChildrenElements"]) {
     {name: "bla", namespace: "http://fantasy.org/namespace"},
     {name: "bla", namespace: "http://fantasy.org/namespace", ...extra});
 }
+for (key of ["processingInstructions", "removeProcessingInstructions"]) {
+  test_normalization(key,
+    "target-1",
+    {target: "target-1"});
+  test_normalization(key,
+    {target: "target-1"},
+    {target: "target-1"});
+}
 for (key of ["attributes", "removeAttributes"]) {
   test_normalization(key,
     "href",
@@ -154,6 +162,34 @@ test(t => {
   assert_object_equals(s.get().replaceWithChildrenElements[0],
                        {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
 }, "Test elements replacewithchildren.");
+
+test(t => {
+  let s = new Sanitizer({processingInstructions: ["target-1", "target-2"]});
+  assert_equals(s.get().processingInstructions.length, 2);
+  s.allowProcessingInstruction("target-3");
+  assert_equals(s.get().processingInstructions.length, 3);
+  s.removeProcessingInstruction({target: "target-4"});
+  assert_equals(s.get().processingInstructions.length, 3);
+  s.removeProcessingInstruction({target: "target-1"});
+  assert_equals(s.get().processingInstructions.length, 2);
+  s.removeProcessingInstruction({target: "target-2"});
+  assert_equals(s.get().processingInstructions.length, 1);
+  assert_object_equals(s.get().processingInstructions[0],
+                       {target: "target-3"});
+}, "Test processingInstructions addition.");
+
+test(t => {
+  let s = new Sanitizer({removeProcessingInstructions: ["target-1", "target-2"]});
+  assert_equals(s.get().removeProcessingInstructions.length, 2);
+  s.removeProcessingInstruction("target-3");
+  assert_equals(s.get().removeProcessingInstructions.length, 3);
+  s.allowProcessingInstruction({target: "target-1"});
+  assert_equals(s.get().removeProcessingInstructions.length, 2);
+  s.allowProcessingInstruction({target: "target-2"});
+  assert_equals(s.get().removeProcessingInstructions.length, 1);
+  assert_object_equals(s.get().removeProcessingInstructions[0],
+                       {target: "target-3"});
+}, "Test processingInstructions removal.");
 
 test(t => {
   let s = new Sanitizer({attributes: ["href", "src"]});
@@ -228,6 +264,13 @@ test(() => {
   });
 }, "Both attributes and removeAttributes should not be allowed.");
 
+// The config has either a processingInstructions or a removeProcessingInstructions key, but not both.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ processingInstructions: [], removeProcessingInstructions: [] });
+  });
+}, "Both processingInstructions and removeProcessingInstructions should not be allowed.");
+
 // 3. Assert: All SanitizerElementNamespaceWithAttributes, SanitizerElementNamespace, and SanitizerAttributeNamespace items in config are canonical, meaning they have been run through canonicalize a sanitizer element or canonicalize a sanitizer attribute, as appropriate.
 // This is tested in the sanitizer-config test file.
 
@@ -291,6 +334,31 @@ test(() => {
     });
   }
 }, "config[removeAttributes] should not allow duplicates");
+
+// None of config[processingInstructions] or config[removeProcessingInstructions], if they exist, has duplicate targets.
+const DUPLICATE_TARGETS = [
+  ["", ""],
+  ["abc", "abc"],
+  ["data-xyz", "data-xyz"],
+  ["abc", {target: "abc"}],
+  [{target: "abc"}, {target: "abc"}]
+];
+
+test(() => {
+  for (let targets of DUPLICATE_TARGETS) {
+    assert_throws_js(TypeError, () => {
+      new Sanitizer({ processingInstructions: targets });
+    });
+  }
+}, "config[processingInstructions] should not allow duplicate targets");
+
+test(() => {
+  for (let targets of DUPLICATE_TARGETS) {
+    assert_throws_js(TypeError, () => {
+      new Sanitizer({ removeProcessingInstructions: targets });
+    });
+  }
+}, "config[removeProcessingInstructions] should not allow duplicate targets");
 
 // 11.1. For each element of config["replaceWithChildrenElements"]:
 // 11.1.1. If the built-in non-replaceable elements list contains element, then return false.
