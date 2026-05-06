@@ -2764,6 +2764,15 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+        self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            self.webview_id(),
+            ConsoleLogLevel::Error,
+            format!(
+                "Error at {}:{}:{} {}",
+                error_info.filename, error_info.lineno, error_info.column, error_info.message
+            ),
+        ));
+
         #[cfg(feature = "js_backtrace")]
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
@@ -2830,17 +2839,6 @@ impl GlobalScope {
                         },
                     ));
                 }
-                self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
-                    self.webview_id(),
-                    ConsoleLogLevel::Error,
-                    format!(
-                        "Error at {}:{}:{} {}",
-                        error_info.filename,
-                        error_info.lineno,
-                        error_info.column,
-                        error_info.message
-                    ),
-                ));
             }
         }
     }
