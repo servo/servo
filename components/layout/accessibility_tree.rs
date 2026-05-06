@@ -40,6 +40,8 @@ pub struct AccessibilityTree {
     opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
+    new_nodes: FxHashSet<accesskit::NodeId>,
+    stale_nodes: FxHashSet<accesskit::NodeId>,
 }
 
 impl AccessibilityTree {
@@ -49,6 +51,8 @@ impl AccessibilityTree {
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
             epoch,
+            new_nodes: FxHashSet::default(),
+            stale_nodes: FxHashSet::default(),
         }
     }
 
@@ -64,7 +68,15 @@ impl AccessibilityTree {
         let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
+            assert!(self.new_nodes.is_empty());
+            assert!(self.stale_nodes.is_empty());
             return None;
+        }
+
+        self.new_nodes.clear();
+
+        for stale_id in self.stale_nodes.drain() {
+            self.nodes.remove(&stale_id);
         }
 
         Some(tree_update.finalize())
@@ -99,18 +111,27 @@ impl AccessibilityTree {
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
 
-        let node = self
-            .nodes
-            .entry(id)
-            .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
-        {
-            let mut new_node = node.borrow_mut();
+        let node = match self.nodes.get(&id) {
+            Some(node) => {
+                self.stale_nodes.remove(&id);
 
-            new_node.opaque_node = Some(dom_node.opaque());
-            if let Some(dom_element) = dom_node.as_element() {
-                let local_name = dom_element.local_name().to_ascii_lowercase();
-                new_node.set_html_tag(&local_name);
-            }
+                node
+            },
+            None => {
+                self.new_nodes.insert(id);
+
+                self.nodes
+                    .entry(id)
+                    .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)))
+            },
+        };
+
+        let mut new_node = node.borrow_mut();
+
+        new_node.opaque_node = Some(dom_node.opaque());
+        if let Some(dom_element) = dom_node.as_element() {
+            let local_name = dom_element.local_name().to_ascii_lowercase();
+            new_node.set_html_tag(&local_name);
         }
 
         node.clone()
@@ -180,7 +201,7 @@ impl AccessibilityNode {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         let mut any_descendant_updated = false;
-        let new_children = dom_node
+        let new_children: Vec<accesskit::NodeId> = dom_node
             .flat_tree_children()
             .map(|dom_child| {
                 let child_node = tree.get_or_create_node(&dom_child);
@@ -193,10 +214,34 @@ impl AccessibilityNode {
                 child_node_id
             })
             .collect();
+
         if new_children != self.children() {
+            let old_children = self.children();
+            for old_child_id in old_children {
+                if !new_children.contains(old_child_id) {
+                    let old_child = tree.assert_node_by_id(*old_child_id);
+                    old_child.borrow().mark_subtree_stale(tree);
+                }
+            }
             self.set_children(new_children);
         }
+
         any_descendant_updated
+    }
+
+    fn mark_subtree_stale(&self, tree: &mut AccessibilityTree) {
+        // If the node was moved to a point in the tree that’s earlier in the traversal,
+        // we know that it’s not stale.
+        if !tree.new_nodes.contains(&self.id) {
+            // If the node is moved to a point in the tree that’s later in the traversal,
+            // we will remove it from `stale_nodes` in `AccessibilityTree::get_or_create_node()`.
+            tree.stale_nodes.insert(self.id);
+        }
+
+        for child_id in self.children().to_vec() {
+            let child = tree.assert_node_by_id(child_id);
+            child.borrow().mark_subtree_stale(tree);
+        }
     }
 
     fn update_node(
