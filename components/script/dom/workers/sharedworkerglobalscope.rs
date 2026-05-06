@@ -575,7 +575,12 @@ impl SharedWorkerGlobalScope {
     }
 
     pub(crate) fn fire_queued_connects(&self, _cx: &mut JSContext) {
-        let queue: Vec<_> = self.pending_connects.borrow_mut().drain(..).collect();
+        let queue: Vec<DomRoot<MessagePort>> = self
+            .pending_connects
+            .borrow_mut()
+            .drain(..)
+            .map(|inside_port| inside_port.as_rooted())
+            .collect();
         for inside_port in queue {
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
