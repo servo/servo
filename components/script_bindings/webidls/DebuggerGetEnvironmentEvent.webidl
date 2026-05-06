@@ -12,7 +12,8 @@ interface DebuggerGetEnvironmentEvent : Event {
 partial interface DebuggerGlobalScope {
     DOMString? registerEnvironmentActor(
         EnvironmentInfo result,
-        DOMString? parent
+        DOMString? parent,
+        optional DOMString? actor = null
     );
     undefined getEnvironmentResult(
         DOMString environmentActorId

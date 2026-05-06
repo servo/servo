@@ -575,6 +575,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         &self,
         environment: &EnvironmentInfo,
         parent: Option<DOMString>,
+        actor: Option<DOMString>,
     ) -> Option<DOMString> {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
@@ -598,6 +599,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             tx,
             environment,
             parent.map(String::from),
+            actor.map(String::from),
         );
         let _ = chan.send(msg);
 

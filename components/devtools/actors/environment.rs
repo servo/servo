@@ -60,12 +60,13 @@ impl Actor for EnvironmentActor {
 }
 
 impl EnvironmentActor {
-    pub fn register(
+    pub fn register_or_update(
         registry: &ActorRegistry,
         environment: EnvironmentInfo,
         parent_name: Option<String>,
+        actor_name: Option<String>,
     ) -> String {
-        let environment_name = registry.new_name::<Self>();
+        let environment_name = actor_name.unwrap_or_else(|| registry.new_name::<Self>());
         let environment_actor = Self {
             name: environment_name.clone(),
             parent_name,
