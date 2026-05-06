@@ -7989,7 +7989,6 @@ dependencies = [
  "uuid",
  "webrender_api",
  "winapi",
- "xml",
  "yeslogic-fontconfig-sys",
 ]
 

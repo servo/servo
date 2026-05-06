@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::sync::LazyLock;
 
-use log::warn;
 use ndk::font::{Font as NDK_Font, SystemFontIterator};
 use read_fonts::tables::name::Name;
 use read_fonts::{FileRef, TableProvider};
@@ -24,10 +22,16 @@ use crate::{
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
 
+#[derive(Clone)]
+enum FontStyle {
+    Normal,
+    Italic,
+}
+
 struct Font {
     filename: String,
     weight: Option<i32>,
-    style: Option<String>,
+    style: FontStyle,
 }
 
 struct FontFamily {
@@ -48,73 +52,79 @@ struct FontList {
 
 impl FontList {
     fn new() -> FontList {
-        let mut font_family_hashmap: HashMap<String, Vec<Font>> = HashMap::new();
         let system_font_iterator =
             SystemFontIterator::new().expect("Failed to create SystemFontIterator");
-        let mut font_families_vector = Vec::new();
+        let mut families = Vec::new();
 
         for system_font in system_font_iterator {
             // Obtain the font file
+            // TODO: This operation is slow and might need optimizations.
             let font_bytes = File::open(system_font.path())
                 .and_then(|file| unsafe { memmap2::Mmap::map(&file) })
                 .unwrap();
 
             // Read the font file
-            let font = FileRef::new(&font_bytes).expect("Font file cannot be read.");
-            match font {
-                FileRef::Font(f) => {
-                    // Case 1: This means it's a .ttf or .otf file.
-                    // Get the name table
-                    let name_table = f
-                        .name()
-                        .expect("Font file is corrupted as it has no name table!");
-                    Self::create_font_entry(&mut font_family_hashmap, &system_font, name_table);
-                },
-                FileRef::Collection(ttc_f) => {
-                    // Case 2: This means it's a .ttc file.
+            let Ok(font_file) = FileRef::new(&font_bytes) else {
+                continue;
+            };
 
-                    for ttc_font in ttc_f.iter() {
-                        // Get the name table
-                        let name_table = ttc_font
-                            .expect("")
-                            .name()
-                            .expect("Font file is corrupted as it has no name table!");
-                        Self::create_font_entry(&mut font_family_hashmap, &system_font, name_table);
+            let mut name = String::from("");
+            let mut font_entries = Vec::new();
+            match font_file {
+                FileRef::Font(font) => {
+                    let Ok(name_table) = font.name() else {
+                        continue;
+                    };
+                    let Some((family_name, font_entry)) =
+                        Self::create_font_entry(&system_font, name_table)
+                    else {
+                        continue;
+                    };
+
+                    font_entries.push(Font {
+                        filename: font_entry.filename.clone(),
+                        weight: font_entry.weight,
+                        style: font_entry.style.clone(),
+                    });
+                    name = family_name;
+                },
+                FileRef::Collection(font_collection) => {
+                    for font in font_collection.iter() {
+                        let Ok(font_binding) = font else {
+                            continue;
+                        };
+                        let Ok(name_table) = font_binding.name() else {
+                            continue;
+                        };
+                        let Some((family_name, font_entry)) =
+                            Self::create_font_entry(&system_font, name_table)
+                        else {
+                            continue;
+                        };
+
+                        font_entries.push(Font {
+                            filename: font_entry.filename.clone(),
+                            weight: font_entry.weight,
+                            style: font_entry.style.clone(),
+                        });
+                        name = family_name;
                     }
                 },
             }
+            families.push(FontFamily {
+                name,
+                fonts: font_entries,
+            });
         }
 
-        // unpack hashmap
-        for (key, values) in &font_family_hashmap {
-            let mut fonts = Vec::new();
-            for font in values {
-                fonts.push(Font {
-                    filename: font.filename.clone(),
-                    weight: font.weight,
-                    style: font.style.clone(),
-                });
-            }
-
-            let font_family_entry = FontFamily {
-                name: key.to_string(),
-                fonts,
-            };
-            font_families_vector.push(font_family_entry);
-        }
-
-        // return FontList
         FontList {
-            families: font_families_vector,
+            families,
+            // TODO: Also get localized names for these fonts.
             aliases: Vec::new(),
         }
     }
 
-    fn create_font_entry(
-        font_family_hashmap: &mut HashMap<String, Vec<Font>>,
-        system_font: &NDK_Font,
-        name_table: Name,
-    ) {
+    fn create_font_entry(system_font: &NDK_Font, name_table: Name) -> Option<(String, Font)> {
         let family_name = name_table
             .name_record()
             .iter()
@@ -124,32 +134,23 @@ impl FontList {
                     .string(name_table.string_data())
                     .ok()
                     .map(|s| s.to_string())
-            });
+            })?;
 
-        let filepath = system_font
-            .path()
-            .to_str()
-            .expect("Failed to convert path to string!")
-            .to_string();
-        let filename = filepath.split("/").last().unwrap_or("").to_string();
+        let filename = system_font.path().file_name()?.to_str()?;
 
-        let mut style = "normal";
-        if system_font.is_italic() {
-            style = "italic";
-        }
-
-        // Create Font entry
-        let font_entry = Font {
-            filename,
-            weight: Some(system_font.weight().to_u16() as i32),
-            style: Some(style.to_string()),
+        let style = if system_font.is_italic() {
+            FontStyle::Normal
+        } else {
+            FontStyle::Italic
         };
 
-        // Insert into hashmap
-        font_family_hashmap
-            .entry(family_name.expect("Font has no family name!"))
-            .or_insert(Vec::new())
-            .push(font_entry);
+        let font_entry = Font {
+            filename: filename.to_string(),
+            weight: Some(system_font.weight().to_u16() as i32),
+            style: style,
+        };
+
+        Some((family_name, font_entry))
     }
 
     // All Android fonts are located in /system/fonts
@@ -202,17 +203,9 @@ where
             .weight
             .map(|w| StyleFontWeight::from_float(w as f32))
             .unwrap_or(StyleFontWeight::NORMAL);
-        let style = match font.style.as_deref() {
-            Some("italic") => StyleFontStyle::ITALIC,
-            Some("normal") => StyleFontStyle::NORMAL,
-            Some(value) => {
-                warn!(
-                    "unknown value \"{value}\" for \"style\" attribute in the font {}",
-                    font.filename
-                );
-                StyleFontStyle::NORMAL
-            },
-            None => StyleFontStyle::NORMAL,
+        let style = match font.style {
+            FontStyle::Italic => StyleFontStyle::ITALIC,
+            FontStyle::Normal => StyleFontStyle::NORMAL,
         };
         let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
         callback(FontTemplate::new(
@@ -246,7 +239,6 @@ where
 // Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
-    families.extend(FONT_LIST.families.iter().map(|family| family.name.as_str()));
 
     if let Some(block) = options.character.block() {
         match block {

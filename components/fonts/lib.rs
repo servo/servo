@@ -46,33 +46,32 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone)] // NB: Debug trait previously exists, but is now removed.
-pub struct FallbackFontSelectionOptions {
+#[derive(Clone)]
+pub struct FallbackFontSelectionOptions<'a> {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
     pub(crate) language: Language,
-    #[allow(dead_code)]
-    // For now, this field is only used on Android platform, so this attribute is added.
-    pub(crate) preferred_font_family: SmallVec<[FontGroupFamily; 8]>,
+    #[cfg_attr(not(target_os = "android"), allow(unused))]
+    pub(crate) preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
 }
 
-impl Default for FallbackFontSelectionOptions {
+impl Default for FallbackFontSelectionOptions<'_> {
     fn default() -> Self {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
             language: Language::UND,
-            preferred_font_family: SmallVec::new(),
+            preferred_font_families: None,
         }
     }
 }
 
-impl FallbackFontSelectionOptions {
+impl<'a> FallbackFontSelectionOptions<'a> {
     pub(crate) fn new(
         character: char,
         next_character: Option<char>,
         language: Language,
-        preferred_font_family: SmallVec<[FontGroupFamily; 8]>,
+        preferred_font_families: &'a SmallVec<[FontGroupFamily; 8]>,
     ) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
@@ -102,7 +101,7 @@ impl FallbackFontSelectionOptions {
             character,
             presentation_preference,
             language,
-            preferred_font_family,
+            preferred_font_families: Some(preferred_font_families),
         }
     }
 }

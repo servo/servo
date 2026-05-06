@@ -657,7 +657,7 @@ pub struct FontGroup {
     descriptor: FontDescriptor,
     /// The families that have been loaded for this [`FontGroup`]. This correponds to the
     /// list of fonts specified in CSS.
-    pub(crate) families: SmallVec<[FontGroupFamily; 8]>,
+    families: SmallVec<[FontGroupFamily; 8]>,
     /// A list of fallbacks that have been used in this [`FontGroup`]. Currently this
     /// can grow indefinitely, but maybe in the future it should be an LRU cache.
     /// It's unclear if this is the right thing to do. Perhaps fallbacks should
@@ -700,12 +700,8 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(
-            codepoint,
-            next_codepoint,
-            language,
-            self.families.clone(),
-        );
+        let options =
+            FallbackFontSelectionOptions::new(codepoint, next_codepoint, language, &self.families);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
