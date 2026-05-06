@@ -592,7 +592,7 @@ impl SharedWorkerGlobalScope {
             SharedWorkerScriptMsg::Connect(port_impl) => {
                 let inside_port = self.handle_connect(port_impl, cx);
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
-                    self.dispatch_connect_event(&*inside_port);
+                    self.dispatch_connect_event(&inside_port);
                 } else {
                     self.pending_connects
                         .borrow_mut()
