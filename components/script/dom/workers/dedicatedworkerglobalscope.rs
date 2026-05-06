@@ -521,7 +521,7 @@ impl DedicatedWorkerGlobalScope {
                                 worker_url,
                                 fetch_client,
                                 Destination::Worker,
-                                webview_id,
+                                Some(webview_id),
                                 referrer,
                             );
                         },
@@ -783,16 +783,16 @@ impl DedicatedWorkerGlobalScope {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
-fn fetch_a_classic_worker_script(
+pub(crate) fn fetch_a_classic_worker_script(
     workerscope: &WorkerGlobalScope,
     url_with_blob_lock: UrlWithBlobClaim,
     fetch_client: ModuleFetchClient,
     destination: Destination,
-    webview_id: WebViewId,
+    webview_id: Option<WebViewId>,
     referrer: Referrer,
 ) {
     // Step 1. Let request be a new request whose URL is url,
-    let request = RequestBuilder::new(Some(webview_id), url_with_blob_lock.clone(), referrer)
+    let request = RequestBuilder::new(webview_id, url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
