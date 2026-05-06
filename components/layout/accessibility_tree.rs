@@ -24,6 +24,7 @@ struct AccessibilityUpdate {
 struct AccessibilityNode {
     id: accesskit::NodeId,
     accesskit_node: accesskit::Node,
+    updated: bool,
 }
 
 #[derive(Debug)]
@@ -69,7 +70,7 @@ impl AccessibilityTree {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         // TODO: read accessibility damage (right now, assume damage is complete)
-        let (node_id, mut updated) = self.update_node(dom_node);
+        self.update_node(dom_node);
 
         let mut any_descendant_updated = false;
         for dom_child in dom_node.flat_tree_children() {
@@ -78,76 +79,70 @@ impl AccessibilityTree {
             any_descendant_updated |= self.update_node_and_children(&dom_child, tree_update);
         }
 
+        let node = self.assert_node_by_dom_node(dom_node);
+        let mut node = node.borrow_mut();
+
         if any_descendant_updated {
-            let node_ref = self.assert_node_by_id(node_id);
-            let mut node = node_ref.borrow_mut();
             if let Some(text) = self.label_from_descendants(&node) {
-                node.accesskit_node.set_label(text);
-                updated = true;
+                node.set_label(&text);
+                node.updated = true;
             }
         }
 
-        if updated {
-            let node = self.assert_node_by_id(node_id);
-            tree_update.add(&node.borrow());
+        if node.updated {
+            tree_update.add(&mut node);
+            return true;
         }
 
-        updated || any_descendant_updated
+        any_descendant_updated
     }
 
-    fn update_node(&mut self, dom_node: &ServoLayoutNode<'_>) -> (accesskit::NodeId, bool) {
+    fn update_node(&mut self, dom_node: &ServoLayoutNode<'_>) {
         let node = self.get_or_create_node(dom_node);
         let mut node = node.borrow_mut();
-        let accesskit_node = &mut node.accesskit_node;
 
         let mut new_children: Vec<accesskit::NodeId> = vec![];
         for dom_child in dom_node.flat_tree_children() {
             let child_id = Self::to_accesskit_id(&dom_child.opaque());
             new_children.push(child_id);
         }
-        if new_children != accesskit_node.children() {
-            accesskit_node.set_children(new_children);
+        if new_children != node.children() {
+            node.set_children(new_children);
         }
 
         if let Some(dom_element) = dom_node.as_element() {
-            accesskit_node.set_role(Role::GenericContainer);
             let local_name = dom_element.local_name().to_ascii_lowercase();
-            accesskit_node.set_html_tag(&*local_name);
+            node.set_html_tag(&local_name);
             let role = HTML_ELEMENT_ROLE_MAPPINGS
                 .get(&local_name)
                 .unwrap_or(&Role::GenericContainer);
-            accesskit_node.set_role(*role);
+            node.set_role(*role);
         } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
-            accesskit_node.set_role(Role::TextRun);
+            node.set_role(Role::TextRun);
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
-            accesskit_node.set_value(&*text_content);
-        } else {
-            accesskit_node.set_role(Role::GenericContainer);
+            node.set_value(&text_content);
         }
-
-        // TODO: only return true if any update actually happened
-        (node.id, true)
     }
 
     fn label_from_descendants(&self, node: &AccessibilityNode) -> Option<String> {
-        if !NAME_FROM_CONTENTS_ROLES.contains(&node.accesskit_node.role()) {
+        if !NAME_FROM_CONTENTS_ROLES.contains(&node.role()) {
             return None;
         }
-        let mut children = VecDeque::from_iter(node.accesskit_node.children().iter().copied());
+        let mut children = VecDeque::from_iter(node.children().iter().copied());
         let mut text = String::new();
         while let Some(child_id) = children.pop_front() {
             let child = self.assert_node_by_id(child_id);
-            let accesskit_node = &child.borrow().accesskit_node;
-            match accesskit_node.role() {
+            let child = child.borrow();
+            match child.role() {
                 Role::TextRun => {
-                    if let Some(child_text) = accesskit_node.value() {
+                    if let Some(child_text) = child.value() {
                         text.push_str(child_text);
                     }
                 },
                 _ => {
-                    for id in accesskit_node.children().iter().rev() {
+                    for id in child.children().iter().rev() {
                         children.push_front(*id);
                     }
                 },
@@ -167,6 +162,14 @@ impl AccessibilityTree {
             .entry(id)
             .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
         node.clone()
+    }
+
+    fn assert_node_by_dom_node(
+        &mut self,
+        dom_node: &ServoLayoutNode<'_>,
+    ) -> ArcRefCell<AccessibilityNode> {
+        let id = Self::to_accesskit_id(&dom_node.opaque());
+        self.assert_node_by_id(id)
     }
 
     fn assert_node_by_id(&self, id: accesskit::NodeId) -> ArcRefCell<AccessibilityNode> {
@@ -193,6 +196,7 @@ impl AccessibilityNode {
         Self {
             id,
             accesskit_node: accesskit::Node::new(Role::Unknown),
+            updated: true,
         }
     }
 
@@ -201,7 +205,69 @@ impl AccessibilityNode {
         Self {
             id,
             accesskit_node: accesskit::Node::new(role),
+            updated: true,
         }
+    }
+
+    // TODO: use macros to generate getter/setter methods.
+
+    fn children(&self) -> &[accesskit::NodeId] {
+        self.accesskit_node.children()
+    }
+
+    fn set_children(&mut self, children: Vec<accesskit::NodeId>) {
+        self.accesskit_node.set_children(children);
+        self.updated = true;
+    }
+
+    fn role(&self) -> accesskit::Role {
+        self.accesskit_node.role()
+    }
+
+    fn set_role(&mut self, role: accesskit::Role) {
+        if role == self.accesskit_node.role() {
+            return;
+        }
+        self.accesskit_node.set_role(role);
+        self.updated = true;
+    }
+
+    #[expect(dead_code)]
+    fn label(&self) -> Option<&str> {
+        self.accesskit_node.label()
+    }
+
+    fn set_label(&mut self, label: &str) {
+        if Some(label) == self.accesskit_node.label() {
+            return;
+        }
+        self.accesskit_node.set_label(label);
+        self.updated = true;
+    }
+
+    #[expect(dead_code)]
+    fn html_tag(&self) -> Option<&str> {
+        self.accesskit_node.html_tag()
+    }
+
+    fn set_html_tag(&mut self, html_tag: &str) {
+        if Some(html_tag) == self.accesskit_node.html_tag() {
+            return;
+        }
+        self.accesskit_node.set_html_tag(html_tag);
+        self.updated = true;
+    }
+
+    fn value(&self) -> Option<&str> {
+        self.accesskit_node.value()
+    }
+
+    fn set_value(&mut self, value: &str) {
+        if Some(value) == self.accesskit_node.value() {
+            return;
+        }
+        self.accesskit_node.set_value(value);
+        self.updated = true;
     }
 }
 
@@ -218,8 +284,9 @@ impl AccessibilityUpdate {
         }
     }
 
-    fn add(&mut self, node: &AccessibilityNode) {
+    fn add(&mut self, node: &mut AccessibilityNode) {
         self.nodes.insert(node.id, node.accesskit_node.clone());
+        node.updated = false;
     }
 
     fn finalize(mut self) -> accesskit::TreeUpdate {
@@ -239,23 +306,23 @@ fn test_accessibility_update_add_some_nodes_twice() {
         },
         accesskit::TreeId::ROOT,
     );
-    update.add(&AccessibilityNode::new_with_role(
+    update.add(&mut AccessibilityNode::new_with_role(
         accesskit::NodeId(5),
         Role::Paragraph,
     ));
-    update.add(&AccessibilityNode::new_with_role(
+    update.add(&mut AccessibilityNode::new_with_role(
         accesskit::NodeId(3),
         Role::GenericContainer,
     ));
-    update.add(&AccessibilityNode::new_with_role(
+    update.add(&mut AccessibilityNode::new_with_role(
         accesskit::NodeId(4),
         Role::Heading,
     ));
-    update.add(&AccessibilityNode::new_with_role(
+    update.add(&mut AccessibilityNode::new_with_role(
         accesskit::NodeId(4),
         Role::Heading,
     ));
-    update.add(&AccessibilityNode::new_with_role(
+    update.add(&mut AccessibilityNode::new_with_role(
         accesskit::NodeId(3),
         Role::ScrollView,
     ));
