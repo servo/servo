@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
-use std::sync::LazyLock;
+use std::sync::atomic::AtomicU64;
+use std::sync::{LazyLock, atomic};
 
 use accesskit::Role;
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
@@ -30,6 +31,7 @@ struct AccessibilityNode {
 #[derive(Debug)]
 pub struct AccessibilityTree {
     nodes: FxHashMap<accesskit::NodeId, ArcRefCell<AccessibilityNode>>,
+    opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
     accesskit_tree: accesskit::Tree,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
@@ -41,6 +43,7 @@ impl AccessibilityTree {
     pub(super) fn new(tree_id: accesskit::TreeId, epoch: Epoch) -> Self {
         Self {
             nodes: FxHashMap::default(),
+            opaque_node_to_id: FxHashMap::default(),
             accesskit_tree: accesskit::Tree::new(AccessibilityTree::ROOT_NODE_ID),
             tree_id,
             epoch,
@@ -103,7 +106,7 @@ impl AccessibilityTree {
 
         let mut new_children: Vec<accesskit::NodeId> = vec![];
         for dom_child in dom_node.flat_tree_children() {
-            let child_id = Self::to_accesskit_id(&dom_child.opaque());
+            let child_id = self.id_for_opaque(dom_child.opaque());
             new_children.push(child_id);
         }
         if new_children != node.children() {
@@ -155,12 +158,13 @@ impl AccessibilityTree {
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
     ) -> ArcRefCell<AccessibilityNode> {
-        let id = Self::to_accesskit_id(&dom_node.opaque());
+        let id = self.id_for_opaque(dom_node.opaque());
 
         let node = self
             .nodes
             .entry(id)
             .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
+
         node.clone()
     }
 
@@ -168,7 +172,7 @@ impl AccessibilityTree {
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
     ) -> ArcRefCell<AccessibilityNode> {
-        let id = Self::to_accesskit_id(&dom_node.opaque());
+        let id = self.id_for_opaque(dom_node.opaque());
         self.assert_node_by_id(id)
     }
 
@@ -179,11 +183,12 @@ impl AccessibilityTree {
         node.clone()
     }
 
-    // TODO: Using the OpaqueNode as the identifier for the accessibility node will inevitably
-    // create issues as OpaqueNodes will be reused when DOM nodes are destroyed. Instead, we should
-    // make a monotonically increasing ID, and have some other way to retrieve it based on DOM node.
-    fn to_accesskit_id(opaque: &OpaqueNode) -> accesskit::NodeId {
-        accesskit::NodeId(opaque.0 as u64)
+    fn id_for_opaque(&mut self, opaque: OpaqueNode) -> accesskit::NodeId {
+        let id = self.opaque_node_to_id.entry(opaque).or_insert_with(|| {
+            static LAST_ID: AtomicU64 = AtomicU64::new(1u64);
+            LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into()
+        });
+        *id
     }
 
     pub(crate) fn epoch(&self) -> Epoch {
@@ -193,14 +198,9 @@ impl AccessibilityTree {
 
 impl AccessibilityNode {
     fn new(id: accesskit::NodeId) -> Self {
-        Self {
-            id,
-            accesskit_node: accesskit::Node::new(Role::Unknown),
-            updated: true,
-        }
+        Self::new_with_role(id, Role::Unknown)
     }
 
-    #[cfg(test)]
     fn new_with_role(id: accesskit::NodeId, role: accesskit::Role) -> Self {
         Self {
             id,
