@@ -8,12 +8,12 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
 
+use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::performance::performance::INVALID_ENTRY_NAMES;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 
@@ -41,7 +41,7 @@ impl PerformanceMark {
         // The PerformanceMark constructor must run the following steps:
         // Step 1. If the current global object is a Window object and markName uses the same name
         // as a read only attribute in the PerformanceTiming interface, throw a SyntaxError.
-        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
+        if global.is::<Window>() && PERFORMANCE_TIMING_ATTRIBUTES.contains(&&*mark_name.str()) {
             return Err(Error::Syntax(Some(
                 "Read-only attribute cannot be used as a mark name".to_owned(),
             )));

@@ -24,6 +24,7 @@ use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
 use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
+use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
@@ -41,30 +42,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-
-pub(crate) const INVALID_ENTRY_NAMES: &[&str] = &[
-    "navigationStart",
-    "unloadEventStart",
-    "unloadEventEnd",
-    "redirectStart",
-    "redirectEnd",
-    "fetchStart",
-    "domainLookupStart",
-    "domainLookupEnd",
-    "connectStart",
-    "connectEnd",
-    "secureConnectionStart",
-    "requestStart",
-    "responseStart",
-    "responseEnd",
-    "domLoading",
-    "domInteractive",
-    "domContentLoadedEventStart",
-    "domContentLoadedEventEnd",
-    "domComplete",
-    "loadEventStart",
-    "loadEventEnd",
-];
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
@@ -512,11 +489,10 @@ impl Performance {
             "redirectEnd" => document.get_redirect_end(),
             "secureConnectionStart" => document.get_secure_connection_start(),
             "responseEnd" => document.get_response_end(),
-            other => {
-                if cfg!(debug_assertions) {
-                    unreachable!("{other:?} is not the name of a timestamp");
-                }
-                return Err(Error::Operation(None));
+            _ => {
+                return Err(Error::Operation(Some(format!(
+                    "{name} hasn't been implemented."
+                ))));
             },
         };
         // Step 5. If endTime is 0, throw an InvalidAccessError.
@@ -540,23 +516,7 @@ impl Performance {
                 // Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
                 // PerformanceTiming interface, let end time be the value returned by running the convert
                 // a name to a timestamp algorithm with name set to the value of mark.
-                // TODO: These aren't all fields because servo doesn't support some of them yet
-                if matches!(
-                    &*name.str(),
-                    "navigationStart" |
-                        "unloadEventStart" |
-                        "unloadEventEnd" |
-                        "domInteractive" |
-                        "domContentLoadedEventStart" |
-                        "domContentLoadedEventEnd" |
-                        "domComplete" |
-                        "loadEventStart" |
-                        "loadEventEnd" |
-                        "redirectStart" |
-                        "redirectEnd" |
-                        "secureConnectionStart" |
-                        "responseEnd"
-                ) {
+                if PERFORMANCE_TIMING_ATTRIBUTES.contains(&&*name.str()) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }
                 // Step 2. Otherwise, if mark is a DOMString, let end time be the value of the startTime
