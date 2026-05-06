@@ -401,14 +401,9 @@ impl SharedWorkerGlobalScope {
                     &debugger_global,
                     cx,
                 );
-                debugger_global.fire_add_debuggee(
-                    cx,
-                    global.upcast(),
-                    pipeline_id,
-                    Some(worker_id),
-                );
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
+                debugger_global.fire_add_debuggee(cx, global_scope, pipeline_id, Some(worker_id));
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
@@ -549,7 +544,6 @@ impl SharedWorkerGlobalScope {
                 let worker_global = worker_global.root();
                 let worker_global = &*worker_global;
                 let inside_port = inside_port.root();
-                let inside_port = &*inside_port;
 
                 rooted!(&in(cx) let mut data = UndefinedValue());
                 DOMString::from("").safe_to_jsval(
@@ -559,7 +553,7 @@ impl SharedWorkerGlobalScope {
                 );
 
                 let source = WindowProxyOrMessagePortOrServiceWorker::MessagePort(
-                    DomRoot::from_ref(inside_port),
+                    inside_port.clone(),
                 );
                 let event = MessageEvent::new(
                     worker_global.upcast::<GlobalScope>(),
@@ -570,7 +564,7 @@ impl SharedWorkerGlobalScope {
                     DOMString::from(""),
                     Some(&source),
                     DOMString::new(),
-                    vec![DomRoot::from_ref(inside_port)],
+                    vec![inside_port],
                     CanGc::from_cx(cx),
                 );
 
@@ -598,7 +592,7 @@ impl SharedWorkerGlobalScope {
             SharedWorkerScriptMsg::Connect(port_impl) => {
                 let inside_port = self.handle_connect(port_impl, cx);
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
-                    self.dispatch_connect_event(&inside_port);
+                    self.dispatch_connect_event(&*inside_port);
                 } else {
                     self.pending_connects
                         .borrow_mut()
