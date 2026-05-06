@@ -4,12 +4,15 @@
 
 //! Application entry point, runs the event loop.
 
+use std::path::Path;
 use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
 use servo::protocol_handler::ProtocolRegistry;
-use servo::{EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager};
+use servo::{
+    EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
+};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -110,6 +113,11 @@ impl App {
         servo.setup_logging();
 
         let user_content_manager = Rc::new(UserContentManager::new(&servo));
+        for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
+            .expect("Loading userscripts failed")
+        {
+            user_content_manager.add_script(Rc::new(script));
+        }
 
         for user_stylesheet in &self.servoshell_preferences.user_stylesheets {
             user_content_manager.add_stylesheet(user_stylesheet.clone());
@@ -226,4 +234,19 @@ impl ApplicationHandler<AppEvent> for App {
         // Block until the window gets an event
         event_loop.set_control_flow(ControlFlow::Wait);
     }
+}
+
+fn load_userscripts(userscripts_directory: Option<&Path>) -> std::io::Result<Vec<UserScript>> {
+    let mut userscripts = Vec::new();
+    if let Some(userscripts_directory) = &userscripts_directory {
+        let mut files = std::fs::read_dir(userscripts_directory)?
+            .map(|e| e.map(|entry| entry.path()))
+            .collect::<Result<Vec<_>, _>>()?;
+        files.sort_unstable();
+        for file in files {
+            let script = std::fs::read_to_string(&file)?;
+            userscripts.push(UserScript::new(script, Some(file)));
+        }
+    }
+    Ok(userscripts)
 }
