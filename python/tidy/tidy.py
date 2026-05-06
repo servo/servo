@@ -1081,7 +1081,13 @@ def run_coauthors_check() -> int:
 
     origin = parse_origin(subprocess.check_output(["git", "remote", "-v"], text=True))
     if origin:
-        log_format = "commit %H%nAuthor: %an <%ae>%nCommitter: %cn <%ce>%n%(trailers:key=Co-authored-by)"
+        log_format = (
+            "commit %H%n"
+            "Author: %an <%ae>%n"
+            "Committer: %cn <%ce>%n"
+            "%(trailers:key=Co-authored-by)%n"
+            "%(trailers:key=Assisted-by)"  # https://github.com/microsoft/vscode/issues/313962
+        )
         log_command = ["git", "log", f"{origin}/main..HEAD", f"--format={log_format}"]
         log = subprocess.check_output(log_command, text=True)
         errors = check_coauthors(pull_request_body, log, verbose=is_pr_ci)
