@@ -346,14 +346,12 @@ fn profile() -> impl Parser<Option<OutputOptions>> {
 }
 
 fn userscripts() -> impl Parser<Option<PathBuf>> {
-    flag_with_default_parser(
-        None,
-        "userscripts_directory",
-        "your/directory",
-        "Uses userscripts in resources/user-agent-js, or a specified full path",
-        PathBuf::from("resources/user-agent-js"),
-        |val: String| PathBuf::from(val),
-    )
+    let arg = long("userscripts")
+        .argument::<String>("your/directory")
+        .help("Uses userscripts in specified full path")
+        .map(PathBuf::from);
+
+    construct!([arg]).optional()
 }
 
 fn webdriver_port() -> impl Parser<Option<u16>> {
@@ -544,7 +542,7 @@ struct CmdArgs {
     user_agent: Option<String>,
 
     ///
-    ///  Uses userscripts in resources/user-agent-js, or a specified full path.
+    ///  Uses userscripts in a specified full path.
     #[bpaf(external)]
     userscripts: Option<PathBuf>,
 
