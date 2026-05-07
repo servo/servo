@@ -78,9 +78,10 @@ impl AccessibilityTree {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         let node = self.assert_node_by_dom_node(dom_node);
+        let mut node = node.borrow_mut();
 
         // TODO: read accessibility damage (right now, assume damage is complete)
-        self.recompute_children(node.clone(), dom_node);
+        node.recompute_children(dom_node, self);
 
         let mut any_descendant_updated = false;
         for dom_child in dom_node.flat_tree_children() {
@@ -89,78 +90,14 @@ impl AccessibilityTree {
             any_descendant_updated |= self.update_node_and_descendants(&dom_child, tree_update);
         }
 
-        self.update_node(node.clone(), dom_node, any_descendant_updated);
+        node.update_node(dom_node, self, any_descendant_updated);
 
-        let mut node = node.borrow_mut();
         if node.updated {
             tree_update.add(&mut node);
             return true;
         }
 
         any_descendant_updated
-    }
-
-    fn recompute_children<'dom>(
-        &mut self,
-        node: ArcRefCell<AccessibilityNode>,
-        dom_node: &ServoLayoutNode<'dom>,
-    ) {
-        let mut node = node.borrow_mut();
-
-        let mut new_children: Vec<accesskit::NodeId> = vec![];
-        for dom_child in dom_node.flat_tree_children() {
-            let child_node = self.get_or_create_node(&dom_child);
-            let child_node = child_node.borrow_mut();
-            new_children.push(child_node.id);
-        }
-        if new_children != node.children() {
-            node.set_children(new_children);
-        }
-    }
-
-    fn update_node(
-        &self,
-        node: ArcRefCell<AccessibilityNode>,
-        dom_node: &ServoLayoutNode<'_>,
-        any_descendant_updated: bool,
-    ) {
-        let mut node = node.borrow_mut();
-        node.set_role(role_from_dom_node(dom_node));
-        if dom_node.is_element() {
-            if any_descendant_updated && let Some(text) = self.label_from_descendants(&node) {
-                node.set_label(text.as_str());
-            }
-        } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
-            let text_content = dom_node.text_content();
-            trace!("node text content = {text_content:?}");
-            // FIXME: this should take into account editing selection units (grapheme clusters?)
-            node.set_value(&text_content);
-        }
-    }
-
-    fn label_from_descendants(&self, node: &AccessibilityNode) -> Option<String> {
-        if !NAME_FROM_CONTENTS_ROLES.contains(&node.role()) {
-            return None;
-        }
-        let mut children = VecDeque::from_iter(node.children().iter().copied());
-        let mut text = String::new();
-        while let Some(child_id) = children.pop_front() {
-            let child = self.assert_node_by_id(child_id);
-            let child = child.borrow();
-            match child.role() {
-                Role::TextRun => {
-                    if let Some(child_text) = child.value() {
-                        text.push_str(child_text);
-                    }
-                },
-                _ => {
-                    for id in child.children().iter().rev() {
-                        children.push_front(*id);
-                    }
-                },
-            }
-        }
-        Some(text.trim().to_owned())
     }
 
     fn get_or_create_node(
@@ -243,6 +180,66 @@ impl AccessibilityNode {
             opaque_node: None,
             updated: true,
         }
+    }
+
+    fn recompute_children<'dom>(
+        &mut self,
+        dom_node: &ServoLayoutNode<'dom>,
+        tree: &mut AccessibilityTree,
+    ) {
+        let mut new_children: Vec<accesskit::NodeId> = vec![];
+        for dom_child in dom_node.flat_tree_children() {
+            let child_node = tree.get_or_create_node(&dom_child);
+            let child_node = child_node.borrow_mut();
+            new_children.push(child_node.id);
+        }
+        if new_children != self.children() {
+            self.set_children(new_children);
+        }
+    }
+
+    fn update_node(
+        &mut self,
+        dom_node: &ServoLayoutNode<'_>,
+        tree: &mut AccessibilityTree,
+        any_descendant_updated: bool,
+    ) {
+        self.set_role(role_from_dom_node(dom_node));
+        if dom_node.is_element() {
+            if any_descendant_updated && let Some(text) = self.label_from_descendants(tree) {
+                self.set_label(text.as_str());
+            }
+        } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
+            let text_content = dom_node.text_content();
+            trace!("node text content = {text_content:?}");
+            // FIXME: this should take into account editing selection units (grapheme clusters?)
+            self.set_value(&text_content);
+        }
+    }
+
+    fn label_from_descendants(&self, tree: &AccessibilityTree) -> Option<String> {
+        if !NAME_FROM_CONTENTS_ROLES.contains(&self.role()) {
+            return None;
+        }
+        let mut children = VecDeque::from_iter(self.children().iter().copied());
+        let mut text = String::new();
+        while let Some(child_id) = children.pop_front() {
+            let child = tree.assert_node_by_id(child_id);
+            let child = child.borrow();
+            match child.role() {
+                Role::TextRun => {
+                    if let Some(child_text) = child.value() {
+                        text.push_str(child_text);
+                    }
+                },
+                _ => {
+                    for id in child.children().iter().rev() {
+                        children.push_front(*id);
+                    }
+                },
+            }
+        }
+        Some(text.trim().to_owned())
     }
 
     // TODO: use macros to generate getter/setter methods.
