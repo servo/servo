@@ -119,7 +119,7 @@ pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!
 ///
 /// - We ignore spans unless they have a `servo_profiling` field.
 /// - We map span entry ([`Layer::on_enter`]) to `OH_HiTrace_StartTraceEx(metadata.name(), fields)`.
-/// - We map span exit ([`Layer::on_exit`]) to `OH_HiTrace_FinishTrace()`.
+/// - We map span exit ([`Layer::on_exit`]) to `OH_HiTrace_FinishTraceEx()`.
 ///
 /// As a result, within each thread, spans must exit in reverse order of their entry, otherwise the
 /// resultant profiling data will be incorrect (see the section below). This is not necessarily the
@@ -153,8 +153,8 @@ pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!
 /// in stable Rust, and converts to a [`u64`] in unstable Rust, so we would also need to make our
 /// own thread ids, perhaps by having a global atomic counter cached in a thread-local.
 ///
-/// [synchronous API]: https://docs.rs/hitrace-sys/0.1.2/hitrace_sys/fn.OH_HiTrace_StartTrace.html
-/// [asynchronous API]: https://docs.rs/hitrace-sys/0.1.2/hitrace_sys/fn.OH_HiTrace_StartAsyncTrace.html
+/// [synchronous API]: https://docs.rs/hitrace-sys/0.1.9/hitrace_sys/fn.OH_HiTrace_StartTraceEx.html
+/// [asynchronous API]: https://docs.rs/hitrace-sys/0.1.9/hitrace_sys/fn.OH_HiTrace_StartAsyncTraceEx.html
 /// [`Registry`]: tracing_subscriber::Registry
 /// [come from]: https://docs.rs/tracing-subscriber/0.3.18/src/tracing_subscriber/registry/sharded.rs.html#237-269
 /// [packed representation]: https://docs.rs/sharded-slab/0.1.7/sharded_slab/trait.Config.html
