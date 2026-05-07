@@ -67,6 +67,17 @@ impl GenericSharedMemory {
             ])))
         }
     }
+
+    /// Returns the arc directly if in `inprocess` mode or copies to a new vector from `GenericSharedMemory` if in IPC mode.
+    /// If multiple `GenericSharedmemory` point to the same value this is safe to use and only effects the value currently hold.
+    pub fn take(self) -> Arc<Vec<u8>> {
+        match self.0 {
+            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
+                Arc::new(ipc_shared_memory.to_vec())
+            },
+            GenericSharedMemoryVariant::InProcess(arc) => arc,
+        }
+    }
 }
 
 impl fmt::Debug for GenericSharedMemory {
