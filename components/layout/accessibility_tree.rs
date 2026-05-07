@@ -16,6 +16,7 @@ use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
 
+/// An in-progress [`accesskit::TreeUpdate`] that automatically avoids storing any node twice.
 struct AccessibilityUpdate {
     accesskit_update: accesskit::TreeUpdate,
     nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
@@ -29,6 +30,10 @@ struct AccessibilityNode {
     updated: bool,
 }
 
+/// A retained, internal representation of the accessibility tree for a document.
+///
+/// [`accesskit`] only provides interchange types for tree updates and action requests, so we need
+/// to define our own representation for incremental tree building.
 #[derive(Debug)]
 pub struct AccessibilityTree {
     nodes: FxHashMap<accesskit::NodeId, ArcRefCell<AccessibilityNode>>,
@@ -47,6 +52,8 @@ impl AccessibilityTree {
         }
     }
 
+    /// Update this tree based on the current state of the given DOM tree, and if anything changed,
+    /// return an [`accesskit::TreeUpdate`] representing what changed.
     pub(super) fn update_tree(
         &mut self,
         root_dom_node: &ServoLayoutNode<'_>,
@@ -54,7 +61,7 @@ impl AccessibilityTree {
         let root_node = self.get_or_create_node(root_dom_node);
         let mut tree_update =
             AccessibilityUpdate::new(accesskit::Tree::new(root_node.borrow().id), self.tree_id);
-        let any_node_updated = self.update_node_and_children(root_dom_node, &mut tree_update);
+        let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
             return None;
@@ -63,7 +70,9 @@ impl AccessibilityTree {
         Some(tree_update.finalize())
     }
 
-    fn update_node_and_children(
+    /// Update this tree starting at the given DOM node, adding any changed nodes to the given
+    /// [`AccessibilityUpdate`].
+    fn update_node_and_descendants(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
         tree_update: &mut AccessibilityUpdate,
@@ -77,7 +86,7 @@ impl AccessibilityTree {
         for dom_child in dom_node.flat_tree_children() {
             // TODO: We actually need to propagate damage within the accessibility tree, rather than
             // assuming it matches the DOM tree, but this will do for now.
-            any_descendant_updated |= self.update_node_and_children(&dom_child, tree_update);
+            any_descendant_updated |= self.update_node_and_descendants(&dom_child, tree_update);
         }
 
         self.update_node(node.clone(), dom_node, any_descendant_updated);
