@@ -2719,6 +2719,17 @@ impl Window {
 
         document.update_animations_post_reflow();
 
+        if pref!(accessibility_enabled) {
+            document.root_nodes_for_accessibility(
+                self.layout.borrow_mut().drain_new_nodes_for_accessibility(),
+            );
+            document.unroot_nodes_for_accessibility(
+                self.layout
+                    .borrow_mut()
+                    .drain_stale_nodes_for_accessibility(),
+            );
+        }
+
         (
             reflow_result.reflow_phases_run,
             reflow_result.reflow_statistics,

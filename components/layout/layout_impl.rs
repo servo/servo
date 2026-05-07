@@ -227,6 +227,16 @@ pub struct LayoutThread {
 
     /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
+
+    /// Nodes which newly have a corresponding node in the accessibility tree.
+    /// These should be drained and rooted immediately after reflow.
+    /// See [Layout::drain_new_nodes_for_accessibility]
+    new_nodes_for_accessibility: Vec<OpaqueNode>,
+
+    /// Nodes which no longer have a corresponding node in the accessibility.
+    /// These should be drained and unrooted at some point.
+    /// See [Layout::drain_stale_nodes_for_accessibility]
+    stale_nodes_for_accessibility: Vec<OpaqueNode>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -741,6 +751,15 @@ impl Layout for LayoutThread {
     fn set_needs_accessibility_update(&self) {
         self.needs_accessibility_update.set(true);
     }
+
+    fn drain_new_nodes_for_accessibility(&mut self) -> std::vec::Drain<'_, OpaqueNode> {
+        // TODO: can we ensure at compile time that this _must_ be called before the end of layout?
+        self.new_nodes_for_accessibility.drain(..)
+    }
+
+    fn drain_stale_nodes_for_accessibility(&mut self) -> std::vec::Drain<'_, OpaqueNode> {
+        self.stale_nodes_for_accessibility.drain(..)
+    }
 }
 
 impl LayoutThread {
@@ -800,6 +819,8 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
+            new_nodes_for_accessibility: vec![],
+            stale_nodes_for_accessibility: vec![],
         }
     }
 
@@ -926,7 +947,7 @@ impl LayoutThread {
         }
     }
 
-    fn handle_accessibility_tree_update(&self, root_element: &ServoLayoutNode) -> bool {
+    fn handle_accessibility_tree_update(&mut self, root_element: &ServoLayoutNode) -> bool {
         if !self.needs_accessibility_update() {
             return false;
         }
@@ -936,8 +957,12 @@ impl LayoutThread {
         };
 
         let accessibility_tree = &mut *accessibility_tree;
-        if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
-            // TODO(#4344): send directly to embedder over the pipeline_to_embedder_sender cloned from ScriptThread.
+        if let Some((tree_update, new_opaque_nodes, stale_opaque_nodes)) =
+            accessibility_tree.update_tree(root_element)
+        {
+            self.new_nodes_for_accessibility = new_opaque_nodes;
+            self.stale_nodes_for_accessibility = stale_opaque_nodes;
+
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.

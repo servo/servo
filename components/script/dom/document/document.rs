@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
+use std::ffi::c_void;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -23,6 +24,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
+    UntrustedNodeAddress,
 };
 use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
@@ -64,6 +66,7 @@ use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
@@ -146,6 +149,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
+use crate::dom::from_untrusted_node_address;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -304,6 +308,15 @@ impl PendingScrollEvent {
     fn equivalent(&self, target: &EventTarget, event: &Atom) -> bool {
         &*self.target == target && self.event == *event
     }
+}
+
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
+struct AccessibilityData {
+    /// Nodes which have corresponding nodes in the accessibility tree, which need to be rooted
+    /// until their corresponding nodes removed from the accessibility tree.
+    /// This allows the lifetime of nodes to be guaranteed to be at least as long as the lifetime
+    /// of their corresponding accessibility nodes.
+    rooted_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
 }
 
 /// Reasons why a [`Document`] might need a rendering update that is otherwise
@@ -657,6 +670,9 @@ pub(crate) struct Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
     css_styling_flag: Cell<bool>,
+
+    /// Data necessary for maintaining the accessibility tree.
+    accessibility_data: DomRefCell<Option<AccessibilityData>>,
 }
 
 impl Document {
@@ -3394,6 +3410,49 @@ impl Document {
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
+
+    fn accessibility_data(&self) -> RefMut<'_, AccessibilityData> {
+        assert!(pref!(accessibility_enabled));
+
+        RefMut::map(self.accessibility_data.borrow_mut(), |accessibility_data| {
+            accessibility_data.get_or_insert_default()
+        })
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn root_nodes_for_accessibility(
+        &self,
+        opaque_nodes: impl Iterator<Item = OpaqueNode>,
+    ) {
+        assert!(pref!(accessibility_enabled));
+
+        let accessibility_data = self.accessibility_data();
+        let mut rooted_nodes = accessibility_data.rooted_nodes.borrow_mut();
+        for opaque_node in opaque_nodes {
+            if rooted_nodes.contains_key(&NoTrace(opaque_node)) {
+                continue;
+            }
+
+            let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
+            unsafe {
+                let node_to_root = from_untrusted_node_address(address);
+                rooted_nodes.insert(NoTrace(opaque_node), Dom::from_ref(&*node_to_root))
+            };
+        }
+    }
+
+    pub(crate) fn unroot_nodes_for_accessibility(
+        &self,
+        opaque_nodes: impl Iterator<Item = OpaqueNode>,
+    ) {
+        assert!(pref!(accessibility_enabled));
+
+        let accessibility_data = self.accessibility_data();
+        let mut rooted_nodes = accessibility_data.rooted_nodes.borrow_mut();
+        for opaque_node in opaque_nodes {
+            rooted_nodes.remove(&NoTrace(opaque_node));
+        }
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3693,6 +3752,7 @@ impl Document {
             value_override: Default::default(),
             default_single_line_container_name: Default::default(),
             css_styling_flag: Default::default(),
+            accessibility_data: Default::default(),
         }
     }
 
