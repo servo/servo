@@ -3631,9 +3631,9 @@ dependencies = [
 
 [[package]]
 name = "hitrace"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f08b27f2170156e182b2c3e340d68d087b34b2479366986c4e2e5339d73fe18"
+checksum = "1c3f6973c97140d216f538db9341d209bba665c23ccbf7b1ec8c1a7896701fbc"
 dependencies = [
  "hitrace-sys",
  "tracing-core",
