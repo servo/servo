@@ -304,7 +304,7 @@ cfg_if! {
                         .expect("Failed to convert str to CString"),
                 );
 
-                hitrace::finish_trace();
+                hitrace::finish_trace_ex(level);
             }
 
 
@@ -316,7 +316,8 @@ cfg_if! {
                     return;
                 }
 
-                hitrace::finish_trace();
+                let level = convert_level(*span.metadata().level());
+                hitrace::finish_trace_ex(level);
 
                 #[cfg(debug_assertions)]
                 HITRACE_NAME_STACK.with_borrow_mut(|stack| {
