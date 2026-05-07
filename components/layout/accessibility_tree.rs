@@ -81,14 +81,7 @@ impl AccessibilityTree {
         let mut node = node.borrow_mut();
 
         // TODO: read accessibility damage (right now, assume damage is complete)
-        node.recompute_children(dom_node, self);
-
-        let mut any_descendant_updated = false;
-        for dom_child in dom_node.flat_tree_children() {
-            // TODO: We actually need to propagate damage within the accessibility tree, rather than
-            // assuming it matches the DOM tree, but this will do for now.
-            any_descendant_updated |= self.update_node_and_descendants(&dom_child, tree_update);
-        }
+        let any_descendant_updated = node.update_descendants(dom_node, self, tree_update);
 
         node.update_node(dom_node, self, any_descendant_updated);
 
@@ -180,20 +173,29 @@ impl AccessibilityNode {
         }
     }
 
-    fn recompute_children<'dom>(
+    fn update_descendants<'dom>(
         &mut self,
         dom_node: &ServoLayoutNode<'dom>,
         tree: &mut AccessibilityTree,
-    ) {
+        tree_update: &mut AccessibilityUpdate,
+    ) -> bool {
+        let mut any_descendant_updated = false;
         let mut new_children: Vec<accesskit::NodeId> = vec![];
         for dom_child in dom_node.flat_tree_children() {
-            let child_node = tree.get_or_create_node(&dom_child);
-            let child_node = child_node.borrow_mut();
-            new_children.push(child_node.id);
+            {
+                let child_node = tree.get_or_create_node(&dom_child);
+                let child_node = child_node.borrow_mut();
+                new_children.push(child_node.id);
+            }
+
+            // TODO: We actually need to propagate damage within the accessibility tree, rather than
+            // assuming it matches the DOM tree, but this will do for now.
+            any_descendant_updated |= tree.update_node_and_descendants(&dom_child, tree_update);
         }
         if new_children != self.children() {
             self.set_children(new_children);
         }
+        any_descendant_updated
     }
 
     fn update_node(
