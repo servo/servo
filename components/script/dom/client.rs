@@ -38,25 +38,13 @@ impl Client {
         }
     }
 
+    #[expect(dead_code)]
     pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Client> {
         reflect_dom_object(
             Box::new(Client::new_inherited(window.get_url())),
             window,
             can_gc,
         )
-    }
-
-    pub(crate) fn creation_url(&self) -> ServoUrl {
-        self.url.clone()
-    }
-
-    pub(crate) fn get_controller(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.active_worker.get()
-    }
-
-    #[expect(dead_code)]
-    pub(crate) fn set_controller(&self, worker: &ServiceWorker) {
-        self.active_worker.set(Some(worker));
     }
 }
 

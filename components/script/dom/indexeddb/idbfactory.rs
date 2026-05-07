@@ -70,7 +70,7 @@ impl IDBFactory {
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
-    fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
+    pub(crate) fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
         // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
         // with environment.
         let key = Self::obtain_storage_key_for_non_storage_purposes(environment);
