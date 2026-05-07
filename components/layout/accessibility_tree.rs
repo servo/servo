@@ -180,18 +180,19 @@ impl AccessibilityNode {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         let mut any_descendant_updated = false;
-        let mut new_children: Vec<accesskit::NodeId> = vec![];
-        for dom_child in dom_node.flat_tree_children() {
-            {
+        let new_children = dom_node
+            .flat_tree_children()
+            .map(|dom_child| {
                 let child_node = tree.get_or_create_node(&dom_child);
-                let child_node = child_node.borrow_mut();
-                new_children.push(child_node.id);
-            }
+                let child_node_id = child_node.borrow().id;
 
-            // TODO: We actually need to propagate damage within the accessibility tree, rather than
-            // assuming it matches the DOM tree, but this will do for now.
-            any_descendant_updated |= tree.update_node_and_descendants(&dom_child, tree_update);
-        }
+                // TODO: We actually need to propagate damage within the accessibility tree, rather than
+                // assuming it matches the DOM tree, but this will do for now.
+                any_descendant_updated |= tree.update_node_and_descendants(&dom_child, tree_update);
+
+                child_node_id
+            })
+            .collect();
         if new_children != self.children() {
             self.set_children(new_children);
         }
