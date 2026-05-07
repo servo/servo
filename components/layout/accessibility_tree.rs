@@ -101,20 +101,15 @@ impl AccessibilityTree {
     pub(super) fn update_tree(
         &mut self,
         root_dom_node: &ServoLayoutNode<'_>,
-    ) -> Option<accesskit::TreeUpdate> {
+    ) -> Option<(accesskit::TreeUpdate, Vec<OpaqueNode>, Vec<OpaqueNode>)> {
         let mut update = AccessibilityUpdate::new();
         let root_node = self.get_or_create_node(root_dom_node, &mut update);
         let root_node_id = root_node.borrow().id;
         self.root_node_id = Some(root_node_id);
 
-        let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut update);
+        self.update_node_and_descendants(root_dom_node, &mut update);
 
-        if !any_node_updated {
-            assert!(update.tree_changes.is_empty());
-            return None;
-        }
-
-        let accesskit_update = update.finalize(self)?;
+        let (accesskit_update, new_opaque_nodes, stale_opaque_nodes) = update.finalize(self)?;
 
         if self
             .debug
@@ -127,7 +122,7 @@ impl AccessibilityTree {
             self.assert_integrity();
         }
 
-        Some(accesskit_update)
+        Some((accesskit_update, new_opaque_nodes, stale_opaque_nodes))
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -201,14 +196,13 @@ impl AccessibilityTree {
         node.clone()
     }
 
-    /// Remove the node with the given ID from the cache, if it exists.
-    fn remove_node(&mut self, id: &NodeId) {
-        let Some(node) = self.nodes.remove(id) else {
-            return;
-        };
+    /// Remove the node with the given ID from the cache and return it, if it exists.
+    fn remove_node(&mut self, id: NodeId) -> Option<ArcRefCell<AccessibilityNode>> {
+        let node = self.nodes.remove(&id)?;
         if let Some(opaque_node) = node.borrow().opaque_node {
             self.opaque_node_to_id.remove(&opaque_node);
         }
+        Some(node)
     }
 
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
@@ -545,39 +539,71 @@ impl AccessibilityUpdate {
         node.updated = false;
     }
 
-    fn finalize(mut self, tree: &mut AccessibilityTree) -> Option<accesskit::TreeUpdate> {
-        for id in self
-            .tree_changes
-            .drain()
-            .filter_map(|(id, change)| match change {
+    fn finalize(
+        mut self,
+        tree: &mut AccessibilityTree,
+    ) -> Option<(accesskit::TreeUpdate, Vec<OpaqueNode>, Vec<OpaqueNode>)> {
+        let root_node_id = tree
+            .root_node_id
+            .expect("AccessibilityUpdate::finalize() called but no root_node_id set in tree");
+
+        if self.changed_nodes.is_empty() {
+            assert!(self.tree_changes.is_empty());
+            return None;
+        }
+
+        let mut new_opaque_nodes: Vec<OpaqueNode> = Vec::default();
+        let mut stale_opaque_nodes: Vec<OpaqueNode> = Vec::default();
+        for (id, change) in self.tree_changes.drain() {
+            match change {
+                TreeChange::New => {
+                    let node = tree.assert_node_for_id(id);
+                    if let Some(opaque_node) = node.borrow().opaque_node {
+                        // Currently all accessibility nodes correspond to DOM nodes, but this may
+                        // not always be true.
+                        new_opaque_nodes.push(opaque_node);
+                    }
+                },
+                TreeChange::Removed => {
+                    let Some(node) = tree.remove_node(id) else {
+                        panic!("Removed node with id {id:?} not found in tree");
+                    };
+                    if let Some(opaque_node) = node.borrow().opaque_node {
+                        stale_opaque_nodes.push(opaque_node);
+                    }
+                },
                 TreeChange::PendingMove => {
-                    unreachable!(
+                    panic!(
                         "Pending move found for node id {id:?} when draining tree state changes"
                     );
                 },
-                TreeChange::Removed => Some(id),
-                _ => None,
-            })
-        {
-            tree.remove_node(&id);
+                TreeChange::Moved => {
+                    // We only track moved nodes to avoid incorrectly marking them as removed, so
+                    // we just silently drop them here.
+                },
+            }
         }
 
-        let accesskit_tree = accesskit::Tree::new(tree.root_node_id?);
-        Some(accesskit::TreeUpdate {
-            nodes: self
-                .changed_nodes
-                .into_iter()
-                .map(|id| {
-                    (
-                        id,
-                        tree.assert_node_for_id(id).borrow().accesskit_node.clone(),
-                    )
-                })
-                .collect(),
-            tree: Some(accesskit_tree),
-            focus: accesskit::NodeId(1),
-            tree_id: tree.tree_id,
-        })
+        let accesskit_tree = accesskit::Tree::new(root_node_id);
+        Some((
+            accesskit::TreeUpdate {
+                nodes: self
+                    .changed_nodes
+                    .into_iter()
+                    .map(|id| {
+                        (
+                            id,
+                            tree.assert_node_for_id(id).borrow().accesskit_node.clone(),
+                        )
+                    })
+                    .collect(),
+                tree: Some(accesskit_tree),
+                focus: accesskit::NodeId(1),
+                tree_id: tree.tree_id,
+            },
+            new_opaque_nodes,
+            stale_opaque_nodes,
+        ))
     }
 }
 
@@ -618,7 +644,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
         update.add(&mut node_3);
     }
 
-    let mut tree_update = update
+    let (mut tree_update, _, _) = update
         .finalize(&mut tree)
         .expect("finalize should produce a tree update");
     tree_update.nodes.sort_by_key(|(node_id, _node)| *node_id);
