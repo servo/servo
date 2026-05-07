@@ -46,7 +46,6 @@ use stylo_dom::ElementState;
 
 use crate::dom::bindings::inheritance::{
     CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
-    TextTypeId,
 };
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::Element;
@@ -746,7 +745,7 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             .dom_children()
             .all(|node| match node.node.type_id_for_layout() {
                 NodeTypeId::Element(..) => false,
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(..)) => {
                     node.node.downcast().unwrap().data_for_layout().is_empty()
                 },
                 _ => true,
