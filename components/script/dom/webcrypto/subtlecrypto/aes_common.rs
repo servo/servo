@@ -605,7 +605,7 @@ pub(crate) fn export_key(
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
                         return Err(Error::Operation(Some(
-                            "Failed to parse key as AES-CTR key algorithm".to_string(),
+                            "The key is not an AES-CTR key".to_string(),
                         )));
                     };
                     let alg = match algorithm.length {
@@ -630,7 +630,7 @@ pub(crate) fn export_key(
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
                         return Err(Error::Operation(Some(
-                            "Failed to parse key as AES-CBC key algorithm".to_string(),
+                            "The key is not an AES-CBC key".to_string(),
                         )));
                     };
                     let alg = match algorithm.length {
@@ -655,7 +655,7 @@ pub(crate) fn export_key(
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
                         return Err(Error::Operation(Some(
-                            "Failed to parse key as AES-GCM key algorithm".to_string(),
+                            "The key is not an AES-GCM key".to_string(),
                         )));
                     };
                     let alg = match algorithm.length {
@@ -680,7 +680,7 @@ pub(crate) fn export_key(
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
                         return Err(Error::Operation(Some(
-                            "Failed to parse key as AES-KW key algorithm".to_string(),
+                            "The key is not an AES-KW key".to_string(),
                         )));
                     };
                     let alg = match algorithm.length {
@@ -705,7 +705,7 @@ pub(crate) fn export_key(
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
                         return Err(Error::Operation(Some(
-                            "Failed to parse key as AES-OCB key algorithm".to_string(),
+                            "The key is not an AES-OCB key".to_string(),
                         )));
                     };
                     let alg = match algorithm.length {
