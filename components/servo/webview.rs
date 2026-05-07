@@ -837,6 +837,18 @@ impl WebView {
         self.accesskit_tree_id()
     }
 
+    // TODO: This method should be removed once we implement incremental tree updates.
+    pub fn force_accessibility_update_for_testing(&self) {
+        if self.inner().accesskit_tree_id.is_none() {
+            self.set_accessibility_active(true);
+            return;
+        }
+
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::SetAccessibilityActive(self.id(), true),
+        );
+    }
+
     pub(crate) fn notify_document_accessibility_tree_id(&self, grafted_tree_id: TreeId) {
         let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
             return;

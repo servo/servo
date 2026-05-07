@@ -13,7 +13,7 @@ use accesskit_consumer::TreeChangeHandler;
 use servo::{LoadStatus, Preferences, WebViewBuilder};
 use url::Url;
 
-use crate::common::{ServoTest, WebViewDelegateImpl};
+use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
 struct NoOpChangeHandler;
 
@@ -328,6 +328,57 @@ fn test_accessibility_name_from_contents_subtree() {
         ),
         "Heading label should be composed of the text contents of all of its descendant text nodes"
     );
+}
+
+#[test]
+fn test_accessibility_basic_mutation() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h1 id='h1'>This is an h1</h1>\
+               <h2 id='h2'>This is an h2</h2>";
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url).unwrap())
+        .build();
+
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let mut tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let h1 = children[0];
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+    let h2 = children[1];
+    assert_eq!(h2.label(), Some("This is an h2".to_owned()));
+
+    webview.force_accessibility_update_for_testing();
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.getElementById('h2').remove()",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let h1 = children[0];
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
 }
 
 fn wait_for_min_updates(
