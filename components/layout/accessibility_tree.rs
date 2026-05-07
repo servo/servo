@@ -154,18 +154,16 @@ impl AccessibilityTree {
 }
 
 fn role_from_dom_node(dom_node: &ServoLayoutNode<'_>) -> Role {
-    let role;
     if let Some(dom_element) = dom_node.as_element() {
         let local_name = dom_element.local_name().to_ascii_lowercase();
-        role = HTML_ELEMENT_ROLE_MAPPINGS
+        *HTML_ELEMENT_ROLE_MAPPINGS
             .get(&local_name)
-            .unwrap_or(&Role::GenericContainer);
+            .unwrap_or(&Role::GenericContainer)
     } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
-        role = &Role::TextRun;
+        Role::TextRun
     } else {
-        role = &Role::GenericContainer;
+        Role::GenericContainer
     }
-    *role
 }
 
 impl AccessibilityNode {
