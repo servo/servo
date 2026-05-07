@@ -308,34 +308,33 @@ impl BoxFragment {
                     // wholly unrechable scrollable overflow area, but also clips it. This
                     // makes the resulting value more like the "scroll area" rather than the
                     // "scrollable overflow."
-                    let Some(scrollable_overflow_from_child) = self
+                    if let Some(scrollable_overflow_from_child) = self
                         .clip_wholly_unreachable_scrollable_overflow(
                             scrollable_overflow_from_child,
                             physical_padding_rect,
-                        )
-                    else {
-                        return acc;
-                    };
-
-                    acc.union(&scrollable_overflow_from_child)
+                        ) {
+                        acc.union(&scrollable_overflow_from_child)
+                    } else {
+                        acc
+                    }
                 });
-
-        // Whether we should include additional padding contribution to the scrollable overflow.
-        // This padding is only relevant to the scrollable boxes. Additionally, single-line text
-        // input boxes shouldn't add a padding in the block direction to prevent block direction
-        // scrolling.
-        // TODO: For input elements, we also disable the padding in the inline direction, as we
-        // doen't have a way to scroll the texttual input element in inline direction yet. This
-        // is fine since all input elements (except for texttual inputs) aren't supposed to be
-        // scrollable
-        let should_include_additional_padding =
-            self.style().establishes_scroll_container(self.base.flags) &&
-                !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT);
 
         // From <https://drafts.csswg.org/css-overflow-3/#scrollable>:
         // > Additional padding added to the scrollable overflow rectangle as necessary to
         // > enable scroll positions that satisfy the requirements of both place-content:
         // > start and place-content: end alignment.
+        //
+        // Whether we should include additional padding to the scrollable overflow to satisfy
+        // the requirements of `place-content: start` and `place-content: end` for boxes that
+        // establish scroll containers. Note: This padding is different from the CSS concept
+        // of padding. See <https://github.com/w3c/csswg-drafts/issues/129>.
+        //
+        // TODO: For input elements, we also disable the padding in the inline direction, as we
+        // do not have a way to scroll the textual input element in inline direction yet.
+        let should_include_additional_padding =
+            self.style().establishes_scroll_container(self.base.flags) &&
+                !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT);
+
         if should_include_additional_padding {
             scrollable_overflow = self
                 .children
@@ -353,7 +352,7 @@ impl BoxFragment {
 
                     // Applying padding could also cause the rectangle to overflow to
                     // the wholly unreachable scrollable overflow, clipping the overflow
-                    // here ensure that we have an accurate scrolling area.
+                    // here prevents this.
                     let Some(padding_contribution) = self
                         .clip_wholly_unreachable_scrollable_overflow(
                             padding_contribution,
@@ -499,9 +498,9 @@ impl BoxFragment {
             .unwrap_or(overflow)
     }
 
-    /// Return the clipped the scrollable overflow based on its scroll origin, determined
-    /// by overflow direction. Returning [`None`] if the scrollable overflow from child is
-    /// wholly unreachable. For an element, the clip rect is the padding rect and for viewport,
+    /// Return the clipped scrollable overflow based on its scroll origin, determined by
+    /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
+    /// unreachable. For an element, the clip rect is the padding rect and for viewport,
     /// it is the initial containing block.
     pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
         &self,

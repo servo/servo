@@ -253,8 +253,8 @@ impl Fragment {
                     None
                 }
             },
-            // TODO: Using PositioningFragment's content rect are not correct, since it is not
-            // representing the inline bounds of the underlying fragments correctly.
+            // TODO: Using PositioningFragment's FragmentBase::rect are not fully correct, since it is
+            // not representing the inline bounds of the underlying fragments correctly.
             Fragment::Positioning(fragment) => Some(fragment.borrow().base.rect),
             Fragment::AbsoluteOrFixedPositioned(_) => None,
             Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {
