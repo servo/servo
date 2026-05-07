@@ -37,15 +37,6 @@ impl Client {
             id: Uuid::new_v4(),
         }
     }
-
-    #[expect(dead_code)]
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Client> {
-        reflect_dom_object(
-            Box::new(Client::new_inherited(window.get_url())),
-            window,
-            can_gc,
-        )
-    }
 }
 
 impl ClientMethods<crate::DomTypeHolder> for Client {
