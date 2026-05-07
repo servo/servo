@@ -15,15 +15,21 @@ type RegisteredMediaStream = Arc<Mutex<dyn MediaStream>>;
 static MEDIA_STREAMS_REGISTRY: LazyLock<Mutex<HashMap<MediaStreamId, RegisteredMediaStream>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, MallocSizeOf)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, MallocSizeOf)]
 pub struct MediaStreamId(Uuid);
 impl MediaStreamId {
     pub fn new() -> MediaStreamId {
-        Default::default()
+        Self(Uuid::new_v4())
     }
 
     pub fn id(self) -> Uuid {
         self.0
+    }
+}
+
+impl Default for MediaStreamId {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
