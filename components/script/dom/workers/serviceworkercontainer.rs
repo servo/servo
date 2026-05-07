@@ -194,10 +194,6 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // A: Step 7
         promise
     }
-
-    fn GetRegistration(&self, _client_url: script_bindings::str::USVString) -> Rc<Promise> {
-        todo!()
-    }
 }
 
 /// Callback for resolve/reject job promise for Register.
