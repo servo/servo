@@ -32,19 +32,15 @@ struct AccessibilityNode {
 pub struct AccessibilityTree {
     nodes: FxHashMap<accesskit::NodeId, ArcRefCell<AccessibilityNode>>,
     opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
-    accesskit_tree: accesskit::Tree,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
 }
 
 impl AccessibilityTree {
-    const ROOT_NODE_ID: accesskit::NodeId = accesskit::NodeId(0);
-
     pub(super) fn new(tree_id: accesskit::TreeId, epoch: Epoch) -> Self {
         Self {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
-            accesskit_tree: accesskit::Tree::new(AccessibilityTree::ROOT_NODE_ID),
             tree_id,
             epoch,
         }
@@ -55,9 +51,8 @@ impl AccessibilityTree {
         root_dom_node: &ServoLayoutNode<'_>,
     ) -> Option<accesskit::TreeUpdate> {
         let root_node = self.get_or_create_node(root_dom_node);
-        self.accesskit_tree.root = root_node.borrow().id;
-
-        let mut tree_update = AccessibilityUpdate::new(self.accesskit_tree.clone(), self.tree_id);
+        let mut tree_update =
+            AccessibilityUpdate::new(accesskit::Tree::new(root_node.borrow().id), self.tree_id);
         let any_node_updated = self.update_node_and_children(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
@@ -185,7 +180,7 @@ impl AccessibilityTree {
 
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> accesskit::NodeId {
         let id = self.opaque_node_to_id.entry(opaque).or_insert_with(|| {
-            static LAST_ID: AtomicU64 = AtomicU64::new(1u64);
+            static LAST_ID: AtomicU64 = AtomicU64::new(0);
             LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into()
         });
         *id
