@@ -7,7 +7,9 @@ use std::sync::Arc;
 use log::{info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
-use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
+use sea_query::{
+    Condition, Expr, ExprTrait, IntoColumnRef, IntoCondition, Order, SqliteQueryBuilder,
+};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_base::threadpool::ThreadPool;
 use storage_traits::indexeddb::{
@@ -23,34 +25,33 @@ use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 mod create;
 mod database_model;
 mod encoding;
+pub mod index_data_model;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
 
-fn range_to_query(range: IndexedDBKeyRange) -> Condition {
+fn range_to_query<T: Copy + IntoColumnRef>(col: T, range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
         let encoded = encoding::serialize(singleton);
-        return Expr::column(object_data_model::Column::Key)
-            .eq(encoded)
-            .into_condition();
+        return Expr::column(col).eq(encoded).into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
         let upper_bytes = encoding::serialize(upper);
         let query = if range.upper_open {
-            Expr::column(object_data_model::Column::Key).lt(upper_bytes)
+            Expr::column(col).lt(upper_bytes)
         } else {
-            Expr::column(object_data_model::Column::Key).lte(upper_bytes)
+            Expr::column(col).lte(upper_bytes)
         };
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = encoding::serialize(lower);
         let query = if range.lower_open {
-            Expr::column(object_data_model::Column::Key).gt(lower_bytes)
+            Expr::column(col).gt(lower_bytes)
         } else {
-            Expr::column(object_data_model::Column::Key).gte(lower_bytes)
+            Expr::column(col).gte(lower_bytes)
         };
         parts.push(query);
     }
@@ -135,12 +136,28 @@ impl SqliteEngine {
         Ok(connection)
     }
 
+    /// Gets the associated index model for a given object store and index name
+    /// Returns `Ok(None)` if no such index exists.
+    fn get_index_model(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+    ) -> Result<Option<object_store_index_model::Model>, Error> {
+        connection
+            .query_one(
+                "SELECT * FROM object_store_index WHERE object_store_id = ? AND name = ?",
+                params![store.id, index],
+                |row| object_store_index_model::Model::try_from(row),
+            )
+            .optional()
+    }
+
     fn get(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<Option<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(object_data_model::Column::Key, key_range);
         let (sql, values) = sea_query::Query::select()
             .from(object_data_model::Column::Table)
             .columns(vec![
@@ -159,12 +176,78 @@ impl SqliteEngine {
             .optional()
     }
 
+    fn index_get(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<index_data_model::Model>, Error> {
+        let Some(index_model) = Self::get_index_model(connection, store, index)? else {
+            return Ok(None);
+        };
+        let query = range_to_query(index_data_model::Column::IndexKey, key_range);
+        let (sql, values) = sea_query::Query::select()
+            .from(index_data_model::Column::Table)
+            .columns(vec![
+                index_data_model::Column::IndexId,
+                index_data_model::Column::IndexKey,
+                index_data_model::Column::ObjectKey,
+            ])
+            .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index_model.id)))
+            .order_by(index_data_model::Column::IndexKey, Order::Asc)
+            .order_by(index_data_model::Column::ObjectKey, Order::Asc)
+            .limit(1)
+            .build_rusqlite(SqliteQueryBuilder);
+        connection
+            .prepare(&sql)?
+            .query_one(&*values.as_params(), |row| {
+                index_data_model::Model::try_from(row)
+            })
+            .optional()
+    }
+
+    fn get_by_serialized_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key: &[u8],
+    ) -> Result<Option<object_data_model::Model>, Error> {
+        connection
+            .prepare("SELECT * FROM object_data WHERE object_store_id = ? AND key = ?")?
+            .query_row(params![store.id, key], |row| {
+                object_data_model::Model::try_from(row)
+            })
+            .optional()
+    }
+
+    fn delete_index_entries_for_object_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        object_key: &[u8],
+    ) -> Result<(), Error> {
+        connection.execute(
+            "DELETE FROM index_data WHERE object_key = ? AND index_id IN \
+             (SELECT id FROM object_store_index WHERE object_store_id = ?)",
+            params![object_key, store.id],
+        )?;
+        Ok(())
+    }
+
     fn get_key(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<Option<Vec<u8>>, Error> {
         Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.key))
+    }
+
+    fn index_get_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::index_get(connection, store, index_name, key_range)
+            .map(|opt| opt.map(|model| model.object_key))
     }
 
     fn get_item(
@@ -175,13 +258,27 @@ impl SqliteEngine {
         Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.data))
     }
 
+    fn index_get_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        let Some(index_data) = Self::index_get(connection, store.clone(), index_name, key_range)?
+        else {
+            return Ok(None);
+        };
+        Self::get_by_serialized_key(connection, store, &index_data.object_key)
+            .map(|opt| opt.map(|model| model.data))
+    }
+
     fn get_all(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(object_data_model::Column::Key, key_range);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -204,6 +301,41 @@ impl SqliteEngine {
         Ok(models)
     }
 
+    fn index_get_all(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<index_data_model::Model>, Error> {
+        let Some(index_model) = Self::get_index_model(connection, store, index_name)? else {
+            return Ok(vec![]);
+        };
+        let query = range_to_query(index_data_model::Column::IndexKey, key_range);
+        let mut sql_query = sea_query::Query::select();
+        sql_query
+            .from(index_data_model::Column::Table)
+            .columns(vec![
+                index_data_model::Column::IndexId,
+                index_data_model::Column::IndexKey,
+                index_data_model::Column::ObjectKey,
+            ])
+            .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index_model.id)))
+            .order_by(index_data_model::Column::IndexKey, Order::Asc)
+            .order_by(index_data_model::Column::ObjectKey, Order::Asc);
+        if let Some(count) = count {
+            sql_query.limit(count as u64);
+        }
+        let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
+        let mut stmt = connection.prepare(&sql)?;
+        let models = stmt
+            .query_and_then(&*values.as_params(), |row| {
+                index_data_model::Model::try_from(row)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(models)
+    }
+
     fn get_all_keys(
         connection: &Connection,
         store: object_store_model::Model,
@@ -214,6 +346,17 @@ impl SqliteEngine {
             .map(|models| models.into_iter().map(|m| m.key).collect())
     }
 
+    fn index_get_all_keys(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::index_get_all(connection, store, index, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.object_key).collect())
+    }
+
     fn get_all_items(
         connection: &Connection,
         store: object_store_model::Model,
@@ -222,6 +365,25 @@ impl SqliteEngine {
     ) -> Result<Vec<Vec<u8>>, Error> {
         Self::get_all(connection, store, key_range, count)
             .map(|models| models.into_iter().map(|m| m.data).collect())
+    }
+
+    fn index_get_all_items(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        let index_models = Self::index_get_all(connection, store.clone(), index, key_range, count)?;
+        let mut items = Vec::with_capacity(index_models.len());
+        for model in index_models {
+            if let Some(item) =
+                Self::get_by_serialized_key(connection, store.clone(), &model.object_key)?
+            {
+                items.push(item.data);
+            }
+        }
+        Ok(items)
     }
 
     #[expect(clippy::type_complexity)]
@@ -241,6 +403,7 @@ impl SqliteEngine {
         value: Vec<u8>,
         should_overwrite: bool,
         key_generator_current_number: Option<i32>,
+        index_key_value: Vec<(String, bool, IndexedDBKeyType)>,
     ) -> Result<PutItemResult, Error> {
         let no_overwrite = !should_overwrite;
         let serialized_key: Vec<u8> = encoding::serialize(&key);
@@ -252,20 +415,50 @@ impl SqliteEngine {
                 })
                 .optional()
             })?;
-        if existing_item.is_some() {
-            if no_overwrite {
-                return Ok(PutItemResult::CannotOverwrite);
+        if existing_item.is_some() && no_overwrite {
+            return Ok(PutItemResult::CannotOverwrite);
+        }
+
+        let mut index_entries = Vec::with_capacity(index_key_value.len());
+        for (index_name, _unique, index_key) in index_key_value {
+            let index_model = Self::get_index_model(connection, store.clone(), index_name)?
+                .ok_or(Error::QueryReturnedNoRows)?;
+            let serialized_index_key = encoding::serialize(&index_key);
+            if index_model.unique_index {
+                let has_conflict: bool = connection.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM index_data WHERE index_id = ? AND index_key = ? AND object_key != ?)",
+                    params![index_model.id, &serialized_index_key, &serialized_key],
+                    |row| row.get(0),
+                )?;
+                if has_conflict {
+                    return Err(Error::SqliteFailure(
+                        rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE),
+                        Some("Unique index constraint violated".to_string()),
+                    ));
+                }
             }
+            index_entries.push((index_model.id, serialized_index_key));
+        }
+
+        if existing_item.is_some() {
             // Preserve `put()` semantics by replacing the stored value when the primary
             // key already exists.
             connection.execute(
                 "UPDATE object_data SET data = ? WHERE object_store_id = ? AND key = ?",
                 params![value, store.id, serialized_key],
             )?;
+            Self::delete_index_entries_for_object_key(connection, store.clone(), &serialized_key)?;
         } else {
             connection.execute(
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
+            )?;
+        }
+
+        for (index_id, serialized_index_key) in index_entries {
+            connection.execute(
+                "INSERT INTO index_data (index_id, index_key, object_key) VALUES (?, ?, ?)",
+                params![index_id, serialized_index_key, &serialized_key],
             )?;
         }
         if let Some(next_key_generator_current_number) = key_generator_current_number {
@@ -282,7 +475,11 @@ impl SqliteEngine {
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<(), Error> {
-        let query = range_to_query(key_range);
+        let keys = Self::get_all_keys(connection, store.clone(), key_range.clone(), None)?;
+        for key in &keys {
+            Self::delete_index_entries_for_object_key(connection, store.clone(), key)?;
+        }
+        let query = range_to_query(object_data_model::Column::Key, key_range);
         let (sql, values) = sea_query::Query::delete()
             .from_table(object_data_model::Column::Table)
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
@@ -291,11 +488,20 @@ impl SqliteEngine {
         Ok(())
     }
 
+    /// <https://www.w3.org/TR/IndexedDB/#clear-an-object-store>
     fn clear(connection: &Connection, store: object_store_model::Model) -> Result<(), Error> {
+        // Step 1. Remove all records from store.
         connection.execute(
             "DELETE FROM object_data WHERE object_store_id = ?",
             params![store.id],
         )?;
+        // Step 2. In all indexes which reference store, remove all records.
+        connection.execute(
+            "DELETE FROM index_data WHERE index_id IN \
+             (SELECT id FROM object_store_index WHERE object_store_id = ?)",
+            params![store.id],
+        )?;
+        // Step 3. Return undefined.
         Ok(())
     }
 
@@ -304,11 +510,31 @@ impl SqliteEngine {
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<usize, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(object_data_model::Column::Key, key_range);
         let (sql, values) = sea_query::Query::select()
             .expr(Expr::col(object_data_model::Column::Key).count())
             .from(object_data_model::Column::Table)
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .build_rusqlite(SqliteQueryBuilder);
+        connection
+            .prepare(&sql)?
+            .query_row(&*values.as_params(), |row| row.get(0))
+            .map(|count: i64| count as usize)
+    }
+
+    fn index_count(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<usize, Error> {
+        let index = Self::get_index_model(connection, store, index_name)?
+            .ok_or_else(|| Error::QueryReturnedNoRows)?;
+        let query = range_to_query(index_data_model::Column::IndexKey, key_range);
+        let (sql, values) = sea_query::Query::select()
+            .expr(Expr::col(index_data_model::Column::IndexKey).count())
+            .from(index_data_model::Column::Table)
+            .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index.id)))
             .build_rusqlite(SqliteQueryBuilder);
         connection
             .prepare(&sql)?
@@ -351,11 +577,8 @@ impl KvsEngine for SqliteEngine {
         let object_store = Self::object_store_by_name(&self.connection, store_name)?;
 
         self.connection.execute(
-            "DELETE FROM index_data WHERE object_store_id = ?",
-            params![object_store.id],
-        )?;
-        self.connection.execute(
-            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            "DELETE FROM index_data WHERE index_id IN \
+             (SELECT id FROM object_store_index WHERE object_store_id = ?)",
             params![object_store.id],
         )?;
         self.connection.execute(
@@ -438,6 +661,7 @@ impl KvsEngine for SqliteEngine {
                         value,
                         should_overwrite,
                         key_generator_current_number,
+                        index_key_value
                     }) => {
                         let (key, key_generator_current_number) = match key {
                             Some(key) => (key, key_generator_current_number),
@@ -476,6 +700,7 @@ impl KvsEngine for SqliteEngine {
                                 value,
                                 should_overwrite,
                                 key_generator_current_number,
+                                index_key_value
                             )
                             .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
@@ -565,6 +790,77 @@ impl KvsEngine for SqliteEngine {
                         let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
                                 .map(|key| key.map(|k| encoding::deserialize(&k).unwrap()))
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetKey {
+                                                 callback,
+                                                 index_name,
+                                                 key_range,
+                                             }) => {
+                        let _ = callback.send(
+                            Self::index_get_key(&connection, object_store, index_name, key_range)
+                                .map(|key| key.map(|k| encoding::deserialize(&k).unwrap()))
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetItem {
+                                                 callback,
+                                                 index_name,
+                                                 key_range,
+                                             }) => {
+                        let _ = callback.send(
+                            Self::index_get_item(&connection, object_store, index_name, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetAllKeys {
+                                                 callback,
+                                                 index_name,
+                                                 key_range,
+                                                 count,
+                                             }) => {
+                        let _ = callback.send(
+                            Self::index_get_all_keys(
+                                &connection,
+                                object_store,
+                                index_name,
+                                key_range,
+                                count,
+                            )
+                                .map(|keys| {
+                                    keys.into_iter()
+                                        .map(|k| encoding::deserialize(&k).unwrap())
+                                        .collect()
+                                })
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetAllItems {
+                                                 callback,
+                                                 index_name,
+                                                 key_range,
+                                                 count,
+                                             }) => {
+                        let _ = callback.send(
+                            Self::index_get_all_items(
+                                &connection,
+                                object_store,
+                                index_name,
+                                key_range,
+                                count,
+                            )
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexCount {
+                                                 callback,
+                                                 index_name,
+                                                 key_range,
+                                             }) => {
+                        let _ = callback.send(
+                            Self::index_count(&connection, object_store, index_name, key_range)
+                                .map(|r| r as u64)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -679,11 +975,25 @@ impl KvsEngine for SqliteEngine {
             |r| Ok(object_store_model::Model::try_from(r).unwrap()),
         )?;
 
-        // Delete the index if it exists
-        let _ = self.connection.execute(
-            "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
-            params![index_name, object_store.id],
-        )?;
+        let index_id: Option<i32> = self
+            .connection
+            .query_row(
+                "SELECT id FROM object_store_index WHERE name = ? AND object_store_id = ?",
+                params![index_name, object_store.id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        if let Some(index_id) = index_id {
+            self.connection.execute(
+                "DELETE FROM index_data WHERE index_id = ?",
+                params![index_id],
+            )?;
+            self.connection.execute(
+                "DELETE FROM object_store_index WHERE id = ?",
+                params![index_id],
+            )?;
+        }
         Ok(())
     }
 
@@ -996,6 +1306,14 @@ mod tests {
 
         db.create_store("test_store", None, false)
             .expect("Failed to create store");
+        db.create_index(
+            "test_store",
+            "by_value".to_string(),
+            KeyPath::String("value".to_string()),
+            false,
+            false,
+        )
+        .expect("Failed to create index");
         let object_store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
             .expect("Failed to fetch store metadata");
         SqliteEngine::put_item(
@@ -1005,6 +1323,11 @@ mod tests {
             vec![1, 2, 3],
             true,
             None,
+            vec![(
+                "by_value".to_string(),
+                false,
+                IndexedDBKeyType::String("alpha".to_string()),
+            )],
         )
         .expect("Failed to insert item");
 
@@ -1018,6 +1341,12 @@ mod tests {
             .expect("Failed to count rows before delete");
         assert_eq!(row_count_before, 1);
 
+        let index_row_count_before: i64 = db
+            .connection
+            .query_row("SELECT COUNT(*) FROM index_data", [], |row| row.get(0))
+            .expect("Failed to count index rows before delete");
+        assert_eq!(index_row_count_before, 1);
+
         db.delete_store("test_store")
             .expect("Failed to delete store");
 
@@ -1030,6 +1359,362 @@ mod tests {
             )
             .expect("Failed to count rows after delete");
         assert_eq!(row_count_after, 0);
+
+        let index_row_count_after: i64 = db
+            .connection
+            .query_row("SELECT COUNT(*) FROM index_data", [], |row| row.get(0))
+            .expect("Failed to count index rows after delete");
+        assert_eq!(index_row_count_after, 0);
+    }
+
+    #[test]
+    fn test_index_reads_and_unique_constraints() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        assert_eq!(
+            db.create_index(
+                "test_store",
+                "by_value".to_string(),
+                KeyPath::String("value".to_string()),
+                false,
+                false,
+            )
+            .expect("Failed to create value index"),
+            CreateObjectResult::Created
+        );
+        assert_eq!(
+            db.create_index(
+                "test_store",
+                "by_unique".to_string(),
+                KeyPath::String("unique".to_string()),
+                true,
+                false,
+            )
+            .expect("Failed to create unique index"),
+            CreateObjectResult::Created
+        );
+
+        let store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
+            .expect("Failed to get object store");
+
+        SqliteEngine::put_item(
+            &db.connection,
+            store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1],
+            false,
+            None,
+            vec![
+                (
+                    "by_value".to_string(),
+                    false,
+                    IndexedDBKeyType::String("alpha".to_string()),
+                ),
+                (
+                    "by_unique".to_string(),
+                    true,
+                    IndexedDBKeyType::String("email-1".to_string()),
+                ),
+            ],
+        )
+        .expect("Failed to insert first indexed item");
+        SqliteEngine::put_item(
+            &db.connection,
+            store.clone(),
+            IndexedDBKeyType::Number(2.0),
+            vec![2],
+            false,
+            None,
+            vec![
+                (
+                    "by_value".to_string(),
+                    false,
+                    IndexedDBKeyType::String("alpha".to_string()),
+                ),
+                (
+                    "by_unique".to_string(),
+                    true,
+                    IndexedDBKeyType::String("email-2".to_string()),
+                ),
+            ],
+        )
+        .expect("Failed to insert second indexed item");
+
+        let key = SqliteEngine::index_get_key(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+        )
+        .expect("Failed to get indexed key")
+        .map(|key| encoding::deserialize(&key).unwrap());
+        assert_eq!(key, Some(IndexedDBKeyType::Number(1.0)));
+
+        let item = SqliteEngine::index_get_item(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+        )
+        .expect("Failed to get indexed item");
+        assert_eq!(item, Some(vec![1]));
+
+        let keys = SqliteEngine::index_get_all_keys(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+            None,
+        )
+        .expect("Failed to get indexed keys")
+        .into_iter()
+        .map(|key| encoding::deserialize(&key).unwrap())
+        .collect::<Vec<_>>();
+        assert_eq!(
+            keys,
+            vec![IndexedDBKeyType::Number(1.0), IndexedDBKeyType::Number(2.0)]
+        );
+
+        let items = SqliteEngine::index_get_all_items(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+            None,
+        )
+        .expect("Failed to get indexed items");
+        assert_eq!(items, vec![vec![1], vec![2]]);
+
+        let count = SqliteEngine::index_count(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+        )
+        .expect("Failed to count indexed entries");
+        assert_eq!(count, 2);
+
+        SqliteEngine::put_item(
+            &db.connection,
+            store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![10],
+            true,
+            None,
+            vec![
+                (
+                    "by_value".to_string(),
+                    false,
+                    IndexedDBKeyType::String("beta".to_string()),
+                ),
+                (
+                    "by_unique".to_string(),
+                    true,
+                    IndexedDBKeyType::String("email-1b".to_string()),
+                ),
+            ],
+        )
+        .expect("Failed to overwrite indexed item");
+
+        let alpha_count = SqliteEngine::index_count(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+        )
+        .expect("Failed to count alpha indexed entries");
+        assert_eq!(alpha_count, 1);
+
+        let beta_item = SqliteEngine::index_get_item(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("beta".to_string())),
+        )
+        .expect("Failed to get beta indexed item");
+        assert_eq!(beta_item, Some(vec![10]));
+
+        let duplicate_unique_result = SqliteEngine::put_item(
+            &db.connection,
+            store,
+            IndexedDBKeyType::Number(3.0),
+            vec![3],
+            false,
+            None,
+            vec![(
+                "by_unique".to_string(),
+                true,
+                IndexedDBKeyType::String("email-2".to_string()),
+            )],
+        );
+        assert!(duplicate_unique_result.is_err());
+    }
+
+    #[test]
+    fn test_index_cleanup_and_store_scoped_names() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("store_a", None, false)
+            .expect("Failed to create first store");
+        db.create_store("store_b", None, false)
+            .expect("Failed to create second store");
+        assert_eq!(
+            db.create_index(
+                "store_a",
+                "shared_name".to_string(),
+                KeyPath::String("a".to_string()),
+                false,
+                false,
+            )
+            .expect("Failed to create first shared-name index"),
+            CreateObjectResult::Created
+        );
+        assert_eq!(
+            db.create_index(
+                "store_b",
+                "shared_name".to_string(),
+                KeyPath::String("b".to_string()),
+                false,
+                false,
+            )
+            .expect("Failed to create second shared-name index"),
+            CreateObjectResult::Created
+        );
+
+        let store_a = SqliteEngine::object_store_by_name(&db.connection, "store_a")
+            .expect("Failed to get first store");
+        SqliteEngine::put_item(
+            &db.connection,
+            store_a.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1],
+            false,
+            None,
+            vec![(
+                "shared_name".to_string(),
+                false,
+                IndexedDBKeyType::String("alpha".to_string()),
+            )],
+        )
+        .expect("Failed to insert indexed item");
+
+        let index_rows_before_delete: i64 = db
+            .connection
+            .query_row("SELECT COUNT(*) FROM index_data", [], |row| row.get(0))
+            .expect("Failed to count index rows before index delete");
+        assert_eq!(index_rows_before_delete, 1);
+
+        db.delete_index("store_a", "shared_name".to_string())
+            .expect("Failed to delete index");
+
+        let index_rows_after_delete: i64 = db
+            .connection
+            .query_row("SELECT COUNT(*) FROM index_data", [], |row| row.get(0))
+            .expect("Failed to count index rows after index delete");
+        assert_eq!(index_rows_after_delete, 0);
+
+        SqliteEngine::put_item(
+            &db.connection,
+            store_a.clone(),
+            IndexedDBKeyType::Number(2.0),
+            vec![2],
+            false,
+            None,
+            vec![],
+        )
+        .expect("Failed to insert item before clear");
+        SqliteEngine::clear(&db.connection, store_a.clone()).expect("Failed to clear store");
+        let remaining_records =
+            SqliteEngine::count(&db.connection, store_a, IndexedDBKeyRange::default())
+                .expect("Failed to count records after clear");
+        assert_eq!(remaining_records, 0);
+    }
+
+    #[test]
+    fn test_delete_item_removes_index_entries() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        db.create_index(
+            "test_store",
+            "by_value".to_string(),
+            KeyPath::String("value".to_string()),
+            false,
+            false,
+        )
+        .expect("Failed to create index");
+        let store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
+            .expect("Failed to get object store");
+
+        SqliteEngine::put_item(
+            &db.connection,
+            store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1],
+            false,
+            None,
+            vec![(
+                "by_value".to_string(),
+                false,
+                IndexedDBKeyType::String("alpha".to_string()),
+            )],
+        )
+        .expect("Failed to insert indexed item");
+
+        SqliteEngine::delete_item(
+            &db.connection,
+            store.clone(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+        )
+        .expect("Failed to delete indexed item");
+
+        let indexed_key = SqliteEngine::index_get_key(
+            &db.connection,
+            store.clone(),
+            "by_value".to_string(),
+            IndexedDBKeyRange::only(IndexedDBKeyType::String("alpha".to_string())),
+        )
+        .expect("Failed to get indexed key after delete");
+        assert_eq!(indexed_key, None);
+
+        let index_rows_after_delete: i64 = db
+            .connection
+            .query_row("SELECT COUNT(*) FROM index_data", [], |row| row.get(0))
+            .expect("Failed to count index rows after item delete");
+        assert_eq!(index_rows_after_delete, 0);
     }
 
     #[test]
@@ -1090,6 +1775,7 @@ mod tests {
                             value: vec![1, 2, 3],
                             should_overwrite: false,
                             key_generator_current_number: None,
+                            index_key_value: vec![],
                         }),
                     },
                     KvsOperation {
@@ -1100,6 +1786,7 @@ mod tests {
                             value: vec![4, 5, 6],
                             should_overwrite: false,
                             key_generator_current_number: None,
+                            index_key_value: vec![],
                         }),
                     },
                     KvsOperation {
@@ -1113,6 +1800,7 @@ mod tests {
                             value: vec![7, 8, 9],
                             should_overwrite: false,
                             key_generator_current_number: None,
+                            index_key_value: vec![],
                         }),
                     },
                     // Try to put a duplicate key without overwrite
@@ -1124,6 +1812,7 @@ mod tests {
                             value: vec![10, 11, 12],
                             should_overwrite: false,
                             key_generator_current_number: None,
+                            index_key_value: vec![],
                         }),
                     },
                     KvsOperation {
@@ -1134,6 +1823,7 @@ mod tests {
                             value: vec![13, 14, 15],
                             should_overwrite: true,
                             key_generator_current_number: None,
+                            index_key_value: vec![],
                         }),
                     },
                     KvsOperation {
@@ -1250,6 +1940,7 @@ mod tests {
                     vec![key as u8],
                     false,
                     None,
+                    vec![],
                 )
                 .expect("Failed to seed object store");
             }

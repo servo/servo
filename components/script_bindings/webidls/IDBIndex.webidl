@@ -15,14 +15,14 @@ interface IDBIndex {
   readonly attribute boolean multiEntry;
   readonly attribute boolean unique;
 
-  // [NewObject] IDBRequest get(any query);
-  // [NewObject] IDBRequest getKey(any query);
+  [Throws, NewObject] IDBRequest get(any query);
+  [Throws, NewObject] IDBRequest getKey(any query);
   // [NewObject] IDBRequest getAll(optional any queryOrOptions,
   //                               optional [EnforceRange] unsigned long count);
   // [NewObject] IDBRequest getAllKeys(optional any queryOrOptions,
   //                                   optional [EnforceRange] unsigned long count);
   // [NewObject] IDBRequest getAllRecords(optional IDBGetAllOptions options = {});
-  // [NewObject] IDBRequest count(optional any query);
+  [Throws, NewObject] IDBRequest count(optional any query);
 
   // [NewObject] IDBRequest openCursor(optional any query,
   //                                   optional IDBCursorDirection direction = "next");
