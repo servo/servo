@@ -130,7 +130,12 @@ impl App {
             user_content_manager,
             self.preferences.clone(),
             #[cfg(feature = "gamepad")]
-            ServoshellGamepadDelegate::maybe_new().map(Rc::new),
+            ServoshellGamepadDelegate::maybe_new(
+                self.event_loop_proxy
+                    .clone()
+                    .expect("Must have event loop proxy"),
+            )
+            .map(Rc::new),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
@@ -218,12 +223,18 @@ impl ApplicationHandler<AppEvent> for App {
             return;
         };
 
-        if let Some(window) = app_event
-            .window_id()
-            .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id)))) &&
-            let Some(headed_window) = window.platform_window().as_headed_window()
-        {
-            headed_window.handle_winit_app_event(state.clone(), app_event);
+        match app_event {
+            AppEvent::Waker => (),
+            AppEvent::Accessibility(ref event) => {
+                if let Some(window) =
+                    state.window(ServoShellWindowId::from(u64::from(event.window_id)))
+                    && let Some(headed_window) = window.platform_window().as_headed_window() {
+                        headed_window.handle_winit_app_event(state.clone(), app_event);
+                    }
+            },
+            AppEvent::Gamepad(event, gamepad_name, gamepad_index) => {
+                state.handle_gamepad_events(event, gamepad_name, gamepad_index);
+            },
         }
 
         if !self.pump_servo_event_loop(event_loop.into()) {
