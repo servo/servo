@@ -161,7 +161,7 @@ pub(crate) struct DocumentEventHandler {
     /// The [`InputEventId`]s of mousemove events that have been coalesced.
     #[no_trace]
     #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
-    coalesced_move_event_ids: DomRefCell<Vec<InputEventId>>,
+    coalesced_mouse_move_event_ids: DomRefCell<Vec<InputEventId>>,
     /// The index of the last wheel event in the pending input events queue.
     /// This is non-standard behaviour.
     /// According to <https://www.w3.org/TR/pointerevents/#dfn-coalesced-events>,
@@ -211,7 +211,7 @@ impl DocumentEventHandler {
             window: Dom::from_ref(window),
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
-            coalesced_move_event_ids: Default::default(),
+            coalesced_mouse_move_event_ids: Default::default(),
             wheel_event_index: Default::default(),
             coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
@@ -240,7 +240,7 @@ impl DocumentEventHandler {
                 .borrow()
                 .and_then(|index| pending_input_events.get_mut(index))
             {
-                self.coalesced_move_event_ids
+                self.coalesced_mouse_move_event_ids
                     .borrow_mut()
                     .push(mouse_move_event.event.id);
                 *mouse_move_event = event;
@@ -312,14 +312,14 @@ impl DocumentEventHandler {
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
-        let mut coalesced_move_event_ids =
-            mem::take(&mut *self.coalesced_move_event_ids.borrow_mut());
+        let mut coalesced_mouse_move_event_ids =
+            mem::take(&mut *self.coalesced_mouse_move_event_ids.borrow_mut());
         let mut coalesced_wheel_event_ids =
             mem::take(&mut *self.coalesced_wheel_event_ids.borrow_mut());
 
         let mut input_event_outcomes = Vec::with_capacity(
             pending_input_events.len() +
-                coalesced_move_event_ids.len() +
+                coalesced_mouse_move_event_ids.len() +
                 coalesced_wheel_event_ids.len(),
         );
         // TODO: For some of these we still aren't properly calculating whether or not
@@ -338,7 +338,7 @@ impl DocumentEventHandler {
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(cx, &event);
                     input_event_outcomes.extend(
-                        mem::take(&mut coalesced_move_event_ids)
+                        mem::take(&mut coalesced_mouse_move_event_ids)
                             .into_iter()
                             .map(|id| InputEventOutcome {
                                 id,
