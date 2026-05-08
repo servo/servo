@@ -5,7 +5,6 @@
 use std::sync::Arc;
 
 use app_units::Au;
-use atomic_refcell::{AtomicRef, AtomicRefMut};
 use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
 use layout_api::BoxAreaType;
@@ -29,14 +28,14 @@ use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
 pub(crate) enum Fragment {
-    Box(ArcRefCell<BoxFragment>),
+    Box(#[conditional_malloc_size_of] Arc<BoxFragment>),
     /// Floating content. A floated fragment is very similar to a normal
     /// [BoxFragment] but it isn't positioned using normal in block flow
     /// positioning rules (margin collapse, etc). Instead, they are laid
     /// out by the [crate::flow::float::SequentialLayoutState] of their
     /// float containing block formatting context.
-    Float(ArcRefCell<BoxFragment>),
-    Positioning(ArcRefCell<PositioningFragment>),
+    Float(#[conditional_malloc_size_of] Arc<BoxFragment>),
+    Positioning(#[conditional_malloc_size_of] Arc<PositioningFragment>),
     /// Absolute and fixed position fragments are hoisted up so that they
     /// are children of the BoxFragment that establishes their containing
     /// blocks, so that they can be laid out properly. When this happens
@@ -45,9 +44,9 @@ pub(crate) enum Fragment {
     /// regard to their original tree order during stacking context tree /
     /// display list construction.
     AbsoluteOrFixedPositioned(ArcRefCell<HoistedSharedFragment>),
-    Text(ArcRefCell<TextFragment>),
-    Image(ArcRefCell<ImageFragment>),
-    IFrame(ArcRefCell<IFrameFragment>),
+    Text(#[conditional_malloc_size_of] Arc<TextFragment>),
+    Image(#[conditional_malloc_size_of] Arc<ImageFragment>),
+    IFrame(#[conditional_malloc_size_of] Arc<IFrameFragment>),
 }
 
 #[derive(Clone, MallocSizeOf)]
@@ -98,71 +97,30 @@ pub(crate) struct IFrameFragment {
 }
 
 impl Fragment {
-    pub fn base<'a>(&'a self) -> Option<AtomicRef<'a, BaseFragment>> {
+    pub fn base(&self) -> Option<&BaseFragment> {
         Some(match self {
-            Fragment::Box(fragment) => AtomicRef::map(fragment.borrow(), |fragment| &fragment.base),
-            Fragment::Text(fragment) => {
-                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
-            },
+            Fragment::Box(fragment) => &fragment.base,
+            Fragment::Text(fragment) => &fragment.base,
             Fragment::AbsoluteOrFixedPositioned(_) => return None,
-            Fragment::Positioning(fragment) => {
-                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
-            },
-            Fragment::Image(fragment) => {
-                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
-            },
-            Fragment::IFrame(fragment) => {
-                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
-            },
-            Fragment::Float(fragment) => {
-                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
-            },
-        })
-    }
-
-    pub fn base_mut<'a>(&'a self) -> Option<AtomicRefMut<'a, BaseFragment>> {
-        Some(match self {
-            Fragment::Box(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
-            Fragment::Text(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
-            Fragment::AbsoluteOrFixedPositioned(_) => return None,
-            Fragment::Positioning(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
-            Fragment::Image(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
-            Fragment::IFrame(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
-            Fragment::Float(fragment) => {
-                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
-            },
+            Fragment::Positioning(fragment) => &fragment.base,
+            Fragment::Image(fragment) => &fragment.base,
+            Fragment::IFrame(fragment) => &fragment.base,
+            Fragment::Float(fragment) => &fragment.base,
         })
     }
 
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
         match self {
-            Fragment::Box(box_fragment) => box_fragment
-                .borrow_mut()
-                .set_containing_block(containing_block),
-            Fragment::Float(float_fragment) => float_fragment
-                .borrow_mut()
-                .set_containing_block(containing_block),
-            Fragment::Positioning(positioning_fragment) => positioning_fragment
-                .borrow_mut()
-                .set_containing_block(containing_block),
-            Fragment::AbsoluteOrFixedPositioned(hoisted_shared_fragment) => {
-                if let Some(ref fragment) = hoisted_shared_fragment.borrow().fragment {
-                    fragment.set_containing_block(containing_block);
-                }
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                box_fragment.set_containing_block(containing_block)
             },
-            Fragment::Text(_) => {},
-            Fragment::Image(_) => {},
-            Fragment::IFrame(_) => {},
+            Fragment::Positioning(positioning_fragment) => {
+                positioning_fragment.set_containing_block(containing_block)
+            },
+            Fragment::AbsoluteOrFixedPositioned(..) |
+            Fragment::Text(..) |
+            Fragment::Image(..) |
+            Fragment::IFrame(..) => {},
         }
     }
 
@@ -172,26 +130,25 @@ impl Fragment {
 
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
-            Fragment::Box(fragment) => fragment.borrow().print(tree),
+            Fragment::Box(fragment) => fragment.print(tree),
             Fragment::Float(fragment) => {
                 tree.new_level("Float".to_string());
-                fragment.borrow().print(tree);
+                fragment.print(tree);
                 tree.end_level();
             },
             Fragment::AbsoluteOrFixedPositioned(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
-            Fragment::Positioning(fragment) => fragment.borrow().print(tree),
-            Fragment::Text(fragment) => fragment.borrow().print(tree),
-            Fragment::Image(fragment) => fragment.borrow().print(tree),
-            Fragment::IFrame(fragment) => fragment.borrow().print(tree),
+            Fragment::Positioning(fragment) => fragment.print(tree),
+            Fragment::Text(fragment) => fragment.print(tree),
+            Fragment::Image(fragment) => fragment.print(tree),
+            Fragment::IFrame(fragment) => fragment.print(tree),
         }
     }
 
     pub(crate) fn scrolling_area(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
                 fragment.offset_by_containing_block(&fragment.scrollable_overflow())
             },
             _ => self.scrollable_overflow_for_parent(),
@@ -201,13 +158,13 @@ impl Fragment {
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                return fragment.borrow().scrollable_overflow_for_parent();
+                fragment.scrollable_overflow_for_parent()
             },
-            Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow_for_parent(),
+            Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositioned(_) |
             Fragment::Text(..) |
             Fragment::Image(..) |
-            Fragment::IFrame(..) => self.base().map(|base| base.rect).unwrap_or_default(),
+            Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
         }
     }
 
@@ -219,11 +176,9 @@ impl Fragment {
     pub(crate) fn calculate_scrollable_overflow(&self) {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.borrow_mut().calculate_scrollable_overflow()
+                fragment.calculate_scrollable_overflow()
             },
-            Fragment::Positioning(fragment) => {
-                fragment.borrow_mut().calculate_scrollable_overflow()
-            },
+            Fragment::Positioning(fragment) => fragment.calculate_scrollable_overflow(),
             _ => {},
         }
     }
@@ -242,13 +197,8 @@ impl Fragment {
         match self {
             // TODO: This should consider the box in pre-relative-adjusted position state.
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let box_fragment = fragment.borrow();
-                if !box_fragment
-                    .style()
-                    .clone_position()
-                    .is_absolutely_positioned()
-                {
-                    Some(box_fragment.margin_rect())
+                if !fragment.style().clone_position().is_absolutely_positioned() {
+                    Some(fragment.margin_rect())
                 } else {
                     None
                 }
@@ -256,10 +206,10 @@ impl Fragment {
             // TODO: This rectangle does not include extra size from overflowing inline items. As
             // this measurement is concerned with the actual fragments, it's quite likely that this
             // rectangle should include that.
-            Fragment::Positioning(fragment) => Some(fragment.borrow().base.rect),
+            Fragment::Positioning(fragment) => Some(fragment.base.rect()),
             Fragment::AbsoluteOrFixedPositioned(_) => None,
             Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {
-                Some(self.base()?.rect)
+                Some(self.base()?.rect())
             },
         }
     }
@@ -267,13 +217,12 @@ impl Fragment {
     pub(crate) fn cumulative_box_area_rect(&self, area: BoxAreaType) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
-                BoxAreaType::Content => fragment.borrow().cumulative_content_box_rect(),
-                BoxAreaType::Padding => fragment.borrow().cumulative_padding_box_rect(),
-                BoxAreaType::Border => fragment.borrow().cumulative_border_box_rect(),
+                BoxAreaType::Content => fragment.cumulative_content_box_rect(),
+                BoxAreaType::Padding => fragment.cumulative_padding_box_rect(),
+                BoxAreaType::Border => fragment.cumulative_border_box_rect(),
             }),
             Fragment::Positioning(fragment) => {
-                let fragment = fragment.borrow();
-                Some(fragment.offset_by_containing_block(&fragment.base.rect))
+                Some(fragment.offset_by_containing_block(&fragment.base.rect()))
             },
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
@@ -290,7 +239,6 @@ impl Fragment {
                 //   CSS layout box is inline, return zero." For this check we
                 // also explicitly ignore the list item portion of the display
                 // style.
-                let fragment = fragment.borrow();
                 if fragment.is_inline_box() {
                     return Rect::zero();
                 }
@@ -317,16 +265,10 @@ impl Fragment {
         rect.round().to_i32()
     }
 
-    pub(crate) fn children<'a>(&'a self) -> Option<AtomicRef<'a, Vec<Fragment>>> {
+    pub(crate) fn children(&self) -> Option<&[Fragment]> {
         match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
-                Some(AtomicRef::map(fragment, |fragment| &fragment.children))
-            },
-            Fragment::Positioning(fragment) => {
-                let fragment = fragment.borrow();
-                Some(AtomicRef::map(fragment, |fragment| &fragment.children))
-            },
+            Fragment::Box(fragment) | Fragment::Float(fragment) => Some(&fragment.children),
+            Fragment::Positioning(fragment) => Some(&fragment.children),
             _ => None,
         }
     }
@@ -344,7 +286,6 @@ impl Fragment {
 
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
                 let style = fragment.style();
                 let content_rect = fragment
                     .content_rect()
@@ -370,10 +311,9 @@ impl Fragment {
                     .find_map(|child| child.find(&new_manager, level + 1, process_func))
             },
             Fragment::Positioning(fragment) => {
-                let fragment = fragment.borrow();
                 let content_rect = fragment
                     .base
-                    .rect
+                    .rect()
                     .translate(containing_block.origin.to_vector());
                 let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
                 fragment
@@ -385,7 +325,7 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn retrieve_box_fragment(&self) -> Option<&ArcRefCell<BoxFragment>> {
+    pub(crate) fn retrieve_box_fragment(&self) -> Option<&Arc<BoxFragment>> {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
             _ => None,
@@ -401,7 +341,7 @@ impl TextFragment {
                 .iter()
                 .map(|shaped_text_slice| shaped_text_slice.glyph_count())
                 .sum::<usize>(),
-            self.base.rect
+            self.base.rect()
         ));
     }
 
@@ -411,7 +351,7 @@ impl TextFragment {
         &self,
         point_in_fragment: Point2D<Au, CSSPixel>,
     ) -> bool {
-        let rect = &self.base.rect;
+        let rect = &self.base.rect();
         rect.min_y() <= point_in_fragment.y && rect.max_y() >= point_in_fragment.y
     }
 
@@ -424,7 +364,7 @@ impl TextFragment {
     ) -> Au {
         // This is the distance between the closest point on the edge of the rectangle and
         // the point. From <https://stackoverflow.com/a/18157551>.
-        let rect = &self.base.rect;
+        let rect = &self.base.rect();
         let dx = (rect.min_x() - point_in_fragment.x)
             .max(Au::zero())
             .max(point_in_fragment.x - rect.max_x());
@@ -447,7 +387,7 @@ impl TextFragment {
     ) -> Option<usize> {
         // If the click was far enough above the top of the fragment, then pick the first index.
         let offsets = self.offsets.as_ref()?;
-        let max_vertical_offset = self.base.rect.height().scale_by(0.25);
+        let max_vertical_offset = self.base.rect().height().scale_by(0.25);
         if point_in_fragment.y < -max_vertical_offset {
             return Some(offsets.character_range.start);
         }
@@ -457,7 +397,7 @@ impl TextFragment {
         //
         // TODO: It would be nice to just return the last offset here, but <textarea>
         // does not currently make a fragment for all selection indices.
-        if point_in_fragment.y > self.base.rect.max_y() + max_vertical_offset {
+        if point_in_fragment.y > self.base.rect().max_y() + max_vertical_offset {
             return None;
         }
 
@@ -486,7 +426,7 @@ impl ImageFragment {
         tree.add_item(format!(
             "Image\
                 \nrect={:?}",
-            self.base.rect
+            self.base.rect()
         ));
     }
 }
@@ -496,7 +436,8 @@ impl IFrameFragment {
         tree.add_item(format!(
             "IFrame\
                 \npipeline={:?} rect={:?}",
-            self.pipeline_id, self.base.rect
+            self.pipeline_id,
+            self.base.rect()
         ));
     }
 }

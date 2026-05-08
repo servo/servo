@@ -152,7 +152,7 @@ impl PositioningContext {
             return;
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(
-            &base.rect.origin.to_vector(),
+            &base.rect().origin.to_vector(),
             index,
         );
     }
@@ -199,8 +199,11 @@ impl PositioningContext {
         self.append(new_context);
 
         if base.style.clone_position() == Position::Relative {
-            new_fragment.base.rect.origin += relative_adjustement(&base.style, containing_block)
-                .to_physical_vector(containing_block.style.writing_mode)
+            new_fragment.base.translate_rect(
+                relative_adjustement(&base.style, containing_block)
+                    .to_physical_vector(containing_block.style.writing_mode)
+                    .into(),
+            );
         }
 
         new_fragment
@@ -271,7 +274,7 @@ impl PositioningContext {
         let padding_rect = PhysicalRect::new(
             // Ignore the content rect’s position in its own containing block:
             PhysicalPoint::origin(),
-            new_fragment.base.rect.size,
+            new_fragment.base.rect().size,
         )
         .outer_rect(new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
@@ -654,15 +657,15 @@ impl HoistedAbsolutelyPositionedBox {
             hoisted_absolutes_from_children.extend(positioning_context.absolutes);
         };
 
-        if is_cached && let Some(Fragment::Box(old_fragment)) = context.base.fragments().first() {
-            let old_fragment_borrowed = old_fragment.borrow();
-            if content_rect == old_fragment_borrowed.content_rect() {
-                // Drain the nested absolutes for which we are a containing block.
-                // However, we are reusing the fragment, so no need to lay them out again.
-                positioning_context.forget_unhoisted_boxes(&old_fragment_borrowed);
-                adjust_hoisted_boxes(positioning_context);
-                return Fragment::Box(old_fragment.clone());
-            }
+        if is_cached &&
+            let Some(Fragment::Box(old_fragment)) = context.base.fragments().first() &&
+            content_rect == old_fragment.content_rect()
+        {
+            // Drain the nested absolutes for which we are a containing block.
+            // However, we are reusing the fragment, so no need to lay them out again.
+            positioning_context.forget_unhoisted_boxes(old_fragment);
+            adjust_hoisted_boxes(positioning_context);
+            return Fragment::Box(old_fragment.clone());
         }
 
         let mut new_fragment = BoxFragment::new(
@@ -683,7 +686,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         adjust_hoisted_boxes(positioning_context);
 
-        let fragment = Fragment::Box(ArcRefCell::new(new_fragment));
+        let fragment = Fragment::Box(new_fragment.into());
         context.base.set_fragment(fragment.clone());
         fragment
     }

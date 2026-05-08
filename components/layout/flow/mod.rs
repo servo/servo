@@ -5,13 +5,15 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use std::sync::Arc;
+
 use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use script::layout_dom::ServoLayoutNode;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::clear::T as StyleClear;
 use style::context::SharedStyleContext;
@@ -80,7 +82,7 @@ impl BlockContainer {
         &mut self,
         context: &SharedStyleContext,
         node: &ServoLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
             BlockContainer::BlockLevelBoxes(..) => {},
@@ -109,7 +111,7 @@ impl BlockLevelBox {
         &mut self,
         context: &SharedStyleContext,
         node: &ServoLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
@@ -297,7 +299,7 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 /// for a list that has `list-style-position: outside`.
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct OutsideMarker {
-    pub list_item_style: Arc<ComputedValues>,
+    pub list_item_style: ServoArc<ComputedValues>,
     pub context: IndependentFormattingContext,
 }
 
@@ -338,7 +340,7 @@ impl OutsideMarker {
             .map(|fragment| {
                 fragment
                     .base()
-                    .map(|base| base.rect)
+                    .map(|base| base.rect())
                     .unwrap_or_default()
                     .to_logical(&containing_block_for_children)
                     .max_inline_position()
@@ -373,23 +375,26 @@ impl OutsideMarker {
         let mut base_fragment_info = BaseFragmentInfo::anonymous();
         base_fragment_info.flags |= FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER;
 
-        Fragment::Box(ArcRefCell::new(BoxFragment::new(
-            base_fragment_info,
-            style.clone(),
-            layout.fragments,
-            content_rect.as_physical(Some(containing_block)),
-            PhysicalSides::zero(),
-            PhysicalSides::zero(),
-            PhysicalSides::zero(),
-            layout.specific_layout_info,
-        )))
+        Fragment::Box(
+            BoxFragment::new(
+                base_fragment_info,
+                style.clone(),
+                layout.fragments,
+                content_rect.as_physical(Some(containing_block)),
+                PhysicalSides::zero(),
+                PhysicalSides::zero(),
+                PhysicalSides::zero(),
+                layout.specific_layout_info,
+            )
+            .into(),
+        )
     }
 
     fn repair_style(
         &mut self,
         context: &SharedStyleContext,
         node: &ServoLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         self.list_item_style = node.parent_style(context);
         self.context.repair_style(context, node, new_style);
@@ -457,7 +462,7 @@ impl BlockFormattingContext {
         &mut self,
         context: &SharedStyleContext,
         node: &ServoLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         self.contents.repair_style(context, node, new_style);
     }
@@ -889,23 +894,25 @@ impl BlockLevelBox {
                     contents,
                 ),
             ),
-            BlockLevelBox::Independent(independent) => Fragment::Box(ArcRefCell::new(
-                positioning_context.layout_maybe_position_relative_fragment(
-                    layout_context,
-                    containing_block,
-                    &independent.base,
-                    |positioning_context| {
-                        independent.layout_in_flow_block_level(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            sequential_layout_state,
-                            ignore_block_margins_for_stretch,
-                            has_inline_parent,
-                        )
-                    },
-                ),
-            )),
+            BlockLevelBox::Independent(independent) => Fragment::Box(
+                positioning_context
+                    .layout_maybe_position_relative_fragment(
+                        layout_context,
+                        containing_block,
+                        &independent.base,
+                        |positioning_context| {
+                            independent.layout_in_flow_block_level(
+                                layout_context,
+                                positioning_context,
+                                containing_block,
+                                sequential_layout_state,
+                                ignore_block_margins_for_stretch,
+                                has_inline_parent,
+                            )
+                        },
+                    )
+                    .into(),
+            ),
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 // The static position of zero here is incorrect, however we do not know
                 // the correct positioning until later, in place_block_level_fragment, and
@@ -926,9 +933,11 @@ impl BlockLevelBox {
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
             },
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(ArcRefCell::new(
-                float_box.layout(layout_context, positioning_context, containing_block),
-            )),
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(
+                float_box
+                    .layout(layout_context, positioning_context, containing_block)
+                    .into(),
+            ),
             BlockLevelBox::OutsideMarker(outside_marker) => {
                 outside_marker.layout(layout_context, containing_block, positioning_context)
             },
@@ -974,7 +983,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
     has_inline_parent: bool,
     base: &LayoutBoxBase,
     contents: &BlockContainer,
-) -> ArcRefCell<BoxFragment> {
+) -> Arc<BoxFragment> {
     let mut allows_caching = sequential_layout_state.is_none();
 
     if allows_caching &&
@@ -989,7 +998,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
     };
 
     let positioning_context_length = positioning_context.len();
-    let fragment = ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
+    let fragment = Arc::new(positioning_context.layout_maybe_position_relative_fragment(
         layout_context,
         containing_block,
         base,
@@ -2205,7 +2214,6 @@ impl<'container> PlacementState<'container> {
             Fragment::Box(box_fragment) => box_fragment,
             _ => return,
         };
-        let box_fragment = box_fragment.borrow();
 
         // From <https://drafts.csswg.org/css-align-3/#baseline-export>:
         // > When finding the first/last baseline set of an inline-block, any baselines
@@ -2247,7 +2255,6 @@ impl<'container> PlacementState<'container> {
                 // between the marker and the item. For instance the marker should be positioned at
                 // the baseline of list item content and the first line of the item content should
                 // be at least as tall as the marker -- not the entire list item itself.
-                let fragment = &mut *fragment.borrow_mut();
                 let is_outside_marker = fragment
                     .base
                     .flags
@@ -2267,9 +2274,9 @@ impl<'container> PlacementState<'container> {
                 let BlockLevelLayoutInfo {
                     clearance,
                     block_margins_collapsed_with_children: fragment_block_margins,
-                } = &**fragment
+                } = *fragment
                     .block_level_layout_info
-                    .as_ref()
+                    .clone()
                     .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
                 let mut fragment_block_size = fragment
                     .border_rect()
@@ -2282,7 +2289,7 @@ impl<'container> PlacementState<'container> {
                 // > If the top and bottom margins of an element with clearance are adjoining,
                 // > its margins collapse with the adjoining margins of following siblings but that
                 // > resulting margin does not collapse with the bottom margin of the parent block.
-                if let Some(clearance) = *clearance {
+                if let Some(clearance) = clearance {
                     fragment_block_size += clearance;
                     // Margins can't be adjoining if they are separated by clearance.
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
@@ -2312,11 +2319,16 @@ impl<'container> PlacementState<'container> {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
 
-                fragment.base.rect.origin += LogicalVec2 {
-                    inline: Au::zero(),
-                    block: self.current_margin.solve() + self.current_block_direction_position,
+                {
+                    fragment.base.translate_rect(
+                        LogicalVec2 {
+                            inline: Au::zero(),
+                            block: self.current_margin.solve() +
+                                self.current_block_direction_position,
+                        }
+                        .to_physical_size(self.containing_block.style.writing_mode),
+                    );
                 }
-                .to_physical_size(self.containing_block.style.writing_mode);
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
@@ -2348,7 +2360,6 @@ impl<'container> PlacementState<'container> {
                     .expect("Found float fragment without SequentialLayoutState");
                 let block_offset_from_containing_block_top =
                     self.current_block_direction_position + self.current_margin.solve();
-                let box_fragment = &mut *box_fragment.borrow_mut();
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.containing_block,

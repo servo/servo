@@ -49,7 +49,6 @@ use webrender_api::{
 };
 use wr::units::LayoutVector2D;
 
-use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
@@ -152,7 +151,7 @@ struct HighlightTraversalState {
 
     /// When the highlighted fragment is a box fragment we remember the information
     /// needed to paint padding, border and margin areas.
-    maybe_box_fragment: Option<ArcRefCell<BoxFragment>>,
+    maybe_box_fragment: Option<Arc<BoxFragment>>,
 }
 
 impl InspectorHighlight {
@@ -488,7 +487,6 @@ impl DisplayListBuilder<'_> {
                     }
 
                     let bounds = box_fragment
-                        .borrow()
                         .offset_by_containing_block(&fragment_relative_bounds)
                         .to_webrender();
 
@@ -516,7 +514,6 @@ impl DisplayListBuilder<'_> {
                     self.wr().push_border(&common, bounds, widths, details)
                 };
 
-            let box_fragment = box_fragment.borrow();
             paint_highlight(
                 PADDING_BOX_HIGHLIGHT_COLOR,
                 box_fragment.padding_rect(),
@@ -605,7 +602,7 @@ impl InspectorHighlight {
             );
         }
 
-        let Some(fragment_relative_rect) = fragment.base().map(|base| base.rect) else {
+        let Some(fragment_relative_rect) = fragment.base().map(|base| base.rect()) else {
             return;
         };
         state.maybe_box_fragment = match fragment {
@@ -629,19 +626,19 @@ impl Fragment {
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
-        if let Some(mut base) = self.base_mut() {
-            match base.status {
+        if let Some(base) = self.base() {
+            match base.status() {
                 FragmentStatus::New => {
                     builder.reflow_statistics.rebuilt_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                    base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::StyleChanged => {
                     builder.reflow_statistics.restyle_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                    base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::PositionMaybeChanged => {
                     builder.reflow_statistics.possibly_moved_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                    base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::Clean => {},
             }
@@ -662,7 +659,6 @@ impl Fragment {
 
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                let box_fragment = &*box_fragment.borrow();
                 match box_fragment.style().get_inherited_box().visibility {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
@@ -677,7 +673,6 @@ impl Fragment {
             },
             Fragment::AbsoluteOrFixedPositioned(_) | Fragment::Positioning(_) => {},
             Fragment::Image(image) => {
-                let image = image.borrow();
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
@@ -685,7 +680,7 @@ impl Fragment {
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
                             .base
-                            .rect
+                            .rect()
                             .translate(containing_block.origin.to_vector())
                             .to_webrender();
                         let clip = image
@@ -742,13 +737,12 @@ impl Fragment {
                 }
             },
             Fragment::IFrame(iframe) => {
-                let iframe = iframe.borrow();
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
                         let rect = iframe
                             .base
-                            .rect
+                            .rect()
                             .translate(containing_block.origin.to_vector());
 
                         let common = builder.common_properties(rect.to_webrender(), &style);
@@ -776,18 +770,15 @@ impl Fragment {
                     Visibility::Collapse => (),
                 }
             },
-            Fragment::Text(text) => {
-                let text = &*text.borrow();
-                match text.base.style().get_inherited_box().visibility {
-                    Visibility::Visible => self.build_display_list_for_text_fragment(
-                        text,
-                        builder,
-                        containing_block,
-                        text_decorations,
-                    ),
-                    Visibility::Hidden => (),
-                    Visibility::Collapse => (),
-                }
+            Fragment::Text(text) => match text.base.style().get_inherited_box().visibility {
+                Visibility::Visible => self.build_display_list_for_text_fragment(
+                    text,
+                    builder,
+                    containing_block,
+                    text_decorations,
+                ),
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
             },
         }
     }
@@ -803,7 +794,7 @@ impl Fragment {
         // shadows, underline, overline, text, text-emphasis, and then line-through.
         let rect = fragment
             .base
-            .rect
+            .rect()
             .translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
@@ -891,7 +882,7 @@ impl Fragment {
             fragment,
             builder,
             containing_block,
-            fragment.base.rect.min_x(),
+            fragment.base.rect().min_x(),
             fragment.justification_adjustment,
         );
 

@@ -41,7 +41,6 @@ use wr::units::{LayoutPixel, LayoutSize};
 
 use super::ClipId;
 use super::clip::StackingContextTreeClipStore;
-use crate::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder, offset_radii};
 use crate::fragment_tree::{
@@ -278,7 +277,6 @@ impl StackingContextTree {
             return None;
         };
 
-        let fragment = fragment.borrow();
         let spatial_tree_node = fragment.spatial_tree_node()?;
         let transform = self
             .paint_info
@@ -393,7 +391,6 @@ impl StackingContextContent {
         match self {
             StackingContextContent::Fragment { fragment, .. } => match fragment {
                 Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                    let box_fragment = box_fragment.borrow();
                     let style = box_fragment.style();
                     let outline = style.get_outline();
                     !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
@@ -429,7 +426,8 @@ pub struct StackingContext {
 
     /// The [`BoxFragment`] that established this stacking context. We store the fragment here
     /// rather than just the style, so that incremental layout can automatically update the style.
-    initializing_fragment: Option<ArcRefCell<BoxFragment>>,
+    #[conditional_malloc_size_of]
+    initializing_fragment: Option<Arc<BoxFragment>>,
 
     /// The type of this stacking context. Used for collecting and sorting.
     context_type: StackingContextType,
@@ -487,7 +485,7 @@ impl StackingContext {
         &self,
         spatial_id: ScrollTreeNodeId,
         clip_id: ClipId,
-        initializing_fragment: ArcRefCell<BoxFragment>,
+        initializing_fragment: Arc<BoxFragment>,
         context_type: StackingContextType,
     ) -> Self {
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID should be
@@ -546,7 +544,6 @@ impl StackingContext {
 
     pub(crate) fn z_index(&self) -> i32 {
         self.initializing_fragment.as_ref().map_or(0, |fragment| {
-            let fragment = fragment.borrow();
             fragment.style().effective_z_index(fragment.base.flags)
         })
     }
@@ -587,9 +584,8 @@ impl StackingContext {
         &self,
         builder: &mut DisplayListBuilder,
     ) -> bool {
-        let fragment = match self.initializing_fragment.as_ref() {
-            Some(fragment) => fragment.borrow(),
-            None => return false,
+        let Some(fragment) = self.initializing_fragment.as_ref() else {
+            return false;
         };
 
         // WebRender only uses the stacking context to apply certain effects. If we don't
@@ -666,8 +662,7 @@ impl StackingContext {
         let root_fragment = match root_fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
             _ => return,
-        }
-        .borrow();
+        };
 
         let source_style = {
             // > For documents whose root element is an HTML HTML element or an XHTML html element
@@ -680,7 +675,7 @@ impl StackingContext {
                 let body_fragment = fragment_tree.body_fragment();
                 builder.paint_body_background = body_fragment.is_none();
                 body_fragment
-                    .map(|body_fragment| body_fragment.borrow().style().clone())
+                    .map(|body_fragment| body_fragment.style().clone())
                     .unwrap_or(root_fragment.style().clone())
             } else {
                 root_fragment_style.clone()
@@ -729,7 +724,7 @@ impl StackingContext {
         }
 
         let mut fragment_builder = BuilderForBoxFragment::new(
-            &root_fragment,
+            root_fragment,
             &fragment_tree.initial_containing_block,
             false, /* is_hit_test_for_scrollable_overflow */
             false, /* is_collapsed_table_borders */
@@ -940,7 +935,6 @@ impl Fragment {
         let fragment_clone = self.clone();
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
                 if mode == StackingContextBuildMode::SkipHoisted &&
                     fragment.style().clone_position().is_absolutely_positioned()
                 {
@@ -977,7 +971,6 @@ impl Fragment {
                 );
             },
             Fragment::Positioning(fragment) => {
-                let fragment = fragment.borrow();
                 fragment.build_stacking_context_tree(
                     stacking_context_tree,
                     containing_block,
@@ -1883,14 +1876,10 @@ impl BoxFragment {
             for fragment in fragments.iter() {
                 match fragment {
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        box_fragment
-                            .borrow()
-                            .clear_spatial_tree_node_including_descendants();
+                        box_fragment.clear_spatial_tree_node_including_descendants();
                     },
                     Fragment::Positioning(positioning_fragment) => {
-                        assign_spatial_tree_node_on_fragments(
-                            &positioning_fragment.borrow().children,
-                        );
+                        assign_spatial_tree_node_on_fragments(&positioning_fragment.children);
                     },
                     _ => {},
                 }
@@ -1913,7 +1902,7 @@ impl PositioningFragment {
     ) {
         let rect = self
             .base
-            .rect
+            .rect()
             .translate(containing_block.rect.origin.to_vector());
         let new_containing_block = containing_block.new_replacing_rect(&rect);
         let new_containing_block_info =

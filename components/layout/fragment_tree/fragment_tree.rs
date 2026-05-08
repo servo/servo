@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::sync::Arc;
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
@@ -11,7 +12,6 @@ use servo_base::print_tree::PrintTree;
 use style::computed_values::position::T as Position;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
-use crate::ArcRefCell;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -95,7 +95,7 @@ impl FragmentTree {
                     if fragment
                         .retrieve_box_fragment()
                         .is_some_and(|box_fragment| {
-                            box_fragment.borrow().style().get_box().position == Position::Fixed
+                            box_fragment.style().get_box().position == Position::Fixed
                         })
                     {
                         return overflow;
@@ -110,7 +110,7 @@ impl FragmentTree {
             // rectangle. See
             // <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
             let first_root_fragment = match first_root_fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.borrow(),
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment,
                 _ => return scrollable_overflow,
             };
             if !first_root_fragment.is_root_element() {
@@ -140,13 +140,12 @@ impl FragmentTree {
     }
 
     /// Find the `<body>` element's [`Fragment`], if it exists in this [`FragmentTree`].
-    pub(crate) fn body_fragment(&self) -> Option<ArcRefCell<BoxFragment>> {
-        fn find_body(children: &[Fragment]) -> Option<ArcRefCell<BoxFragment>> {
+    pub(crate) fn body_fragment(&self) -> Option<Arc<BoxFragment>> {
+        fn find_body(children: &[Fragment]) -> Option<Arc<BoxFragment>> {
             children.iter().find_map(|fragment| {
                 match fragment {
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        let borrowed_box_fragment = box_fragment.borrow();
-                        if borrowed_box_fragment.is_body_element_of_html_element_root() {
+                        if box_fragment.is_body_element_of_html_element_root() {
                             return Some(box_fragment.clone());
                         }
 
@@ -156,21 +155,19 @@ impl FragmentTree {
                         //
                         // Additionally, recurse into any anonymous fragments, as the `<body>` fragment may
                         // have created anonymous parents (for instance by creating an inline formatting context).
-                        if borrowed_box_fragment.is_root_element() ||
-                            borrowed_box_fragment.base.is_anonymous()
-                        {
-                            find_body(&borrowed_box_fragment.children)
+                        if box_fragment.is_root_element() || box_fragment.base.is_anonymous() {
+                            find_body(&box_fragment.children)
                         } else {
                             None
                         }
                     },
-                    Fragment::Positioning(positioning_context)
-                        if positioning_context.borrow().base.is_anonymous() =>
+                    Fragment::Positioning(positioning_fragment)
+                        if positioning_fragment.base.is_anonymous() =>
                     {
                         // If the `<body>` element is a `display: inline` then it might be nested inside of a
                         // `PositioningFragment` for the purposes of putting it on the first line of the implied
                         // inline formatting context.
-                        find_body(&positioning_context.borrow().children)
+                        find_body(&positioning_fragment.children)
                     },
                     _ => None,
                 }

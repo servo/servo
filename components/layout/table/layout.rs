@@ -1625,7 +1625,7 @@ impl<'a> TableLayout<'a> {
         for section in TableWrapperSection::iter() {
             if section == TableWrapperSection::Grid {
                 let original_positioning_context_length = positioning_context.len();
-                let mut grid_fragment = self.layout_grid(
+                let grid_fragment = self.layout_grid(
                     layout_context,
                     positioning_context,
                     &containing_block_for_logical_conversion,
@@ -1646,14 +1646,20 @@ impl<'a> TableLayout<'a> {
                         grid_pbm.block_start,
                 );
 
-                grid_fragment.base.rect = LogicalRect {
-                    start_corner: LogicalVec2 {
-                        inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
-                        block: current_block_offset + grid_pbm.block_start,
-                    },
-                    size: grid_fragment.base.rect.size.to_logical(table_writing_mode),
-                }
-                .as_physical(Some(&containing_block_for_logical_conversion));
+                grid_fragment.base.set_rect(
+                    LogicalRect {
+                        start_corner: LogicalVec2 {
+                            inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
+                            block: current_block_offset + grid_pbm.block_start,
+                        },
+                        size: grid_fragment
+                            .base
+                            .rect()
+                            .size
+                            .to_logical(table_writing_mode),
+                    }
+                    .as_physical(Some(&containing_block_for_logical_conversion)),
+                );
 
                 current_block_offset += grid_fragment
                     .border_rect()
@@ -1666,7 +1672,7 @@ impl<'a> TableLayout<'a> {
                         Some(logical_grid_content_rect.size.inline);
                 }
 
-                let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
+                let grid_fragment = Fragment::Box(grid_fragment.into());
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &grid_fragment,
                     original_positioning_context_length,
@@ -1680,7 +1686,7 @@ impl<'a> TableLayout<'a> {
                     }
 
                     let original_positioning_context_length = positioning_context.len();
-                    let mut caption_fragment =
+                    let caption_fragment =
                         self.layout_caption(&caption, layout_context, positioning_context);
 
                     // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
@@ -1697,17 +1703,19 @@ impl<'a> TableLayout<'a> {
                         _ => LogicalVec2::zero(),
                     };
 
-                    caption_fragment.base.rect = LogicalRect {
-                        start_corner: LogicalVec2 {
-                            inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
-                            block: current_block_offset + caption_pbm.block_start,
-                        } + caption_relative_offset,
-                        size: caption_fragment
-                            .content_rect()
-                            .size
-                            .to_logical(table_writing_mode),
-                    }
-                    .as_physical(Some(&containing_block_for_logical_conversion));
+                    caption_fragment.base.set_rect(
+                        LogicalRect {
+                            start_corner: LogicalVec2 {
+                                inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                                block: current_block_offset + caption_pbm.block_start,
+                            } + caption_relative_offset,
+                            size: caption_fragment
+                                .content_rect()
+                                .size
+                                .to_logical(table_writing_mode),
+                        }
+                        .as_physical(Some(&containing_block_for_logical_conversion)),
+                    );
 
                     current_block_offset += caption_fragment
                         .margin_rect()
@@ -1715,7 +1723,7 @@ impl<'a> TableLayout<'a> {
                         .to_logical(table_writing_mode)
                         .block;
 
-                    let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
+                    let caption_fragment = Fragment::Box(caption_fragment.into());
                     positioning_context.adjust_static_position_of_hoisted_fragments(
                         &caption_fragment,
                         original_positioning_context_length,
@@ -2093,7 +2101,7 @@ impl<'a> TableLayout<'a> {
             })
         }
 
-        let fragment = Fragment::Box(ArcRefCell::new(fragment));
+        let fragment = Fragment::Box(fragment.into());
         cell.context.base.set_fragment(fragment.clone());
         row_fragment_layout.fragments.push(fragment);
     }
@@ -2350,7 +2358,7 @@ impl<'a> RowFragmentLayout<'a> {
             parent_positioning_context.append(row_positioning_context);
         }
 
-        let fragment = Fragment::Box(ArcRefCell::new(row_fragment));
+        let fragment = Fragment::Box(row_fragment.into());
         self.row.base.set_fragment(fragment.clone());
         fragment
     }
@@ -2418,7 +2426,7 @@ impl RowGroupFragmentLayout {
             table_positioning_context.append(row_positioning_context);
         }
 
-        let fragment = Fragment::Box(ArcRefCell::new(row_group_fragment));
+        let fragment = Fragment::Box(row_group_fragment.into());
         row_group.base.set_fragment(fragment.clone());
         fragment
     }

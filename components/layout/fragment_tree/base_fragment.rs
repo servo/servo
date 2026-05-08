@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ops::Deref;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, AtomicU8, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
+use euclid::{Point2D, Rect, Size2D};
 use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -15,73 +17,33 @@ use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style_traits::CSSPixel;
 use web_atoms::local_name;
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::geom::PhysicalRect;
-
-pub(crate) enum BaseFragmentStyleRef<'a> {
-    Owned(&'a ServoArc<ComputedValues>),
-    Shared(AtomicRef<'a, ServoArc<ComputedValues>>),
-}
-
-impl<'a> Deref for BaseFragmentStyleRef<'a> {
-    type Target = ServoArc<ComputedValues>;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            BaseFragmentStyleRef::Owned(style) => style,
-            BaseFragmentStyleRef::Shared(style_ref) => style_ref.deref(),
-        }
-    }
-}
-
-#[derive(Clone, MallocSizeOf)]
-pub(crate) enum BaseFragmentStyle {
-    Owned(ServoArc<ComputedValues>),
-    Shared(SharedStyle),
-}
-
-impl From<ServoArc<ComputedValues>> for BaseFragmentStyle {
-    fn from(style: ServoArc<ComputedValues>) -> Self {
-        BaseFragmentStyle::Owned(style)
-    }
-}
-
-impl From<SharedStyle> for BaseFragmentStyle {
-    fn from(style: SharedStyle) -> Self {
-        BaseFragmentStyle::Shared(style)
-    }
-}
-
-impl std::fmt::Debug for BaseFragmentStyle {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BaseFragmentStyle::Owned(..) => write!(formatter, "BaseFragmentStyle::Owned"),
-            BaseFragmentStyle::Shared(..) => write!(formatter, "BaseFragmentStyle::Shared"),
-        }
-    }
-}
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 
 #[derive(Clone, Debug, Default, MallocSizeOf)]
+#[repr(u8)]
+// Note: This should be kept in sync with the definition of `BaseFragment::status`.
 pub(crate) enum FragmentStatus {
     /// This is a brand new fragment.
     #[default]
-    New,
+    New = 0,
     /// The style of the fragment has changed.
-    StyleChanged,
+    StyleChanged = 1,
     /// The fragment was reused between layouts, but its final layout
     /// position may have changed.
-    PositionMaybeChanged,
+    PositionMaybeChanged = 2,
     /// The fragment hasn't changed.
-    Clean,
+    Clean = 3,
 }
 
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment is for an anonymous box,
@@ -94,50 +56,105 @@ pub(crate) struct BaseFragment {
 
     /// The style for this [`BaseFragment`]. Depending on the fragment type this is either
     /// a shared or non-shared style.
-    pub style: BaseFragmentStyle,
+    pub style: SharedStyle,
 
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
-    pub rect: PhysicalRect<Au>,
+    rect: Rect<AtomicI32, CSSPixel>,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
-    pub status: FragmentStatus,
+    #[conditional_malloc_size_of]
+    pub status: Arc<AtomicU8>,
 }
 
 impl BaseFragment {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
-        style: BaseFragmentStyle,
+        style: SharedStyle,
         rect: PhysicalRect<Au>,
     ) -> Self {
         Self {
             tag: base_fragment_info.tag,
             flags: base_fragment_info.flags,
             style,
-            rect,
+            rect: Rect::new(
+                Point2D::new(rect.origin.x.0.into(), rect.origin.y.0.into()),
+                Size2D::new(rect.size.width.0.into(), rect.size.height.0.into()),
+            ),
             status: Default::default(),
         }
+    }
+
+    #[inline]
+    pub(crate) fn rect(&self) -> PhysicalRect<Au> {
+        PhysicalRect::new(
+            Point2D::new(
+                Au::new(self.rect.origin.x.load(Ordering::Relaxed)),
+                Au::new(self.rect.origin.y.load(Ordering::Relaxed)),
+            ),
+            Size2D::new(
+                Au::new(self.rect.size.width.load(Ordering::Relaxed)),
+                Au::new(self.rect.size.height.load(Ordering::Relaxed)),
+            ),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn set_rect(&self, new_rect: PhysicalRect<Au>) {
+        let origin = &self.rect.origin;
+        origin.x.store(new_rect.origin.x.0, Ordering::Relaxed);
+        origin.y.store(new_rect.origin.y.0, Ordering::Relaxed);
+
+        let size = &self.rect.size;
+        size.width.store(new_rect.size.width.0, Ordering::Relaxed);
+        size.height.store(new_rect.size.height.0, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn translate_rect(&self, offset: PhysicalSize<Au>) {
+        // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
+        // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
+        let origin = &self.rect.origin;
+        let new_x = Au::new(origin.x.load(Ordering::Relaxed)) + offset.width;
+        origin.x.store(new_x.0, Ordering::Relaxed);
+        let new_y = Au::new(origin.y.load(Ordering::Relaxed)) + offset.height;
+        origin.y.store(new_y.0, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn set_rect_origin(&self, offset: PhysicalPoint<Au>) {
+        let origin = &self.rect.origin;
+        origin.x.store(offset.x.0, Ordering::Relaxed);
+        origin.y.store(offset.y.0, Ordering::Relaxed);
     }
 
     pub(crate) fn is_anonymous(&self) -> bool {
         self.tag.is_none()
     }
 
-    pub(crate) fn repair_style(&mut self, style: &ServoArc<ComputedValues>) {
-        self.style = style.clone().into();
-        self.status = FragmentStatus::StyleChanged;
+    pub(crate) fn status(&self) -> FragmentStatus {
+        // Note: This should be kept in sync with the definition of `FragmentStatus`.
+        match self.status.load(Ordering::Relaxed) {
+            0 => FragmentStatus::New,
+            1 => FragmentStatus::StyleChanged,
+            2 => FragmentStatus::PositionMaybeChanged,
+            3 => FragmentStatus::Clean,
+            _ => unreachable!("Unknown FragmentStatus value"),
+        }
     }
 
-    pub(crate) fn style<'a>(&'a self) -> BaseFragmentStyleRef<'a> {
-        match &self.style {
-            BaseFragmentStyle::Owned(computed_values) => {
-                BaseFragmentStyleRef::Owned(computed_values)
-            },
-            BaseFragmentStyle::Shared(shared_style) => {
-                BaseFragmentStyleRef::Shared(shared_style.borrow())
-            },
-        }
+    pub(crate) fn set_status(&self, new_status: FragmentStatus) {
+        self.status.store(new_status as u8, Ordering::Relaxed)
+    }
+
+    pub(crate) fn repair_style(&self, style: &ServoArc<ComputedValues>) {
+        *self.style.borrow_mut() = style.clone();
+        self.set_status(FragmentStatus::StyleChanged);
+    }
+
+    pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
+        self.style.borrow()
     }
 }
 

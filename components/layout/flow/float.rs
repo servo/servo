@@ -1080,7 +1080,7 @@ impl SequentialLayoutState {
     /// This function places a Fragment that has been created for a FloatBox.
     pub(crate) fn place_float_fragment(
         &mut self,
-        box_fragment: &mut BoxFragment,
+        box_fragment: &BoxFragment,
         containing_block: &ContainingBlock,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
@@ -1130,13 +1130,15 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.base.rect = LogicalRect {
-            start_corner: new_position_in_containing_block,
-            size: box_fragment
-                .content_rect()
-                .size
-                .to_logical(container_writing_mode),
-        }
-        .as_physical(Some(containing_block));
+        box_fragment.base.set_rect(
+            LogicalRect {
+                start_corner: new_position_in_containing_block,
+                size: box_fragment
+                    .content_rect()
+                    .size
+                    .to_logical(container_writing_mode),
+            }
+            .as_physical(Some(containing_block)),
+        );
     }
 }

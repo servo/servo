@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
@@ -10,7 +11,7 @@ use atomic_refcell::AtomicRefCell;
 use euclid::Point2D;
 use layout_api::LayoutDamage;
 use malloc_size_of_derive::MallocSizeOf;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -28,7 +29,7 @@ use crate::fragment_tree::{
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
-use crate::{ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values
@@ -39,7 +40,7 @@ use crate::{ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize};
 #[derive(MallocSizeOf)]
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
-    pub style: Arc<ComputedValues>,
+    pub style: ServoArc<ComputedValues>,
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
@@ -49,7 +50,10 @@ pub(crate) struct LayoutBoxBase {
 }
 
 impl LayoutBoxBase {
-    pub(crate) fn new(base_fragment_info: BaseFragmentInfo, style: Arc<ComputedValues>) -> Self {
+    pub(crate) fn new(
+        base_fragment_info: BaseFragmentInfo,
+        style: ServoArc<ComputedValues>,
+    ) -> Self {
         Self {
             base_fragment_info,
             style,
@@ -107,10 +111,10 @@ impl LayoutBoxBase {
         *self.cached_layout_result.borrow_mut() = None;
     }
 
-    pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    pub(crate) fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
         self.style = new_style.clone();
         for fragment in self.fragments.borrow_mut().iter_mut() {
-            if let Some(mut base) = fragment.base_mut() {
+            if let Some(base) = fragment.base() {
                 base.repair_style(new_style);
             }
         }
@@ -163,7 +167,7 @@ impl LayoutBoxBase {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> Option<ArcRefCell<BoxFragment>> {
+    ) -> Option<Arc<BoxFragment>> {
         let mut cached_layout_result = self.cached_layout_result.borrow_mut();
         let Some(LayoutResultAndInputs::SameFormattingContextBlock(result)) =
             &mut *cached_layout_result
@@ -184,20 +188,20 @@ impl LayoutBoxBase {
 
         let fragment = result.result.fragment.clone();
         {
-            let mut borrowed_fragment = fragment.borrow_mut();
-
             // Ideally when the final position doesn't change, this wouldn't be set, but we have
             // no way currently to track whether the final position wil differ from the one set in
             // the cached fragment. Final positioning is done in the containing block and depends
             // on things like margins and the size of siblings.
-            borrowed_fragment.base.status = FragmentStatus::PositionMaybeChanged;
+            fragment
+                .base
+                .set_status(FragmentStatus::PositionMaybeChanged);
 
-            borrowed_fragment.base.rect.origin = result.result.original_offset;
+            let mut origin = result.result.original_offset;
             if self.style.clone_position() == Position::Relative {
-                borrowed_fragment.base.rect.origin +=
-                    relative_adjustement(&self.style, containing_block)
-                        .to_physical_vector(containing_block.style.writing_mode)
+                origin += relative_adjustement(&self.style, containing_block)
+                    .to_physical_vector(containing_block.style.writing_mode)
             }
+            fragment.base.set_rect_origin(origin);
         }
 
         Some(fragment)
@@ -209,12 +213,11 @@ impl LayoutBoxBase {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-        fragment: ArcRefCell<BoxFragment>,
+        fragment: Arc<BoxFragment>,
     ) {
         let mut original_offset;
         {
-            let borrowed_fragment = fragment.borrow();
-            original_offset = borrowed_fragment.content_rect().origin;
+            original_offset = fragment.content_rect().origin;
             if self.style.clone_position() == Position::Relative {
                 original_offset -= relative_adjustement(&self.style, containing_block)
                     .to_physical_vector(containing_block.style.writing_mode)
@@ -302,7 +305,8 @@ pub(crate) struct IndependentFormattingContextLayoutResultAndInputs {
 
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SameFormattingContextBlockLayoutResult {
-    pub fragment: ArcRefCell<BoxFragment>,
+    #[conditional_malloc_size_of]
+    pub fragment: Arc<BoxFragment>,
     original_offset: Point2D<Au, CSSPixel>,
 }
 

@@ -238,7 +238,7 @@ impl BlockLevelBox {
 
         // If this Fragment's layout depends on the block size of the containing block,
         // then the entire layout of the inline formatting context does as well.
-        layout.depends_on_block_constraints |= fragment.borrow().base.flags.contains(
+        layout.depends_on_block_constraints |= fragment.base.flags.contains(
             FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
         );
 
@@ -1137,7 +1137,7 @@ impl InlineFormattingContextLayout<'_> {
         };
 
         // Set up the new line now that we no longer need the old one.
-        let mut line_to_layout = std::mem::replace(
+        let line_to_layout = std::mem::replace(
             &mut self.current_line,
             LineUnderConstruction::new(LogicalVec2 {
                 inline: Au::zero(),
@@ -1149,7 +1149,7 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         if line_to_layout.has_floats_waiting_to_be_placed {
-            place_pending_floats(self, &mut line_to_layout.line_items);
+            place_pending_floats(self, &line_to_layout.line_items);
         }
 
         let start_position = LogicalVec2 {
@@ -1325,7 +1325,7 @@ impl InlineFormattingContextLayout<'_> {
         (adjusted_line_start, justification_adjustment)
     }
 
-    fn place_float_fragment(&mut self, fragment: &mut BoxFragment) {
+    fn place_float_fragment(&mut self, fragment: &BoxFragment) {
         let state = self
             .sequential_layout_state
             .as_mut()
@@ -1356,7 +1356,7 @@ impl InlineFormattingContextLayout<'_> {
         line_inline_size_without_trailing_whitespace: Au,
     ) {
         let containing_block = self.containing_block();
-        let mut float_fragment = float_item.fragment.borrow_mut();
+        let float_fragment = &float_item.fragment;
         let logical_margin_rect_size = float_fragment
             .margin_rect()
             .size
@@ -1381,7 +1381,7 @@ impl InlineFormattingContextLayout<'_> {
         if needs_placement_later {
             self.current_line.has_floats_waiting_to_be_placed = true;
         } else {
-            self.place_float_fragment(&mut float_fragment);
+            self.place_float_fragment(float_fragment);
             float_item.needs_placement = false;
         }
 
@@ -2482,7 +2482,7 @@ impl IndependentFormattingContext {
         let pbm_physical_offset = pbm_sums
             .start_offset()
             .to_physical_size(container_writing_mode);
-        fragment.base.rect.origin += pbm_physical_offset.to_vector();
+        fragment.base.translate_rect(pbm_physical_offset);
 
         // Apply baselines.
         fragment = fragment.with_baselines(baselines);
@@ -2510,7 +2510,7 @@ impl IndependentFormattingContext {
             layout.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() + fragment.base.rect.size.to_logical(container_writing_mode);
+        let size = pbm_sums.sum() + fragment.base.rect().size.to_logical(container_writing_mode);
         let baseline_offset = self
             .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)
@@ -2524,7 +2524,7 @@ impl IndependentFormattingContext {
             SegmentContentFlags::empty(),
         );
 
-        let fragment = ArcRefCell::new(fragment);
+        let fragment = Arc::new(fragment);
         self.base.set_fragment(Fragment::Box(fragment.clone()));
 
         layout.push_line_item_to_unbreakable_segment(LineItem::Atomic(
@@ -2601,7 +2601,7 @@ impl IndependentFormattingContext {
 
 impl FloatBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
-        let fragment = ArcRefCell::new(self.layout(
+        let fragment = Arc::new(self.layout(
             layout.layout_context,
             layout.positioning_context,
             layout.placement_state.containing_block,
@@ -2620,12 +2620,12 @@ impl FloatBox {
     }
 }
 
-fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mut [LineItem]) {
-    for item in line_items.iter_mut() {
+fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &[LineItem]) {
+    for item in line_items.iter() {
         if let LineItem::Float(_, float_line_item) = item &&
             float_line_item.needs_placement
         {
-            ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
+            ifc.place_float_fragment(&float_line_item.fragment);
         }
     }
 }

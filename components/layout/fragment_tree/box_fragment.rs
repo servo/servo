@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
+
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use euclid::Rect;
@@ -21,7 +23,6 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, Fra
 use crate::SharedStyle;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
-use crate::fragment_tree::BaseFragmentStyleRef;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
@@ -30,7 +31,7 @@ use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) enum BackgroundMode {
     /// Draw the normal [`BoxFragment`] background as well as the extra backgrounds
     /// based on the style and positioning rectangles in this data structure.
@@ -42,7 +43,8 @@ pub(crate) enum BackgroundMode {
     /// Draw the background normally, getting information from the Fragment style.
     Normal,
 }
-#[derive(MallocSizeOf)]
+
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct ExtraBackground {
     pub style: SharedStyle,
     pub rect: PhysicalRect<Au>,
@@ -56,7 +58,7 @@ pub(crate) enum SpecificLayoutInfo {
     TableWrapper,
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct BlockLevelLayoutInfo {
     /// When the `clear` property is not set to `none`, it may introduce clearance.
     /// Clearance is some extra spacing that is added above the top margin,
@@ -69,7 +71,7 @@ pub(crate) struct BlockLevelLayoutInfo {
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 }
 
-#[derive(Default, MallocSizeOf)]
+#[derive(Clone, Default, MallocSizeOf)]
 pub(crate) struct BoxFragmentRareData {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during `StackingContextTree` construction because they rely on the size of the
@@ -103,7 +105,7 @@ pub(crate) struct BoxFragment {
 
     /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: PhysicalRect<Au>,
+    pub cumulative_containing_block_rect: AtomicRefCell<PhysicalRect<Au>>,
 
     pub padding: PhysicalSides<Au>,
     pub border: PhysicalSides<Au>,
@@ -118,7 +120,7 @@ pub(crate) struct BoxFragment {
     /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
     /// rectangle. This does not take into account any transforms this fragment applies.
     /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
-    scrollable_overflow: Option<PhysicalRect<Au>>,
+    scrollable_overflow: AtomicRefCell<Option<PhysicalRect<Au>>>,
 
     pub background_mode: BackgroundMode,
 
@@ -136,8 +138,8 @@ pub(crate) struct BoxFragment {
 }
 
 impl BoxFragment {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
@@ -157,7 +159,7 @@ impl BoxFragment {
             border,
             margin,
             baselines: Baselines::default(),
-            scrollable_overflow: None,
+            scrollable_overflow: Default::default(),
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
@@ -165,18 +167,18 @@ impl BoxFragment {
         }
     }
 
-    pub fn with_baselines(mut self, baselines: Baselines) -> Self {
+    pub(crate) fn with_baselines(mut self, baselines: Baselines) -> Self {
         self.baselines = baselines;
         self
     }
 
-    pub(crate) fn style<'a>(&'a self) -> BaseFragmentStyleRef<'a> {
+    pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
         self.base.style()
     }
 
     /// Get the baselines for this [`BoxFragment`] if they are compatible with the given [`WritingMode`].
     /// If they are not compatible, [`Baselines::default()`] is returned.
-    pub fn baselines(&self, writing_mode: WritingMode) -> Baselines {
+    pub(crate) fn baselines(&self, writing_mode: WritingMode) -> Baselines {
         let style = self.style();
         let mut baselines = if writing_mode.is_horizontal() == style.writing_mode.is_horizontal() {
             self.baselines
@@ -207,18 +209,18 @@ impl BoxFragment {
         baselines
     }
 
-    pub fn add_extra_background(&mut self, extra_background: ExtraBackground) {
+    pub(crate) fn add_extra_background(&mut self, extra_background: ExtraBackground) {
         match self.background_mode {
             BackgroundMode::Extra(ref mut backgrounds) => backgrounds.push(extra_background),
             _ => self.background_mode = BackgroundMode::Extra(vec![extra_background]),
         }
     }
 
-    pub fn set_does_not_paint_background(&mut self) {
+    pub(crate) fn set_does_not_paint_background(&mut self) {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
+    pub(crate) fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -231,7 +233,7 @@ impl BoxFragment {
         })
     }
 
-    pub fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
+    pub(crate) fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
         let rare_data = self.rare_data.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
@@ -239,7 +241,9 @@ impl BoxFragment {
         })
     }
 
-    pub fn resolved_sticky_insets(&self) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
+    pub(crate) fn resolved_sticky_insets(
+        &self,
+    ) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
         let rare_data = self.rare_data.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
@@ -247,7 +251,7 @@ impl BoxFragment {
         })
     }
 
-    pub fn with_block_level_layout_info(
+    pub(crate) fn with_block_level_layout_info(
         mut self,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         clearance: Option<Au>,
@@ -261,17 +265,18 @@ impl BoxFragment {
 
     /// Get the scrollable overflow for this [`BoxFragment`] relative to its
     /// containing block.
-    pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
         self.scrollable_overflow
+            .borrow()
             .expect("Should only call `scrollable_overflow()` after calculating overflow")
     }
 
     /// This is an implementation of:
     /// - <https://drafts.csswg.org/css-overflow-3/#scrollable>.
     /// - <https://drafts.csswg.org/cssom-view/#scrolling-area>
-    pub(crate) fn calculate_scrollable_overflow(&mut self) {
+    pub(crate) fn calculate_scrollable_overflow(&self) {
         let physical_padding_rect = self.padding_rect();
-        let content_origin = self.base.rect.origin.to_vector();
+        let content_origin = self.base.rect().origin.to_vector();
 
         // > The scrollable overflow area is the union of:
         // > * The scroll container’s own padding box.
@@ -365,23 +370,28 @@ impl BoxFragment {
         // overflow. This behavior matches Chrome, but not Firefox.
         // See https://github.com/w3c/csswg-drafts/issues/12689
         if self.base.flags.contains(FragmentFlags::IS_COLLAPSED) {
-            self.scrollable_overflow = Some(Rect::zero());
+            *self.scrollable_overflow.borrow_mut() = Some(Rect::zero());
             return;
         }
 
-        self.scrollable_overflow = Some(scrollable_overflow)
+        *self.scrollable_overflow.borrow_mut() = Some(scrollable_overflow)
     }
 
-    pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
-        self.cumulative_containing_block_rect = *containing_block;
+    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
+        *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
     }
 
-    pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
-        rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
+    pub(crate) fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+        rect.translate(
+            self.cumulative_containing_block_rect
+                .borrow()
+                .origin
+                .to_vector(),
+        )
     }
 
     pub(crate) fn cumulative_content_box_rect(&self) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.base.rect)
+        self.offset_by_containing_block(&self.base.rect())
     }
 
     pub(crate) fn cumulative_padding_box_rect(&self) -> PhysicalRect<Au> {
@@ -393,7 +403,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
-        self.base.rect
+        self.base.rect()
     }
 
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
@@ -422,7 +432,7 @@ impl BoxFragment {
             .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
     }
 
-    pub fn print(&self, tree: &mut PrintTree) {
+    pub(crate) fn print(&self, tree: &mut PrintTree) {
         tree.new_level(format!(
             "Box\
                 \nbase={:?}\
@@ -555,6 +565,9 @@ impl BoxFragment {
             )
         };
 
+        let containing_block_size =
+            LazyCell::new(|| self.cumulative_containing_block_rect.borrow().size);
+
         // "A resolved value special case property like top defined in another
         // specification If the property applies to a positioned element and the
         // resolved value of the display property is not none or contents, and
@@ -562,10 +575,6 @@ impl BoxFragment {
         // used value. Otherwise the resolved value is the computed value."
         // https://drafts.csswg.org/cssom/#resolved-values
         let insets = style.physical_box_offsets();
-        let (cb_width, cb_height) = (
-            self.cumulative_containing_block_rect.width(),
-            self.cumulative_containing_block_rect.height(),
-        );
         if position == ComputedPosition::Relative {
             let get_resolved_axis = |start: &LengthPercentageOrAuto,
                                      end: &LengthPercentageOrAuto,
@@ -581,8 +590,11 @@ impl BoxFragment {
                     (Some(start), Some(end)) => (start, end),
                 }
             };
-            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width);
-            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height);
+
+            let (left, right) =
+                get_resolved_axis(&insets.left, &insets.right, containing_block_size.width);
+            let (top, bottom) =
+                get_resolved_axis(&insets.top, &insets.bottom, containing_block_size.height);
             return convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left));
         }
 
@@ -594,17 +606,26 @@ impl BoxFragment {
                 LengthPercentageOrAuto::LengthPercentage(top),
                 LengthPercentageOrAuto::LengthPercentage(bottom),
             ) => (
-                top.to_used_value(cb_height),
-                bottom.to_used_value(cb_height),
+                top.to_used_value(containing_block_size.height),
+                bottom.to_used_value(containing_block_size.height),
             ),
-            _ => (margin_rect.origin.y, cb_height - margin_rect.max_y()),
+            _ => (
+                margin_rect.origin.y,
+                containing_block_size.height - margin_rect.max_y(),
+            ),
         };
         let (left, right) = match (&insets.left, &insets.right) {
             (
                 LengthPercentageOrAuto::LengthPercentage(left),
                 LengthPercentageOrAuto::LengthPercentage(right),
-            ) => (left.to_used_value(cb_width), right.to_used_value(cb_width)),
-            _ => (margin_rect.origin.x, cb_width - margin_rect.max_x()),
+            ) => (
+                left.to_used_value(containing_block_size.width),
+                right.to_used_value(containing_block_size.width),
+            ),
+            _ => (
+                margin_rect.origin.x,
+                containing_block_size.width - margin_rect.max_x(),
+            ),
         };
 
         convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))

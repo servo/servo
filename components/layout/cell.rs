@@ -41,6 +41,12 @@ impl<T> Clone for ArcRefCell<T> {
     }
 }
 
+impl<T> From<T> for ArcRefCell<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
+}
+
 impl<T> Default for ArcRefCell<T>
 where
     T: Default,

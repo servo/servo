@@ -528,7 +528,7 @@ impl TaffyContainer {
                             .positioning_context
                             .append(std::mem::take(&mut child.positioning_context));
 
-                        Fragment::Box(ArcRefCell::new(box_fragment))
+                        Fragment::Box(box_fragment.into())
                     },
                     TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box) => {
                         fn resolve_alignment(value: AlignFlags, auto: AlignFlags) -> AlignFlags {

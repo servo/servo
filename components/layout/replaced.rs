@@ -30,7 +30,6 @@ use url::Url;
 use web_atoms::local_name;
 use webrender_api::ImageKey;
 
-use crate::cell::ArcRefCell;
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
@@ -484,7 +483,7 @@ impl ReplacedContents {
         let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
-        let mut base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
+        let base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
         match &self.kind {
             ReplacedContentKind::Image(image_info) => image_info
                 .image
@@ -509,24 +508,32 @@ impl ReplacedContents {
                     },
                 })
                 .map(|image_key| {
-                    Fragment::Image(ArcRefCell::new(ImageFragment {
-                        base,
-                        clip,
-                        image_key: Some(image_key),
-                        showing_broken_image_icon: image_info.showing_broken_image_icon,
-                        url: image_info.url.clone(),
-                    }))
+                    {
+                        Fragment::Image(
+                            ImageFragment {
+                                base,
+                                clip,
+                                image_key: Some(image_key),
+                                showing_broken_image_icon: image_info.showing_broken_image_icon,
+                                url: image_info.url.clone(),
+                            }
+                            .into(),
+                        )
+                    }
                 })
                 .into_iter()
                 .collect(),
             ReplacedContentKind::Video(video_info) => {
-                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base,
-                    clip,
-                    image_key: video_info.image_key,
-                    showing_broken_image_icon: false,
-                    url: None,
-                }))]
+                vec![Fragment::Image(
+                    ImageFragment {
+                        base,
+                        clip,
+                        image_key: video_info.image_key,
+                        showing_broken_image_icon: false,
+                        url: None,
+                    }
+                    .into(),
+                )]
             },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
@@ -543,10 +550,13 @@ impl ReplacedContents {
                         },
                     },
                 );
-                vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
-                    base,
-                    pipeline_id: iframe.pipeline_id,
-                }))]
+                vec![Fragment::IFrame(
+                    IFrameFragment {
+                        base,
+                        pipeline_id: iframe.pipeline_id,
+                    }
+                    .into(),
+                )]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
                 if self.natural_size.width == Some(Au::zero()) ||
@@ -559,13 +569,16 @@ impl ReplacedContents {
                     return vec![];
                 };
 
-                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base,
-                    clip,
-                    image_key: Some(image_key),
-                    showing_broken_image_icon: false,
-                    url: None,
-                }))]
+                vec![Fragment::Image(
+                    ImageFragment {
+                        base,
+                        clip,
+                        image_key: Some(image_key),
+                        showing_broken_image_icon: false,
+                        url: None,
+                    }
+                    .into(),
+                )]
             },
             ReplacedContentKind::SVGElement {
                 vector_image,
@@ -576,25 +589,28 @@ impl ReplacedContents {
                 };
 
                 if !has_viewbox {
-                    base.rect = PhysicalSize::new(
-                        vector_image
-                            .metadata
-                            .width
-                            .try_into()
-                            .map_or(MAX_AU, Au::from_px),
-                        vector_image
-                            .metadata
-                            .height
-                            .try_into()
-                            .map_or(MAX_AU, Au::from_px),
-                    )
-                    .into();
+                    base.set_rect(
+                        PhysicalSize::new(
+                            vector_image
+                                .metadata
+                                .width
+                                .try_into()
+                                .map_or(MAX_AU, Au::from_px),
+                            vector_image
+                                .metadata
+                                .height
+                                .try_into()
+                                .map_or(MAX_AU, Au::from_px),
+                        )
+                        .into(),
+                    );
                 }
 
                 let scale = layout_context.style_context.device_pixel_ratio();
+                let content_size = base.rect().size;
                 let raster_size = Size2D::new(
-                    base.rect.size.width.scale_by(scale.0).to_px(),
-                    base.rect.size.height.scale_by(scale.0).to_px(),
+                    content_size.width.scale_by(scale.0).to_px(),
+                    content_size.height.scale_by(scale.0).to_px(),
                 );
 
                 let tag = self.base_fragment_info.tag.unwrap();
@@ -608,13 +624,16 @@ impl ReplacedContents {
                     )
                     .and_then(|image| image.id)
                     .map(|image_key| {
-                        Fragment::Image(ArcRefCell::new(ImageFragment {
-                            base,
-                            clip,
-                            image_key: Some(image_key),
-                            showing_broken_image_icon: false,
-                            url: None,
-                        }))
+                        Fragment::Image(
+                            ImageFragment {
+                                base,
+                                clip,
+                                image_key: Some(image_key),
+                                showing_broken_image_icon: false,
+                                url: None,
+                            }
+                            .into(),
+                        )
                     })
                     .into_iter()
                     .collect()
