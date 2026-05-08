@@ -361,7 +361,7 @@ fn test_accessibility_basic_mutation() {
     let h2 = children[1];
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 
-    webview.force_accessibility_update_for_testing();
+    webview.force_needs_accessibility_update_for_testing();
 
     let _ = evaluate_javascript(
         &servo_test,

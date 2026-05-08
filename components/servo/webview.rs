@@ -837,8 +837,9 @@ impl WebView {
         self.accesskit_tree_id()
     }
 
-    // TODO: This method should be removed once we implement incremental tree updates.
-    pub fn force_accessibility_update_for_testing(&self) {
+    // TODO(#4344): This method should be removed once we implement incremental tree updates.
+    #[doc(hidden)]
+    pub fn force_needs_accessibility_update_for_testing(&self) {
         if self.inner().accesskit_tree_id.is_none() {
             self.set_accessibility_active(true);
             return;
