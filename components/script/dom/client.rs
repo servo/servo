@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::Reflector;
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::serviceworker::ServiceWorker;
