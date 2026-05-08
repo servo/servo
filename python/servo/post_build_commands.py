@@ -207,7 +207,7 @@ class PostBuildCommands(CommandBase):
         os.environ["CARGO_LLVM_COV_TARGET_DIR"] = target_dir
         profraw_files = [pathlib.Path(target_dir).joinpath(f) for f in os.listdir(target_dir) if f.endswith(".profraw")]
         zero_size_profraw_files = [f for f in profraw_files if os.path.getsize(f) == 0]
-        suspicously_small_files = [f for f in profraw_files if 0 < os.path.getsize(f) < 8000000 ]
+        suspicously_small_files = [f for f in profraw_files if 0 < os.path.getsize(f) < 8000000]
         filtered_profraw_files = [f for f in profraw_files if os.path.getsize(f) > 0]
         if len(zero_size_profraw_files) > 0:
             print(f"Warning found {len(zero_size_profraw_files)} zero-sized profraw files: {zero_size_profraw_files}")
