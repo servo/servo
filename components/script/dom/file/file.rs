@@ -21,7 +21,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
+use crate::dom::blob::{Blob, normalize_type_string, process_blob_parts};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -170,7 +170,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
         filename: DOMString,
         filePropertyBag: &FileBinding::FilePropertyBag,
     ) -> Fallible<DomRoot<File>> {
-        let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
+        let bytes: Vec<u8> = match process_blob_parts(fileBits, filePropertyBag.parent.endings) {
             Ok(bytes) => bytes,
             Err(_) => return Err(Error::InvalidCharacter(None)),
         };
