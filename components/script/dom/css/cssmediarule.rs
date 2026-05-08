@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
@@ -15,7 +16,7 @@ use super::cssconditionrule::CSSConditionRule;
 use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::medialist::MediaList;

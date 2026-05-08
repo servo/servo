@@ -821,7 +821,7 @@ macro_rules! impl_performance_entry_struct(
         use servo_base::cross_process_instant::CrossProcessInstant;
         use time::Duration;
 
-        use crate::dom::bindings::reflector::reflect_dom_object;
+        use script_bindings::reflector::reflect_dom_object;
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
         use crate::dom::globalscope::GlobalScope;

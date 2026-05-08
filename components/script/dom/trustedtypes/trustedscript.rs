@@ -7,11 +7,11 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::CompilationType;
 use js::rust::HandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptBinding::TrustedScriptMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;

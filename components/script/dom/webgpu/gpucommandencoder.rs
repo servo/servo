@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{
     WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
     WebGPURenderPass, WebGPURequest,
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPURenderPassDescriptor, GPUSize64,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;

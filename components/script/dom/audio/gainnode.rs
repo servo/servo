@@ -6,6 +6,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::gain_node::GainNodeOptions;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
@@ -20,7 +21,6 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{GainNodeMethods, GainOptions};
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

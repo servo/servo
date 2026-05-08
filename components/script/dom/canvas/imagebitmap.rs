@@ -12,6 +12,7 @@ use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
 use servo_constellation_traits::SerializableImageBitmap;
 
@@ -20,7 +21,6 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ResizeQuality,
 };
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;

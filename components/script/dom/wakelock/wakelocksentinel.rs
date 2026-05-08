@@ -5,11 +5,11 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{
     WakeLockSentinelMethods, WakeLockType,
 };
-use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;

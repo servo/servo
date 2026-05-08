@@ -7,12 +7,12 @@ use euclid::default::{Size2D, Transform2D};
 use js::context::JSContext;
 use pixels::{SharedSnapshot, Snapshot};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;

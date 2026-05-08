@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::InsecureRequestsPolicy;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::reflector::reflect_dom_object;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -18,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::XMLDocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CustomElementReactionStack;

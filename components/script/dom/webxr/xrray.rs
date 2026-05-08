@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, Ray};
 
@@ -13,7 +14,7 @@ use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;

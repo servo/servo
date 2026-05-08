@@ -15,6 +15,7 @@ use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use net_traits::response::HttpsState;
 use profile_traits::{mem, time};
+use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
 use servo_constellation_traits::ScriptToConstellationChan;
@@ -38,7 +39,6 @@ use crate::dom::bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::
     DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;

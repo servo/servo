@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
@@ -10,7 +11,6 @@ use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioD
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
 };
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;

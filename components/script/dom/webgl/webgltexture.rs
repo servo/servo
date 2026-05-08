@@ -9,7 +9,7 @@ use std::cmp;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::DomObject as _;
+use script_bindings::reflector::{DomObject as _, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
@@ -19,7 +19,7 @@ use servo_canvas_traits::webgl::{
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::validations::types::TexImageTarget;
 use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;

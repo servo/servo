@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_bindings::reflector::DomObject;
 use servo_constellation_traits::StructuredSerializedData;
 use servo_url::ImmutableOrigin;
 
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
 use crate::messaging::CommonScriptMsg;
 
 /// Messages used to control the worker event loops

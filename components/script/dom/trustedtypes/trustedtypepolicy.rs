@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_cx};
 use strum::AsRefStr;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -16,9 +17,7 @@ use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{
-    DomGlobal, DomObject, Reflector, reflect_dom_object_with_cx,
-};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

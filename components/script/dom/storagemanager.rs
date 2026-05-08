@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -15,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::StorageManagerBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::request_permission_to_use;

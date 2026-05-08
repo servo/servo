@@ -5,11 +5,11 @@
 use std::fmt;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptURLBinding::TrustedScriptURLMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

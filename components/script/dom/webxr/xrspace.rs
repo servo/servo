@@ -4,10 +4,10 @@
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{BaseSpace, Frame, Space};
 
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;

@@ -11,7 +11,7 @@ use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]

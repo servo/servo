@@ -39,6 +39,7 @@ use pixels::ImageMetadata;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
 use script_traits::DocumentActivity;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -82,9 +83,6 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
-};
-use crate::dom::bindings::reflector::{
-    DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx,
 };
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,

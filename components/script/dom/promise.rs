@@ -35,12 +35,13 @@ use js::rust::wrappers::{
 use js::rust::wrappers2::{AddPromiseReactions, NewFunctionWithReserved};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};

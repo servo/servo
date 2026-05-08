@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::FocusEventBinding;
@@ -11,7 +12,6 @@ use crate::dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};

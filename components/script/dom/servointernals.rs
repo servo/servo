@@ -13,6 +13,7 @@ use profile_traits::mem::MemoryReportResult;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::JSContext;
 use script_bindings::str::USVString;
 use servo_config::prefs::{self, PrefValue, Preferences};
@@ -20,7 +21,7 @@ use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
 use crate::dom::bindings::import::base::SafeJSContext;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

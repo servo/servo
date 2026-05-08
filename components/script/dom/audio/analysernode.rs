@@ -8,6 +8,7 @@ use ipc_channel::router::ROUTER;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Uint8Array};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
@@ -23,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

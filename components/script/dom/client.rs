@@ -5,11 +5,11 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::serviceworker::ServiceWorker;

@@ -6,6 +6,7 @@ use std::sync::mpsc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 
@@ -15,7 +16,6 @@ use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding:
     MediaElementAudioSourceNodeMethods, MediaElementAudioSourceOptions,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;

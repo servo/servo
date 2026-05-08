@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -16,7 +17,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;

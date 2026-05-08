@@ -4,13 +4,14 @@
 
 use dom_struct::dom_struct;
 use profile_traits::generic_channel;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::BluetoothRequest;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

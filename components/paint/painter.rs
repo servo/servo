@@ -1046,7 +1046,7 @@ impl Painter {
     ) -> ImageData {
         match data {
             SerializableImageData::Raw(shared_memory) => {
-                let data = Arc::new(shared_memory.to_vec());
+                let data = shared_memory.into_arc_vec();
                 if is_animated_image {
                     self.animation_image_cache.insert(key, Arc::clone(&data));
                 }

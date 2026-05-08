@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
@@ -16,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, Gamep
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;

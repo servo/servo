@@ -32,6 +32,7 @@ use profile_traits::time::{
 };
 use profile_traits::time_profile;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -56,7 +57,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};

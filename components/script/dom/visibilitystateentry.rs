@@ -5,6 +5,7 @@
 use std::ops::Deref;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -12,7 +13,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibility
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use crate::dom::bindings::codegen::Bindings::VisibilityStateEntryBinding::VisibilityStateEntryMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

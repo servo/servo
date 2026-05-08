@@ -6,11 +6,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
     NavigationPreloadManagerMethods, NavigationPreloadState,
 };
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::ByteString;
 use crate::dom::domexception::{DOMErrorName, DOMException};

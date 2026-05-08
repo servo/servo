@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::node::AudioNodeInit;
 
 use crate::dom::audio::audiocontext::AudioContext;
@@ -13,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::MediaStreamTrackAudioSourceNodeBind
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;

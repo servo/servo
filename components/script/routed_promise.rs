@@ -5,12 +5,12 @@
 use std::rc::Rc;
 
 use js::context::JSContext;
+use script_bindings::reflector::DomObject;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
 

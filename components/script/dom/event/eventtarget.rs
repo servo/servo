@@ -23,6 +23,7 @@ use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use servo_constellation_traits::ConstellationInterest;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -52,9 +53,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{
-    DomGlobal, DomObject, Reflector, reflect_dom_object_with_proto,
-};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;

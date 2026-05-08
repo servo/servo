@@ -7,6 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::B
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
 use crate::dom::bluetooth::{AsyncBluetoothListener, response_async};

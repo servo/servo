@@ -25,6 +25,7 @@ use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTim
 use pixels::RasterImage;
 use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
@@ -44,7 +45,6 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;

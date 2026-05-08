@@ -36,6 +36,7 @@ use net_traits::{
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_constellation_traits::BlobImpl;
@@ -54,7 +55,7 @@ use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOr
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};

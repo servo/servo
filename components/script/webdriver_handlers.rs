@@ -29,6 +29,7 @@ use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl,
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -64,7 +65,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;

@@ -7,6 +7,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::biquad_filter_node::{
     BiquadFilterNodeMessage, BiquadFilterNodeOptions, FilterType,
 };
@@ -25,7 +26,6 @@ use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::{
     BiquadFilterNodeMethods, BiquadFilterOptions, BiquadFilterType,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

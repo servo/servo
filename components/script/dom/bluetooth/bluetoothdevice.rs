@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDe
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};

@@ -57,7 +57,7 @@ pub use profile_traits;
 pub use resources;
 pub use servo_base::generic_channel::GenericSender;
 pub use servo_base::id::WebViewId;
-pub use servo_config::opts::{DiagnosticsLogging, Opts, OutputOptions};
+pub use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};
 pub use servo_geometry::{

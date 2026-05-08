@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use style::media_queries::MediaList;
 use style::stylesheets::CustomMediaEvaluator;
 use style_traits::ToCss;
@@ -16,7 +17,6 @@ use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;

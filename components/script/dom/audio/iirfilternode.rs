@@ -9,6 +9,7 @@ use itertools::Itertools;
 use js::gc::CustomAutoRooterGuard;
 use js::rust::HandleObject;
 use js::typedarray::Float32Array;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 use servo_media::audio::node::AudioNodeInit;
 
@@ -23,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

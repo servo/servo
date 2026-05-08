@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::{CssRuleType, NamespaceRule};
@@ -13,7 +14,6 @@ use style::stylesheets::{CssRuleType, NamespaceRule};
 use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
-use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;

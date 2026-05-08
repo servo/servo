@@ -18,13 +18,13 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::Permissi
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::Reflector;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::import::base::SafeJSContext;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::geolocationpositionerror::GeolocationPositionError;
 use crate::dom::globalscope::GlobalScope;
 

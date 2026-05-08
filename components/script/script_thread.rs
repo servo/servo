@@ -88,7 +88,8 @@ use servo_base::id::{
 };
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
-use servo_config::{opts, pref, prefs};
+use servo_config::opts::{self, DiagnosticsLoggingOption};
+use servo_config::{pref, prefs};
 use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
     ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
@@ -1007,7 +1008,9 @@ impl ScriptThread {
                     docs_with_no_blocking_loads: Default::default(),
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
-                    profile_script_events: opts.debug.profile_script_events,
+                    profile_script_events: opts
+                        .debug
+                        .is_enabled(DiagnosticsLoggingOption::ProfileScriptEvents),
                     unminify_js: opts.unminify_js,
                     local_script_source: opts.local_script_source.clone(),
                     unminify_css: opts.unminify_css,
@@ -1727,7 +1730,10 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if opts::get().debug.progressive_web_metrics {
+                    if opts::get()
+                        .debug
+                        .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
+                    {
                         println!(
                             "Task took longer than max allowed ({category:?}) {:?}",
                             task_duration.as_nanos()

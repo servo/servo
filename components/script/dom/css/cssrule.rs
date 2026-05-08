@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::Reflector;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{CssRule as StyleCssRule, CssRuleType};
 
@@ -24,7 +25,6 @@ use super::cssstylesheet::CSSStyleSheet;
 use super::csssupportsrule::CSSSupportsRule;
 use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
