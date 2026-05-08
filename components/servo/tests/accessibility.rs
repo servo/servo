@@ -369,10 +369,13 @@ fn test_accessibility_basic_mutation() {
         "document.getElementById('h2').remove()",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    for update in updates {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    assert_eq!(update.nodes.len(), 1);
+    assert_eq!(update.nodes[0].1.role(), Role::RootWebArea);
+    assert_eq!(update.nodes[0].1.children().len(), 1);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let children: Vec<accesskit_consumer::Node> = root.children().collect();
