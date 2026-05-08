@@ -498,9 +498,9 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' }}
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Build servo with coverage instrumentation
-        run: ./mach build --locked --profile real-release --coverage
+        run: ./mach build --locked --profile release --coverage
       - name: Build package for target
-        run: tar -czf target.tar.gz target/x86_64-unknown-linux-gnu/real-release/servo resources
+        run: tar -czf target.tar.gz target/x86_64-unknown-linux-gnu/release/servo resources
       - name: Upload artifact for target
         uses: actions/upload-artifact@v5
         with:
@@ -573,7 +573,7 @@ jobs:
         run: |
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
-          ./mach test-wpt --profile real-release --coverage --timeout-multiplier 2 \
+          ./mach test-wpt --profile release --coverage --timeout-multiplier 2 \
               --log-raw wpt-full-logs/linux/raw.log \
               --log-wptreport wpt-full-logs/linux/wptreport.json \
               --log-raw-stable-unexpected wpt-filtered-logs/linux.log \
@@ -585,11 +585,11 @@ jobs:
         with:
           name: wpt-code-coverage-raw-linux
           path: |
-            target/x86_64-unknown-linux-gnu/real-release/servo
+            target/x86_64-unknown-linux-gnu/release/servo
             target/*.profraw
       - name: Generate report
         run: |
-          ./mach coverage-report --profile real-release --codecov --output-path=codecov.json
+          ./mach coverage-report --profile release --codecov --output-path=codecov.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
