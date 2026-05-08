@@ -101,7 +101,7 @@ def format_python_files_with_ruff(check_only: bool = True) -> int:
 
 def format_with_rustfmt(check_only: bool = True) -> int:
     maybe_check_only = ["--check"] if check_only else []
-    result = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
+    result = call(["cargo", "fmt", "--all", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
     if result != 0:
         return result
 
