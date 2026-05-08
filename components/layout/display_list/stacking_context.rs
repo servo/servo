@@ -17,7 +17,7 @@ use paint_api::display_list::{
 };
 use servo_base::id::ScrollTreeNodeId;
 use servo_base::print_tree::PrintTree;
-use servo_config::opts::DiagnosticsLogging;
+use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -192,7 +192,7 @@ impl StackingContextTree {
         }
         root_stacking_context.sort();
 
-        if debug.stacking_context_tree {
+        if debug.is_enabled(DiagnosticsLoggingOption::StackingContextTree) {
             root_stacking_context.debug_print();
         }
 
@@ -521,7 +521,9 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
-            debug_print_items: debug.stacking_context_tree.then(|| vec![].into()),
+            debug_print_items: debug
+                .is_enabled(DiagnosticsLoggingOption::StackingContextTree)
+                .then(|| vec![].into()),
         }
     }
 

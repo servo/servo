@@ -92,7 +92,8 @@ use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUs
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{
-    CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, invalidate, refresh,
+    CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, invalidate_cached_resources,
+    refresh,
 };
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
@@ -1495,7 +1496,7 @@ async fn http_network_or_cache_fetch(
             // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
             if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
                 if let Some(guard) = cache_guard.try_as_mut() {
-                    invalidate(http_request, &forward_response, guard).await;
+                    invalidate_cached_resources(guard);
                 }
                 context
                     .state

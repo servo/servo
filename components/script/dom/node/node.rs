@@ -885,7 +885,11 @@ impl Node {
         }
 
         match self.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(..)) => {
+                // This drops the cached `TextRun` that is stored here, ultimately meaning that
+                // shaped text will no longer be reused for this text node.
+                *self.layout_data.borrow_mut() = None;
+
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
@@ -2139,8 +2143,10 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     pub(crate) fn is_text_node_for_layout(&self) -> bool {
-        self.type_id_for_layout() ==
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        matches!(
+            self.type_id_for_layout(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(..))
+        )
     }
 
     #[inline]

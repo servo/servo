@@ -47,7 +47,7 @@ use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineNamespace};
 use servo_bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
-use servo_config::opts::Opts;
+use servo_config::opts::{DiagnosticsLoggingOption, Opts};
 use servo_config::prefs::{PrefValue, Preferences};
 use servo_config::{opts, pref, prefs};
 #[cfg(all(
@@ -852,8 +852,11 @@ impl Servo {
             !pref!(layout_style_sharing_cache_enabled),
             Ordering::Relaxed,
         );
-        style::context::DEFAULT_DUMP_STYLE_STATISTICS
-            .store(opts.debug.style_statistics, Ordering::Relaxed);
+        style::context::DEFAULT_DUMP_STYLE_STATISTICS.store(
+            opts.debug
+                .is_enabled(DiagnosticsLoggingOption::StyleStatistics),
+            Ordering::Relaxed,
+        );
 
         if !opts.multiprocess {
             media_platform::init();

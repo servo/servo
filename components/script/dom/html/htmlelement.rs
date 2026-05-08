@@ -987,12 +987,13 @@ impl HTMLElement {
         debug_assert!(self.as_element().local_name() == &local_name!("summary"));
 
         // Step 1. If this summary element is not the summary for its parent details, then return.
-        if !self.is_a_summary_for_its_parent_details() {
+        let is_implicit_summary_element = self.is_implicit_summary_element();
+        if !is_implicit_summary_element && !self.is_a_summary_for_its_parent_details() {
             return;
         }
 
         // Step 2. Let parent be this summary element's parent.
-        let parent = if self.is_implicit_summary_element() {
+        let parent = if is_implicit_summary_element {
             DomRoot::downcast::<HTMLDetailsElement>(self.containing_shadow_root().unwrap().Host())
                 .unwrap()
         } else {
@@ -1009,10 +1010,6 @@ impl HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
     pub(crate) fn is_a_summary_for_its_parent_details(&self) -> bool {
-        if self.is_implicit_summary_element() {
-            return true;
-        }
-
         // Step 1. If this summary element has no parent, then return false.
         // Step 2. Let parent be this summary element's parent.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {

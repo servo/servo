@@ -7,7 +7,7 @@ const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
-const environmentActorsToEnvironments = new Map;
+const environmentsToEnvironmentActors = new Map;
 
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
 // Possible values for the `why.type` attribute in "paused" event
@@ -542,35 +542,31 @@ addEventListener("clearBreakpoint", event => {
 
 // TODO: Get variables (scopes don't show if they don't have a variable)
 function createEnvironmentActor(environment) {
-    let actor = findKeyByValue(environmentActorsToEnvironments, environment);
-
-    if (!actor) {
-        let info = {};
-        if (environment.type == "declarative") {
-            info.type_ = environment.calleeScript ? "function" : "block";
-        } else {
-            info.type_ = environment.type;
-        }
-
-        info.scopeKind = environment.scopeKind;
-
-        if (environment.calleeScript) {
-            info.functionDisplayName = environment.calleeScript.displayName;
-        }
-
-        let parent = null;
-        if (environment.parent) {
-            parent = createEnvironmentActor(environment.parent);
-        }
-
-        if (environment.type == "declarative") {
-            info.bindingVariables = buildBindings(environment)
-        }
-
-        actor = registerEnvironmentActor(info, parent);
-        environmentActorsToEnvironments.set(actor, environment);
+    let info = {};
+    if (environment.type == "declarative") {
+        info.type_ = environment.calleeScript ? "function" : "block";
+    } else {
+        info.type_ = environment.type;
     }
 
+    info.scopeKind = environment.scopeKind;
+
+    if (environment.calleeScript) {
+        info.functionDisplayName = environment.calleeScript.displayName;
+    }
+
+    let parent = null;
+    if (environment.parent) {
+        parent = createEnvironmentActor(environment.parent);
+    }
+
+    if (environment.type == "declarative") {
+        info.bindingVariables = buildBindings(environment);
+    }
+
+    let actor = environmentsToEnvironmentActors.get(environment);
+    actor = registerEnvironmentActor(info, parent, actor);
+    environmentsToEnvironmentActors.set(environment, actor);
     return actor;
 }
 
@@ -582,7 +578,10 @@ function buildBindings(environment) {
             name: name,
             configurable: false,
             enumerable: true,
-            writable: !value?.optimizedOut,
+            writable: !(
+                value &&
+                (value.optimizedOut || value.uninitialized || value.missingArguments)
+            ),
             isAccessor: false,
             value: createValueGrip(value),
         };
