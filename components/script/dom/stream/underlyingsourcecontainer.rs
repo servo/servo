@@ -184,8 +184,7 @@ impl UnderlyingSourceContainer {
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result =
-                    port.pack_and_post_message_handling_error("error", reason, CanGc::from_cx(cx));
+                let result = port.pack_and_post_message_handling_error(cx, "error", reason);
 
                 // Disentangle port.
                 self.global().disentangle_port(cx, port);
@@ -242,7 +241,7 @@ impl UnderlyingSourceContainer {
 
                 // Perform ! PackAndPostMessage(port, "pull", undefined).
                 rooted!(&in(cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("pull", value.handle(), CanGc::from_cx(cx))
+                port.pack_and_post_message(cx, "pull", value.handle())
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.

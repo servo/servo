@@ -8,8 +8,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, JS_NewObject, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
+use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -32,7 +33,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
@@ -117,7 +118,7 @@ impl MessagePort {
     #[expect(unsafe_code)]
     fn post_message_impl(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -150,7 +151,7 @@ impl MessagePort {
         }
 
         // Step 5
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
 
         if doomed {
             // TODO: The spec says to optionally report such a case to a dev console.
@@ -177,31 +178,33 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
-    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue, can_gc: CanGc) {
+    pub(crate) fn cross_realm_transform_send_error(&self, cx: &mut JSContext, error: HandleValue) {
         // Perform PackAndPostMessage(port, "error", error),
         // discarding the result.
-        let _ = self.pack_and_post_message("error", error, can_gc);
+        let _ = self.pack_and_post_message(cx, "error", error);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
     pub(crate) fn pack_and_post_message_handling_error(
         &self,
+        cx: &mut JSContext,
         type_: &str,
         value: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Let result be PackAndPostMessage(port, type, value).
-        let result = self.pack_and_post_message(type_, value, can_gc);
+        let result = self.pack_and_post_message(cx, type_, value);
 
         // If result is an abrupt completion,
         if let Err(error) = result.as_ref() {
             // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            error
-                .clone()
-                .to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
-            self.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
+            rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+            error.clone().to_jsval(
+                cx.into(),
+                &self.global(),
+                rooted_error.handle_mut(),
+                CanGc::from_cx(cx),
+            );
+            self.cross_realm_transform_send_error(cx, rooted_error.handle());
         }
 
         result
@@ -211,23 +214,21 @@ impl MessagePort {
     #[expect(unsafe_code)]
     pub(crate) fn pack_and_post_message(
         &self,
+        cx: &mut JSContext,
         type_: &str,
         value: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        let cx = GlobalScope::get_cx();
-
         // Let message be OrdinaryObjectCreate(null).
-        rooted!(in(*cx) let mut message = unsafe { JS_NewObject(*cx, ptr::null()) });
-        rooted!(in(*cx) let mut type_string = UndefinedValue());
-        type_.safe_to_jsval(cx, type_string.handle_mut(), can_gc);
+        rooted!(&in(cx) let mut message = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut type_string = UndefinedValue());
+        type_.safe_to_jsval(cx.into(), type_string.handle_mut(), CanGc::from_cx(cx));
 
         // Perform ! CreateDataProperty(message, "type", type).
-        set_dictionary_property(cx, message.handle(), c"type", type_string.handle())
+        set_dictionary_property(cx.into(), message.handle(), c"type", type_string.handle())
             .expect("Setting the message type should not fail.");
 
         // Perform ! CreateDataProperty(message, "value", value).
-        set_dictionary_property(cx, message.handle(), c"value", value)
+        set_dictionary_property(cx.into(), message.handle(), c"value", value)
             .expect("Setting the message value should not fail.");
 
         // Let targetPort be the port with which port is entangled, if any; otherwise let it be null.
@@ -235,11 +236,11 @@ impl MessagePort {
 
         // Let options be «[ "transfer" → « » ]».
         let mut rooted = CustomAutoRooter::new(vec![]);
-        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
         // Run the message port post message steps providing targetPort, message, and options.
-        rooted!(in(*cx) let mut message_val = UndefinedValue());
-        message.safe_to_jsval(cx, message_val.handle_mut(), can_gc);
+        rooted!(&in(cx) let mut message_val = UndefinedValue());
+        message.safe_to_jsval(cx.into(), message_val.handle_mut(), CanGc::from_cx(cx));
         self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }
@@ -308,7 +309,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        self.post_message_impl(cx.into(), message, transfer)
+        self.post_message_impl(cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -330,7 +331,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         );
         #[expect(unsafe_code)]
         let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
-        self.post_message_impl(cx.into(), message, guard)
+        self.post_message_impl(cx, message, guard)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>

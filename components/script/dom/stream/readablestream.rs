@@ -2397,7 +2397,7 @@ impl CrossRealmTransformReadable {
         error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle(), CanGc::from_cx(cx));
+        port.cross_realm_transform_send_error(cx, rooted_error.handle());
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
         self.controller.error(cx, rooted_error.handle());
