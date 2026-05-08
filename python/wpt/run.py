@@ -118,7 +118,7 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
-        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py"]:
+        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py", ".svg"]:
             use_mach_logging = True
 
     # Enable headless mode by default, unless `--no-headless` is explicitly passed, in
