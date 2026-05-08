@@ -140,6 +140,8 @@ pub(crate) struct ServoParser {
     script_nesting_level: Cell<usize>,
     /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
     aborted: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#stop-parsing>
+    stopped: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
     /// A decoder exclusively for input to the prefetch tokenizer.
@@ -498,11 +500,6 @@ impl ServoParser {
             .set_ready_state(cx, DocumentReadyState::Complete);
     }
 
-    // https://html.spec.whatwg.org/multipage/#active-parser
-    pub(crate) fn is_active(&self) -> bool {
-        self.script_nesting_level() > 0 && !self.aborted.get()
-    }
-
     pub(crate) fn get_current_line(&self) -> u32 {
         self.tokenizer.get_current_line()
     }
@@ -536,6 +533,7 @@ impl ServoParser {
             suspended: Default::default(),
             script_nesting_level: Default::default(),
             aborted: Default::default(),
+            stopped: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
             prefetch_decoder: RefCell::new(LossyDecoder::new_encoding_rs(
                 encoding_hint_from_content_type.unwrap_or(UTF_8),
@@ -747,6 +745,16 @@ impl ServoParser {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
+    pub(crate) fn has_aborted(&self) -> bool {
+        self.aborted.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#stop-parsing>
+    pub(crate) fn has_stopped(&self) -> bool {
+        self.stopped.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#the-end>
     fn finish(&self, cx: &mut js::context::JSContext) {
         assert!(!self.suspended.get());
@@ -755,15 +763,23 @@ impl ServoParser {
         assert!(self.network_input.is_empty());
         assert!(self.network_decoder.borrow().is_finished());
 
-        // Step 1.
+        self.stopped.set(true);
+
+        // Step 1. If the active speculative HTML parser is not null,
+        // then stop the speculative HTML parser and return.
+        // TODO
+
+        // Step 2. Set the insertion point to undefined.
+        self.document.set_current_parser(None);
+
+        // Step 3. Update the current document readiness to "interactive".
         self.document
             .set_ready_state(cx, DocumentReadyState::Interactive);
 
-        // Step 2.
+        // Step 4. Pop all the nodes off the stack of open elements.
         self.tokenizer.end(cx);
-        self.document.set_current_parser(None);
 
-        // Steps 3-12 are in another castle, namely finish_load.
+        // Steps 5-11 are in another castle, namely finish_load.
         let url = self.tokenizer.url().clone();
         self.document.finish_load(LoadType::PageSource(url), cx);
 
