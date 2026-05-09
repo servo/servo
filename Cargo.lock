@@ -1812,13 +1812,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "deny_public_fields_tests"
-version = "0.2.0"
-dependencies = [
- "servo-deny-public-fields",
-]
-
-[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7772,6 +7765,7 @@ dependencies = [
 name = "servo-deny-public-fields"
 version = "0.2.0"
 dependencies = [
+ "proc-macro2",
  "syn",
  "synstructure",
 ]
