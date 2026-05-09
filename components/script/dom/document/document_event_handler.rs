@@ -182,11 +182,11 @@ pub(crate) struct DocumentEventHandler {
     mouse_buttons_down: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
+    /// The element that was most recently activated during a mouse button press or touch
+    /// event.
+    current_active_element: MutNullableDom<Element>,
     /// The element that was most recently clicked.
     most_recently_clicked_element: MutNullableDom<Element>,
-    /// The element that was activated on mousedown and should retain :active state until mouseup.
-    /// <https://github.com/servo/servo/issues/43862>
-    current_active_element: MutNullableDom<Element>,
     /// The most recent mouse movement point, used for processing `mouseleave` events.
     #[no_trace]
     most_recent_mousemove_point: Cell<Option<Point2D<f32, CSSPixel>>>,
@@ -222,8 +222,8 @@ impl DocumentEventHandler {
             last_mouse_button_down_point: Default::default(),
             mouse_buttons_down: Cell::new(0),
             current_hover_target: Default::default(),
-            most_recently_clicked_element: Default::default(),
             current_active_element: Default::default(),
+            most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
             active_touch_points: Default::default(),
@@ -789,27 +789,49 @@ impl DocumentEventHandler {
         self.set_cursor(Some(hit_test_result.cursor));
     }
 
-    fn element_for_activation(&self, element: DomRoot<Element>) -> DomRoot<Element> {
-        let node: &Node = element.upcast();
-        if node.is_in_ua_widget() {
-            if let Some(containing_shadow_root) = node.containing_shadow_root() {
-                return containing_shadow_root.Host();
+    fn set_active_element(&self, original_target: &Element) {
+        let find_element_for_activation = |element: &Element| {
+            let node: &Node = element.upcast();
+            if node.is_in_ua_widget() {
+                if let Some(containing_shadow_root) = node.containing_shadow_root() {
+                    return containing_shadow_root.Host();
+                }
             }
+
+            // If the element is a label, the activable element is the control element.
+            if node.type_id() ==
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLLabelElement,
+                ))
+            {
+                let label = element.downcast::<HTMLLabelElement>().unwrap();
+                if let Some(control) = label.GetControl() {
+                    return DomRoot::from_ref(control.upcast::<Element>());
+                }
+            }
+
+            DomRoot::from_ref(element)
+        };
+        let element_for_activation = find_element_for_activation(original_target);
+
+        // This might happen if the user is alternating between different pointing devices
+        // such as two mice or a mouse and touch events. Only keep the latest activated.
+        if let Some(currently_active_element) = self.current_active_element.get() {
+            if currently_active_element == element_for_activation {
+                return;
+            }
+            self.unset_active_element();
         }
 
-        // If the element is a label, the activable element is the control element.
-        if node.type_id() ==
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLLabelElement,
-            ))
-        {
-            let label = element.downcast::<HTMLLabelElement>().unwrap();
-            if let Some(control) = label.GetControl() {
-                return DomRoot::from_ref(control.upcast::<Element>());
-            }
-        }
+        element_for_activation.set_active_state(true);
+        self.current_active_element
+            .set(Some(&*element_for_activation));
+    }
 
-        element
+    fn unset_active_element(&self) {
+        if let Some(active_element) = self.current_active_element.take() {
+            active_element.set_active_state(false);
+        }
     }
 
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
@@ -848,19 +870,15 @@ impl DocumentEventHandler {
         debug!("{:?} on {:?}", event.action, node.debug_str());
 
         // <https://html.spec.whatwg.org/multipage/#selector-active>
-        // If the element is being actively pointed at the element is being activated.
-        // Disabled elements can also be activated.
-        if event.action == MouseButtonAction::Down {
-            let activation_element = self.element_for_activation(element.clone());
-            activation_element.set_active_state(true);
-            self.current_active_element.set(Some(&*activation_element));
-        }
-        if event.action == MouseButtonAction::Up {
-            if let Some(active_element) = self.current_active_element.take() {
-                active_element.set_active_state(false);
-            } else {
-                self.element_for_activation(element.clone())
-                    .set_active_state(false);
+        // > If the element is being actively pointed at the element is being activated.
+        // Disabled elements can also be activated, so this must happen before the
+        // early return below.
+        if event.button == MouseButton::Left {
+            if event.action == MouseButtonAction::Down {
+                self.set_active_element(&element);
+            }
+            if event.action == MouseButtonAction::Up {
+                self.unset_active_element();
             }
         }
 
@@ -1277,9 +1295,7 @@ impl DocumentEventHandler {
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*pointer_touch));
-                // <https://html.spec.whatwg.org/multipage/#selector-active>
-                // If the element is being actively pointed at the element is being activated.
-                self.element_for_activation(element).set_active_state(true);
+                self.set_active_element(&element);
                 (current_target, pointer_touch)
             },
             _ => {
@@ -1320,9 +1336,7 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
-                        // <https://html.spec.whatwg.org/multipage/#selector-active>
-                        // If the element is being actively pointed at the element is being activated.
-                        self.element_for_activation(element).set_active_state(false);
+                        self.unset_active_element();
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
