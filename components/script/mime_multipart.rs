@@ -148,7 +148,7 @@ pub struct Part {
 
 /// A file that is to be inserted into a `multipart/*` or alternatively an uploaded file that
 /// was received as part of `multipart/*` parsing.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct FilePart {
     /// The headers of the part
     pub headers: HeaderMap,
@@ -194,7 +194,7 @@ impl Drop for FilePart {
 
 /// A multipart part which could be either a file, in memory, or another multipart
 /// container containing nested parts.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Node {
     /// A part in memory
     Part(Part),
