@@ -24,7 +24,7 @@ fn deny_public_fields_derive(s: synstructure::Structure) -> proc_macro2::TokenSt
 #[test]
 #[should_panic(expected = "Field `v1` should not be public")]
 fn deny_public_fields_failing() {
-    synstructure::test_derive!{
+    synstructure::test_derive! {
         deny_public_fields_derive {
             struct Foo {
                 pub v1: i32,
@@ -37,7 +37,7 @@ fn deny_public_fields_failing() {
 
 #[test]
 fn deny_public_fields_ok() {
-    synstructure::test_derive!{
+    synstructure::test_derive! {
         deny_public_fields_derive {
             struct Foo {
                 v1: i32,
