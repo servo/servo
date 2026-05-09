@@ -22,6 +22,7 @@ use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
 #[cfg(feature = "gamepad")]
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -32,7 +33,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::to_frozen_array;

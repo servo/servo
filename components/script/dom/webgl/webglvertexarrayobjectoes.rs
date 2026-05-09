@@ -4,9 +4,10 @@
 
 use dom_struct::dom_struct;
 use script_bindings::cell::Ref;
+use script_bindings::reflector::reflect_dom_object;
 use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webgl::webglbuffer::WebGLBuffer;

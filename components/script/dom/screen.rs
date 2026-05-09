@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ScreenMetrics};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

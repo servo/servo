@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use atomic_refcell::AtomicRefCell;
 use devtools_traits::EnvironmentInfo;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -49,7 +50,7 @@ pub(crate) struct EnvironmentActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct EnvironmentActor {
     name: String,
-    environment: EnvironmentInfo,
+    environment: AtomicRefCell<EnvironmentInfo>,
     parent_name: Option<String>,
 }
 
@@ -60,16 +61,23 @@ impl Actor for EnvironmentActor {
 }
 
 impl EnvironmentActor {
-    pub fn register(
+    pub fn register_or_update(
         registry: &ActorRegistry,
         environment: EnvironmentInfo,
         parent_name: Option<String>,
+        actor_name: Option<String>,
     ) -> String {
+        if let Some(actor_name) = actor_name {
+            let environment_actor = registry.find::<Self>(&actor_name);
+            *environment_actor.environment.borrow_mut() = environment;
+            return actor_name;
+        }
+
         let environment_name = registry.new_name::<Self>();
         let environment_actor = Self {
             name: environment_name.clone(),
             parent_name,
-            environment,
+            environment: environment.into(),
         };
         registry.register(environment_actor);
         environment_name
@@ -83,22 +91,21 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
             .as_ref()
             .map(|p| registry.find::<EnvironmentActor>(p))
             .map(|p| Box::new(p.encode(registry)));
+        let environment = self.environment.borrow();
         // TODO: Change hardcoded values.
         EnvironmentActorMsg {
             actor: self.name(),
-            type_: self.environment.type_.clone(),
-            scope_kind: self.environment.scope_kind.clone(),
+            type_: environment.type_.clone(),
+            scope_kind: environment.scope_kind.clone(),
             parent,
-            function: self
-                .environment
+            function: environment
                 .function_display_name
                 .clone()
                 .map(|display_name| EnvironmentFunction { display_name }),
             object: None,
             bindings: Some(EnvironmentBindings {
                 arguments: [].to_vec(),
-                variables: self
-                    .environment
+                variables: environment
                     .binding_variables
                     .clone()
                     .into_iter()

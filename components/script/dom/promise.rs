@@ -22,24 +22,26 @@ use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
     JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject,
-    NewFunctionWithReserved, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
+    PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
-    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
-    ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
+    CallOriginalPromiseReject, CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState,
+    IsPromiseObject, NewPromiseObject, RejectPromise, ResolvePromise, SetAnyPromiseIsHandled,
+    SetPromiseUserInputEventHandlingState,
 };
+use js::rust::wrappers2::{AddPromiseReactions, NewFunctionWithReserved};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -285,27 +287,26 @@ impl Promise {
     #[expect(unsafe_code)]
     pub(crate) fn append_native_handler(
         &self,
+        cx: &mut CurrentRealm,
         handler: &PromiseNativeHandler,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
-        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let resolve_func =
-                create_native_handler_function(*cx,
-                                               handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Resolve,
-                                               can_gc));
+        let in_realm_proof = cx.into();
+        let realm = InRealm::Already(&in_realm_proof);
 
-            rooted!(in(*cx) let reject_func =
-                create_native_handler_function(*cx,
+        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
+            rooted!(&in(cx) let resolve_func =
+                create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Reject,
-                                               can_gc));
+                                               NativeHandlerTask::Resolve));
+
+            rooted!(&in(cx) let reject_func =
+                create_native_handler_function(cx,
+                                               handler.reflector().get_jsobject(),
+                                               NativeHandlerTask::Reject));
 
             unsafe {
                 let ok = AddPromiseReactions(
-                    *cx,
+                    cx,
                     self.promise_obj(),
                     resolve_func.handle(),
                     reject_func.handle(),
@@ -390,19 +391,16 @@ unsafe extern "C" fn native_handler_callback(
 }
 
 #[expect(unsafe_code)]
-// The apparently-unused CanGc argument reflects the fact that the JS API calls
-// like NewFunctionWithReserved can trigger a GC.
 fn create_native_handler_function(
-    cx: *mut RawJSContext,
+    cx: &mut JSContext,
     holder: HandleObject,
     task: NativeHandlerTask,
-    _can_gc: CanGc,
 ) -> *mut JSObject {
     unsafe {
         let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
         assert!(!func.is_null());
 
-        rooted!(in(cx) let obj = JS_GetFunctionObject(func));
+        rooted!(&in(cx) let obj = JS_GetFunctionObject(func));
         assert!(!obj.is_null());
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER, &ObjectValue(*holder));
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
@@ -431,10 +429,10 @@ impl FromJSValConvertibleRc for Promise {
 }
 
 /// The success steps of <https://webidl.spec.whatwg.org/#wait-for-all>
-type WaitForAllSuccessSteps = Rc<dyn Fn(Vec<HandleValue>)>;
+type WaitForAllSuccessSteps = Rc<dyn Fn(&mut JSContext, Vec<HandleValue>)>;
 
 /// The failure steps of <https://webidl.spec.whatwg.org/#wait-for-all>
-type WaitForAllFailureSteps = Rc<dyn Fn(HandleValue)>;
+type WaitForAllFailureSteps = Rc<dyn Fn(&mut JSContext, HandleValue)>;
 
 /// The fulfillment handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
@@ -460,7 +458,7 @@ struct WaitForAllFulfillmentHandler {
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
-    fn callback(&self, _cx: &mut CurrentRealm, v: HandleValue) {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
         // Let fulfillmentHandler be the following steps given arg:
 
         let equals_total = {
@@ -481,7 +479,7 @@ impl Callback for WaitForAllFulfillmentHandler {
             let result_handles: Vec<HandleValue> =
                 result_ref.iter().map(|v| v.as_handle_value()).collect();
 
-            (self.success_steps)(result_handles);
+            (self.success_steps)(cx, result_handles);
         }
     }
 }
@@ -500,7 +498,7 @@ struct WaitForAllRejectionHandler {
 }
 
 impl Callback for WaitForAllRejectionHandler {
-    fn callback(&self, _cx: &mut CurrentRealm, v: HandleValue) {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
         // Let rejectionHandlerSteps be the following steps given arg:
 
         if self.rejected.replace(true) {
@@ -510,7 +508,7 @@ impl Callback for WaitForAllRejectionHandler {
 
         // Set rejected to true.
         // Done above with `replace`.
-        (self.failure_steps)(v);
+        (self.failure_steps)(cx, v);
     }
 }
 
@@ -526,8 +524,8 @@ pub(crate) struct WaitForAllSuccessStepsMicrotask {
 }
 
 impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
-    fn handler(&self, _cx: &mut JSContext) {
-        (self.success_steps)(vec![]);
+    fn handler(&self, cx: &mut JSContext) {
+        (self.success_steps)(cx, vec![]);
     }
 
     fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
@@ -537,14 +535,12 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
 
 /// <https://webidl.spec.whatwg.org/#wait-for-all>
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-pub(crate) fn wait_for_all(
-    cx: SafeJSContext,
+fn wait_for_all(
+    cx: &mut CurrentRealm,
     global: &GlobalScope,
     promises: Vec<Rc<Promise>>,
     success_steps: WaitForAllSuccessSteps,
     failure_steps: WaitForAllFailureSteps,
-    realm: InRealm,
-    can_gc: CanGc,
 ) {
     // Let fulfilledCount be 0.
     let fulfilled_count: Rc<RefCell<usize>> = Default::default();
@@ -592,7 +588,7 @@ pub(crate) fn wait_for_all(
         {
             // Note: adding a null value for this promise result.
             let mut result_list = result.borrow_mut();
-            rooted!(in(*cx) let null_value = NullValue());
+            rooted!(&in(cx) let null_value = NullValue());
             result_list.push(Heap::boxed(null_value.get()));
         }
 
@@ -615,9 +611,9 @@ pub(crate) fn wait_for_all(
                 fulfilled_count: fulfilled_count.clone(),
             })),
             Some(Box::new(rejection_handler.clone())),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        promise.append_native_handler(&handler, realm, can_gc);
+        promise.append_native_handler(cx, &handler);
 
         // Set index to index + 1.
         // Note: done above with `enumerate`.
@@ -626,39 +622,29 @@ pub(crate) fn wait_for_all(
 
 /// <https://webidl.spec.whatwg.org/#waiting-for-all-promise>
 pub(crate) fn wait_for_all_promise(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     global: &GlobalScope,
     promises: Vec<Rc<Promise>>,
-    realm: InRealm,
-    can_gc: CanGc,
 ) -> Rc<Promise> {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
-    let promise = Promise::new(global, can_gc);
+    let promise = Promise::new2(cx, global);
     let success_promise = promise.clone();
     let failure_promise = promise.clone();
 
     // Let successSteps be the following steps, given results:
-    let success_steps = Rc::new(move |results: Vec<HandleValue>| {
+    let success_steps = Rc::new(move |cx: &mut JSContext, results: Vec<HandleValue>| {
         // Resolve promise with results.
-        success_promise.resolve_native(&results, can_gc);
+        success_promise.resolve_native(&results, CanGc::from_cx(cx));
     });
 
     // Let failureSteps be the following steps, given reason:
-    let failure_steps = Rc::new(move |reason: HandleValue| {
+    let failure_steps = Rc::new(move |cx: &mut JSContext, reason: HandleValue| {
         // Reject promise with reason.
-        failure_promise.reject_native(&reason, can_gc);
+        failure_promise.reject_native(&reason, CanGc::from_cx(cx));
     });
 
     // Wait for all with promises, given successSteps and failureSteps.
-    wait_for_all(
-        cx,
-        global,
-        promises,
-        success_steps,
-        failure_steps,
-        realm,
-        can_gc,
-    );
+    wait_for_all(cx, global, promises, success_steps, failure_steps);
 
     // Return promise.
     promise

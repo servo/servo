@@ -14,7 +14,6 @@ use std::time::{Duration, Instant, SystemTime};
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
-use http::header::HeaderValue;
 use http::{HeaderMap, Method, StatusCode, header};
 use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -699,36 +698,7 @@ pub fn refresh(
     constructed_response
 }
 
-/// Invalidation.
-/// <https://tools.ietf.org/html/rfc7234#section-4.4>
-pub(crate) async fn invalidate(
-    request: &Request,
-    response: &Response,
-    cached_resources: &mut [CachedResource],
-) {
-    // TODO(eijebong): Once headers support typed_get, update this to use them
-    if let Some(Ok(location)) = response
-        .headers
-        .get(header::LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    if let Some(Ok(content_location)) = response
-        .headers
-        .get(header::CONTENT_LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(content_location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    invalidate_cached_resources(cached_resources).await;
-}
-
-async fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
+pub(crate) fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     for cached_resource in cached_resources.iter_mut() {
         cached_resource.expires = Duration::ZERO;
     }
@@ -847,7 +817,7 @@ impl HttpCache {
     async fn invalidate_entry(&self, key: &CacheKey) {
         if let Some(entry) = self.entries.get(key) {
             let mut guarded_resources = entry.write().await;
-            invalidate_cached_resources(guarded_resources.as_mut_slice()).await;
+            invalidate_cached_resources(guarded_resources.as_mut_slice());
         }
     }
 

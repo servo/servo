@@ -39,6 +39,7 @@ use pixels::ImageMetadata;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
 use script_traits::DocumentActivity;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -82,9 +83,6 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
-};
-use crate::dom::bindings::reflector::{
-    DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx,
 };
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
@@ -180,9 +178,10 @@ pub struct Node {
 
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if matches!(self.type_id(), NodeTypeId::Element(_)) {
-            let el = self.downcast::<Element>().unwrap();
-            el.fmt(f)
+        if let Some(element) = self.downcast::<Element>() {
+            element.fmt(f)
+        } else if let Some(character_data) = self.downcast::<CharacterData>() {
+            write!(f, "[Text({})]", character_data.data())
         } else {
             write!(f, "[Node({:?})]", self.type_id())
         }
@@ -884,7 +883,11 @@ impl Node {
         }
 
         match self.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(..)) => {
+                // This drops the cached `TextRun` that is stored here, ultimately meaning that
+                // shaped text will no longer be reused for this text node.
+                *self.layout_data.borrow_mut() = None;
+
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
@@ -2138,8 +2141,10 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     pub(crate) fn is_text_node_for_layout(&self) -> bool {
-        self.type_id_for_layout() ==
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        matches!(
+            self.type_id_for_layout(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(..))
+        )
     }
 
     #[inline]

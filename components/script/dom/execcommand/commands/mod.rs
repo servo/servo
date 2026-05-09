@@ -12,6 +12,7 @@ pub(crate) mod fontsize;
 pub(crate) mod forecolor;
 pub(crate) mod hilitecolor;
 pub(crate) mod italic;
+pub(crate) mod removeformat;
 pub(crate) mod strikethrough;
 pub(crate) mod stylewithcss;
 pub(crate) mod subscript;

@@ -8,6 +8,7 @@ import argparse
 import csv
 import itertools
 import json
+import os
 import platform
 import subprocess
 from datetime import datetime
@@ -67,9 +68,11 @@ def run_servo_test(testcase, url, date, timeout, is_async):
         # Return a placeholder
         return parse_log("", testcase, url, date)
 
+    ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
         "../../../target/release/servoshell",
         url,
+        "--userscripts=" + ua_script_path,
         "--headless",
         "-x",
         "-o",

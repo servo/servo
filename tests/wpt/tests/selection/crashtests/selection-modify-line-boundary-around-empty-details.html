@@ -9,7 +9,19 @@ addEventListener("load", () => {
   let i = 0;
   const details = document.querySelector("details");
   const id = setInterval(() => {
-    getSelection().modify("move", "forward", "lineboundary");
+    const selection = getSelection();
+    if (!selection) {
+      clearInterval(id);
+      throw new Error("Should always have a selection");
+    }
+    // This means that the browser doesn't support modify.
+    // Rather than endless looping and crashing the browser,
+    // exit early.
+    if (!selection.modify) {
+      clearInterval(id);
+      return;
+    }
+    selection.modify("move", "forward", "lineboundary");
     if (details.isConnected) {
       details.outerHTML = undefined;
     }

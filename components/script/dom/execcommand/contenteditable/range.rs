@@ -96,12 +96,29 @@ impl Range {
         && (!node.is_ancestor_of(&end_container) || !end_container.is::<Text>() || self.end_offset() == end_container.len())
     }
 
+    /// The definition of "effectively contained" contains the recursion of
+    /// ancestors of a single fully selected text node. That is to say, that
+    /// if the selection is a fully selected text node <div>[foobar]</div>,
+    /// then the div would also be considered effectively contained. As such,
+    /// we can't use the common ancestor container, since that would be the
+    /// text node only.
+    ///
+    /// Instead, we traverse all the way up to the editing host, which we know
+    /// is sufficient to know to include all contained nodes. That way, we also
+    /// would traverse ancestors such as the parent div.
+    fn ancestor_for_effectively_contained(&self) -> DomRoot<Node> {
+        let ancestor_container = self.CommonAncestorContainer();
+        ancestor_container
+            .editing_host_of()
+            .unwrap_or(ancestor_container)
+    }
+
     pub(crate) fn first_formattable_contained_node(&self) -> Option<DomRoot<Node>> {
         if self.collapsed() {
             return None;
         }
 
-        self.CommonAncestorContainer()
+        self.ancestor_for_effectively_contained()
             .traverse_preorder(ShadowIncluding::No)
             .find(|child| child.is_formattable() && self.is_effectively_contained_node(child))
     }
@@ -117,7 +134,7 @@ impl Range {
         // Make sure to keep track of the tree nodes before, since `callback` might modify
         // the underyling tree and then the iterator would prematurely stop.
         let children = self
-            .CommonAncestorContainer()
+            .ancestor_for_effectively_contained()
             .traverse_preorder(ShadowIncluding::No)
             .collect::<Vec<DomRoot<Node>>>();
 

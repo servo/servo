@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/425682464">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- This test is marked as optional because PageUp and PageDown keyboard
+     behavior is not explicitly specified. -->
+
+<menubar>
+  <menuitem commandfor=menulist command=show-menu>show menu</menuitem>
+</menubar>
+<menulist id=menulist></menulist>
+
+<script>
+const invoker = document.querySelector('menuitem');
+const menulist = document.getElementById('menulist');
+for (let i = 0; i < 200; i++) {
+  const menuitem = document.createElement('menuitem');
+  menuitem.textContent = `menuitem ${i}`;
+  menulist.appendChild(menuitem);
+}
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+const pageUp = '\uE00E';
+const pageDown = '\uE00F';
+
+promise_test(async () => {
+  await click(invoker);
+  let focusedMenuitem = document.querySelector('menulist menuitem');
+  focusedMenuitem.focus();
+  assert_equals(document.activeElement, focusedMenuitem,
+    'First menuitem should be focusable after opening menulist.');
+
+  let scrollPosition = menulist.scrollTop;
+  await pressKey(pageUp);
+  assert_equals(document.activeElement, focusedMenuitem,
+    'PageUp at the top should not move focus.');
+  assert_equals(menulist.scrollTop, scrollPosition,
+    'PageUp at the top should not scroll.');
+
+  await pressKey(pageDown);
+  assert_not_equals(document.activeElement, focusedMenuitem,
+    'First PageDown should move focus.');
+  assert_equals(menulist.scrollTop, scrollPosition,
+    'First PageDown should not scroll.');
+
+  focusedMenuitem = document.activeElement;
+  await pressKey(pageDown);
+  assert_not_equals(document.activeElement, focusedMenuitem,
+    'Second PageDown should move focus.');
+  assert_not_equals(menulist.scrollTop, scrollPosition,
+    'Second PageDown should scroll.');
+
+  focusedMenuitem = document.activeElement;
+  scrollPosition = menulist.scrollTop;
+  await pressKey(pageUp);
+  assert_not_equals(document.activeElement, focusedMenuitem,
+    'First PageUp should move focus.');
+  assert_equals(menulist.scrollTop, scrollPosition,
+    'First PageUp should not scroll.');
+
+  focusedMenuitem = document.activeElement;
+  await pressKey(pageUp);
+  assert_not_equals(document.activeElement, focusedMenuitem,
+    'Second PageUp should move focus.');
+  assert_not_equals(menulist.scrollTop, scrollPosition,
+    'Second PageUp should scroll.');
+}, 'PageUp and PageDown should scroll and focus menuitems.');
+</script>

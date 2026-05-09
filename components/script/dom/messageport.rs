@@ -13,6 +13,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 
@@ -23,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredData};
 use crate::dom::bindings::trace::RootedTraceableBox;

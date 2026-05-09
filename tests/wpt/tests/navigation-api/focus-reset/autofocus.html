@@ -1,10 +1,25 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="?delayed-checkpoint">
+<meta name="variant" content="?same-checkpoint">
 
 <button autofocus id="initialAutofocusTarget">Initial autofocus target</button>
 
 <script type="module">
+
+const delayed = location.search === "?delayed-checkpoint";
+
+function createExpected(t, decoy, autofocusTarget) {
+  const handler = delayed ? { handler: () => new Promise(r => t.step_timeout(r, 0)) } : {};
+  const expectedDecoy = delayed ? decoy : autofocusTarget;
+  const decoyMessage = delayed ? "Focus moves to the autofocused button after the transition" : "Focus stays on the non-autofocused button after the transition";
+  const expectedBody = delayed ? document.body : expectedDecoy;
+  const bodyMessage = delayed ? "Focus gets reset after the transition" : "Focus moves to the autofocused button after the transition";
+
+  return { handler, expectedDecoy, decoyMessage, expectedBody, bodyMessage };
+}
+
 promise_setup(async () => {
   // Get the overall autofocus processed flag to flip to true, so that
   // we only test the navigation API-specific stuff.
@@ -22,14 +37,15 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler, expectedDecoy, decoyMessage } = createExpected(t, decoy, autofocusTarget);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+  assert_equals(document.activeElement, expectedDecoy, decoyMessage);
 
   await finished;
   assert_equals(document.activeElement, autofocusTarget, "Focus moves to the autofocused button after the transition");
@@ -43,14 +59,15 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler, expectedDecoy, decoyMessage } = createExpected(t, decoy, autofocusTarget);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the initially-focused button during the transition");
+  assert_equals(document.activeElement, expectedDecoy, decoyMessage);
 
   await finished;
   assert_equals(document.activeElement, autofocusTarget, "Focus moves to the first autofocused button after the transition");
@@ -64,19 +81,20 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler, expectedDecoy, decoyMessage, expectedBody, bodyMessage } = createExpected(t, decoy, autofocusTarget);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+  assert_equals(document.activeElement, expectedDecoy, decoyMessage);
 
   autofocusTarget.disabled = true;
 
   await finished;
-  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+  assert_equals(document.activeElement, expectedBody, bodyMessage);
 }, "An element with autofocus, present before navigation but disabled before finished, does not get focused");
 
 promise_test(async t => {
@@ -87,19 +105,20 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler, expectedDecoy, decoyMessage, expectedBody, bodyMessage } = createExpected(t, decoy, autofocusTarget);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+  assert_equals(document.activeElement, expectedDecoy, decoyMessage);
 
   autofocusTarget.autofocus = false;
 
   await finished;
-  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+  assert_equals(document.activeElement, expectedBody, bodyMessage);
 }, "An element with autofocus, present before navigation but with its autofocus attribute removed before finished, does not get focused");
 
 promise_test(async t => {
@@ -110,8 +129,9 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler } = createExpected(t, decoy, autofocusTarget);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
@@ -122,29 +142,45 @@ promise_test(async t => {
   decoy.disabled = true;
 
   await finished;
-  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the second autofocused button after the transition");
+
+  if (delayed) {
+    assert_equals(document.activeElement, autofocusTarget, "Focus moves to the second autofocused button after the transition");
+  } else {
+    assert_equals(document.activeElement, decoy, "Focus stays on the initially-focused button during the transition");
+  }
 }, "Two elements with autofocus, present before navigation, but the first gets disabled; the second gets focused");
 
 promise_test(async t => {
+  if (delayed) {
+    assert_true(delayed, "This is only relevant for non-finished ")
+    return;
+  }
   const decoy = createAndAppend(t);
 
   assert_equals(document.activeElement, document.body, "Start on body");
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler } = createExpected(t, decoy, document.body);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(() => {
+      t.step_timeout(handler, 0)
+    });
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
 
   const autofocusTarget = createAndAppend(t, { autofocus: true });
 
   await finished;
-  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the autofocused button after the transition");
+  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  assert_equals(document.activeElement, document.body, "Focus stays reset two animation frames after the transition");
+
 }, "An element with autofocus, introduced between committed and finished, gets focused");
 
 promise_test(async t => {
@@ -154,14 +190,15 @@ promise_test(async t => {
   decoy.focus();
   assert_equals(document.activeElement, decoy, "focus() worked");
 
+  const { handler } = createExpected(t, decoy, document.body);
   navigation.addEventListener("navigate", e => {
-    e.intercept();
+    e.intercept(handler);
   }, { once: true });
 
   const { committed, finished } = navigation.navigate("#1");
 
   await committed;
-  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+  assert_equals(document.activeElement, delayed ? decoy : document.body, delayed ? "Focus stays on the non-autofocused button during the transition" : "Focus gets reset after the transition");
 
   await finished;
   assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");

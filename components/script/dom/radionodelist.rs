@@ -4,14 +4,14 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::html::input_element::HTMLInputElement;

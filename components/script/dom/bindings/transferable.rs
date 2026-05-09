@@ -8,11 +8,11 @@
 use std::hash::Hash;
 
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::DomObject;
 use script_bindings::structuredclone::MarkedAsTransferableInIdl;
 use servo_base::id::NamespaceIndex;
 
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;

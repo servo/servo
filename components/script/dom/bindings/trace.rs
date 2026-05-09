@@ -41,10 +41,10 @@ use js::jsapi::{GCTraceKindToAscii, Heap, JSScript, JSString, JSTracer, TraceKin
 use js::jsval::JSVal;
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use rustc_hash::FxBuildHasher;
+use script_bindings::reflector::DomObject;
 pub(crate) use script_bindings::trace::*;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::html::htmlimageelement::SourceSet;
 use crate::dom::html::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::dom::windowproxy::WindowProxyHandler;

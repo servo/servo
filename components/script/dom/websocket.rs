@@ -24,6 +24,7 @@ use net_traits::{
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -35,7 +36,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;

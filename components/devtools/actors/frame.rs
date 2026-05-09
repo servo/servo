@@ -27,8 +27,8 @@ struct FrameEnvironmentReply {
 #[serde(rename_all = "kebab-case")]
 pub enum FrameState {
     OnStack,
-    _Suspended,
-    _Dead,
+    Suspended,
+    Dead,
 }
 
 #[derive(Serialize)]
@@ -133,8 +133,13 @@ impl FrameActor {
 
 impl ActorEncode<FrameActorMsg> for FrameActor {
     fn encode(&self, registry: &ActorRegistry) -> FrameActorMsg {
-        // TODO: Handle other states
-        let state = FrameState::OnStack;
+        let state = if self.frame_result.terminated {
+            FrameState::Dead
+        } else if self.frame_result.on_stack {
+            FrameState::OnStack
+        } else {
+            FrameState::Suspended
+        };
         let async_cause = if let FrameState::OnStack = state {
             None
         } else {

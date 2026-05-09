@@ -11,6 +11,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSend;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -26,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -69,7 +70,7 @@ impl IDBFactory {
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
-    fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
+    pub(crate) fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
         // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
         // with environment.
         let key = Self::obtain_storage_key_for_non_storage_purposes(environment);

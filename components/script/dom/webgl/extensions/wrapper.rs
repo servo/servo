@@ -6,9 +6,9 @@ use std::ptr::NonNull;
 
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
+use script_bindings::reflector::DomObject;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;

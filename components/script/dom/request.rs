@@ -20,6 +20,7 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::ServoUrl;
 
 use crate::body::{BodyMixin, BodyType, Extractable, clone_body_stream_for_dom_body, consume_body};
@@ -31,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestMethods, RequestMode, RequestRedirect,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;

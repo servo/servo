@@ -21,6 +21,7 @@ use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::match_domstring_ascii;
+use script_bindings::reflector::DomObject;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
@@ -47,7 +48,7 @@ use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
@@ -509,6 +510,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     fn RelList(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("rel"),
                 Some(vec![
@@ -516,7 +518,6 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::from_cx(cx),
             )
         })
     }

@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use script_traits::ProgressiveWebMetricType;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformancePaintTimingBinding::PerformancePaintTimingMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

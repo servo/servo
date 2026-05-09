@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Video element with data: URL must be blocked by media-src 'self'</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Video element with data: URL must be blocked by media-src 'self'</h1>
+    <div id='log'></div>
+
+  <script>
+    // Minimal valid MP4 as a data: URL.
+    const dataVideoUrl = "data:video/mp4;base64,AAAAGGZ0eXBtcDQyAAAAAG1wNDJtcDQx";
+
+    async function nextViolation() {
+      return await new Promise((resolve) => {
+        window.addEventListener("securitypolicyviolation", resolve, {
+          once: true,
+        });
+      });
+    }
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const video = document.createElement("video");
+      video.src = dataVideoUrl;
+      video.onloadeddata = reject;
+      video.onerror = () => { resolve(violationPromise); };
+
+      document.body.appendChild(video);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, "data", "blocked URI");
+    }), "Video with data: URL blocked by media-src 'self'");
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const audio = document.createElement("audio");
+      audio.src = dataVideoUrl;
+      audio.onloadeddata = reject;
+      audio.onerror = () => { resolve(violationPromise); };
+
+      document.body.appendChild(audio);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, "data", "blocked URI");
+    }), "Audio with data: URL blocked by media-src 'self'");
+  </script>
+</body>
+</html>

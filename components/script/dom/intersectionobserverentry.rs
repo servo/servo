@@ -7,13 +7,13 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use super::bindings::codegen::Bindings::IntersectionObserverEntryBinding::{
     IntersectionObserverEntryInit, IntersectionObserverEntryMethods,
 };
 use super::bindings::num::Finite;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;

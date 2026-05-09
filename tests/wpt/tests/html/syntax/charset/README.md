@@ -3,4 +3,4 @@ these tests test the behavior that on one hand WebKit and Blink and on the
 other hand https://github.com/whatwg/html/issues/6962 have in common.
 
 The cases where the two approaches differ are in
-https://searchfox.org/mozilla-central/source/testing/web-platform/mozilla/tests/html/syntax/charset
+https://searchfox.org/firefox-main/source/testing/web-platform/mozilla/tests/html/syntax/charset

@@ -47,10 +47,13 @@ test(() => {
 test(() => {
   const select = document.createElement('select');
   const option = document.createElement('option');
+  const optgroup = document.createElement('optgroup');
   select.appendChild(option);
+  select.appendChild(optgroup);
   select.disabled = true;
 
-  assert_false(option.matches(':disabled'));
+  assert_true(option.matches(':disabled'));
+  assert_true(optgroup.matches(':disabled'));
 }, 'disabled select');
 
 test(() => {
@@ -75,4 +78,41 @@ test(() => {
   assert_true(parentOption.matches(':disabled'), 'parent option');
   assert_false(childOption.matches(':disabled'), 'child option');
 }, 'nested options');
+
+test(() => {
+  const select = document.createElement('select');
+  select.disabled = true;
+
+  const optgroup = document.createElement('optgroup');
+  select.appendChild(optgroup);
+  const optionInOptgroup = document.createElement('option');
+  optgroup.appendChild(optionInOptgroup);
+  const optgroupInOptgroup = document.createElement('optgroup');
+  optgroup.appendChild(optgroupInOptgroup);
+  const optionInNestedOptgroup = document.createElement('option');
+  optgroupInOptgroup.appendChild(optionInNestedOptgroup);
+  assert_true(optgroup.matches(':disabled'), 'optgroup');
+  assert_false(optgroupInOptgroup.matches(':disabled'), 'nested optgroup');
+  assert_true(optionInOptgroup.matches(':disabled'), 'option in optgroup');
+  assert_false(optionInNestedOptgroup.matches(':disabled'), 'option in nested optgroup');
+
+  const option = document.createElement('option');
+  select.appendChild(option);
+  const optgroupInOption = document.createElement('optgroup');
+  option.appendChild(optgroupInOption);
+  const optionInOption = document.createElement('option');
+  option.appendChild(optionInOption);
+  assert_true(option.matches(':disabled'), 'option');
+  assert_false(optgroupInOption.matches(':disabled'), 'optgroup in option');
+  assert_false(optionInOption.matches(':disabled'), 'nested option');
+
+  const hr = document.createElement('hr');
+  select.appendChild(hr);
+  const optionInHr = document.createElement('option');
+  hr.appendChild(optionInHr);
+  const optgroupInHr = document.createElement('optgroup');
+  hr.appendChild(optgroup);
+  assert_false(optionInHr.matches(':disabled'), 'option in hr');
+  assert_false(optgroupInHr.matches(':disabled'), 'optgroup in hr');
+}, 'nesting options and optgroups in disabled select');
 </script>

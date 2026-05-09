@@ -69,6 +69,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
+use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
@@ -129,7 +130,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
@@ -2702,12 +2703,15 @@ impl Window {
         )
     }
 
-    pub(crate) fn request_screenshot_readiness(&self, can_gc: CanGc) {
+    pub(crate) fn request_screenshot_readiness(&self, cx: &mut js::context::JSContext) {
         self.has_pending_screenshot_readiness_request.set(true);
-        self.maybe_resolve_pending_screenshot_readiness_requests(can_gc);
+        self.maybe_resolve_pending_screenshot_readiness_requests(cx);
     }
 
-    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self, can_gc: CanGc) {
+    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) {
         let pending_request = self.has_pending_screenshot_readiness_request.get();
         if !pending_request {
             return;
@@ -2736,7 +2740,7 @@ impl Window {
             return;
         }
 
-        if self.Document().Fonts(can_gc).waiting_to_fullfill_promise() {
+        if self.Document().Fonts(cx).waiting_to_fullfill_promise() {
             return;
         }
 

@@ -425,7 +425,7 @@ impl Slottable {
         }
     }
 
-    fn node(&self) -> &Node {
+    pub(crate) fn node(&self) -> &Node {
         &self.0
     }
 

@@ -6,13 +6,13 @@ use dom_struct::dom_struct;
 use embedder_traits::Cursor;
 use euclid::Point2D;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEvent_Binding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;

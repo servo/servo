@@ -7,12 +7,12 @@ use std::iter::Iterator;
 
 use dom_struct::dom_struct;
 use rustc_hash::FxBuildHasher;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::custom_properties;
 use stylo_atoms::Atom;
 
 use super::cssstylevalue::CSSStyleValue;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;

@@ -11,6 +11,7 @@ use ipc_channel::router::ROUTER;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -23,7 +24,7 @@ use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertib
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;

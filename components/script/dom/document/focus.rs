@@ -21,10 +21,9 @@ use servo_constellation_traits::{
 };
 
 use crate::dom::focusevent::FocusEventType;
+use crate::dom::node::focus::FocusNavigationScopeOwner;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
-use crate::dom::{
-    Document, Event, EventBubbles, EventCancelable, Node, NodeTraits, ShadowIncluding,
-};
+use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_realm;
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
@@ -611,29 +610,80 @@ impl DocumentFocusHandler {
 /// This also incorporates the case where the starting point is a navigable
 /// as that is a distinct set of behaviors from the two kinds of mechanisms
 /// listed in the specification.
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum SequentialFocusNavigationMechanism {
     Dom,
     Sequential(i32 /* focused_element_tab_index */),
-    Navigable,
+    /// This case isn't mentioned explicitly in the specification, but it's implied. It works
+    /// like `Sequential`, but without a starting point. This kind of search will return the
+    /// first or last (depending on direction) sequentially focusable element in sequential
+    /// focus order. This is used in two situations:
+    ///
+    ///  - When the starting point is a navigable
+    ///  - When descending into a nested focus scope
+    FirstOrLast,
 }
 
+#[derive(PartialEq)]
 enum Continue {
     Yes,
     No,
 }
 
+#[derive(PartialEq)]
+pub(crate) enum SequentialFocusNavigationSearchContext {
+    /// The focus scope that initiated this search. Containing contexts and nested contexts can
+    /// both be searched.
+    Original,
+    /// The search has descended into a nested search scope. Containing contexts should never
+    /// be searched.
+    Nested,
+    /// The search has ascended to search a containing search scope. The starting point's focus
+    /// scope should never be searched to avoid cycles.
+    Containing,
+}
+
+/// This structure is used to do a traversal search of the DOM in order to find an
+/// appropriate target when doing sequential focus navigation, such as when handling
+/// tab key presses.
+///
+/// The specification talks about the [flattened tabindex-ordered focus navigation scope],
+/// which represents all of the [tabindex-ordered focus navigation scope]s of a particular
+/// page, flattened into a single list of all the sequentially focusable areas of the
+/// page. Then, the specification describes how to search this list during sequential focus
+/// navigation.
+///
+/// The choice that Servo and other browsers make is to trade updating this flattened list
+/// during every DOM mutation (frequent) with a DOM traversal of, potentially, the entire
+/// document during sequential focus navigation (infrequent).
+///
+/// The search done via [`SequentialFocusNavigationSearch`] matches the semantics of the
+/// flattened tabindex-ordered focus navigation scope without having to maintain the
+/// flattened list. It uses a series of nested traversals (one per focus scope) that
+/// only considers each focusable area of a page at most once.
+///
+/// The search performs a linear DOM traversal starting at the containing focus scope of
+/// the search start point. When encountering a nested focus scope, if that scope could
+/// contain the final target for the search, the search recurses into the nested scope. If
+/// the search reaches the end of a focus scope without finding a candidate, the search
+/// continues in the focus scope's containing scope (though never re-ascending back into a
+/// scope it recursed from).
+///
+/// [flattened tabindex-ordered focus navigation scope]: https://html.spec.whatwg.org/multipage/#flattened-tabindex-ordered-focus-navigation-scope
+/// [tabindex-ordered focus navigation scope]: https://html.spec.whatwg.org/multipage/#tabindex-ordered-focus-navigation-scope
 pub(crate) struct SequentialFocusNavigationSearch {
-    window: DomRoot<Window>,
+    focus_navigation_scope_owner: FocusNavigationScopeOwner,
     direction: SequentialFocusDirection,
     mechanism: SequentialFocusNavigationMechanism,
     starting_point: Option<DomRoot<Node>>,
     current_winner: Option<(DomRoot<Element>, i32)>,
     passed_starting_point: bool,
+    search_context: SequentialFocusNavigationSearchContext,
 }
 
 impl SequentialFocusNavigationSearch {
     pub(crate) fn new(
-        window: DomRoot<Window>,
+        focus_navigation_scope_owner: FocusNavigationScopeOwner,
         direction: SequentialFocusDirection,
         mechanism: SequentialFocusNavigationMechanism,
         starting_point: Option<DomRoot<Node>>,
@@ -642,108 +692,222 @@ impl SequentialFocusNavigationSearch {
         // we always have passed.
         let passed_starting_point = starting_point.is_none();
         Self {
-            window,
+            focus_navigation_scope_owner,
             direction,
             mechanism,
             starting_point,
             current_winner: Default::default(),
             passed_starting_point,
+            search_context: SequentialFocusNavigationSearchContext::Original,
         }
     }
 
     pub(crate) fn search(mut self) -> Option<DomRoot<Element>> {
-        for node in self
-            .window
-            .Document()
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-        {
-            // Never keep the focus on the same node.
-            if Some(&*node) == self.starting_point.as_deref() {
-                self.passed_starting_point = true;
-                continue;
-            }
-
-            let Some(candidate_element) = node.downcast::<Element>() else {
-                continue;
-            };
-
-            if !candidate_element.is_sequentially_focusable() {
-                continue;
-            }
-
-            let result = match self.mechanism {
-                SequentialFocusNavigationMechanism::Dom => {
-                    self.process_element_for_dom_traversal(candidate_element)
-                },
-                SequentialFocusNavigationMechanism::Sequential(focused_element_tab_index) => self
-                    .process_element_for_sequential_traversal(
-                        candidate_element,
-                        focused_element_tab_index,
-                    ),
-                SequentialFocusNavigationMechanism::Navigable => {
-                    self.process_element_for_navigable_starting_point_traversal(candidate_element)
-                },
-            };
-
-            if matches!(result, Continue::No) {
+        for node in self.focus_navigation_scope_owner.iterator() {
+            if self.process_node(&node) == Continue::No {
                 break;
             }
         }
 
-        Some(self.current_winner?.0)
+        if let Some(winner) = self.current_winner.take() {
+            return Some(winner.0);
+        }
+
+        // If searching a nested focus navigation scope, never try to search the containing
+        // scope, as that will lead to an endless cycle.
+        if self.search_context != SequentialFocusNavigationSearchContext::Nested {
+            return self.maybe_search_in_containing_focus_navigation_scope();
+        }
+
+        None
     }
 
-    fn select_new_winner(&mut self, element: &Element, element_tab_index: i32) {
-        self.current_winner = Some((DomRoot::from_ref(element), element_tab_index));
+    fn maybe_search_in_containing_focus_navigation_scope(&self) -> Option<DomRoot<Element>> {
+        let containing_node = self.focus_navigation_scope_owner.node();
+        let containing_focus_navigation_scope_owner =
+            containing_node.containing_focus_navigation_scope_owner()?;
+
+        let tab_index = containing_node
+            .downcast::<Element>()?
+            .explicitly_set_tab_index()
+            .unwrap_or_default();
+        let mechanism = match &self.mechanism {
+            // If the traversal was sequential, but the containing focus navigation scope owner was
+            // explicitly marked as not sequentially focusable, the search in the containing scope
+            // needs to work like a DOM traversal i.e. take the first sequentially focusable target
+            // after this one in the parent traversal.
+            SequentialFocusNavigationMechanism::Sequential(..) if tab_index == -1 => {
+                SequentialFocusNavigationMechanism::Dom
+            },
+            SequentialFocusNavigationMechanism::Sequential(..) => {
+                SequentialFocusNavigationMechanism::Sequential(tab_index)
+            },
+            mechanism => *mechanism,
+        };
+
+        if self.direction == SequentialFocusDirection::Backward {
+            if let Some(containing_element) = containing_node.downcast::<Element>() {
+                if containing_element.is_sequentially_focusable() {
+                    return Some(DomRoot::from_ref(containing_element));
+                }
+            }
+        }
+
+        Self {
+            focus_navigation_scope_owner: containing_focus_navigation_scope_owner,
+            direction: self.direction,
+            mechanism,
+            starting_point: Some(DomRoot::from_ref(containing_node)),
+            current_winner: Default::default(),
+            passed_starting_point: false,
+            search_context: SequentialFocusNavigationSearchContext::Containing,
+        }
+        .search()
     }
 
-    fn process_element_for_dom_traversal(&mut self, candidate_element: &Element) -> Continue {
+    fn process_node(&mut self, node: &Node) -> Continue {
+        if Some(node) == self.starting_point.as_deref() {
+            self.passed_starting_point = true;
+        } else if self.process_node_as_sequentially_focusable_node(node) == Continue::No {
+            return Continue::No;
+        }
+
+        self.process_node_as_focus_scope_owner(node)
+    }
+
+    /// If this node is sequentially focusable, consider whether or not to accept it
+    /// as the new winner.
+    fn process_node_as_sequentially_focusable_node(&mut self, node: &Node) -> Continue {
+        let Some(element) = node.downcast::<Element>() else {
+            return Continue::Yes;
+        };
+        if !element.is_sequentially_focusable() {
+            return Continue::Yes;
+        }
+
+        let tab_index = element.explicitly_set_tab_index().unwrap_or_default();
+        let (is_new_winner, should_continue) = self.process_candidate_with_tab_index(tab_index);
+        if is_new_winner {
+            self.current_winner = Some((DomRoot::from_ref(element), tab_index));
+        }
+        should_continue
+    }
+
+    /// If this node itself forms a nested sequential focus scope, decide whether or
+    /// not to descend and consider its contained focusable areas as candidates.
+    fn process_node_as_focus_scope_owner(&mut self, node: &Node) -> Continue {
+        // Never try to recurse into the same focus scope that we are in. This path
+        // might be reached if we are in the root focus scope where the document is
+        // one of the nodes processed.
+        if self.focus_navigation_scope_owner.node() == node {
+            return Continue::Yes;
+        }
+
+        // If the search has ascended into a containing scope, never try to search back down
+        // into the scope that originated this part of the search. Otherwise the search would
+        // cycle endlessly.
+        if Some(node) == self.starting_point.as_deref() &&
+            self.search_context == SequentialFocusNavigationSearchContext::Containing
+        {
+            return Continue::Yes;
+        }
+
+        let Some(focus_navigation_scope_owner) = node.as_focus_navigation_scope_owner() else {
+            return Continue::Yes;
+        };
+
+        // The candidate inherits the tab index of the node that establishes its containing
+        // sequential focus navigation scope.
+        let tab_index = focus_navigation_scope_owner
+            .node()
+            .downcast::<Element>()
+            .and_then(Element::explicitly_set_tab_index)
+            .unwrap_or_default();
+        let (is_new_winner, should_continue) = self.process_candidate_with_tab_index(tab_index);
+        if !is_new_winner {
+            return should_continue;
+        }
+
+        let mechanism = match self.mechanism {
+            // If we were searching without regard to sequential focus order, keep doing that.
+            SequentialFocusNavigationMechanism::Dom => SequentialFocusNavigationMechanism::Dom,
+            // If we were searching taking into account sequential focus order, keep doing that, but
+            // take the first candidate in sequential focus order without regard to the outer scope's
+            // starting point or tab index.
+            _ => SequentialFocusNavigationMechanism::FirstOrLast,
+        };
+
+        let element = Self {
+            focus_navigation_scope_owner,
+            direction: self.direction,
+            mechanism,
+            starting_point: None,
+            current_winner: Default::default(),
+            passed_starting_point: self.passed_starting_point,
+            search_context: SequentialFocusNavigationSearchContext::Nested,
+        }
+        .search();
+
+        let Some(element) = element else {
+            return Continue::Yes;
+        };
+
+        self.current_winner = Some((element, tab_index));
+        should_continue
+    }
+
+    /// Process the node or focus scope owner with the provided tab index according to this
+    /// search's search mechanism. Returns a boolean that is true if this candidate is the new
+    /// winner and a [`Continue`] which says whether to keep searching or stop.
+    fn process_candidate_with_tab_index(&mut self, candidate_tab_index: i32) -> (bool, Continue) {
+        match self.mechanism {
+            SequentialFocusNavigationMechanism::Dom => self.process_element_for_dom_traversal(),
+            SequentialFocusNavigationMechanism::Sequential(focused_element_tab_index) => self
+                .process_element_for_sequential_traversal(
+                    candidate_tab_index,
+                    focused_element_tab_index,
+                ),
+            SequentialFocusNavigationMechanism::FirstOrLast => (
+                self.process_element_for_first_or_last_traversal(candidate_tab_index),
+                Continue::Yes,
+            ),
+        }
+    }
+
+    /// Process the node or focus scope owner, given the state of [`Self::passed_starting_point`]
+    /// with for searches with the [`SequentialFocusNavigationMechanism::Dom`] search mechanism.
+    /// Returns a boolean that is true if this candidate is the new winner and a [`Continue`] which
+    /// says whether to keep searching or stop.
+    fn process_element_for_dom_traversal(&self) -> (bool, Continue) {
         match self.direction {
             // direction is "forward"
             // > Let candidate be the first suitable sequentially focusable area after starting point,
             // > in starting point's Document's sequential focus navigation order, if any; or else
             // > null
-            SequentialFocusDirection::Forward if self.passed_starting_point => {
-                self.select_new_winner(
-                    candidate_element,
-                    candidate_element
-                        .explicitly_set_tab_index()
-                        .unwrap_or_default(),
-                );
-                Continue::No
-            },
+            SequentialFocusDirection::Forward if self.passed_starting_point => (true, Continue::No),
             // If searching forward, do not consider anything until passing the starting point.
-            SequentialFocusDirection::Forward => Continue::Yes,
+            SequentialFocusDirection::Forward => (false, Continue::Yes),
             // direction is "backward"
             // > Let candidate be the last suitable sequentially focusable area before starting
             // > point, in starting point's Document's sequential focus navigation order, if any; or
             // > else null
             SequentialFocusDirection::Backward if !self.passed_starting_point => {
-                self.select_new_winner(
-                    candidate_element,
-                    candidate_element
-                        .explicitly_set_tab_index()
-                        .unwrap_or_default(),
-                );
-                Continue::Yes
+                (true, Continue::Yes)
             },
             // There is no possible winner after the starting point when searching backward.
-            SequentialFocusDirection::Backward => Continue::No,
+            SequentialFocusDirection::Backward => (false, Continue::No),
         }
     }
 
-    fn process_element_for_navigable_starting_point_traversal(
-        &mut self,
-        candidate_element: &Element,
-    ) -> Continue {
-        let candidate_element_tab_index = candidate_element
-            .explicitly_set_tab_index()
-            .unwrap_or_default();
-
+    /// Process the node or focus scope owner with the provided tab index for searches with the
+    /// [`SequentialFocusNavigationMechanism::FirstOrLast`] search mechanism. Returns a boolean
+    /// that is true if this candidate is the new winner.
+    fn process_element_for_first_or_last_traversal(
+        &self,
+        candidate_element_tab_index: i32,
+    ) -> bool {
         let Some((_, winning_tab_index)) = self.current_winner else {
-            self.select_new_winner(candidate_element, candidate_element_tab_index);
-            return Continue::Yes;
+            return true;
         };
 
         let candidate_and_current_winner_ordering =
@@ -754,15 +918,15 @@ impl SequentialFocusNavigationSearch {
             // > active document, if any; or else null
             //
             // There's an ambiguity in the specification here. In this case it says to choose
-            // the "first suitable sequentially focusable area" It's possible to interpret this
-            // as the first in DOM order, but browsers seem to agree to following tab index
+            // the "first suitable sequentially focusable area." It's possible to interpret this
+            // as the first in DOM order, but browsers seem to agree to follow tab index
             // order instead.
             //
             // Pick the lowest, prioritizing the earlier node when equal.
             SequentialFocusDirection::Forward
                 if candidate_and_current_winner_ordering == Ordering::Less =>
             {
-                self.select_new_winner(candidate_element, candidate_element_tab_index);
+                true
             },
             // direction is "backward"
             // > Let candidate be the last suitable sequentially focusable area in starting point's
@@ -777,21 +941,21 @@ impl SequentialFocusNavigationSearch {
             SequentialFocusDirection::Backward
                 if candidate_and_current_winner_ordering != Ordering::Less =>
             {
-                self.select_new_winner(candidate_element, candidate_element_tab_index);
+                true
             },
-            _ => {},
+            _ => false,
         }
-        Continue::Yes
     }
 
+    /// Process the node or focus scope owner with the provided tab index for searches with the
+    /// [`SequentialFocusNavigationMechanism::Sequential`] search mechanism. Returns a boolean
+    /// that is true if this candidate is the new winner and a [`Continue`] which says whether to
+    /// keep searching or stop.
     fn process_element_for_sequential_traversal(
-        &mut self,
-        candidate_element: &Element,
+        &self,
+        candidate_element_tab_index: i32,
         focused_element_tab_index: i32,
-    ) -> Continue {
-        let candidate_element_tab_index = candidate_element
-            .explicitly_set_tab_index()
-            .unwrap_or_default();
+    ) -> (bool, Continue) {
         let candidate_and_focused_ordering =
             compare_tab_indices(candidate_element_tab_index, focused_element_tab_index);
         match self.direction {
@@ -799,60 +963,52 @@ impl SequentialFocusNavigationSearch {
                 // If moving forward the first element with equal tab index after the current
                 // element is the winner.
                 if self.passed_starting_point && candidate_and_focused_ordering == Ordering::Equal {
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                    return Continue::No;
+                    return (true, Continue::No);
                 }
                 // If the candidate element does not have a greater tab index, then discard it.
                 if candidate_and_focused_ordering != Ordering::Greater {
-                    return Continue::Yes;
+                    return (false, Continue::Yes);
                 }
                 let Some((_, winning_tab_index)) = self.current_winner else {
                     // If this candidate has a tab index which is one greater than the current
                     // tab index, then we know it is the winner, because we give precedence to
                     // elements earlier in the DOM.
                     if candidate_element_tab_index == focused_element_tab_index + 1 {
-                        self.select_new_winner(candidate_element, candidate_element_tab_index);
-                        return Continue::No;
+                        return (true, Continue::No);
                     }
 
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                    return Continue::Yes;
+                    return (true, Continue::Yes);
                 };
 
                 // If the candidate element has a lesser tab index than the current winner,
                 // then it becomes the winner.
-                if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
-                    Ordering::Less
-                {
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                }
-                Continue::Yes
+                let should_select =
+                    compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
+                        Ordering::Less;
+
+                (should_select, Continue::Yes)
             },
             SequentialFocusDirection::Backward => {
                 // If moving backward the last element with an equal tab index that precedes
                 // the focused element in the DOM is the winner.
                 if !self.passed_starting_point && candidate_and_focused_ordering == Ordering::Equal
                 {
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                    return Continue::Yes;
+                    return (true, Continue::Yes);
                 }
                 // If the candidate does not have a lesser tab index, then discard it.
                 if candidate_and_focused_ordering != Ordering::Less {
-                    return Continue::Yes;
+                    return (false, Continue::Yes);
                 }
                 let Some((_, winning_tab_index)) = self.current_winner else {
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                    return Continue::Yes;
+                    return (true, Continue::Yes);
                 };
                 // If the candidate element's tab index is not less than the current winner,
                 // then it becomes the new winner. This means that when the tab indices are
                 // equal, we give preference to the last one in DOM order.
-                if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
-                    Ordering::Less
-                {
-                    self.select_new_winner(candidate_element, candidate_element_tab_index);
-                }
-                Continue::Yes
+                let should_select =
+                    compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
+                        Ordering::Less;
+                (should_select, Continue::Yes)
             },
         }
     }

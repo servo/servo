@@ -11,8 +11,9 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::AutoRealm;
 use js::rust::HandleValue as SafeHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;

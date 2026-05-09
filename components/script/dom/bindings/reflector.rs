@@ -2,79 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! The `Reflector` struct.
+use script_bindings::realms::InRealm;
+use script_bindings::reflector::DomGlobalGeneric;
+use script_bindings::root::DomRoot;
 
-use js::rust::HandleObject;
-use script_bindings::script_runtime::temp_cx;
-
-use crate::DomTypes;
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::CanGc;
-
-/// Create the reflector for a new DOM object and yield ownership to the
-/// reflector.
-pub(crate) fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
-where
-    D: DomTypes,
-    T: DomObject + DomObjectWrap<D>,
-    U: DerivedFrom<D::GlobalScope>,
-{
-    let global_scope = global.upcast();
-    let mut cx = unsafe { temp_cx() };
-    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
-}
-
-pub(crate) fn reflect_dom_object_with_proto<D, T, U>(
-    obj: Box<T>,
-    global: &U,
-    proto: Option<HandleObject>,
-    _can_gc: CanGc,
-) -> DomRoot<T>
-where
-    D: DomTypes,
-    T: DomObject + DomObjectWrap<D>,
-    U: DerivedFrom<D::GlobalScope>,
-{
-    let global_scope = global.upcast();
-    let mut cx = unsafe { temp_cx() };
-    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
-}
-
-/// Create the reflector for a new DOM object and yield ownership to the
-/// reflector.
-pub(crate) fn reflect_dom_object_with_cx<D, T, U>(
-    obj: Box<T>,
-    global: &U,
-    cx: &mut js::context::JSContext,
-) -> DomRoot<T>
-where
-    D: DomTypes,
-    T: DomObject + DomObjectWrap<D>,
-    U: DerivedFrom<D::GlobalScope>,
-{
-    let global_scope = global.upcast();
-    unsafe { T::WRAP(cx, global_scope, None, obj) }
-}
-
-/// Create the reflector for a new DOM object and yield ownership to the
-/// reflector.
-pub(crate) fn reflect_dom_object_with_proto_and_cx<D, T, U>(
-    obj: Box<T>,
-    global: &U,
-    proto: Option<HandleObject>,
-    cx: &mut js::context::JSContext,
-) -> DomRoot<T>
-where
-    D: DomTypes,
-    T: DomObject + DomObjectWrap<D>,
-    U: DerivedFrom<D::GlobalScope>,
-{
-    let global_scope = global.upcast();
-    unsafe { T::WRAP(cx, global_scope, proto, obj) }
-}
+use crate::DomTypeHolder;
+use crate::dom::types::GlobalScope;
+use crate::realms::enter_realm;
 
 pub(crate) trait DomGlobal {
     /// Returns the [relevant global] in whatever realm is currently active.
@@ -90,14 +24,13 @@ pub(crate) trait DomGlobal {
     fn global(&self) -> DomRoot<GlobalScope>;
 }
 
-impl<T: DomGlobalGeneric<crate::DomTypeHolder>> DomGlobal for T {
+impl<T: DomGlobalGeneric<DomTypeHolder>> DomGlobal for T {
     fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope> {
-        <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global_(self, realm)
+        <Self as DomGlobalGeneric<DomTypeHolder>>::global_(self, realm)
     }
+
     fn global(&self) -> DomRoot<GlobalScope> {
         let realm = enter_realm(self);
-        <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global_(self, InRealm::entered(&realm))
+        <Self as DomGlobalGeneric<DomTypeHolder>>::global_(self, InRealm::entered(&realm))
     }
 }
-
-pub(crate) use script_bindings::reflector::*;

@@ -9,11 +9,12 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{ErrorToJsval, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

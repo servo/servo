@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::gc::HandleObject;
 use num_traits::ToPrimitive;
 use script_bindings::codegen::GenericBindings::DocumentTimelineBinding::DocumentTimelineOptions;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -13,7 +14,6 @@ use servo_config::pref;
 use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::DocumentTimelineBinding::DocumentTimelineMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::types::{AnimationTimeline, Window};
 
 /// <https://drafts.csswg.org/web-animations-1/#the-documenttimeline-interface>

@@ -6,9 +6,9 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::DebuggerClearBreakpointEventBinding::DebuggerClearBreakpointEventMethods;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::types::GlobalScope;

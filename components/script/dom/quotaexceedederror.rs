@@ -9,6 +9,7 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
 use script_bindings::num::Finite;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
@@ -16,7 +17,6 @@ use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use servo_constellation_traits::SerializableQuotaExceededError;
 
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::types::{DOMException, GlobalScope};

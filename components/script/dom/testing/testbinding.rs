@@ -18,6 +18,7 @@ use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_config::prefs;
 use servo_constellation_traits::BlobImpl;
 
@@ -41,7 +42,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -1058,20 +1059,20 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn PromiseNativeHandler(
         &self,
+        realm: &mut CurrentRealm,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            can_gc,
+            CanGc::from_cx(realm),
         );
-        let p = Promise::new_in_current_realm(comp, can_gc);
-        p.append_native_handler(&handler, comp, can_gc);
+
+        let p = Promise::new_in_realm(realm);
+        p.append_native_handler(realm, &handler);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]

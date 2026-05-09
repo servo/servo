@@ -22,6 +22,7 @@ use mime_multipart_hyper1::{Node, read_multipart_body};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
+use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;
 use url::form_urlencoded;
@@ -33,7 +34,7 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -295,9 +296,7 @@ impl TransmitBodyConnectHandler {
 
                 let mut realm = enter_auto_realm(cx, &*global);
                 let realm = &mut realm.current_realm();
-                let in_realm_proof = realm.into();
-                let comp = InRealm::Already(&in_realm_proof);
-                promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
+                promise.append_native_handler(realm, &handler);
             })
         );
     }

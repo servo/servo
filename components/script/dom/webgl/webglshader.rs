@@ -10,6 +10,7 @@ use std::sync::Once;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
@@ -17,7 +18,7 @@ use servo_canvas_traits::webgl::{
 };
 
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webgl::extensions::WebGLExtensions;

@@ -50,6 +50,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::script_runtime::JSContext;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -109,7 +110,7 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
@@ -497,6 +498,9 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
     #[no_trace]
     redirect_end: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
+    #[no_trace]
+    secure_connection_start: Cell<Option<CrossProcessInstant>>,
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -2948,12 +2952,12 @@ impl Document {
     /// >    a font, or which depend on recently-loaded fonts
     ///
     /// Returns true if the promise was fulfilled.
-    pub(crate) fn maybe_fulfill_font_ready_promise(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn maybe_fulfill_font_ready_promise(&self, cx: &mut js::context::JSContext) -> bool {
         if !self.is_fully_active() {
             return false;
         }
 
-        let fonts = self.Fonts(can_gc);
+        let fonts = self.Fonts(cx);
         if !fonts.waiting_to_fullfill_promise() {
             return false;
         }
@@ -2970,7 +2974,7 @@ impl Document {
             return false;
         }
 
-        let result = fonts.fulfill_ready_promise_if_needed(can_gc);
+        let result = fonts.fulfill_ready_promise_if_needed(cx);
 
         // Add a rendering update after the `fonts.ready` promise is fulfilled just for
         // the sake of taking screenshots. This has the effect of delaying screenshots
@@ -3606,6 +3610,7 @@ impl Document {
             redirect_count: Cell::new(0),
             redirect_start: Cell::new(None),
             redirect_end: Cell::new(None),
+            secure_connection_start: Cell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3876,6 +3881,14 @@ impl Document {
 
     pub(crate) fn set_redirect_end(&self, time: Option<CrossProcessInstant>) {
         self.redirect_end.set(time)
+    }
+
+    pub(crate) fn get_secure_connection_start(&self) -> Option<CrossProcessInstant> {
+        self.secure_connection_start.get()
+    }
+
+    pub(crate) fn set_secure_connection_start(&self, time: Option<CrossProcessInstant>) {
+        self.secure_connection_start.set(time)
     }
 
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
@@ -6233,9 +6246,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
-    fn Fonts(&self, can_gc: CanGc) -> DomRoot<FontFaceSet> {
+    fn Fonts(&self, cx: &mut js::context::JSContext) -> DomRoot<FontFaceSet> {
         self.fonts
-            .or_init(|| FontFaceSet::new(&self.global(), None, can_gc))
+            .or_init(|| FontFaceSet::new(cx, &self.global(), None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hidden>

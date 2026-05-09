@@ -9,6 +9,7 @@ use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32, Float32Array, HeapFloat32Array};
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;

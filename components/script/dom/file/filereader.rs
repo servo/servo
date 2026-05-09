@@ -16,6 +16,7 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -26,7 +27,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrObject;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;

@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{AllowOrDeny, EmbedderMsg};
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -16,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

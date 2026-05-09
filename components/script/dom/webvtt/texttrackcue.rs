@@ -6,10 +6,10 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;

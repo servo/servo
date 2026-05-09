@@ -7,12 +7,11 @@ use std::ptr::NonNull;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::DomObject;
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::DebuggerAddDebuggeeEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::types::{GlobalScope, PipelineId};

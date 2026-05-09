@@ -382,8 +382,11 @@ impl DevtoolsInstance {
                         result_sender,
                         environment,
                         parent,
+                        actor,
                     ),
-                ) => self.handle_create_environment_actor(result_sender, environment, parent),
+                ) => {
+                    self.handle_create_environment_actor(result_sender, environment, parent, actor)
+                },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -868,8 +871,10 @@ impl DevtoolsInstance {
         result_sender: GenericSender<String>,
         environment_info: EnvironmentInfo,
         parent: Option<String>,
+        actor: Option<String>,
     ) {
-        let environment_name = EnvironmentActor::register(&self.registry, environment_info, parent);
+        let environment_name =
+            EnvironmentActor::register_or_update(&self.registry, environment_info, parent, actor);
         let _ = result_sender.send(environment_name);
     }
 }

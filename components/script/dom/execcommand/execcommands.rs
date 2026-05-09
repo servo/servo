@@ -127,6 +127,7 @@ impl Document {
             "forecolor" => CommandName::ForeColor,
             "hilitecolor" => CommandName::HiliteColor,
             "italic" => CommandName::Italic,
+            "removeformat" => CommandName::RemoveFormat,
             "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,
             "subscript" => CommandName::Subscript,

@@ -32,7 +32,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::MutDomObject;
+use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel;
@@ -50,7 +50,7 @@ use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobje
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;

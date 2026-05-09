@@ -28,6 +28,7 @@ use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, w
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
+use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
@@ -91,7 +92,6 @@ use crate::dom::bindings::domname::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::create::create_element;
@@ -2842,9 +2842,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classlist>
-    fn ClassList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn ClassList(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.class_list
-            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None, can_gc))
+            .or_init(|| DOMTokenList::new(cx, self, &local_name!("class"), None))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-slot
@@ -4314,10 +4314,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
-    fn Part(&self) -> DomRoot<DOMTokenList> {
-        self.ensure_rare_data().part.or_init(|| {
-            DOMTokenList::new(self, &local_name!("part"), None, CanGc::deprecated_note())
-        })
+    fn Part(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
+        self.ensure_rare_data()
+            .part
+            .or_init(|| DOMTokenList::new(cx, self, &local_name!("part"), None))
     }
 }
 

@@ -58,6 +58,7 @@ use profile_traits::{
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel;
 use servo_base::generic_channel::{GenericCallback, GenericSend};
@@ -102,7 +103,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global};
 use crate::dom::bindings::str::DOMString;
@@ -1303,87 +1304,90 @@ impl GlobalScope {
         event: BroadcastChannelMsg,
         channel_id: Option<&Uuid>,
     ) {
-        if let BroadcastChannelState::Managed(_, channels) = &*self.broadcast_channel_state.borrow()
-        {
-            let BroadcastChannelMsg {
-                data,
-                origin,
-                channel_name,
-            } = event;
+        let BroadcastChannelState::Managed(_, channels) = &*self.broadcast_channel_state.borrow()
+        else {
+            return;
+        };
 
-            // Step 7, a few preliminary steps.
+        let BroadcastChannelMsg {
+            data,
+            origin,
+            channel_name,
+        } = event;
 
-            // - Check the worker is not closing.
-            if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-                if worker.is_closing() {
-                    return;
-                }
-            }
+        // Step 7, a few preliminary steps.
 
-            // - Check the associated document is fully-active.
-            if let Some(window) = self.downcast::<Window>() {
-                if !window.Document().is_fully_active() {
-                    return;
-                }
-            }
-
-            // - Check for a case-sensitive match for the name of the channel.
-            if let Some(channels) = channels.get(&channel_name.into()) {
-                channels
-                    .iter()
-                    .filter(|channel| {
-                        // Step 8.
-                        // Filter out the sender.
-                        if let Some(id) = channel_id {
-                            channel.id() != id
-                        } else {
-                            true
-                        }
-                    })
-                    .map(|channel| DomRoot::from_ref(&**channel))
-                    // Step 9, sort by creation order,
-                    // done by using a queue to store channels in creation order.
-                    .for_each(|channel| {
-                        let data = data.clone_for_broadcast();
-                        let origin = origin.clone();
-
-                        // Step 10: Queue a task on the DOM manipulation task-source,
-                        // to fire the message event
-                        let channel = Trusted::new(&*channel);
-                        let global = Trusted::new(self);
-                        self.task_manager().dom_manipulation_task_source().queue(
-                            task!(process_pending_port_messages: move |cx| {
-                                let destination = channel.root();
-                                let global = global.root();
-
-                                // 10.1 Check for closed flag.
-                                if destination.closed() {
-                                    return;
-                                }
-
-                                rooted!(&in(cx) let mut message = UndefinedValue());
-
-                                // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
-                                    // Step 10.4, Fire an event named message at destination.
-                                    MessageEvent::dispatch_jsval(
-                                        destination.upcast(),
-                                        &global,
-                                        message.handle(),
-                                        Some(&origin.ascii_serialization()),
-                                        None,
-                                        ports,
-                                        CanGc::from_cx(cx)
-                                    );
-                                } else {
-                                    // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(cx, destination.upcast(), &global);
-                                }
-                            })
-                        );
-                    });
+        // - Check the worker is not closing.
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            if worker.is_closing() {
+                return;
             }
         }
+
+        // - Check the associated document is fully-active.
+        if let Some(window) = self.downcast::<Window>() {
+            if !window.Document().is_fully_active() {
+                return;
+            }
+        }
+
+        // - Check for a case-sensitive match for the name of the channel.
+        let Some(channels) = channels.get(&channel_name.into()) else {
+            return;
+        };
+        channels
+            .iter()
+            .filter(|channel| {
+                // Step 8.
+                // Filter out the sender.
+                if let Some(id) = channel_id {
+                    channel.id() != id
+                } else {
+                    true
+                }
+            })
+            .map(|channel| DomRoot::from_ref(&**channel))
+            // Step 9, sort by creation order,
+            // done by using a queue to store channels in creation order.
+            .for_each(|channel| {
+                let data = data.clone_for_broadcast();
+                let origin = origin.clone();
+
+                // Step 10: Queue a task on the DOM manipulation task-source,
+                // to fire the message event
+                let channel = Trusted::new(&*channel);
+                let global = Trusted::new(self);
+                self.task_manager().dom_manipulation_task_source().queue(
+                    task!(process_pending_port_messages: move |cx| {
+                        let destination = channel.root();
+                        let global = global.root();
+
+                        // 10.1 Check for closed flag.
+                        if destination.closed() {
+                            return;
+                        }
+
+                        rooted!(&in(cx) let mut message = UndefinedValue());
+
+                        // Step 10.3 StructuredDeserialize(serialized, targetRealm).
+                        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
+                            // Step 10.4, Fire an event named message at destination.
+                            MessageEvent::dispatch_jsval(
+                                destination.upcast(),
+                                &global,
+                                message.handle(),
+                                Some(&origin.ascii_serialization()),
+                                None,
+                                ports,
+                                CanGc::from_cx(cx)
+                            );
+                        } else {
+                            // Step 10.3, fire an event named messageerror at destination.
+                            MessageEvent::dispatch_error(cx, destination.upcast(), &global);
+                        }
+                    })
+                );
+            });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#encoding-parsing-a-url>
@@ -2764,6 +2768,15 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+        self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            self.webview_id(),
+            ConsoleLogLevel::Error,
+            format!(
+                "Error at {}:{}:{} {}",
+                error_info.filename, error_info.lineno, error_info.column, error_info.message
+            ),
+        ));
+
         #[cfg(feature = "js_backtrace")]
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
@@ -2830,17 +2843,6 @@ impl GlobalScope {
                         },
                     ));
                 }
-                self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
-                    self.webview_id(),
-                    ConsoleLogLevel::Error,
-                    format!(
-                        "Error at {}:{}:{} {}",
-                        error_info.filename,
-                        error_info.lineno,
-                        error_info.column,
-                        error_info.message
-                    ),
-                ));
             }
         }
     }

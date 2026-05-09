@@ -4,13 +4,14 @@
 
 use dom_struct::dom_struct;
 use euclid::{Point2D, RigidTransform3D};
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{self, Floor, Frame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
     XRReferenceSpaceMethods, XRReferenceSpaceType,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;

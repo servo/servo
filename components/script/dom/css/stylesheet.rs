@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::Reflector;
 
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;

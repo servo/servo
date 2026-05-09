@@ -13,6 +13,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 
 use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
@@ -20,9 +21,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
 };
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
-use crate::dom::bindings::reflector::{
-    DomGlobal, Reflector, reflect_dom_object, reflect_dom_object_with_proto,
-};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -32,7 +31,7 @@ use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::types::ReadableStreamDefaultController;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, &[u8]);
@@ -166,9 +165,9 @@ impl ReadRequest {
                             CanGc::from_cx(cx),
                         );
 
-                        let realm = enter_realm(&*global);
-                        let comp = InRealm::Entered(&realm);
-                        tick.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+                        let mut realm = enter_auto_realm(cx, &*global);
+                        let cx = &mut realm.current_realm();
+                        tick.append_native_handler(cx, &handler);
                     },
                     Err(err) => {
                         // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
@@ -512,6 +511,7 @@ impl ReadableStreamDefaultReader {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn byte_tee_append_native_handler_to_closed_promise(
         &self,
+        cx: &mut js::context::JSContext,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
         canceled_1: Rc<Cell<bool>>,
@@ -519,7 +519,6 @@ impl ReadableStreamDefaultReader {
         cancel_promise: Rc<Promise>,
         reader_version: Rc<Cell<u64>>,
         expected_version: u64,
-        can_gc: CanGc,
     ) {
         // Note: for byte tee we always operate on *byte controllers*.
         let branch_1_controller = branch_1.get_byte_controller();
@@ -538,26 +537,26 @@ impl ReadableStreamDefaultReader {
                 reader_version,
                 expected_version,
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, can_gc);
+            .append_native_handler(cx, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
     pub(crate) fn default_tee_append_native_handler_to_closed_promise(
         &self,
+        cx: &mut js::context::JSContext,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
-        can_gc: CanGc,
     ) {
         let branch_1_controller = branch_1.get_default_controller();
 
@@ -574,15 +573,15 @@ impl ReadableStreamDefaultReader {
                 canceled_2,
                 cancel_promise,
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, can_gc);
+            .append_native_handler(cx, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>

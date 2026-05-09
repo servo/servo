@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, Modifiers, NamedKey};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding;
@@ -17,7 +18,6 @@ use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEvent
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;

@@ -1822,7 +1822,14 @@ impl FlexItem<'_> {
             // The main size of a flex item is considered to be definite if its flex basis is definite
             // or the flex container has a definite main size.
             // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
-            let main_size = if self.flex_base_size_is_definite ||
+            //
+            // Each grid area’s width and height are considered definite
+            // when laying out the grid items into their respective containing blocks,
+            // after the grid is sized.
+            // <https://drafts.csswg.org/css-grid-1/#layout-algorithm>
+            let is_grid = self.box_.independent_formatting_context.is_grid();
+            let main_size = if is_grid ||
+                self.flex_base_size_is_definite ||
                 flex_context
                     .container_inner_size_constraint
                     .main

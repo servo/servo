@@ -15,6 +15,7 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
@@ -26,7 +27,7 @@ use crate::dom::bindings::buffer_source::{
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -34,7 +35,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreambyobrequest::ReadableStreamBYOBRequest;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
@@ -1607,8 +1608,6 @@ impl ReadableByteStreamController {
 
             let mut realm = enter_auto_realm(cx, &*global);
             let cx = &mut realm.current_realm();
-            let in_realm_proof = cx.into();
-            let comp = InRealm::Already(&in_realm_proof);
 
             let result = underlying_source
                 .call_pull_algorithm(cx, controller)
@@ -1622,7 +1621,7 @@ impl ReadableByteStreamController {
                 error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
                 Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
             });
-            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            promise.append_native_handler(cx, &handler);
         }
     }
 
@@ -1750,9 +1749,7 @@ impl ReadableByteStreamController {
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
-            let in_realm_proof = cx.into();
-            let comp = InRealm::Already(&in_realm_proof);
-            start_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            start_promise.append_native_handler(cx, &handler);
         };
 
         Ok(())

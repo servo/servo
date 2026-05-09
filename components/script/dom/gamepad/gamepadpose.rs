@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};

@@ -2,14 +2,97 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
+
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 
 use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
-use crate::dom::types::{Element, HTMLDialogElement, HTMLIFrameElement};
-use crate::dom::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::types::{
+    Element, HTMLDialogElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
+};
+use crate::dom::{Document, Node, NodeTraits, ShadowIncluding, TreeIterator};
+
+/// <https://html.spec.whatwg.org/multipage/#focus-navigation-scope-owner>
+///
+/// This enum represents the "focus navigation scope owner" in Servo.
+pub(crate) enum FocusNavigationScopeOwner {
+    Document(DomRoot<Document>),
+    ShadowHost {
+        shadow_host: DomRoot<Element>,
+        shadow_root: DomRoot<ShadowRoot>,
+    },
+    Slot(DomRoot<HTMLSlotElement>),
+}
+
+impl FocusNavigationScopeOwner {
+    pub(crate) fn iterator(&self) -> FocusNavigationScopeIterator {
+        let iterators = match self {
+            Self::Document(document) => VecDeque::from([document
+                .upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::No)]),
+            Self::ShadowHost { shadow_root, .. } => VecDeque::from([shadow_root
+                .upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::No)]),
+            Self::Slot(html_slot_element) => html_slot_element
+                .assigned_nodes()
+                .iter()
+                .map(|slottable| slottable.node().traverse_preorder(ShadowIncluding::No))
+                .collect(),
+        };
+
+        FocusNavigationScopeIterator { iterators }
+    }
+
+    /// Returns the `Node` that backs this [`FocusNavigationScopeOwner`]. This is a node that
+    /// can be found in the containing focus navigation scope, so a traversal on it will
+    /// traverse the nodes in the scope.
+    pub(crate) fn node(&self) -> &Node {
+        match self {
+            FocusNavigationScopeOwner::Document(document) => document.upcast(),
+            FocusNavigationScopeOwner::ShadowHost { shadow_host, .. } => shadow_host.upcast(),
+            FocusNavigationScopeOwner::Slot(html_slot_element) => html_slot_element.upcast(),
+        }
+    }
+}
+
+pub(crate) struct FocusNavigationScopeIterator {
+    iterators: VecDeque<TreeIterator>,
+}
+
+impl Iterator for FocusNavigationScopeIterator {
+    type Item = DomRoot<Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let should_skip_element_children = |element: &Element| {
+            element.is_shadow_host() ||
+                element
+                    .downcast::<HTMLSlotElement>()
+                    .is_some_and(|html_slot_element| html_slot_element.has_assigned_nodes())
+        };
+
+        while !self.iterators.is_empty() {
+            if let Some(next) = self.iterators.front_mut().and_then(|front| {
+                let should_skip_children_on_next_iteration = front
+                    .peek()
+                    .and_then(|node| node.downcast::<Element>())
+                    .is_some_and(should_skip_element_children);
+                if should_skip_children_on_next_iteration {
+                    front.next_skipping_children()
+                } else {
+                    front.next()
+                }
+            }) {
+                return Some(next);
+            }
+
+            self.iterators.pop_front();
+        }
+        None
+    }
+}
 
 impl Node {
     /// Returns the appropriate [`FocusableArea`] when this [`Node`] is clicked on according to
@@ -234,5 +317,66 @@ impl Node {
         let document = self.owner_document();
         document.focus_handler().focus(cx, focusable_area);
         true
+    }
+
+    /// If this node is a focus navigation scope owner, return the corresponding
+    /// [`FocusNavigationScopeOwner`] that describes it or `None` if this node is not
+    /// a focus navigation scope owner.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#focus-navigation-scope-owner>
+    pub(crate) fn as_focus_navigation_scope_owner(&self) -> Option<FocusNavigationScopeOwner> {
+        if let Some(element) = self.downcast::<Element>() {
+            if let Some(shadow_root) = element.shadow_root() {
+                return Some(FocusNavigationScopeOwner::ShadowHost {
+                    shadow_host: DomRoot::from_ref(element),
+                    shadow_root,
+                });
+            }
+
+            if let Some(html_slot_element) = self.downcast::<HTMLSlotElement>() {
+                // Only consider this `<slot>` element a focus navigation scope owner if
+                // it has assigned slottables and isn't displaying fallback content.
+                if html_slot_element.has_assigned_nodes() {
+                    return Some(FocusNavigationScopeOwner::Slot(DomRoot::from_ref(
+                        html_slot_element,
+                    )));
+                }
+            }
+        }
+
+        Some(FocusNavigationScopeOwner::Document(DomRoot::from_ref(
+            self.downcast::<Document>()?,
+        )))
+    }
+
+    /// Find the focus navigation scope owner for this node. If this node is itself
+    /// a focus navigation scope owner, this will return its containing focus navigation
+    /// scope owner.
+    ///
+    /// This will return `None` if this node is the `Document` element.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#focus-navigation-scope-owner>
+    pub(crate) fn containing_focus_navigation_scope_owner(
+        &self,
+    ) -> Option<FocusNavigationScopeOwner> {
+        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
+            // When a slot has an attached shadow DOM it takes precedence so this comes before
+            // the check for slot elements with assigned slots.
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                return Some(FocusNavigationScopeOwner::ShadowHost {
+                    shadow_host: shadow_root.Host(),
+                    shadow_root: DomRoot::from_ref(shadow_root),
+                });
+            }
+
+            if let Some(html_slot_element) = ancestor.assigned_slot() {
+                return Some(FocusNavigationScopeOwner::Slot(html_slot_element));
+            }
+        }
+
+        if self.is::<Document>() {
+            return None;
+        }
+        Some(FocusNavigationScopeOwner::Document(self.owner_document()))
     }
 }

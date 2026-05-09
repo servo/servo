@@ -7,10 +7,10 @@ use std::f64::consts::PI;
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use script_bindings::inheritance::Castable;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;

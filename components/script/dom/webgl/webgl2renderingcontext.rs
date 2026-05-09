@@ -18,6 +18,7 @@ use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, U
 use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -42,7 +43,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     Int32ArrayOrLongSequence, Uint32ArrayOrUnsignedLongSequence,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

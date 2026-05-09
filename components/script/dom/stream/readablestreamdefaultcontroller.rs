@@ -16,6 +16,7 @@ use js::rust::wrappers2::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -23,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStra
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible, throw_dom_exception};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -34,7 +35,7 @@ use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::dom::stream::underlyingsourcecontainer::{
     UnderlyingSourceContainer, UnderlyingSourceType,
 };
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// The fulfillment handler for
@@ -444,9 +445,7 @@ impl ReadableStreamDefaultController {
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
-            let in_realm_proof = cx.into();
-            let comp = InRealm::Already(&in_realm_proof);
-            start_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            start_promise.append_native_handler(cx, &handler);
         };
 
         Ok(())
@@ -556,10 +555,7 @@ impl ReadableStreamDefaultController {
             error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
             Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
         });
-
-        let in_realm_proof = cx.into();
-        let comp = InRealm::Already(&in_realm_proof);
-        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+        promise.append_native_handler(cx, &handler);
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>

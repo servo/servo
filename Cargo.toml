@@ -93,7 +93,7 @@ gstreamer-video = "0.25"
 gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
-hitrace = { version = "0.1.6", features = ["api-19", "tracing-rs"] }
+hitrace = { version = "0.2.0", features = ["api-19", "tracing-rs"] }
 hkdf = "0.12"
 html5ever = "0.39"
 http = "1.4"
@@ -110,7 +110,7 @@ indexmap = { version = "2.14.0", features = ["std"] }
 inventory = { version = "0.3.24" }
 ipc-channel = "0.22"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.13", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.14", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"

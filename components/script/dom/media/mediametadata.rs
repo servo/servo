@@ -5,12 +5,12 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
     MediaMetadataInit, MediaMetadataMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::media::mediasession::MediaSession;

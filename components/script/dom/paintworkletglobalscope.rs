@@ -24,6 +24,7 @@ use js::rust::wrappers2::{
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::DomObject;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
@@ -40,7 +41,6 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::conversions::{get_property, get_property_jsval};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylevalue::CSSStyleValue;

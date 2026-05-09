@@ -19,6 +19,7 @@ use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, 
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{GlobalCspReporting, Violation};

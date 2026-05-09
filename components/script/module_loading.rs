@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleType};
+use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, ModuleType};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
@@ -23,17 +23,17 @@ use js::rust::wrappers2::{
 };
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
@@ -333,8 +333,7 @@ fn continue_dynamic_import(
                 cx,
                 std::ptr::NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
             );
-            let in_realm_proof = (&mut realm.current_realm()).into();
-            let cx = &mut *realm;
+            let cx = &mut realm.current_realm();
             // a. Let link be Completion(module.Link()).
             let link = unsafe { ModuleLink(cx, record.handle()) };
 
@@ -349,7 +348,6 @@ fn continue_dynamic_import(
             }
 
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            rooted!(&in(cx) let mut evaluate_promise = std::ptr::null_mut::<JSObject>());
 
             // c. Let evaluatePromise be module.Evaluate().
             assert!(unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) });
@@ -358,7 +356,8 @@ fn continue_dynamic_import(
                 let error = RethrowError::from_pending_exception(cx);
                 return inner_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
             }
-            evaluate_promise.set(rval.to_object());
+
+            rooted!(&in(cx) let evaluate_promise = rval.to_object());
             let evaluate_promise = Promise::new_with_js_promise(evaluate_promise.handle(), cx.into());
 
             // d. Let fulfilledClosure be a new Abstract Closure with no parameters that captures
@@ -366,12 +365,10 @@ fn continue_dynamic_import(
             // e. Let onFulfilled be CreateBuiltinFunction(fulfilledClosure, 0, "", « »).
             let on_fulfilled = ModuleHandler::new_boxed(Box::new(
                 task!(on_fulfilled: |cx, fulfilled_promise: Rc<Promise>, record: ModuleObject| {
-                    rooted!(&in(cx) let mut rval: *mut JSObject = std::ptr::null_mut());
-                    rooted!(&in(cx) let mut namespace = UndefinedValue());
 
                     // i. Let namespace be GetModuleNamespace(module).
-                    rval.set(unsafe { GetModuleNamespace(cx, record.handle()) });
-                    namespace.handle_mut().set(ObjectValue(rval.get()));
+                    rooted!(&in(cx) let rval = unsafe { GetModuleNamespace(cx, record.handle()) });
+                    rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
                     fulfilled_promise.resolve(cx.into(), namespace.handle(), CanGc::from_cx(cx));
@@ -383,33 +380,26 @@ fn continue_dynamic_import(
             let handler = PromiseNativeHandler::new(
                 &global_scope,
                 Some(on_fulfilled),
-                Some(Box::new(OnRejectedHandler {
-                    promise: inner_promise,
-                })),
-                CanGc::deprecated_note(),
+                Some(Box::new(OnRejectedHandler { promise: inner_promise })),
+                CanGc::from_cx(cx),
             );
-            let in_realm = InRealm::Already(&in_realm_proof);
-            evaluate_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(cx));
+            evaluate_promise.append_native_handler(cx, &handler);
 
             // g. Return unused.
         }),
     ));
 
     let mut realm = enter_auto_realm(cx, &*global);
-    let mut realm = realm.current_realm();
+    let cx = &mut realm.current_realm();
     run_a_callback::<DomTypeHolder, _>(&*global, || {
         // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
         let handler = PromiseNativeHandler::new(
             &global,
             Some(link_and_evaluate),
-            Some(Box::new(OnRejectedHandler {
-                promise: promise.clone(),
-            })),
-            CanGc::from_cx(&mut realm),
+            Some(Box::new(OnRejectedHandler { promise })),
+            CanGc::from_cx(cx),
         );
-        let in_realm_proof = (&mut realm).into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-        load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
+        load_promise.append_native_handler(cx, &handler);
     });
     // Step 9. Return unused.
 }

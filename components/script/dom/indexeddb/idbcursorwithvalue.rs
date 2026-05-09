@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use script_bindings::reflector::reflect_dom_object;
 use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCursorWithValueMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbcursor::{IDBCursor, ObjectStoreOrIndex};

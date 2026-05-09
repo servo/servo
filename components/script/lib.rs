@@ -76,6 +76,7 @@ mod links;
 
 pub use init::init;
 pub(crate) use script_bindings::DomTypes;
+pub(crate) use script_bindings::reflector::{AssociatedMemory, DomObject, MutDomObject, Reflector};
 pub use script_runtime::JSEngineSetup;
 pub use script_thread::ScriptThread;
 pub use serviceworker_manager::ServiceWorkerManager;
@@ -85,7 +86,4 @@ pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
-pub(crate) use crate::dom::bindings::reflector::{
-    AssociatedMemory, DomObject, MutDomObject, Reflector,
-};
 pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

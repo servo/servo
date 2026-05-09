@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Deletion of full editing host</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable id="empty"></div>
+<div contenteditable id="with-child"><span>Here is a child</span></div>
+<script>
+const emptyDiv = document.getElementById("empty");
+const withChildDiv = document.getElementById("with-child");
+
+test(function() {
+  document.getSelection().collapse(emptyDiv);
+
+  assert_true(document.execCommand("delete", false, null));
+
+  assert_true(emptyDiv.isConnected);
+  assert_equals(emptyDiv.innerHTML, "");
+}, "Should not do anything when deleting full editing host");
+
+test(function() {
+  document.getSelection().collapse(withChildDiv);
+
+  assert_true(document.execCommand("delete", false, null));
+
+  assert_true(withChildDiv.isConnected);
+  assert_equals(withChildDiv.innerHTML, "<span>Here is a child</span>");
+}, "Should retain all children when deleting full editing host");
+</script>

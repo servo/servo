@@ -348,7 +348,7 @@ scheme host and port.""")
                              help="With --reftest-internal, when to take a screenshot")
     gecko_group.add_argument("--chaos", dest="chaos_mode_flags", nargs="?", const=0xFFFFFFFF, type=lambda x: int(x, 16),
                              help="Enable chaos mode with the specified feature flag "
-                             "(see http://searchfox.org/mozilla-central/source/mfbt/ChaosMode.h for "
+                             "(see http://searchfox.org/firefox-main/source/mfbt/ChaosMode.h for "
                              "details). If no value is supplied, all features are activated")
 
     gecko_view_group = parser.add_argument_group("GeckoView-specific")

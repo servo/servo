@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -11,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;

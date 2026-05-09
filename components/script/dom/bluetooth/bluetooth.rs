@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
 use servo_bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
@@ -23,7 +24,7 @@ use crate::dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, St
 use crate::dom::bindings::error::Error::{self, Network, Security, Type};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;

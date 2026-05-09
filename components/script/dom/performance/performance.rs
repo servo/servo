@@ -14,6 +14,7 @@ use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -31,7 +32,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -509,6 +510,7 @@ impl Performance {
             "loadEventEnd" => document.get_load_event_end(),
             "redirectStart" => document.get_redirect_start(),
             "redirectEnd" => document.get_redirect_end(),
+            "secureConnectionStart" => document.get_secure_connection_start(),
             other => {
                 if cfg!(debug_assertions) {
                     unreachable!("{other:?} is not the name of a timestamp");
@@ -550,7 +552,8 @@ impl Performance {
                         "loadEventStart" |
                         "loadEventEnd" |
                         "redirectStart" |
-                        "redirectEnd"
+                        "redirectEnd" |
+                        "secureConnectionStart"
                 ) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }

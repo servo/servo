@@ -21,6 +21,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 
@@ -31,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSi
 use crate::dom::bindings::codegen::Bindings::WritableStreamBinding::WritableStreamMethods;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
@@ -46,7 +47,7 @@ use crate::dom::stream::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
@@ -335,9 +336,10 @@ impl WritableStream {
                 rejection_handler.take().map(|h| Box::new(h) as Box<_>),
                 CanGc::from_cx(cx),
             );
-            let realm = enter_realm(global);
-            let comp = InRealm::Entered(&realm);
-            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+
+            let mut realm = enter_auto_realm(cx, global);
+            let cx = &mut realm.current_realm();
+            promise.append_native_handler(cx, &handler);
         }
     }
 

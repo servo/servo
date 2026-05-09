@@ -140,7 +140,12 @@ pub enum ScriptToDevtoolsControlMsg {
     CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
 
     /// Get environment information from script
-    CreateEnvironmentActor(GenericSender<String>, EnvironmentInfo, Option<String>),
+    CreateEnvironmentActor(
+        GenericSender<String>,
+        EnvironmentInfo,
+        Option<String>,
+        Option<String>,
+    ),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

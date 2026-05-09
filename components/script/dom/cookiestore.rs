@@ -16,6 +16,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CookieStoreBinding::CookieSameSite;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::script_runtime::CanGc;
 use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use servo_base::id::CookieStoreId;
@@ -27,7 +28,7 @@ use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::document::get_registrable_domain_suffix_of_or_is_equal_to;

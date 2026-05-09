@@ -118,8 +118,8 @@ pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!
 /// Plumbs tracing spans into HiTrace, with the following caveats:
 ///
 /// - We ignore spans unless they have a `servo_profiling` field.
-/// - We map span entry ([`Layer::on_enter`]) to `OH_HiTrace_StartTrace(metadata.name())`.
-/// - We map span exit ([`Layer::on_exit`]) to `OH_HiTrace_FinishTrace()`.
+/// - We map span entry ([`Layer::on_enter`]) to `OH_HiTrace_StartTraceEx(metadata.name(), fields)`.
+/// - We map span exit ([`Layer::on_exit`]) to `OH_HiTrace_FinishTraceEx()`.
 ///
 /// As a result, within each thread, spans must exit in reverse order of their entry, otherwise the
 /// resultant profiling data will be incorrect (see the section below). This is not necessarily the
@@ -153,8 +153,8 @@ pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!
 /// in stable Rust, and converts to a [`u64`] in unstable Rust, so we would also need to make our
 /// own thread ids, perhaps by having a global atomic counter cached in a thread-local.
 ///
-/// [synchronous API]: https://docs.rs/hitrace-sys/0.1.2/hitrace_sys/fn.OH_HiTrace_StartTrace.html
-/// [asynchronous API]: https://docs.rs/hitrace-sys/0.1.2/hitrace_sys/fn.OH_HiTrace_StartAsyncTrace.html
+/// [synchronous API]: https://docs.rs/hitrace-sys/0.1.9/hitrace_sys/fn.OH_HiTrace_StartTraceEx.html
+/// [asynchronous API]: https://docs.rs/hitrace-sys/0.1.9/hitrace_sys/fn.OH_HiTrace_StartAsyncTraceEx.html
 /// [`Registry`]: tracing_subscriber::Registry
 /// [come from]: https://docs.rs/tracing-subscriber/0.3.18/src/tracing_subscriber/registry/sharded.rs.html#237-269
 /// [packed representation]: https://docs.rs/sharded-slab/0.1.7/sharded_slab/trait.Config.html
@@ -166,10 +166,37 @@ struct HitraceLayer {}
 cfg_if! {
     if #[cfg(feature = "tracing-hitrace")] {
         use std::cell::RefCell;
+        use std::fmt;
+        use std::fmt::Write;
 
+        use tracing::field::{Field, Visit};
+        use tracing::Level;
         use tracing::span::Id;
         use tracing::Subscriber;
         use tracing_subscriber::Layer;
+
+        #[derive(Default)]
+        struct HitraceFields(String);
+
+        impl HitraceFields {
+            fn record_value(&mut self, field: &Field, value: &dyn fmt::Debug) {
+                if field.name() == "servo_profiling" {
+                    return;
+                }
+
+                if !self.0.is_empty() {
+                    self.0.push(',');
+                }
+                write!(&mut self.0, "{}={value:?}", field.name())
+                    .expect("Writing to a String should never fail");
+            }
+        }
+
+        impl Visit for HitraceFields {
+            fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
+                self.record_value(field, value);
+            }
+        }
 
         #[cfg(debug_assertions)]
         thread_local! {
@@ -177,68 +204,137 @@ cfg_if! {
             static HITRACE_NAME_STACK: RefCell<Vec<String>> = RefCell::default();
         }
 
+        /// Map a tracing level to a HiTrace level.
+        ///
+        /// The log-level of hitrace itself can only be configured globally,
+        /// which drastically increases the amount of data that needs to be saved.
+        /// For our purposes, the tracing-rs internal filtering is sufficient,
+        /// and we don't need additional `debug` log level on the hitrace side,
+        /// so we just map anything below INFO to INFO.
+        fn convert_level(tracing_level: Level) -> hitrace::api_19::HiTraceOutputLevel {
+            if tracing_level < Level::INFO {
+                Level::INFO.into()
+            } else {
+                tracing_level.into()
+            }
+        }
+
         impl<S: Subscriber + for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>>
             Layer<S> for HitraceLayer
         {
-            fn on_enter(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
-                if let Some(metadata) = ctx.metadata(id) {
-                    // TODO: is this expensive? Would extensions be faster?
-                    // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/registry/struct.ExtensionsMut.html>
-                    if metadata.fields().field("servo_profiling").is_some() {
-                        #[cfg(debug_assertions)]
-                        HITRACE_NAME_STACK.with_borrow_mut(|stack|
-                            stack.push(metadata.name().to_owned()));
-
-                        hitrace::start_trace(
-                            &std::ffi::CString::new(metadata.name())
-                                .expect("Failed to convert str to CString"),
-                        );
-                    }
+            fn on_new_span(
+                &self,
+                attrs: &tracing::span::Attributes<'_>,
+                id: &Id,
+                ctx: tracing_subscriber::layer::Context<'_, S>,
+            ) {
+                if attrs.metadata().fields().field("servo_profiling").is_none() {
+                    return;
                 }
+
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+
+                let mut fields = HitraceFields::default();
+                attrs.record(&mut fields);
+                span.extensions_mut().insert(fields);
+            }
+
+            fn on_record(
+                &self,
+                id: &Id,
+                values: &tracing::span::Record<'_>,
+                ctx: tracing_subscriber::layer::Context<'_, S>,
+            ) {
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+
+                let mut extensions = span.extensions_mut();
+                let Some(fields) = extensions.get_mut::<HitraceFields>() else {
+                    return;
+                };
+
+                values.record(fields);
+            }
+
+            fn on_enter(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+                let extensions = span.extensions();
+                // The HitraceFields extension being present implies `servo_profiling` was set.
+                let Some(fields) = extensions.get::<HitraceFields>() else {
+                    return;
+                };
+                // We can't take the String out of the extensions, so
+                //  unfortunately, this won't reuse the allocation.
+                let custom_args = std::ffi::CString::new(fields.0.as_str())
+                        .expect("Failed to convert to CString");
+
+                let metadata = span.metadata();
+                let level = convert_level(*metadata.level());
+                let name = metadata.name();
+
+                #[cfg(debug_assertions)]
+                HITRACE_NAME_STACK.with_borrow_mut(|stack|
+                    stack.push(name.to_owned()));
+
+                hitrace::start_trace_ex(
+                    level,
+                    &std::ffi::CString::new(name)
+                        .expect("Failed to convert str to CString"),
+                    &custom_args,
+                );
+
             }
 
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-                let mut key_value_string: String = String::new();
-
-                event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
-                    if field.name() != "servo_profiling" {
-                        key_value_string.push_str(&format!("{}={:?},",field.name(),value));
-                    }
-                });
+                let mut fields = HitraceFields::default();
+                event.record(&mut fields);
+                let metadata = event.metadata();
+                let level = convert_level(*metadata.level());
 
                 hitrace::start_trace_ex(
-                    (*event.metadata().level()).into(),
-                    &std::ffi::CString::new(event.metadata().name())
+                    level,
+                    &std::ffi::CString::new(metadata.name())
                         .expect("Failed to convert str to CString"),
-                    &std::ffi::CString::new(key_value_string.trim_end_matches(","))
+                    &std::ffi::CString::new(fields.0)
                         .expect("Failed to convert str to CString"),
                 );
 
-                hitrace::finish_trace();
+                hitrace::finish_trace_ex(level);
             }
 
 
             fn on_exit(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
-                if let Some(metadata) = ctx.metadata(id) {
-                    if metadata.fields().field("servo_profiling").is_some() {
-                        hitrace::finish_trace();
-
-                        #[cfg(debug_assertions)]
-                        HITRACE_NAME_STACK.with_borrow_mut(|stack| {
-                            if stack.last().map(|name| &**name) != Some(metadata.name()) {
-                                log::error!(
-                                    "Tracing span out of order: {} (stack: {:?})",
-                                    metadata.name(),
-                                    stack
-                                );
-                            }
-                            if !stack.is_empty() {
-                                stack.pop();
-                            }
-                        });
-                    }
+                let Some(span) = ctx.span(id) else {
+                    return;
+                };
+                if span.extensions().get::<HitraceFields>().is_none() {
+                    return;
                 }
+
+                let level = convert_level(*span.metadata().level());
+                hitrace::finish_trace_ex(level);
+
+                #[cfg(debug_assertions)]
+                HITRACE_NAME_STACK.with_borrow_mut(|stack| {
+                    let metadata = span.metadata();
+                    if stack.last().map(|name| &**name) != Some(metadata.name()) {
+                        log::error!(
+                            "Tracing span out of order: {} (stack: {:?})",
+                            metadata.name(),
+                            stack
+                        );
+                    }
+                    if !stack.is_empty() {
+                        stack.pop();
+                    }
+                });
             }
+
         }
     }
 }

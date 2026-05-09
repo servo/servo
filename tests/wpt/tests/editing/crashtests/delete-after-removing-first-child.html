@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html id="a">
+<script id="b">
+window.onload = () => {
+  document.getSelection().collapse(span1);
+  const range = document.createRange();
+  range.setEndBefore(span2);
+  // This deletes the document element, but leaves behind span 2. The document
+  // now contains the div with 1 child, which is span 2.
+  range.deleteContents();
+  document.execCommand("delete", false, null);
+}
+</script>
+<div contenteditable><span id="span1"></span><span id="span2"></span></div>

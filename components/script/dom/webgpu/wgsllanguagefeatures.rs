@@ -9,10 +9,10 @@ use indexmap::IndexSet;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::WGSLLanguageFeaturesMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

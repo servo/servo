@@ -251,9 +251,6 @@ impl Contents {
     }
 
     pub(crate) fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Self {
-        if let Some(replaced) = ReplacedContents::for_element(node, context) {
-            return Self::Replaced(replaced);
-        }
         let is_widget = matches!(
             node.type_id(),
             Some(LayoutNodeType::Element(
@@ -264,6 +261,8 @@ impl Contents {
         );
         if is_widget {
             Self::Widget(NonReplacedContents::OfElement)
+        } else if let Some(replaced) = ReplacedContents::for_element(node, context) {
+            Self::Replaced(replaced)
         } else {
             Self::NonReplaced(NonReplacedContents::OfElement)
         }

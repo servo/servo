@@ -13,6 +13,7 @@ use js::rust::wrappers2::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interface::get_desired_proto;
+use script_bindings::reflector::DomObject;
 
 use super::utils::ProtoOrIfaceArray;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -45,7 +46,6 @@ use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
 use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementState};
