@@ -19,9 +19,7 @@ mod error {
     use std::error::Error as StdError;
     use std::fmt::{self, Display};
     use std::io;
-    use std::string::FromUtf8Error;
 
-    use http;
     use http::header::ToStrError;
     use httparse;
 
@@ -35,25 +33,18 @@ mod error {
         BoundaryNotSpecified,
         /// A multipart section contained only partial headers.
         PartialHeaders,
-        EofInMainHeaders,
         EofBeforeFirstBoundary,
         NoCrLfAfterBoundary,
         EofInPartHeaders,
         EofInFile,
         EofInPart,
-        HeaderMissing,
         InvalidHeaderNameOrValue,
         HeaderValueNotMime,
-        FilenameWithNonAsciiEncodingNotSupported,
         ToStr(ToStrError),
         /// An HTTP parsing error from a multipart section.
         Httparse(httparse::Error),
         /// An I/O error.
         Io(io::Error),
-        /// An error was returned from Hyper.
-        Http(http::Error),
-        /// An error occurred during UTF-8 processing.
-        Utf8(FromUtf8Error),
     }
 
     impl From<io::Error> for Error {
@@ -68,25 +59,11 @@ mod error {
         }
     }
 
-    impl From<http::Error> for Error {
-        fn from(err: http::Error) -> Error {
-            Error::Http(err)
-        }
-    }
-
-    impl From<FromUtf8Error> for Error {
-        fn from(err: FromUtf8Error) -> Error {
-            Error::Utf8(err)
-        }
-    }
-
     impl Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
                 Error::Httparse(ref e) => format!("Httparse: {:?}", e).fmt(f),
                 Error::Io(ref e) => format!("Io: {}", e).fmt(f),
-                Error::Http(ref e) => format!("Http: {}", e).fmt(f),
-                Error::Utf8(ref e) => format!("Utf8: {}", e).fmt(f),
                 Error::ToStr(ref e) => format!("ToStr: {}", e).fmt(f),
                 Error::NoRequestContentType => "NoRequestContentType".to_string().fmt(f),
                 Error::NotMultipart => "NotMultipart".to_string().fmt(f),
@@ -97,13 +74,8 @@ mod error {
                 Error::EofInPartHeaders => "EofInPartHeaders".to_string().fmt(f),
                 Error::EofInFile => "EofInFile".to_string().fmt(f),
                 Error::EofInPart => "EofInPart".to_string().fmt(f),
-                Error::EofInMainHeaders => "EofInMainHeaders".to_string().fmt(f),
-                Error::HeaderMissing => "HeaderMissing".to_string().fmt(f),
                 Error::InvalidHeaderNameOrValue => "InvalidHeaderNameOrValue".to_string().fmt(f),
                 Error::HeaderValueNotMime => "HeaderValueNotMime".to_string().fmt(f),
-                Error::FilenameWithNonAsciiEncodingNotSupported => {
-                    "NonAsciiFilenameNotSupported".to_string().fmt(f)
-                },
             }
         }
     }
@@ -131,7 +103,6 @@ mod error {
                     "The Content-Type header failed to specify a boundary token."
                 },
                 Error::PartialHeaders => "A multipart section contained only partial headers.",
-                Error::EofInMainHeaders => "The request headers ended pre-maturely.",
                 Error::EofBeforeFirstBoundary => {
                     "The request body ended prior to reaching the expected starting boundary."
                 },
@@ -149,15 +120,9 @@ mod error {
                     "A parse error occurred while parsing the headers of a multipart section."
                 },
                 Error::Io(_) => "An I/O error occurred.",
-                Error::Http(_) => "A Http error occurred.",
-                Error::Utf8(_) => "A UTF-8 error occurred.",
-                Error::HeaderMissing => "The requested header could not be found in the HeaderMap",
                 Error::InvalidHeaderNameOrValue => "Parsing to HeaderName or HeaderValue failed",
                 Error::HeaderValueNotMime => "HeaderValue could not be parsed to Mime",
                 Error::ToStr(_) => "A ToStr error occurred.",
-                Error::FilenameWithNonAsciiEncodingNotSupported => {
-                    "Non-ASCII filename parsing not supported"
-                },
             }
         }
     }
@@ -169,9 +134,9 @@ use buf_read_ext::BufReadExt;
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use mime::Mime;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Read};
 use std::ops::Drop;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use textnonce::TextNonce;
 
@@ -180,21 +145,6 @@ use textnonce::TextNonce;
 pub struct Part {
     pub headers: HeaderMap,
     pub body: Vec<u8>,
-}
-impl Part {
-    /// Mime content-type specified in the header
-    pub fn content_type(&self) -> Option<Mime> {
-        match self.headers.get("content-type") {
-            Some(ct) => match ct.to_str() {
-                Ok(value) => match Mime::from_str(value) {
-                    Ok(value) => Some(value),
-                    Err(_) => None,
-                },
-                Err(_) => None,
-            },
-            None => None,
-        }
-    }
 }
 
 /// A file that is to be inserted into a `multipart/*` or alternatively an uploaded file that
@@ -212,21 +162,6 @@ pub struct FilePart {
     tempdir: Option<PathBuf>,
 }
 impl FilePart {
-    pub fn new(headers: HeaderMap, path: &Path) -> FilePart {
-        FilePart {
-            headers,
-            path: path.to_owned(),
-            size: None,
-            tempdir: None,
-        }
-    }
-
-    /// If you do not want the file on disk to be deleted when Self drops, call this
-    /// function.  It will become your responsibility to clean up.
-    pub fn do_not_delete_on_drop(&mut self) {
-        self.tempdir = None;
-    }
-
     /// Create a new temporary FilePart (when created this way, the file will be
     /// deleted once the FilePart object goes out of scope).
     pub fn create(headers: HeaderMap) -> Result<FilePart, Error> {
@@ -243,29 +178,6 @@ impl FilePart {
             size: None,
             tempdir,
         })
-    }
-
-    /// Filename that was specified when the file was uploaded.  Returns `Ok<None>` if there
-    /// was no content-disposition header supplied.
-    pub fn filename(&self) -> Result<Option<String>, Error> {
-        match self.headers.get("content-disposition") {
-            Some(cd) => get_content_disposition_filename(cd),
-            None => Ok(None),
-        }
-    }
-
-    /// Mime content-type specified in the header
-    pub fn content_type(&self) -> Option<Mime> {
-        match self.headers.get("content-type") {
-            Some(ct) => match ct.to_str() {
-                Ok(value) => match Mime::from_str(value) {
-                    Ok(value) => Some(value),
-                    Err(_) => None,
-                },
-                Err(_) => None,
-            },
-            None => None,
-        }
     }
 }
 impl Drop for FilePart {
@@ -287,67 +199,6 @@ pub enum Node {
     File(FilePart),
     /// A container of nested multipart parts
     Multipart((HeaderMap, Vec<Node>)),
-}
-
-/// Parse a MIME `multipart/*` from a `Read`able stream into a `Vec` of `Node`s, streaming
-/// files to disk and keeping the rest in memory.  Recursive `multipart/*` parts will are
-/// parsed as well and returned within a `Node::Multipart` variant.
-///
-/// If `always_use_files` is true, all parts will be streamed to files.  If false, only parts
-/// with a `ContentDisposition` header set to `Attachment` or otherwise containing a `Filename`
-/// parameter will be streamed to files.
-///
-/// It is presumed that the headers are still in the stream.  If you have them separately,
-/// use `read_multipart_body()` instead.
-pub fn read_multipart<S: Read>(stream: &mut S, always_use_files: bool) -> Result<Vec<Node>, Error> {
-    let mut reader = BufReader::with_capacity(4096, stream);
-
-    let mut buf: Vec<u8> = Vec::new();
-
-    let (_, found) = reader.stream_until_token(b"\r\n\r\n", &mut buf)?;
-    if !found {
-        return Err(Error::EofInMainHeaders);
-    }
-
-    // Keep the CRLFCRLF as httparse will expect it
-    buf.extend(b"\r\n\r\n".iter().cloned());
-
-    // Parse the headers
-    let mut header_memory = [httparse::EMPTY_HEADER; 64];
-    let headers = match httparse::parse_headers(&buf, &mut header_memory) {
-        Ok(httparse::Status::Complete((_, raw_headers))) => {
-            let mut headers = HeaderMap::new();
-            for header in raw_headers {
-                if header.value.is_empty() {
-                    break;
-                }
-                let trim = header
-                    .value
-                    .iter()
-                    .rev()
-                    .take_while(|&&x| x == b' ')
-                    .count();
-                let value = &header.value[..header.value.len() - trim];
-
-                let header_value = match HeaderValue::from_bytes(value) {
-                    Ok(value) => value,
-                    Err(_) => return Err(Error::InvalidHeaderNameOrValue),
-                };
-
-                let header_name = header.name.to_owned();
-                let header_name = match HeaderName::from_str(&header_name) {
-                    Ok(value) => value,
-                    Err(_) => return Err(Error::InvalidHeaderNameOrValue),
-                };
-                headers.append(header_name, header_value);
-            }
-            Ok(headers)
-        },
-        Ok(httparse::Status::Partial) => Err(Error::PartialHeaders),
-        Err(err) => Err(From::from(err)),
-    }?;
-
-    inner(&mut reader, &headers, always_use_files)
 }
 
 /// Parse a MIME `multipart/*` from a `Read`able stream into a `Vec` of `Node`s, streaming
@@ -556,236 +407,4 @@ pub fn get_multipart_boundary(headers: &HeaderMap) -> Result<Vec<u8>, Error> {
             Ok(boundary)
         },
     }
-}
-
-#[inline]
-fn get_content_disposition_filename(cd: &HeaderValue) -> Result<Option<String>, Error> {
-    match cd.to_str() {
-        Ok(value) => match value.contains("filename") {
-            true => match value.find("filename=") {
-                Some(index) => {
-                    let start = index + "filename=".len();
-                    Ok(Some(
-                        value.get(start..).unwrap().trim_matches('\"').to_owned(),
-                    ))
-                },
-                None => match value.find("filename*=UTF-8''") {
-                    Some(index) => {
-                        let start = index + "filename*=UTF-8''".len();
-                        Ok(Some(
-                            value.get(start..).unwrap().trim_matches('\"').to_owned(),
-                        ))
-                    },
-                    None => Ok(None),
-                },
-            },
-            false => Ok(None),
-        },
-        Err(err) => Err(Error::ToStr(err)),
-    }
-}
-
-/// Generate a valid multipart boundary, statistically unlikely to be found within
-/// the content of the parts.
-pub fn generate_boundary() -> Vec<u8> {
-    TextNonce::sized(68)
-        .unwrap()
-        .into_string()
-        .into_bytes()
-        .iter()
-        .map(|&ch| {
-            if ch == b'=' {
-                b'-'
-            } else if ch == b'/' {
-                b'.'
-            } else {
-                ch
-            }
-        })
-        .collect()
-}
-
-// Convenience method, like write_all(), but returns the count of bytes written.
-trait WriteAllCount {
-    fn write_all_count(&mut self, buf: &[u8]) -> std::io::Result<usize>;
-}
-impl<T: Write> WriteAllCount for T {
-    fn write_all_count(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.write_all(buf)?;
-        Ok(buf.len())
-    }
-}
-
-/// Stream a multipart body to the output `stream` given, made up of the `parts`
-/// given.  Top-level headers are NOT included in this stream; the caller must send
-/// those prior to calling write_multipart().
-/// Returns the number of bytes written, or an error.
-pub fn write_multipart<S: Write>(
-    stream: &mut S,
-    boundary: &[u8],
-    nodes: &Vec<Node>,
-) -> Result<usize, Error> {
-    let mut count: usize = 0;
-
-    for node in nodes {
-        // write a boundary
-        count += stream.write_all_count(b"--")?;
-        count += stream.write_all_count(boundary)?;
-        count += stream.write_all_count(b"\r\n")?;
-
-        match *node {
-            Node::Part(ref part) => {
-                // write the part's headers
-                for header in part.headers.iter() {
-                    count += stream.write_all_count(header.0.as_str().as_bytes())?;
-                    count += stream.write_all_count(b": ")?;
-                    count += stream.write_all_count(header.1.as_bytes())?;
-                    count += stream.write_all_count(b"\r\n")?;
-                }
-
-                // write the blank line
-                count += stream.write_all_count(b"\r\n")?;
-
-                // Write the part's content
-                count += stream.write_all_count(&part.body)?;
-            },
-            Node::File(ref filepart) => {
-                // write the part's headers
-                for header in filepart.headers.iter() {
-                    count += stream.write_all_count(header.0.as_str().as_bytes())?;
-                    count += stream.write_all_count(b": ")?;
-                    count += stream.write_all_count(header.1.as_bytes())?;
-                    count += stream.write_all_count(b"\r\n")?;
-                }
-
-                // write the blank line
-                count += stream.write_all_count(b"\r\n")?;
-
-                // Write out the files's content
-                let mut file = File::open(&filepart.path)?;
-                count += std::io::copy(&mut file, stream)? as usize;
-            },
-            Node::Multipart((ref headers, ref subnodes)) => {
-                // Get boundary
-                let boundary = get_multipart_boundary(headers)?;
-
-                // write the multipart headers
-                for header in headers.iter() {
-                    count += stream.write_all_count(header.0.as_str().as_bytes())?;
-                    count += stream.write_all_count(b": ")?;
-                    count += stream.write_all_count(header.1.as_bytes())?;
-                    count += stream.write_all_count(b"\r\n")?;
-                }
-
-                // write the blank line
-                count += stream.write_all_count(b"\r\n")?;
-
-                // Recurse
-                count += write_multipart(stream, &boundary, subnodes)?;
-            },
-        }
-
-        // write a line terminator
-        count += stream.write_all_count(b"\r\n")?;
-    }
-
-    // write a final boundary
-    count += stream.write_all_count(b"--")?;
-    count += stream.write_all_count(boundary)?;
-    count += stream.write_all_count(b"--")?;
-
-    Ok(count)
-}
-
-pub fn write_chunk<S: Write>(stream: &mut S, chunk: &[u8]) -> Result<(), ::std::io::Error> {
-    write!(stream, "{:x}\r\n", chunk.len())?;
-    stream.write_all(chunk)?;
-    stream.write_all(b"\r\n")?;
-    Ok(())
-}
-
-/// Stream a multipart body to the output `stream` given, made up of the `parts`
-/// given, using Tranfer-Encoding: Chunked.  Top-level headers are NOT included in this
-/// stream; the caller must send those prior to calling write_multipart_chunked().
-pub fn write_multipart_chunked<S: Write>(
-    stream: &mut S,
-    boundary: &[u8],
-    nodes: &Vec<Node>,
-) -> Result<(), Error> {
-    for node in nodes {
-        // write a boundary
-        write_chunk(stream, b"--")?;
-        write_chunk(stream, boundary)?;
-        write_chunk(stream, b"\r\n")?;
-
-        match *node {
-            Node::Part(ref part) => {
-                // write the part's headers
-                for header in part.headers.iter() {
-                    write_chunk(stream, header.0.as_str().as_bytes())?;
-                    write_chunk(stream, b": ")?;
-                    write_chunk(stream, header.1.as_bytes())?;
-                    write_chunk(stream, b"\r\n")?;
-                }
-
-                // write the blank line
-                write_chunk(stream, b"\r\n")?;
-
-                // Write the part's content
-                write_chunk(stream, &part.body)?;
-            },
-            Node::File(ref filepart) => {
-                // write the part's headers
-                for header in filepart.headers.iter() {
-                    write_chunk(stream, header.0.as_str().as_bytes())?;
-                    write_chunk(stream, b": ")?;
-                    write_chunk(stream, header.1.as_bytes())?;
-                    write_chunk(stream, b"\r\n")?;
-                }
-
-                // write the blank line
-                write_chunk(stream, b"\r\n")?;
-
-                // Write out the files's length
-                let metadata = std::fs::metadata(&filepart.path)?;
-                write!(stream, "{:x}\r\n", metadata.len())?;
-
-                // Write out the file's content
-                let mut file = File::open(&filepart.path)?;
-                std::io::copy(&mut file, stream)?;
-                stream.write_all(b"\r\n")?;
-            },
-            Node::Multipart((ref headers, ref subnodes)) => {
-                // Get boundary
-                let boundary = get_multipart_boundary(headers)?;
-
-                // write the multipart headers
-                for header in headers.iter() {
-                    write_chunk(stream, header.0.as_str().as_bytes())?;
-                    write_chunk(stream, b": ")?;
-                    write_chunk(stream, header.1.as_bytes())?;
-                    write_chunk(stream, b"\r\n")?;
-                }
-
-                // write the blank line
-                write_chunk(stream, b"\r\n")?;
-
-                // Recurse
-                write_multipart_chunked(stream, &boundary, subnodes)?;
-            },
-        }
-
-        // write a line terminator
-        write_chunk(stream, b"\r\n")?;
-    }
-
-    // write a final boundary
-    write_chunk(stream, b"--")?;
-    write_chunk(stream, boundary)?;
-    write_chunk(stream, b"--")?;
-
-    // Write an empty chunk to signal the end of the body
-    write_chunk(stream, b"")?;
-
-    Ok(())
 }
