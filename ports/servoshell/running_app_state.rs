@@ -25,7 +25,7 @@ use servo::{
     JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
     ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
     WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
+    WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
 
@@ -423,7 +423,7 @@ impl RunningAppState {
             feature = "gamepad",
             not(any(target_os = "android", target_env = "ohos"))
         ))]
-        if pref!(dom_gamepad_enabled) {
+        if servo::pref!(dom_gamepad_enabled) {
             self.handle_gamepad_events();
         }
 
