@@ -45,7 +45,6 @@ impl ServiceWorkerContainer {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
         reflect_dom_object(
             Box::new(ServiceWorkerContainer::new_inherited()),
