@@ -52,7 +52,6 @@
 ./components/script/dom/geometry/dommatrixreadonly.rs 3
 ./components/script/dom/globalscope/messageport.rs 2
 ./components/script/dom/globalscope/script_execution.rs 1
-./components/script/dom/indexeddb/idbcursor.rs 1
 ./components/script/dom/indexeddb/idbdatabase.rs 13
 ./components/script/dom/indexeddb/idbfactory.rs 9
 ./components/script/dom/indexeddb/idbkeyrange.rs 1
