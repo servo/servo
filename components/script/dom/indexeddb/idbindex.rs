@@ -8,6 +8,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::DOMString;
 
+use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -63,6 +64,11 @@ impl IDBIndex {
             global,
             can_gc,
         )
+    }
+
+    /// Placeholder for implementation from <https://github.com/servo/servo/pull/44249>
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
+        Ok(())
     }
 }
 

@@ -7,19 +7,24 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::MutableHandleValue;
+use js::jsval::{JSVal, NullValue, UndefinedValue};
+use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::CanGc;
-use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord};
+use storage_traits::indexeddb::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyRange,
+    IndexedDBKeyType, IndexedDBRecord,
+};
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::{
     IDBCursorDirection, IDBCursorMethods,
 };
+use crate::dom::bindings::codegen::Bindings::IDBIndexBinding::IDBIndexMethods;
 use crate::dom::bindings::codegen::UnionTypes::IDBObjectStoreOrIDBIndex;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
 use crate::dom::globalscope::GlobalScope;
@@ -27,7 +32,7 @@ use crate::dom::indexeddb::idbindex::IDBIndex;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
-use crate::indexeddb::key_type_to_jsval;
+use crate::indexeddb::{ExtractionResult, convert_value_to_key, extract_key, key_type_to_jsval};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[expect(unused)]
@@ -164,11 +169,80 @@ impl IDBCursor {
         out.set(self.value.get());
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-3/#cursor-effective-key>
+    /// <https://w3c.github.io/IndexedDB/#cursor-effective-object-store>
+    fn effective_object_store(&self) -> DomRoot<IDBObjectStore> {
+        match &self.source {
+            ObjectStoreOrIndex::ObjectStore(object_store) => DomRoot::from_ref(object_store),
+            ObjectStoreOrIndex::Index(index) => index.ObjectStore(),
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#cursor-effective-key>
     pub(crate) fn effective_key(&self) -> Option<IndexedDBKeyType> {
         match &self.source {
             ObjectStoreOrIndex::ObjectStore(_) => self.position.borrow().clone(),
             ObjectStoreOrIndex::Index(_) => self.object_store_position.borrow().clone(),
+        }
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-3/#clone>
+    fn clone_value_in_target_realm(
+        &self,
+        cx: &mut JSContext,
+        value: HandleValue,
+        clone: MutableHandleValue<'_>,
+    ) -> Fallible<()> {
+        // Step 1. Assert: transaction's state is active.
+        debug_assert!(self.transaction.is_active());
+
+        // Step 2. Set transaction's state to inactive.
+        //
+        // NOTE: The transaction is made inactive so that getters or other side
+        // effects triggered by the cloning operation are unable to make
+        // additional requests against the transaction.
+        self.transaction.set_active_flag(false);
+
+        let result = (|| {
+            // Step 3. Let serialized be ? StructuredSerializeForStorage(value).
+            let serialized = structuredclone::write(cx.into(), value, None)?;
+
+            // Step 4. Let clone be ? StructuredDeserialize(serialized, targetRealm).
+            let _ = structuredclone::read(&self.global(), serialized, clone, CanGc::from_cx(cx))?;
+            Ok(())
+        })();
+
+        // Step 5. Set transaction's state to active.
+        self.transaction.set_active_flag(true);
+
+        // Step 6. Return clone.
+        result
+    }
+
+    /// If this cursor's transaction is not active, throw a "TransactionInactiveError" DOMException.
+    fn check_transaction_active(&self) -> Fallible<()> {
+        if !self.transaction.is_active() {
+            return Err(Error::TransactionInactive(Some(
+                "Cursor's transaction is not active".into(),
+            )));
+        }
+        Ok(())
+    }
+
+    /// If this cursor's transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
+    fn check_transaction_readwrite(&self) -> Fallible<()> {
+        if !self.transaction.is_active() {
+            return Err(Error::TransactionInactive(Some(
+                "Cursor's transaction is a read-only transaction".into(),
+            )));
+        }
+        Ok(())
+    }
+
+    /// If the cursor's source has been deleted, throw an "InvalidStateError" DOMException.
+    fn verify_not_deleted(&self) -> ErrorResult {
+        match &self.source {
+            ObjectStoreOrIndex::ObjectStore(object_store) => object_store.verify_not_deleted(),
+            ObjectStoreOrIndex::Index(index) => index.verify_not_deleted(),
         }
     }
 }
@@ -244,6 +318,489 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
         self.request
             .get()
             .expect("IDBCursor.request should be set when cursor is opened")
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbcursor-advance>
+    fn Advance(&self, cx: &mut JSContext, count: u32) -> Fallible<()> {
+        // Step 1. If count is 0 (zero), throw a TypeError.
+        if count == 0 {
+            return Err(Error::Type(c"Count is 0".into()));
+        }
+
+        // Step 2. Let transaction be this’s transaction.
+        // Step 3. If transaction’s state is not active, then throw a "TransactionInactiveError"
+        // DOMException.
+        self.check_transaction_active()?;
+
+        // Step 4. If this’s source or effective object store has been deleted, throw an
+        // "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+        self.effective_object_store().verify_not_deleted()?;
+
+        // Step 5. If this’s got value flag is false, indicating that the cursor is being iterated
+        // or has iterated past its end, throw an "InvalidStateError" DOMException.
+        if !self.got_value.get() {
+            return Err(Error::InvalidState(Some(
+                "This cursor's got value flag is false".into(),
+            )));
+        }
+
+        // Step 6. Set this’s got value flag to false.
+        self.got_value.set(false);
+
+        // Step 7. Let request be this’s request.
+        let request = self
+            .request
+            .get()
+            .expect("IDBCursor.request should be set when cursor is opened");
+
+        // TODO:
+        // Step 8. Set request’s processed flag to false.
+
+        // Step 9. Set request’s done flag to false.
+        request.set_ready_state_ready();
+
+        // Step 10. Let operation be an algorithm to run iterate a cursor with the current Realm
+        // record, this, and count.
+        // Step 11. Run asynchronously execute a request with this’s source handle, operation, and
+        // request.
+        // FIXME: Replace the effective object store with source.
+        let iteration_param = IterationParam {
+            cursor: Trusted::new(self),
+            key: None,
+            primary_key: None,
+            count: Some(count),
+        };
+        let _ = IDBRequest::execute_async(
+            &self.effective_object_store(),
+            |callback| {
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                    callback,
+                    key_range: self.range.clone(),
+                })
+            },
+            None,
+            Some(iteration_param),
+            CanGc::from_cx(cx),
+        );
+
+        Ok(())
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbcursor-continue>
+    fn Continue(&self, cx: &mut JSContext, key: HandleValue) -> Fallible<()> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. If transaction’s state is not active, then throw a "TransactionInactiveError"
+        // DOMException.
+        self.check_transaction_active()?;
+
+        // Step 3. If this’s source or effective object store has been deleted, throw an
+        // "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+        self.effective_object_store().verify_not_deleted()?;
+
+        // Step 4. If this’s got value flag is false, indicating that the cursor is being iterated
+        // or has iterated past its end, throw an "InvalidStateError" DOMException.
+        if !self.got_value.get() {
+            return Err(Error::InvalidState(Some(
+                "This cursor's got value flag is false".into(),
+            )));
+        }
+
+        // Step 5. If key is given, then:
+        let key = if !key.is_null_or_undefined() {
+            // Step 5.1. Let r be the result of running the steps to convert a value to a key with
+            // key. Rethrow any exceptions.
+            let r = convert_value_to_key(cx, key, None)?;
+
+            // Step 5.2. If r is invalid, throw a "DataError" DOMException.
+            // Step 5.3. Let key be r.
+            let key = r.into_result()?;
+
+            // Step 5.4. If key is less than or equal to this cursor’s position and this cursor’s
+            // direction is "next" or "nextunique", throw a "DataError" DOMException.
+            if self
+                .position
+                .borrow()
+                .as_ref()
+                .is_some_and(|cursor_position| &key <= cursor_position) &&
+                matches!(
+                    self.direction,
+                    IDBCursorDirection::Next | IDBCursorDirection::Nextunique
+                )
+            {
+                return Err(Error::Data(Some(
+                    "Key is less than or equal to this cursor’s position".into(),
+                )));
+            }
+
+            // Step 5.5. If key is greater than or equal to this cursor’s position and this cursor’s
+            // direction is "prev" or "prevunique", throw a "DataError" DOMException.
+            if self
+                .position
+                .borrow()
+                .as_ref()
+                .is_some_and(|cursor_position| &key >= cursor_position) &&
+                matches!(
+                    self.direction,
+                    IDBCursorDirection::Prev | IDBCursorDirection::Prevunique
+                )
+            {
+                return Err(Error::Data(Some(
+                    "Key is greater than or equal to this cursor’s position".into(),
+                )));
+            }
+
+            Some(key)
+        } else {
+            None
+        };
+
+        // Step 6. Set this’s got value flag to false.
+        self.got_value.set(false);
+
+        // Step 7. Let request be this’s request.
+        let request = self
+            .request
+            .get()
+            .expect("IDBCursor.request should be set when cursor is opened");
+
+        // TODO:
+        // Step 8. Set request’s processed flag to false.
+
+        // Step 9. Set request’s done flag to false.
+        request.set_ready_state_ready();
+
+        // Step 10. Let operation be an algorithm to run iterate a cursor with the current Realm
+        // record, this, and key (if given).
+        // Step 11. Run asynchronously execute a request with this’s source handle, operation, and
+        // request.
+        // FIXME: Replace the effective object store with source.
+        let iteration_param = IterationParam {
+            cursor: Trusted::new(self),
+            key,
+            primary_key: None,
+            count: None,
+        };
+        let _ = IDBRequest::execute_async(
+            &self.effective_object_store(),
+            |callback| {
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                    callback,
+                    key_range: self.range.clone(),
+                })
+            },
+            None,
+            Some(iteration_param),
+            CanGc::from_cx(cx),
+        );
+
+        Ok(())
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbcursor-continueprimarykey>
+    fn ContinuePrimaryKey(
+        &self,
+        cx: &mut JSContext,
+        key: HandleValue,
+        primary_key: HandleValue,
+    ) -> Fallible<()> {
+        // Step 1. Let transaction be this cursor's transaction.
+        // Step 2. If transaction is not active, throw a "TransactionInactiveError" DOMException.
+        self.check_transaction_active()?;
+
+        // Step 3. If the cursor’s source or effective object store has been deleted, throw an
+        // "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+        self.effective_object_store().verify_not_deleted()?;
+
+        // Step 4. If this cursor’s source is not an index throw an "InvalidAccessError"
+        // DOMException.
+        if !matches!(self.source, ObjectStoreOrIndex::Index(..)) {
+            return Err(Error::InvalidAccess(Some(
+                "This cursor's source is not an index".into(),
+            )));
+        }
+
+        // Step 5. If this cursor’s direction is not "next" or "prev", throw an "InvalidAccessError"
+        // DOMException.
+        if !matches!(
+            self.direction,
+            IDBCursorDirection::Next | IDBCursorDirection::Prev
+        ) {
+            return Err(Error::InvalidAccess(Some(
+                "This cursor’s direction is not \"next\" or \"prev\"".into(),
+            )));
+        }
+
+        // Step 6. If this cursor’s got value flag is unset, indicating that the cursor is being
+        // iterated or has iterated past its end, throw an "InvalidStateError" DOMException.
+        if !self.got_value.get() {
+            return Err(Error::InvalidState(Some(
+                "This cursor's got value flag is false".into(),
+            )));
+        }
+
+        // Step 7. Let r be the result of running the steps to convert a value to a key with key.
+        // Rethrow any exceptions.
+        let r = convert_value_to_key(cx, key, None)?;
+
+        // Step 8. If r is invalid, throw a "DataError" DOMException.
+        // Step 9. Let key be r.
+        let key = r.into_result()?;
+
+        // Step 10. Let r be the result of running the steps to convert a value to a key with
+        // primaryKey. Rethrow any exceptions.
+        let r = convert_value_to_key(cx, primary_key, None)?;
+
+        // Step 11. If r is invalid, throw a "DataError" DOMException.
+        // Step 12. Let primaryKey be r.
+        let primary_key = r.into_result()?;
+
+        // Step 13. If key is less than this cursor’s position and this cursor’s direction is
+        // "next", throw a "DataError" DOMException.
+        if self
+            .position
+            .borrow()
+            .as_ref()
+            .is_some_and(|cursor_position| &key < cursor_position) &&
+            self.direction == IDBCursorDirection::Next
+        {
+            return Err(Error::Data(Some(
+                "Key is less than this cursor’s position and \
+                this cursor’s direction is \"next\""
+                    .into(),
+            )));
+        }
+
+        // Step 14. If key is greater than this cursor’s position and this cursor’s direction is
+        // "prev", throw a "DataError" DOMException.
+        if self
+            .position
+            .borrow()
+            .as_ref()
+            .is_some_and(|cursor_position| &key > cursor_position) &&
+            self.direction == IDBCursorDirection::Prev
+        {
+            return Err(Error::Data(Some(
+                "key is greater than this cursor’s position and \
+                this cursor’s direction is \"prev\""
+                    .into(),
+            )));
+        }
+
+        // Step 15. If key is equal to this cursor’s position and primaryKey is less than or equal
+        // to this cursor’s object store position and this cursor’s direction is "next", throw a
+        // "DataError" DOMException.
+        if self
+            .position
+            .borrow()
+            .as_ref()
+            .is_some_and(|cursor_position| &key == cursor_position) &&
+            self.object_store_position.borrow().as_ref().is_some_and(
+                |cursor_object_store_position| &primary_key <= cursor_object_store_position,
+            ) &&
+            self.direction == IDBCursorDirection::Next
+        {
+            return Err(Error::Data(None));
+        }
+
+        // Step 16. If key is equal to this cursor’s position and primaryKey is greater than or
+        // equal to this cursor’s object store position and this cursor’s direction is "prev", throw
+        // a "DataError" DOMException.
+        if self
+            .position
+            .borrow()
+            .as_ref()
+            .is_some_and(|cursor_position| &key == cursor_position) &&
+            self.object_store_position.borrow().as_ref().is_some_and(
+                |cursor_object_store_position| &primary_key >= cursor_object_store_position,
+            ) &&
+            self.direction == IDBCursorDirection::Prev
+        {
+            return Err(Error::Data(None));
+        }
+
+        // Step 17. Unset the got value flag on the cursor.
+        self.got_value.set(false);
+
+        // Step 18. Let request be the request created when this cursor was created.
+        let request = self
+            .request
+            .get()
+            .expect("IDBCursor.request should be set when cursor is opened");
+
+        // TODO:
+        // Step 19. Set request’s processed flag to false.
+
+        // Step 20. Set request’s done flag to false.
+        request.set_ready_state_ready();
+
+        // Step 21. Let operation be an algorithm to run iterate a cursor with the current Realm
+        // record, this, key, and primaryKey.
+        // Step 22. Run asynchronously execute a request with this’s source handle, operation, and
+        // request.
+        // FIXME: Replace the effective object store with source.
+        let iteration_param = IterationParam {
+            cursor: Trusted::new(self),
+            key: Some(key),
+            primary_key: Some(primary_key),
+            count: None,
+        };
+        let _ = IDBRequest::execute_async(
+            &self.effective_object_store(),
+            |callback| {
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                    callback,
+                    key_range: self.range.clone(),
+                })
+            },
+            None,
+            Some(iteration_param),
+            CanGc::from_cx(cx),
+        );
+
+        Ok(())
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbcursor-update>
+    fn Update(&self, cx: &mut JSContext, value: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. If transaction’s state is not active, then throw a "TransactionInactiveError"
+        // DOMException.
+        self.check_transaction_active()?;
+
+        // Step 3. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
+        self.check_transaction_readwrite()?;
+
+        // Step 4. If this’s source or effective object store has been deleted, throw an
+        // "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+        self.effective_object_store().verify_not_deleted()?;
+
+        // Step 5. If this’s got value flag is false, indicating that the cursor is being iterated
+        // or has iterated past its end, throw an "InvalidStateError" DOMException.
+        if !self.got_value.get() {
+            return Err(Error::InvalidState(Some(
+                "This cursor's got value flag is false".into(),
+            )));
+        }
+
+        // Step 6. If this’s key only flag is true, throw an "InvalidStateError" DOMException.
+        if self.key_only {
+            return Err(Error::InvalidState(Some(
+                "This cursor's key only flag is true".into(),
+            )));
+        }
+
+        // Step 7. Let targetRealm be a user-agent defined Realm.
+        // Step 8. Let clone be a clone of value in targetRealm during transaction. Rethrow any
+        // exceptions.
+        rooted!(&in(cx) let mut cloned_js_value = NullValue());
+        self.clone_value_in_target_realm(cx, value, cloned_js_value.handle_mut())?;
+        let cloned_value = structuredclone::write(cx.into(), cloned_js_value.handle(), None)?;
+        let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
+            return Err(Error::InvalidState(None));
+        };
+
+        // Step 9. If this’s effective object store uses in-line keys, then:
+        if self.effective_object_store().uses_inline_keys() {
+            // Step 9.1. Let kpk be the result of extracting a key from a value using a key path
+            // with clone and the key path of this’s effective object store. Rethrow any exceptions.
+            let kpk = extract_key(
+                cx,
+                cloned_js_value.handle(),
+                self.effective_object_store()
+                    .key_path()
+                    .expect("Guaranteed by Step 9"),
+                None,
+            )?;
+
+            // Step 9.2. If kpk is failure, invalid, or not equal to this’s effective key, throw a
+            // "DataError" DOMException.
+            match kpk {
+                ExtractionResult::Failure | ExtractionResult::Invalid => {
+                    return Err(Error::Data(None));
+                },
+                ExtractionResult::Key(key) => {
+                    if !self
+                        .effective_key()
+                        .is_some_and(|effective_key| effective_key == key)
+                    {
+                        return Err(Error::Data(None));
+                    }
+                },
+            }
+        }
+
+        // Step 10. Let operation be an algorithm to run store a record into an object store with
+        // this’s effective object store, clone, this’s effective key, and false.
+        // Step 11. Return the result (an IDBRequest) of running asynchronously execute a request
+        // with this and operation.
+        IDBRequest::execute_async(
+            &self.effective_object_store(),
+            |callback| {
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    callback,
+                    key: self.effective_key(),
+                    value: serialized_value,
+                    should_overwrite: false,
+                    key_generator_current_number: None,
+                })
+            },
+            None,
+            None,
+            CanGc::from_cx(cx),
+        )
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbcursor-delete>
+    fn Delete(&self, cx: &mut JSContext) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1. Let transaction be this’s transaction.
+        // Step 2. If transaction’s state is not active, then throw a "TransactionInactiveError"
+        // DOMException.
+        self.check_transaction_active()?;
+
+        // Step 3. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
+        self.check_transaction_readwrite()?;
+
+        // Step 4. If this’s source or effective object store has been deleted, throw an
+        // "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+        self.effective_object_store().verify_not_deleted()?;
+
+        // Step 5. If this’s got value flag is false, indicating that the cursor is being iterated
+        // or has iterated past its end, throw an "InvalidStateError" DOMException.
+        if !self.got_value.get() {
+            return Err(Error::InvalidState(Some(
+                "This cursor's got value flag is false".into(),
+            )));
+        }
+
+        // Step 6. If this’s key only flag is true, throw an "InvalidStateError" DOMException.
+        if self.key_only {
+            return Err(Error::InvalidState(Some(
+                "This cursor's key only flag is true".into(),
+            )));
+        }
+
+        // Step 7. Let operation be an algorithm to run delete records from an object store with
+        // this’s effective object store and this’s effective key.
+        // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request
+        // with this and operation.
+        let effective_key = self.effective_key().ok_or(Error::InvalidState(None))?;
+        IDBRequest::execute_async(
+            &self.effective_object_store(),
+            |callback| {
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                    callback,
+                    key_range: IndexedDBKeyRange::only(effective_key),
+                })
+            },
+            None,
+            None,
+            CanGc::from_cx(cx),
+        )
     }
 }
 
