@@ -138,7 +138,6 @@ use std::io::{BufRead, BufReader, Read};
 use std::ops::Drop;
 use std::path::PathBuf;
 use std::str::FromStr;
-use textnonce::TextNonce;
 
 /// A multipart part which is not a file (stored in memory)
 #[derive(Clone, Debug, PartialEq)]
@@ -165,13 +164,17 @@ impl FilePart {
     /// Create a new temporary FilePart (when created this way, the file will be
     /// deleted once the FilePart object goes out of scope).
     pub fn create(headers: HeaderMap) -> Result<FilePart, Error> {
+        // TODO: Do we really need a dir with only one file in it?
+        // Perhaps we just just do a tempfile, then we also have
+        // one cleanup step less!
         // Setup a file to capture the contents.
         let mut path = tempfile::Builder::new()
             .prefix("mime_multipart")
             .tempdir()?
             .keep();
         let tempdir = Some(path.clone());
-        path.push(TextNonce::sized_urlsafe(32).unwrap().into_string());
+        // The directory name is already guaranteed to be unique.
+        path.push("part");
         Ok(FilePart {
             headers,
             path,
