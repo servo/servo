@@ -166,6 +166,8 @@ jobs:
         run: cargo install --path support/crown
 
       - name: Build (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: "-D warnings"
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-linux

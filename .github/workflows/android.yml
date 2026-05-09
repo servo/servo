@@ -105,6 +105,7 @@ jobs:
           APK_SIGNING_KEY_STORE_PASS: ${{ secrets.APK_SIGNING_KEY_STORE_PASS }}
           APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
+          RUSTFLAGS: "-D warnings"
         run: |
           ./mach build --use-crown --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           mv target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
