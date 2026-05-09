@@ -3572,11 +3572,6 @@ name = "hashbrown"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
-dependencies = [
- "allocator-api2",
- "equivalent",
- "foldhash 0.2.0",
-]
 
 [[package]]
 name = "hashlink"
@@ -4875,15 +4870,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fae87c125b03c1d2c0150c90365d7d6bcc53fb73a9acaef207d2d065860f062"
 dependencies = [
  "imgref",
-]
-
-[[package]]
-name = "lru"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a860605968fce16869fd239cf4237a82f3ac470723415db603b0e8b6c8d4fb9"
-dependencies = [
- "hashbrown 0.17.0",
 ]
 
 [[package]]
@@ -6801,12 +6787,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca45419789ae5a7899559e9512e58ca889e41f04f1f2445e9f4b290ceccd1d08"
 
 [[package]]
-name = "rangemap"
-version = "1.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "973443cf09a9c8656b574a866ab68dfa19f0867d0340648c7d2f6a71b8a8ea68"
-
-[[package]]
 name = "rav1e"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7798,7 +7778,6 @@ dependencies = [
  "servo-storage-traits",
  "servo-tracing",
  "servo-url",
- "servo-wakelock",
  "servo-webgpu",
  "servo-webgpu-traits",
  "servo-webxr-api",
@@ -7835,7 +7814,6 @@ dependencies = [
  "servo-profile-traits",
  "servo-storage-traits",
  "servo-url",
- "servo-wakelock",
  "servo-webgpu-traits",
  "strum",
  "uuid",
@@ -8298,7 +8276,6 @@ name = "servo-media-gstreamer-render"
 version = "0.2.0"
 dependencies = [
  "gstreamer",
- "gstreamer-video",
  "servo-media-player",
 ]
 
@@ -8338,12 +8315,10 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "lru",
  "mime",
  "ohos-media-sys",
  "ohos-sys-opaque-types",
  "ohos-window-sys",
- "rangemap",
  "serde_json",
  "servo-media",
  "servo-media-audio",
@@ -8767,7 +8742,6 @@ dependencies = [
  "servo-timers",
  "servo-tracing",
  "servo-url",
- "servo-wakelock",
  "servo-webgpu-traits",
  "servo-webxr-api",
  "servo-xpath",

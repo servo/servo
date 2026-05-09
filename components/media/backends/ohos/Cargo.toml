@@ -27,8 +27,6 @@ ohos-window-sys = { version = "0.1.3", features = ["api-13"] }
 ohos-sys-opaque-types = { version = "0.1.7" }
 ipc-channel = { workspace = true }
 crossbeam-channel = { workspace = true }
-lru = { workspace = true }
-rangemap = { workspace = true }
 libc = { workspace = true }
 yuv = { workspace = true }
 
