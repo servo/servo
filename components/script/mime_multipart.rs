@@ -184,7 +184,7 @@ impl FilePart {
 }
 impl Drop for FilePart {
     fn drop(&mut self) {
-        if let Some(tempdir) = self.tempdir {
+        if let Some(tempdir) = &self.tempdir {
             let _ = std::fs::remove_file(&self.path);
             let _ = std::fs::remove_dir(tempdir);
         }
