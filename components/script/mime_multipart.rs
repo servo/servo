@@ -169,7 +169,7 @@ impl FilePart {
         let mut path = tempfile::Builder::new()
             .prefix("mime_multipart")
             .tempdir()?
-            .into_path();
+            .keep();
         let tempdir = Some(path.clone());
         path.push(TextNonce::sized_urlsafe(32).unwrap().into_string());
         Ok(FilePart {
