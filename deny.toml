@@ -97,8 +97,6 @@ skip = [
     "bitflags",
     "cookie",
     "redox_syscall",
-    # Duplicated by getrandom 0.1 and getrandom 0.2
-    "wasi",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
@@ -127,9 +125,6 @@ skip = [
 
     # wgpu has the latest and greatest.
     "windows-core",
-
-    # rust-content-security-policy uses newest base64.
-    "base64",
 
     # Duplicated by gilrs.
     "core-foundation",
