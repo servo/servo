@@ -18,7 +18,6 @@ use js::rust::HandleValue;
 use js::rust::wrappers2::{JS_ClearPendingException, JS_GetPendingException, JS_ParseJSON};
 use js::typedarray::{ArrayBufferU8, Uint8};
 use mime::{self, Mime};
-use mime_multipart_hyper1::{Node, read_multipart_body};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
@@ -47,6 +46,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
+use crate::mime_multipart::{Node, read_multipart_body};
 use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;

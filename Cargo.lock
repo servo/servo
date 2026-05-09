@@ -5013,21 +5013,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
-name = "mime-multipart-hyper1"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc819448803ee517eb413276ca59613c2850a95c4fdcd87ec82c5a6ce6cdab1a"
-dependencies = [
- "buf-read-ext",
- "http 1.4.0",
- "httparse",
- "log",
- "mime",
- "tempfile",
- "textnonce",
-]
-
-[[package]]
 name = "mime_guess"
 version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8695,6 +8680,7 @@ dependencies = [
  "base64ct",
  "bitflags 2.11.1",
  "brotli",
+ "buf-read-ext",
  "cbc",
  "chacha20poly1305",
  "chardetng",
@@ -8718,6 +8704,7 @@ dependencies = [
  "hkdf",
  "html5ever",
  "http 1.4.0",
+ "httparse",
  "icu_locid",
  "indexmap",
  "ipc-channel",
@@ -8728,7 +8715,6 @@ dependencies = [
  "malloc_size_of_derive",
  "markup5ever",
  "mime",
- "mime-multipart-hyper1",
  "mime_guess",
  "ml-dsa",
  "ml-kem",
@@ -8803,6 +8789,7 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
+ "textnonce",
  "time",
  "tracing",
  "unicode-bidi",
