@@ -1104,13 +1104,13 @@ impl HTMLFormElement {
 
         // Note the pending form navigation if this is an iframe;
         // necessary for deciding whether to run the iframe load event steps.
-        if let Some(window_proxy) = target.undiscarded_window_proxy()
-            && let Some(frame) = window_proxy
+        if let Some(window_proxy) = target.undiscarded_window_proxy() &&
+            let Some(frame) = window_proxy
                 .frame_element()
                 .and_then(|e| e.downcast::<HTMLIFrameElement>())
-            {
-                frame.note_pending_navigation()
-            }
+        {
+            frame.note_pending_navigation()
+        }
 
         // 4. Queue an element task on the DOM manipulation task source
         // given the form element and the following steps:
@@ -1171,17 +1171,16 @@ impl HTMLFormElement {
             if let Some(validatable) = elem.as_maybe_validatable() {
                 error!("Validation error: {}", validatable.validation_message());
             }
-            if first
-                && let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    // Step 3.1: User agents may focus one of those elements in the process,
-                    // by running the focusing steps for that element,
-                    // and may change the scrolling position of the document, or perform
-                    // some other action that brings the element to the user's attention.
+            if first && let Some(html_elem) = elem.downcast::<HTMLElement>() {
+                // Step 3.1: User agents may focus one of those elements in the process,
+                // by running the focusing steps for that element,
+                // and may change the scrolling position of the document, or perform
+                // some other action that brings the element to the user's attention.
 
-                    // Here we run focusing steps and scroll element into view.
-                    html_elem.Focus(cx, &FocusOptions::default());
-                    first = false;
-                }
+                // Here we run focusing steps and scroll element into view.
+                html_elem.Focus(cx, &FocusOptions::default());
+                first = false;
+            }
         }
 
         // If it's form-associated and has a validation anchor, point the
@@ -1473,14 +1472,15 @@ impl Element {
             textarea_element.reset(cx);
         } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {
             output_element.reset(cx);
-        } else if let Some(html_element) = self.downcast::<HTMLElement>()
-            && html_element.is_form_associated_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    html_element.upcast::<Element>(),
-                    CallbackReaction::FormReset,
-                    None,
-                )
-            }
+        } else if let Some(html_element) = self.downcast::<HTMLElement>() &&
+            html_element.is_form_associated_custom_element()
+        {
+            ScriptThread::enqueue_callback_reaction(
+                html_element.upcast::<Element>(),
+                CallbackReaction::FormReset,
+                None,
+            )
+        }
     }
 }
 
@@ -1719,16 +1719,17 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                 new_owner.add_control(self, can_gc);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
-            if let Some(html_elem) = elem.downcast::<HTMLElement>()
-                && html_elem.is_form_associated_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
-                        elem,
-                        CallbackReaction::FormAssociated(
-                            new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
-                        ),
-                        None,
-                    )
-                }
+            if let Some(html_elem) = elem.downcast::<HTMLElement>() &&
+                html_elem.is_form_associated_custom_element()
+            {
+                ScriptThread::enqueue_callback_reaction(
+                    elem,
+                    CallbackReaction::FormAssociated(
+                        new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
+                    ),
+                    None,
+                )
+            }
             self.set_form_owner(new_owner.as_deref());
         }
     }

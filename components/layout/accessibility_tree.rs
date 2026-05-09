@@ -207,10 +207,9 @@ impl AccessibilityNode {
     ) {
         self.set_role(role_from_dom_node(dom_node));
         if dom_node.is_element() {
-            if any_descendant_updated
-                && let Some(text) = self.label_from_descendants(tree) {
-                    self.set_label(text.as_str());
-                }
+            if any_descendant_updated && let Some(text) = self.label_from_descendants(tree) {
+                self.set_label(text.as_str());
+            }
         } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");

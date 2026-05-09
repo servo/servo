@@ -219,31 +219,32 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
-                        if let Some(event) = event.downcast::<ErrorEvent>()
-                            && (object.is::<Window>() || object.is::<WorkerGlobalScope>()) {
-                                rooted!(&in(cx) let mut error: JSVal);
-                                event.Error(cx.into(), error.handle_mut());
-                                rooted!(&in(cx) let mut rooted_return_value: JSVal);
-                                let return_value = handler.Call_(
-                                    cx,
-                                    object,
-                                    EventOrString::String(event.Message()),
-                                    Some(event.Filename()),
-                                    Some(event.Lineno()),
-                                    Some(event.Colno()),
-                                    Some(error.handle()),
-                                    rooted_return_value.handle_mut(),
-                                    exception_handle,
-                                );
-                                // Step 4
-                                if let Ok(()) = return_value
-                                    && rooted_return_value.handle().is_boolean() &&
-                                        rooted_return_value.handle().to_boolean()
-                                    {
-                                        event.upcast::<Event>().PreventDefault();
-                                    }
-                                return return_value;
+                        if let Some(event) = event.downcast::<ErrorEvent>() &&
+                            (object.is::<Window>() || object.is::<WorkerGlobalScope>())
+                        {
+                            rooted!(&in(cx) let mut error: JSVal);
+                            event.Error(cx.into(), error.handle_mut());
+                            rooted!(&in(cx) let mut rooted_return_value: JSVal);
+                            let return_value = handler.Call_(
+                                cx,
+                                object,
+                                EventOrString::String(event.Message()),
+                                Some(event.Filename()),
+                                Some(event.Lineno()),
+                                Some(event.Colno()),
+                                Some(error.handle()),
+                                rooted_return_value.handle_mut(),
+                                exception_handle,
+                            );
+                            // Step 4
+                            if let Ok(()) = return_value &&
+                                rooted_return_value.handle().is_boolean() &&
+                                rooted_return_value.handle().to_boolean()
+                            {
+                                event.upcast::<Event>().PreventDefault();
                             }
+                            return return_value;
+                        }
 
                         rooted!(&in(cx) let mut rooted_return_value: JSVal);
                         handler.Call_(
@@ -566,11 +567,12 @@ impl EventTarget {
     pub(crate) fn remove_listener(&self, ty: &Atom, entry: &Rc<RefCell<EventListenerEntry>>) {
         let mut handlers = self.handlers.borrow_mut();
 
-        if let Some(entries) = handlers.get_mut(ty)
-            && let Some(position) = entries.iter().position(|e| *e == *entry) {
-                entries.remove(position).borrow_mut().removed = true;
-                self.notify_listener_removed(ty);
-            }
+        if let Some(entries) = handlers.get_mut(ty) &&
+            let Some(position) = entries.iter().position(|e| *e == *entry)
+        {
+            entries.remove(position).borrow_mut().removed = true;
+            self.notify_listener_removed(ty);
+        }
     }
 
     /// Determines the `passive` attribute of an associated event listener
@@ -1034,10 +1036,11 @@ impl EventTarget {
             if !a_root.is::<ShadowRoot>() {
                 return a;
             }
-            if let Some(b_node) = b.downcast::<Node>()
-                && a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
-                    return a;
-                }
+            if let Some(b_node) = b.downcast::<Node>() &&
+                a_root.is_shadow_including_inclusive_ancestor_of(b_node)
+            {
+                return a;
+            }
 
             // Step 2. Set A to A’s root’s host.
             a = DomRoot::from_ref(

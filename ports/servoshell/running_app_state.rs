@@ -391,10 +391,11 @@ impl RunningAppState {
                 return true;
             }
 
-            if let Some(focused_window) = self.focused_window()
-                && Rc::ptr_eq(window, &focused_window) {
-                    *self.focused_window.borrow_mut() = None;
-                }
+            if let Some(focused_window) = self.focused_window() &&
+                Rc::ptr_eq(window, &focused_window)
+            {
+                *self.focused_window.borrow_mut() = None;
+            }
             false
         });
     }

@@ -262,10 +262,11 @@ impl EventSourceContext {
             return;
         }
         // Step 3
-        if let Some(last) = self.data.pop()
-            && last != '\n' {
-                self.data.push(last);
-            }
+        if let Some(last) = self.data.pop() &&
+            last != '\n'
+        {
+            self.data.push(last);
+        }
         // Step 6
         let type_ = if !self.event_type.is_empty() {
             Atom::from(self.event_type.clone())

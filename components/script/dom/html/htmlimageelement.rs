@@ -268,13 +268,14 @@ impl FetchResponseListener for ImageContext {
         });
 
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
-        if let Some(metadata) = metadata.as_ref()
-            && let Some(ref content_type) = metadata.content_type {
-                let mime: Mime = content_type.clone().into_inner().into();
-                if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
-                    self.aborted = true;
-                }
+        if let Some(metadata) = metadata.as_ref() &&
+            let Some(ref content_type) = metadata.content_type
+        {
+            let mime: Mime = content_type.clone().into_inner().into();
+            if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
+                self.aborted = true;
             }
+        }
 
         let status = metadata
             .as_ref()
@@ -735,10 +736,11 @@ impl HTMLImageElement {
 
             // Step 5.6. If child has a media attribute, and its value does not match the
             // environment, continue to the next child.
-            if let Some(media) = element.get_attribute(&local_name!("media"))
-                && !MediaList::matches_environment(&element.owner_document(), &media.value()) {
-                    continue;
-                }
+            if let Some(media) = element.get_attribute(&local_name!("media")) &&
+                !MediaList::matches_environment(&element.owner_document(), &media.value())
+            {
+                continue;
+            }
 
             // Step 5.7. Parse child's sizes attribute with img, and let source set's source size be
             // the returned value.
@@ -748,10 +750,11 @@ impl HTMLImageElement {
 
             // Step 5.8. If child has a type attribute, and its value is an unknown or unsupported
             // MIME type, continue to the next child.
-            if let Some(type_) = element.get_attribute(&local_name!("type"))
-                && !is_supported_image_mime_type(&type_.value()) {
-                    continue;
-                }
+            if let Some(type_) = element.get_attribute(&local_name!("type")) &&
+                !is_supported_image_mime_type(&type_.value())
+            {
+                continue;
+            }
 
             // Step 5.9. If child has width or height attributes, set el's dimension attribute
             // source to child. Otherwise, set el's dimension attribute source to el.
@@ -2144,10 +2147,11 @@ impl VirtualMethods for HTMLImageElement {
         }
 
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
-        if let Some(old_parent) = context.old_parent
-            && old_parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data(cx);
-            }
+        if let Some(old_parent) = context.old_parent &&
+            old_parent.is::<HTMLPictureElement>()
+        {
+            self.update_the_image_data(cx);
+        }
     }
 }
 

@@ -4124,10 +4124,11 @@ impl JsonWebKeyExt for JsonWebKey {
             }
             // 2. The "use" and "key_ops" JWK members SHOULD NOT be used together; however, if both
             //    are used, the information they convey MUST be consistent.
-            if let Some(ref use_) = self.use_
-                && key_ops.iter().any(|op| op != use_) {
-                    return Err(Error::Data(None));
-                }
+            if let Some(ref use_) = self.use_ &&
+                key_ops.iter().any(|op| op != use_)
+            {
+                return Err(Error::Data(None));
+            }
 
             // or does not contain all of the specified usages values
             let key_ops_as_usages = self.get_usages_from_key_ops()?;

@@ -78,10 +78,9 @@ impl fmt::Debug for Print {
                         result = Err(e)
                     }
                 });
-                if !any_symbol
-                    && let Err(e) = frame_fmt.print_raw(frame.ip(), None, None, None) {
-                        result = Err(e)
-                    }
+                if !any_symbol && let Err(e) = frame_fmt.print_raw(frame.ip(), None, None, None) {
+                    result = Err(e)
+                }
                 result.is_ok()
             });
             result?;

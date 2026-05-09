@@ -1087,11 +1087,12 @@ impl IndexedDBManager {
             };
             let mut pruned = false;
             let front_is_pending = queue.front().map(|record| record.is_pending());
-            if let Some(is_pending) = front_is_pending
-                && !is_pending {
-                    queue.pop_front().expect("Queue has a non-pending item.");
-                    pruned = true
-                }
+            if let Some(is_pending) = front_is_pending &&
+                !is_pending
+            {
+                queue.pop_front().expect("Queue has a non-pending item.");
+                pruned = true
+            }
             (queue.is_empty(), pruned)
         };
         if is_empty {
@@ -1224,10 +1225,11 @@ impl IndexedDBManager {
                     queue.retain_mut(|open_request| {
                         if ids.contains(&open_request.get_id()) {
                             let old = open_request.abort();
-                            if version_to_revert.is_none()
-                                && let Some(old) = old {
-                                    version_to_revert = Some(old);
-                                }
+                            if version_to_revert.is_none() &&
+                                let Some(old) = old
+                            {
+                                version_to_revert = Some(old);
+                            }
                             false
                         } else {
                             true

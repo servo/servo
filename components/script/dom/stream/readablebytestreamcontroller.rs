@@ -866,7 +866,10 @@ impl ReadableByteStreamController {
 
             // If the remainder after dividing firstPendingPullInto’s bytes filled by
             // firstPendingPullInto’s element size is not 0,
-            if !first_pending_pull_into.bytes_filled.get().is_multiple_of(first_pending_pull_into.element_size)
+            if !first_pending_pull_into
+                .bytes_filled
+                .get()
+                .is_multiple_of(first_pending_pull_into.element_size)
             {
                 // needed to drop the borrow and avoid BorrowMutError
                 drop(pending_pull_intos);
@@ -1133,7 +1136,10 @@ impl ReadableByteStreamController {
             // Assert: the remainder after dividing pullIntoDescriptor’s bytes filled
             // by pullIntoDescriptor’s element size is 0.
             assert!(
-                pull_into_descriptor.bytes_filled.get().is_multiple_of(pull_into_descriptor.element_size)
+                pull_into_descriptor
+                    .bytes_filled
+                    .get()
+                    .is_multiple_of(pull_into_descriptor.element_size)
             );
 
             // Set done to true.

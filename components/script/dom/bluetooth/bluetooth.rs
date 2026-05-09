@@ -676,10 +676,11 @@ impl PermissionAlgorithm for Bluetooth {
         // Step 6.
         for allowed_device in allowed_devices.iter() {
             // Step 6.1.
-            if let Some(ref id) = descriptor.deviceId
-                && &allowed_device.deviceId != id {
-                    continue;
-                }
+            if let Some(ref id) = descriptor.deviceId &&
+                &allowed_device.deviceId != id
+            {
+                continue;
+            }
             let device_id = String::from(allowed_device.deviceId.str());
 
             // Step 6.2.

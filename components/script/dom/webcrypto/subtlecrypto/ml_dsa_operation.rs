@@ -1104,18 +1104,20 @@ fn convert_seed_to_handles(
     let handles = match algorithm_name {
         CryptoAlgorithm::MlDsa44 => {
             let key_pair = MlDsa44::key_gen_internal(&seed);
-            if let Some(private_key_bytes) = private_key_bytes
-                && private_key_bytes != key_pair.signing_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
-            if let Some(public_key_bytes) = public_key_bytes
-                && public_key_bytes != key_pair.verifying_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != key_pair.signing_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
+            }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != key_pair.verifying_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
+            }
 
             (
                 Handle::MlDsa44PrivateKey(seed),
@@ -1124,18 +1126,20 @@ fn convert_seed_to_handles(
         },
         CryptoAlgorithm::MlDsa65 => {
             let key_pair = MlDsa65::key_gen_internal(&seed);
-            if let Some(private_key_bytes) = private_key_bytes
-                && private_key_bytes != key_pair.signing_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
-            if let Some(public_key_bytes) = public_key_bytes
-                && public_key_bytes != key_pair.verifying_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != key_pair.signing_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
+            }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != key_pair.verifying_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
+            }
 
             (
                 Handle::MlDsa65PrivateKey(seed),
@@ -1144,18 +1148,20 @@ fn convert_seed_to_handles(
         },
         CryptoAlgorithm::MlDsa87 => {
             let key_pair = MlDsa87::key_gen_internal(&seed);
-            if let Some(private_key_bytes) = private_key_bytes
-                && private_key_bytes != key_pair.signing_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
-            if let Some(public_key_bytes) = public_key_bytes
-                && public_key_bytes != key_pair.verifying_key().encode().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != key_pair.signing_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
+            }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != key_pair.verifying_key().encode().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
+            }
 
             (
                 Handle::MlDsa87PrivateKey(seed),

@@ -572,13 +572,13 @@ impl Iterator for RopeMovementIterator<'_> {
         assert!(self.slice.start.line < self.slice.rope.lines.len());
         let line = self.slice.rope.line_for_index(self.slice.start);
 
-        if self.slice.start.code_point < line.len() + 1
-            && let Some(end_offset) =
+        if self.slice.start.code_point < line.len() + 1 &&
+            let Some(end_offset) =
                 (self.end_of_forward_motion)(&self.slice, &line[self.slice.start.code_point..])
-            {
-                self.slice.start.code_point += end_offset;
-                return Some(self.slice.start);
-            }
+        {
+            self.slice.start.code_point += end_offset;
+            return Some(self.slice.start);
+        }
 
         // Advance the line as we are at the end of the line.
         self.slice.start = self.slice.rope.start_of_following_line(self.slice.start);
@@ -594,13 +594,13 @@ impl DoubleEndedIterator for RopeMovementIterator<'_> {
         }
 
         let line = self.slice.rope.line_for_index(self.slice.end);
-        if self.slice.end.code_point > 0
-            && let Some(new_start_index) =
+        if self.slice.end.code_point > 0 &&
+            let Some(new_start_index) =
                 (self.start_of_backward_motion)(&self.slice, &line[..self.slice.end.code_point])
-            {
-                self.slice.end.code_point = new_start_index;
-                return Some(self.slice.end);
-            }
+        {
+            self.slice.end.code_point = new_start_index;
+            return Some(self.slice.end);
+        }
 
         // Decrease the line index as we are at the start of the line.
         self.slice.end = self.slice.rope.end_of_preceding_line(self.slice.end);

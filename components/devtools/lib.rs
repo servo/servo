@@ -888,14 +888,15 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     stream.set_read_timeout(Some(timeout)).unwrap();
     let peek = stream.peek(&mut buf);
     stream.set_read_timeout(None).unwrap();
-    if let Ok(len) = peek
-        && len == buf.len()
-            && let Ok(s) = std::str::from_utf8(&buf)
-                && s == token {
-                    // Consume the message as it was relevant to us.
-                    let _ = stream.read_exact(&mut buf);
-                    return true;
-                };
+    if let Ok(len) = peek &&
+        len == buf.len() &&
+        let Ok(s) = std::str::from_utf8(&buf) &&
+        s == token
+    {
+        // Consume the message as it was relevant to us.
+        let _ = stream.read_exact(&mut buf);
+        return true;
+    };
 
     // No token found. Prompt user
     let (request_sender, request_receiver) =

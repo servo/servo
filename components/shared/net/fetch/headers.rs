@@ -68,17 +68,18 @@ pub fn get_decode_and_split_header_value(value: Vec<u8>) -> Vec<String> {
 
         // Step 5.2. If position is not past the end of input and the code point
         // at position within input is U+0022 ("):
-        if let Some(&ch) = position.peek()
-            && ch == '\u{0022}' {
-                // Step 5.2.1. Append the result of collecting an HTTP quoted string from input,
-                // given position, to temporaryValue.
-                temporary_value += &*collect_http_quoted_string(&mut position, false);
+        if let Some(&ch) = position.peek() &&
+            ch == '\u{0022}'
+        {
+            // Step 5.2.1. Append the result of collecting an HTTP quoted string from input,
+            // given position, to temporaryValue.
+            temporary_value += &*collect_http_quoted_string(&mut position, false);
 
-                // Step 5.2.2. If position is not past the end of input, then continue.
-                if position.peek().is_some() {
-                    continue;
-                }
+            // Step 5.2.2. If position is not past the end of input, then continue.
+            if position.peek().is_some() {
+                continue;
             }
+        }
 
         // Step 5.3. Remove all HTTP tab or space from the start and end of temporaryValue.
         temporary_value = temporary_value.trim_matches(HTTP_TAB_OR_SPACE).to_string();

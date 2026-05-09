@@ -188,20 +188,22 @@ fn abort_fetch_call(
     // Step 1. Reject promise with error.
     promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    if let Some(body) = request.body()
-        && body.is_readable() {
-            body.cancel(cx, global, abort_reason);
-        }
+    if let Some(body) = request.body() &&
+        body.is_readable()
+    {
+        body.cancel(cx, global, abort_reason);
+    }
     // Step 3. If responseObject is null, then return.
     // Step 4. Let response be responseObject’s response.
     let Some(response) = response_object else {
         return;
     };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    if let Some(body) = response.body()
-        && body.is_readable() {
-            body.error(cx, abort_reason);
-        }
+    if let Some(body) = response.body() &&
+        body.is_readable()
+    {
+        body.error(cx, abort_reason);
+    }
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -642,10 +644,11 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
-        if let Err(ref error) = response
-            && *error == NetworkError::DecompressionError {
-                response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
-            }
+        if let Err(ref error) = response &&
+            *error == NetworkError::DecompressionError
+        {
+            response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
+        }
         response_object.finish(cx);
         // TODO
         // ... trailerObject is not supported in Servo yet.

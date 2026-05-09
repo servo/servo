@@ -260,20 +260,21 @@ impl DocumentEventHandler {
             if let Some(existing_constellation_wheel_event) = self
                 .wheel_event_index
                 .borrow()
-                .and_then(|index| pending_input_events.get_mut(index))
-                && let InputEvent::Wheel(ref mut existing_wheel_event) =
-                    existing_constellation_wheel_event.event.event
-                    && existing_wheel_event.delta.mode == new_wheel_event.delta.mode {
-                        self.coalesced_wheel_event_ids
-                            .borrow_mut()
-                            .push(existing_constellation_wheel_event.event.id);
-                        existing_wheel_event.delta.x += new_wheel_event.delta.x;
-                        existing_wheel_event.delta.y += new_wheel_event.delta.y;
-                        existing_wheel_event.delta.z += new_wheel_event.delta.z;
-                        existing_wheel_event.point = new_wheel_event.point;
-                        existing_constellation_wheel_event.event.id = event.event.id;
-                        return;
-                    }
+                .and_then(|index| pending_input_events.get_mut(index)) &&
+                let InputEvent::Wheel(ref mut existing_wheel_event) =
+                    existing_constellation_wheel_event.event.event &&
+                existing_wheel_event.delta.mode == new_wheel_event.delta.mode
+            {
+                self.coalesced_wheel_event_ids
+                    .borrow_mut()
+                    .push(existing_constellation_wheel_event.event.id);
+                existing_wheel_event.delta.x += new_wheel_event.delta.x;
+                existing_wheel_event.delta.y += new_wheel_event.delta.y;
+                existing_wheel_event.delta.z += new_wheel_event.delta.z;
+                existing_wheel_event.point = new_wheel_event.point;
+                existing_constellation_wheel_event.event.id = event.event.id;
+                return;
+            }
 
             *self.wheel_event_index.borrow_mut() = Some(pending_input_events.len());
         }
@@ -740,19 +741,19 @@ impl DocumentEventHandler {
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
-        if let Some(target) = self.current_hover_target.get()
-            && let Some(anchor) = target
+        if let Some(target) = self.current_hover_target.get() &&
+            let Some(anchor) = target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::Yes)
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
-            {
-                let status = anchor
-                    .full_href_url_for_user_interface()
-                    .map(|url| url.to_string());
-                self.window
-                    .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
-                return;
-            }
+        {
+            let status = anchor
+                .full_href_url_for_user_interface()
+                .map(|url| url.to_string());
+            self.window
+                .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
+            return;
+        }
 
         // No state was set above, which means that the new value of the status in the embedder
         // should be `None`. Set that now. If `previous_hover_target` is `None` that means this
@@ -787,10 +788,11 @@ impl DocumentEventHandler {
     fn set_active_element(&self, original_target: &Element) {
         let find_element_for_activation = |element: &Element| {
             let node: &Node = element.upcast();
-            if node.is_in_ua_widget()
-                && let Some(containing_shadow_root) = node.containing_shadow_root() {
-                    return containing_shadow_root.Host();
-                }
+            if node.is_in_ua_widget() &&
+                let Some(containing_shadow_root) = node.containing_shadow_root()
+            {
+                return containing_shadow_root.Host();
+            }
 
             // If the element is a label, the activable element is the control element.
             if node.type_id() ==
@@ -2063,12 +2065,13 @@ impl DocumentEventHandler {
         // > starting point, then let starting point be the sequential focus navigation starting point
         // > instead.
         if let Some(sequential_focus_navigation_starting_point) =
-            self.sequential_focus_navigation_starting_point()
-            && starting_point.as_ref().is_none_or(|starting_point| {
+            self.sequential_focus_navigation_starting_point() &&
+            starting_point.as_ref().is_none_or(|starting_point| {
                 starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
-            }) {
-                starting_point = Some(sequential_focus_navigation_starting_point);
-            }
+            })
+        {
+            starting_point = Some(sequential_focus_navigation_starting_point);
+        }
 
         // > 3. Let direction be "forward" if the user requested the next control, and "backward" if
         // > the user requested the previous control.

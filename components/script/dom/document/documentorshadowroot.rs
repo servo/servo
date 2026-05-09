@@ -214,10 +214,11 @@ impl DocumentOrShadowRoot {
             .collect();
 
         // Step 4
-        if let Some(root_element) = document_element
-            && elements.last() != Some(&root_element) {
-                elements.push(root_element);
-            }
+        if let Some(root_element) = document_element &&
+            elements.last() != Some(&root_element)
+        {
+            elements.push(root_element);
+        }
 
         // Step 5
         elements

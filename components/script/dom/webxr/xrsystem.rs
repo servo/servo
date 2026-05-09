@@ -89,13 +89,14 @@ impl XRSystem {
     /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
     pub(crate) fn end_session(&self, session: &XRSession) {
         // Step 3
-        if let Some(active) = self.active_immersive_session.get()
-            && Dom::from_ref(&*active) == Dom::from_ref(session) {
-                self.active_immersive_session.set(None);
-                // Dirty the canvas, since it has been skipping this step whilst in immersive
-                // mode
-                session.dirty_layers();
-            }
+        if let Some(active) = self.active_immersive_session.get() &&
+            Dom::from_ref(&*active) == Dom::from_ref(session)
+        {
+            self.active_immersive_session.set(None);
+            // Dirty the canvas, since it has been skipping this step whilst in immersive
+            // mode
+            session.dirty_layers();
+        }
         self.active_inline_sessions
             .borrow_mut()
             .retain(|sess| Dom::from_ref(&**sess) != Dom::from_ref(session));

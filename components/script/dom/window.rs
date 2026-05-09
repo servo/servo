@@ -2476,10 +2476,11 @@ impl Window {
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
             let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active()
-                && currently_active == pipeline_id {
-                    self.window_proxy.set(None);
-                }
+            if let Some(currently_active) = proxy.currently_active() &&
+                currently_active == pipeline_id
+            {
+                self.window_proxy.set(None);
+            }
         }
 
         if let Some(performance) = self.performance.get() {

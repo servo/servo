@@ -249,10 +249,11 @@ impl CrossProcessPaintApi {
         callback: Option<Box<dyn Fn(PaintMessage) + Send + 'static>>,
     ) -> Self {
         let callback = GenericCallback::new(move |msg| {
-            if let Some(ref handler) = callback
-                && let Ok(paint_message) = msg {
-                    handler(paint_message);
-                }
+            if let Some(ref handler) = callback &&
+                let Ok(paint_message) = msg
+            {
+                handler(paint_message);
+            }
         })
         .unwrap();
         Self(callback)

@@ -3195,11 +3195,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // generate an INVALID_OPERATION error if they upload data from a PIXEL_UNPACK_BUFFER or a non-null client
         // side ArrayBufferView.
         if let (Some(AlphaTreatment::Premultiply), YAxisTreatment::Flipped) =
-            (alpha_treatment, y_axis_treatment)
-            && src_data.is_some() {
-                self.base.webgl_error(InvalidOperation);
-                return Ok(());
-            }
+            (alpha_treatment, y_axis_treatment) &&
+            src_data.is_some()
+        {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        }
         let tex_source = TexPixels::from_array(
             buff,
             Size2D::new(width, height),
@@ -3285,11 +3286,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             },
         };
 
-        if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get()
-            && pixel_unpack_buffer == tf_buffer {
-                self.base.webgl_error(InvalidOperation);
-                return Ok(());
-            }
+        if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get() &&
+            pixel_unpack_buffer == tf_buffer
+        {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        }
 
         if pbo_offset < 0 || pbo_offset as usize > pixel_unpack_buffer.capacity() {
             self.base.webgl_error(InvalidValue);
@@ -4258,11 +4260,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                     self.base.webgl_error(InvalidOperation);
                     return;
                 }
-                if let Some(current_tf) = self.current_transform_feedback.get()
-                    && current_tf.is_active() && !current_tf.is_paused() {
-                        self.base.webgl_error(InvalidOperation);
-                        return;
-                    }
+                if let Some(current_tf) = self.current_transform_feedback.get() &&
+                    current_tf.is_active() &&
+                    !current_tf.is_paused()
+                {
+                    self.base.webgl_error(InvalidOperation);
+                    return;
+                }
                 transform_feedback.bind(&self.base, target);
                 self.current_transform_feedback
                     .set(Some(transform_feedback));
