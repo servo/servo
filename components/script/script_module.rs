@@ -1315,8 +1315,8 @@ pub(crate) fn fetch_a_modulepreload_module(
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
-            if pref!(dom_allow_preloading_module_descendants) {
-                if let Some(module) = result {
+            if pref!(dom_allow_preloading_module_descendants)
+                && let Some(module) = result {
                     fetch_the_descendants_and_link_module_script(
                         cx,
                         &global_scope,
@@ -1326,7 +1326,6 @@ pub(crate) fn fetch_a_modulepreload_module(
                         |_, _| {},
                     );
                 }
-            }
         },
     );
 }

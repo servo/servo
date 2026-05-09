@@ -116,11 +116,10 @@ impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled>
     fn SetEnabled(&self, value: bool) {
-        if let Some(list) = self.track_list.borrow().as_ref() {
-            if let Some(idx) = list.find(self) {
+        if let Some(list) = self.track_list.borrow().as_ref()
+            && let Some(idx) = list.find(self) {
                 list.set_enabled(idx, value);
             }
-        }
         self.set_enabled(value);
     }
 }

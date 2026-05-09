@@ -1247,11 +1247,10 @@ impl VirtualMethods for HTMLScriptElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("src") {
-            if let AttributeMutation::Set(..) = mutation {
-                if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
+            if let AttributeMutation::Set(..) = mutation
+                && !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
                     self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
                 }
-            }
         } else if *attr.local_name() == local_name!("blocking") &&
             !self.has_render_blocking_attribute() &&
             self.marked_as_render_blocking.replace(false)

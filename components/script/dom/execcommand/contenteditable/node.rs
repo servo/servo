@@ -245,14 +245,13 @@ pub(crate) fn is_allowed_child(child: NodeOrString, parent: NodeOrString) -> boo
         return false;
     }
     // Step 3. If child is a document, DocumentFragment, or DocumentType, return false.
-    if let NodeOrString::Node(ref node) = child {
-        if matches!(
+    if let NodeOrString::Node(ref node) = child
+        && matches!(
             node.type_id(),
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::DocumentType
         ) {
             return false;
         }
-    }
     // Step 4. If child is an HTML element, set child to the local name of child.
     let child_name = match child {
         NodeOrString::String(str_) => str_,
@@ -435,9 +434,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         }
         // Step 6.2. If precedes line break is true, and the last member of node list does not precede a line break,
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
-        if precedes_line_break {
-            if let Some(last) = node_list.last() {
-                if !last.precedes_a_line_break() {
+        if precedes_line_break
+            && let Some(last) = node_list.last()
+                && !last.precedes_a_line_break() {
                     let br = context_object.create_element(cx, "br");
                     if last
                         .GetParentNode()
@@ -448,8 +447,6 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
                         unreachable!("Must always be able to append");
                     }
                 }
-            }
-        }
         // Step 6.3. Remove extraneous line breaks at the end of original parent.
         original_parent.remove_extraneous_line_breaks_at_the_end_of(cx);
         // Step 6.4. Abort these steps.
@@ -479,14 +476,12 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
                 .first()
                 .and_then(|first| first.GetPreviousSibling())
                 .is_some()
-            {
-                if let Some(first_of_original) = original_parent.children().next() {
+                && let Some(first_of_original) = original_parent.children().next() {
                     move_preserving_ranges(cx, &first_of_original, |cx| {
                         cloned_parent.AppendChild(cx, &first_of_original)
                     });
                     continue;
                 }
-            }
             break;
         }
     }
@@ -498,9 +493,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
     }
     // Step 9. If follows line break is true, and the first member of node list does not follow a line break,
     // call createElement("br") on the context object and insert the result immediately before the first member of node list.
-    if follows_line_break {
-        if let Some(first) = node_list.first() {
-            if !first.follows_a_line_break() {
+    if follows_line_break
+        && let Some(first) = node_list.first()
+            && !first.follows_a_line_break() {
                 let br = context_object.create_element(cx, "br");
                 if first
                     .GetParentNode()
@@ -511,8 +506,6 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
                     unreachable!("Must always be able to insert");
                 }
             }
-        }
-    }
     // Step 10. If the last member of node list is an inline node other than a br,
     // and the first child of original parent is a br, and original parent is not an inline node,
     // remove the first child of original parent from original parent.
@@ -520,14 +513,11 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         .last()
         .is_some_and(|last| last.is_inline_node() && !last.is::<HTMLBRElement>()) &&
         !original_parent.is_inline_node()
-    {
-        if let Some(first_of_original) = original_parent.children().next() {
-            if first_of_original.is::<HTMLBRElement>() {
+        && let Some(first_of_original) = original_parent.children().next()
+            && first_of_original.is::<HTMLBRElement>() {
                 assert!(first_of_original.has_parent());
                 first_of_original.remove_self(cx);
             }
-        }
-    }
     // Step 11. If original parent has no children:
     if original_parent.children_count() == 0 {
         // Step 11.1. Remove original parent from its parent.
@@ -535,9 +525,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         original_parent.remove_self(cx);
         // Step 11.2. If precedes line break is true, and the last member of node list does not precede a line break,
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
-        if precedes_line_break {
-            if let Some(last) = node_list.last() {
-                if !last.precedes_a_line_break() {
+        if precedes_line_break
+            && let Some(last) = node_list.last()
+                && !last.precedes_a_line_break() {
                     let br = context_object.create_element(cx, "br");
                     if last
                         .GetParentNode()
@@ -548,21 +538,17 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
                         unreachable!("Must always be able to insert");
                     }
                 }
-            }
-        }
     } else {
         // Step 12. Otherwise, remove extraneous line breaks before original parent.
         original_parent.remove_extraneous_line_breaks_before(cx);
     }
     // Step 13. If node list's last member's nextSibling is null, but its parent is not null,
     // remove extraneous line breaks at the end of node list's last member's parent.
-    if let Some(last) = node_list.last() {
-        if last.GetNextSibling().is_none() {
-            if let Some(parent_of_last) = last.GetParentNode() {
+    if let Some(last) = node_list.last()
+        && last.GetNextSibling().is_none()
+            && let Some(parent_of_last) = last.GetParentNode() {
                 parent_of_last.remove_extraneous_line_breaks_at_the_end_of(cx);
             }
-        }
-    }
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#wrap>
@@ -589,15 +575,12 @@ where
     // Step 3. If node list's last member is an inline node that's not a br,
     // and node list's last member's nextSibling is a br, append that br to node list.
     let mut node_list = node_list;
-    if let Some(last) = node_list.last() {
-        if last.is_inline_node() && !last.is::<HTMLBRElement>() {
-            if let Some(next_of_last) = last.GetNextSibling() {
-                if next_of_last.is::<HTMLBRElement>() {
+    if let Some(last) = node_list.last()
+        && last.is_inline_node() && !last.is::<HTMLBRElement>()
+            && let Some(next_of_last) = last.GetNextSibling()
+                && next_of_last.is::<HTMLBRElement>() {
                     node_list.push(next_of_last);
                 }
-            }
-        }
-    }
     // Step 4. While node list's first member's previousSibling is invisible, prepend it to node list.
     while let Some(previous_of_first) = node_list.first().and_then(|last| last.GetPreviousSibling())
     {
@@ -755,8 +738,8 @@ where
         original_parent.remove_self(cx);
     }
     // Step 15. If new parent's nextSibling is editable and running sibling criteria on it returns true:
-    if let Some(next_of_new_parent) = new_parent.GetNextSibling() {
-        if next_of_new_parent.is_editable() && sibling_criteria(&next_of_new_parent) {
+    if let Some(next_of_new_parent) = new_parent.GetNextSibling()
+        && next_of_new_parent.is_editable() && sibling_criteria(&next_of_new_parent) {
             // Step 15.1. If new parent is not an inline node,
             // but new parent's last child and new parent's nextSibling's first child are both inline nodes,
             // and new parent's last child is not a br, call createElement("br") on the ownerDocument
@@ -766,8 +749,8 @@ where
                     .children_unrooted(cx.no_gc())
                     .last()
                     .map(|node| node.as_rooted());
-                if let Some(last_child_of_new_parent) = child {
-                    if last_child_of_new_parent.is_inline_node() &&
+                if let Some(last_child_of_new_parent) = child
+                    && last_child_of_new_parent.is_inline_node() &&
                         !last_child_of_new_parent.is::<HTMLBRElement>() &&
                         next_of_new_parent
                             .children()
@@ -779,7 +762,6 @@ where
                             unreachable!("Must always be able to append");
                         }
                     }
-                }
             }
             // Step 15.2. While new parent's nextSibling has children,
             // append its first child as the last child of new parent, preserving ranges.
@@ -789,7 +771,6 @@ where
             // Step 15.3. Remove new parent's nextSibling from its parent.
             next_of_new_parent.remove_self(cx);
         }
-    }
     // Step 16. Remove extraneous line breaks from new parent.
     new_parent.remove_extraneous_line_breaks_from(cx);
     // Step 17. Return new parent.
@@ -1008,11 +989,10 @@ impl Node {
                 .children()
                 .collect::<Vec<DomRoot<Node>>>();
             // Step 11.5. If the specified command value of current ancestor for command is not null, clear the value of current ancestor.
-            if has_command_value {
-                if let Some(html_element) = current_ancestor.downcast::<HTMLElement>() {
+            if has_command_value
+                && let Some(html_element) = current_ancestor.downcast::<HTMLElement>() {
                     html_element.clear_the_value(cx, command);
                 }
-            }
             // Step 11.6. For every child in children:
             for child in children {
                 // Step 11.6.1. If child is node, continue with the next child.
@@ -1063,8 +1043,8 @@ impl Node {
         // and candidate is not a simple modifiable element or candidate's specified command value
         // for command is not equivalent to new value, set candidate to its child.
         loop {
-            if let Some(candidate_element) = candidate.downcast::<Element>() {
-                if candidate_element.is_modifiable_element() &&
+            if let Some(candidate_element) = candidate.downcast::<Element>()
+                && candidate_element.is_modifiable_element() &&
                     candidate.children_count() == 1 &&
                     (!candidate_element.is_simple_modifiable_element() ||
                         !command.are_equivalent_values(
@@ -1074,14 +1054,12 @@ impl Node {
                 {
                     let child = candidate.children().next().expect("Has one child");
 
-                    if let Some(child_element) = child.downcast::<Element>() {
-                        if child_element.is_modifiable_element() {
+                    if let Some(child_element) = child.downcast::<Element>()
+                        && child_element.is_modifiable_element() {
                             candidate = child;
                             continue;
                         }
-                    }
                 }
-            }
             break;
         }
         // Step 3. If candidate is node, or is not a simple modifiable element,
@@ -1095,16 +1073,15 @@ impl Node {
         {
             return;
         }
-        if let Some(candidate) = candidate.downcast::<Element>() {
-            if !candidate.is_simple_modifiable_element() ||
+        if let Some(candidate) = candidate.downcast::<Element>()
+            && (!candidate.is_simple_modifiable_element() ||
                 !command.are_equivalent_values(
                     candidate.specified_command_value(command).as_ref(),
                     Some(new_value),
-                )
+                ))
             {
                 return;
             }
-        }
         // Step 4. While candidate has children,
         // insert the first child of candidate into candidate's parent immediately before candidate, preserving ranges.
         let parent_of_candidate = candidate
@@ -1261,8 +1238,8 @@ impl Node {
                 // Step 10.5. If command is "foreColor", and new value is fully opaque with
                 // red, green, and blue components in the range 0 to 255:
                 CommandName::ForeColor => {
-                    if let Ok(legacy_color) = parse_legacy_color(&new_value.str()) {
-                        if legacy_color.alpha() == Some(OPAQUE) {
+                    if let Ok(legacy_color) = parse_legacy_color(&new_value.str())
+                        && legacy_color.alpha() == Some(OPAQUE) {
                             // Step 10.5.1. Let new parent be the result of calling createElement("font") on the ownerDocument of node.
                             let new_font_element = document.create_element(cx, "font");
                             // Step 10.5.2. Set the color attribute of new parent to the result of applying the rules for
@@ -1274,7 +1251,6 @@ impl Node {
                             );
                             new_parent = Some(new_font_element);
                         }
-                    }
                 },
                 // Step 10.6. If command is "fontName",
                 // let new parent be the result of calling createElement("font") on the ownerDocument of node,
@@ -1382,11 +1358,10 @@ impl Node {
                 .effective_command_value(command)
                 .as_ref(),
             Some(new_value),
-        ) {
-            if let Some(css_property) = command.relevant_css_property() {
+        )
+            && let Some(css_property) = command.relevant_css_property() {
                 css_property.set_for_element(cx, new_parent_html_element, new_value.clone());
             }
-        }
         #[expect(clippy::collapsible_match, reason = "That would be unreadable.")]
         match command {
             // Step 18. If command is "strikethrough", and new value is "line-through",
@@ -1761,25 +1736,22 @@ impl Node {
             // set start node to that child, then set start offset to start node's length.
             if start_offset > 0 {
                 let child = start_node.children().nth(start_offset as usize - 1);
-                if let Some(child) = child {
-                    if start_node.same_editing_host(&child) {
+                if let Some(child) = child
+                    && start_node.same_editing_host(&child) {
                         start_node = child;
                         start_offset = start_node.len();
                         continue;
-                    }
-                };
+                    };
             }
             // Step 3.2. Otherwise, if start offset is zero and start node does not follow a line break
             // and start node's parent is in the same editing host, set start offset to start node's index,
             // then set start node to its parent.
-            if start_offset == 0 && !start_node.follows_a_line_break() {
-                if let Some(parent) = start_node.GetParentNode() {
-                    if parent.same_editing_host(&start_node) {
+            if start_offset == 0 && !start_node.follows_a_line_break()
+                && let Some(parent) = start_node.GetParentNode()
+                    && parent.same_editing_host(&start_node) {
                         start_offset = start_node.index();
                         start_node = parent;
                     }
-                }
-            }
             // Step 3.3. Otherwise, if start node is a Text node and its parent's resolved
             // value for "white-space" is neither "pre" nor "pre-wrap" and start offset is not zero
             // and the (start offset − 1)st code unit of start node's data is a space (0x0020) or
@@ -1808,32 +1780,30 @@ impl Node {
         loop {
             // Step 7.1. If end node has a child in the same editing host with index end offset,
             // set end node to that child, then set end offset to zero.
-            if let Some(child) = end_node.children().nth(end_offset as usize) {
-                if child.same_editing_host(&end_node) {
+            if let Some(child) = end_node.children().nth(end_offset as usize)
+                && child.same_editing_host(&end_node) {
                     end_node = child;
                     end_offset = 0;
                     continue;
                 }
-            }
             // Step 7.2. Otherwise, if end offset is end node's length
             // and end node does not precede a line break
             // and end node's parent is in the same editing host,
             // set end offset to one plus end node's index, then set end node to its parent.
             if end_offset == end_node.len() && !end_node.precedes_a_line_break() {
-                if let Some(parent) = end_node.GetParentNode() {
-                    if parent.same_editing_host(&end_node) {
+                if let Some(parent) = end_node.GetParentNode()
+                    && parent.same_editing_host(&end_node) {
                         end_offset = 1 + end_node.index();
                         end_node = parent;
                     }
-                }
                 continue;
             }
             // Step 7.3. Otherwise, if end node is a Text node and its parent's resolved value for "white-space"
             // is neither "pre" nor "pre-wrap"
             // and end offset is not end node's length and the end offsetth code unit of end node's data
             // is a space (0x0020) or non-breaking space (0x00A0):
-            if let Some(text) = end_node.downcast::<Text>() {
-                if text.has_whitespace_and_has_parent_with_whitespace_preserve(
+            if let Some(text) = end_node.downcast::<Text>()
+                && text.has_whitespace_and_has_parent_with_whitespace_preserve(
                     end_offset,
                     &[&'\u{0020}', &'\u{00A0}'],
                 ) {
@@ -1868,7 +1838,6 @@ impl Node {
                     length += 1;
                     continue;
                 }
-            }
             // Step 7.4. Otherwise, break from this loop.
             break;
         }
@@ -1880,30 +1849,27 @@ impl Node {
             {
                 // Step 8.1. If end node has a child in the same editing host with index end offset − 1,
                 // set end node to that child, then set end offset to end node's length.
-                if end_offset > 0 {
-                    if let Some(child) = end_node.children().nth(end_offset as usize - 1) {
-                        if child.same_editing_host(&end_node) {
+                if end_offset > 0
+                    && let Some(child) = end_node.children().nth(end_offset as usize - 1)
+                        && child.same_editing_host(&end_node) {
                             end_node = child;
                             end_offset = end_node.len();
                             continue;
                         }
-                    }
-                }
                 // Step 8.2. Otherwise, if end offset is zero and end node's parent is in the same editing host,
                 // set end offset to end node's index, then set end node to its parent.
-                if let Some(parent) = end_node.GetParentNode() {
-                    if end_offset == 0 && parent.same_editing_host(&end_node) {
+                if let Some(parent) = end_node.GetParentNode()
+                    && end_offset == 0 && parent.same_editing_host(&end_node) {
                         end_offset = end_node.index();
                         end_node = parent;
                         continue;
                     }
-                }
                 // Step 8.3. Otherwise, if end node is a Text node and its parent's resolved value for "white-space"
                 // is neither "pre" nor "pre-wrap"
                 // and end offset is end node's length and the last code unit of end node's data
                 // is a space (0x0020) and end node precedes a line break:
-                if let Some(text) = end_node.downcast::<Text>() {
-                    if text.has_whitespace_and_has_parent_with_whitespace_preserve(
+                if let Some(text) = end_node.downcast::<Text>()
+                    && text.has_whitespace_and_has_parent_with_whitespace_preserve(
                         text.data().len() as u32,
                         &[&'\u{0020}'],
                     ) && end_node.precedes_a_line_break()
@@ -1922,7 +1888,6 @@ impl Node {
                         }
                         continue;
                     }
-                }
                 // Step 8.4. Otherwise, break from this loop.
                 break;
             }
@@ -1999,17 +1964,14 @@ impl Node {
             if ref_.is_invisible() &&
                 ref_.downcast::<HTMLBRElement>()
                     .is_none_or(|br| !br.is_extraneous_line_break())
-            {
-                if let Some(parent) = parent.as_ref() {
-                    if ref_ != *parent {
+                && let Some(parent) = parent.as_ref()
+                    && ref_ != *parent {
                         ref_ = match ref_.preceding_nodes(parent).nth(0) {
                             None => break,
                             Some(node) => node,
                         };
                         continue;
                     }
-                }
-            }
             break;
         }
         // Step 5. If ref is an editable extraneous line break, remove it from its parent.
@@ -2037,15 +1999,13 @@ impl Node {
                 *ref_ != *self &&
                 ref_.downcast::<HTMLBRElement>()
                     .is_none_or(|br| !br.is_extraneous_line_break())
-            {
-                if let Some(parent_of_ref) = ref_.GetParentNode() {
+                && let Some(parent_of_ref) = ref_.GetParentNode() {
                     ref_ = match ref_.preceding_nodes(&parent_of_ref).nth(0) {
                         None => break,
                         Some(node) => node,
                     };
                     continue;
                 }
-            }
             break;
         }
         // Step 4. If ref is an editable extraneous line break:
@@ -2055,12 +2015,11 @@ impl Node {
         {
             // Step 4.1. While ref's parent is editable and invisible, set ref to its parent.
             loop {
-                if let Some(parent) = ref_.GetParentNode() {
-                    if parent.is_editable() && parent.is_invisible() {
+                if let Some(parent) = ref_.GetParentNode()
+                    && parent.is_editable() && parent.is_invisible() {
                         ref_ = parent;
                         continue;
                     }
-                }
                 break;
             }
             // Step 4.2. Remove ref from its parent.

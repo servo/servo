@@ -414,15 +414,14 @@ impl Node {
             vtable_for(node).unbind_from_tree(cx, context);
 
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
-            if is_parent_connected {
-                if let Some(element) = node.as_custom_element() {
+            if is_parent_connected
+                && let Some(element) = node.as_custom_element() {
                     custom_element_reaction_stack.enqueue_callback_reaction(
                         &element,
                         CallbackReaction::Disconnected,
                         None,
                     );
                 }
-            }
         };
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
@@ -1336,11 +1335,10 @@ impl Node {
 
         // Step 3. If child is non-null and its parent is not newParent, then throw a
         // "NotFoundError" DOMException.
-        if let Some(child) = child {
-            if !new_parent.is_parent_of(child) {
+        if let Some(child) = child
+            && !new_parent.is_parent_of(child) {
                 return Err(Error::NotFound(None));
             }
-        }
 
         // Step 4. If node is not an Element or a CharacterData node, then throw a
         // "HierarchyRequestError" DOMException.
@@ -1446,13 +1444,11 @@ impl Node {
 
         // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
         // nodes is empty, then run signal a slot change for oldParent.
-        if old_parent.is_in_a_shadow_tree() {
-            if let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() {
-                if !slot_element.has_assigned_nodes() {
+        if old_parent.is_in_a_shadow_tree()
+            && let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>()
+                && !slot_element.has_assigned_nodes() {
                     slot_element.signal_a_slot_change();
                 }
-            }
-        }
 
         // Step 16. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
@@ -1495,24 +1491,20 @@ impl Node {
         if let Some(shadow_root) = new_parent
             .downcast::<Element>()
             .and_then(Element::shadow_root)
-        {
-            if shadow_root.SlotAssignment() == SlotAssignmentMode::Named &&
+            && shadow_root.SlotAssignment() == SlotAssignmentMode::Named &&
                 (node.is::<Element>() || node.is::<Text>())
             {
                 rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(node)));
                 slottable.assign_a_slot();
             }
-        }
 
         // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
         // nodes is empty, then run signal a slot change for newParent.
-        if new_parent.is_in_a_shadow_tree() {
-            if let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() {
-                if !slot_element.has_assigned_nodes() {
+        if new_parent.is_in_a_shadow_tree()
+            && let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>()
+                && !slot_element.has_assigned_nodes() {
                     slot_element.signal_a_slot_change();
                 }
-            }
-        }
 
         // Step 23. Run assign slottables for a tree with node’s root.
         node.GetRootNode(&GetRootNodeOptions::empty())
@@ -1532,8 +1524,8 @@ impl Node {
             }
 
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
-            if let Some(descendant) = descendant.downcast::<Element>() {
-                if descendant.is_custom() && new_parent.is_connected() {
+            if let Some(descendant) = descendant.downcast::<Element>()
+                && descendant.is_custom() && new_parent.is_connected() {
                     // then enqueue a custom element callback reaction with
                     // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
                     let custom_element_reaction_stack =
@@ -1544,7 +1536,6 @@ impl Node {
                         None,
                     );
                 }
-            }
         }
 
         // Step 25. Queue a tree mutation record for oldParent with « », « node »,
@@ -1638,11 +1629,10 @@ impl Node {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: move |n| {
-                if shadow_including == ShadowIncluding::Yes {
-                    if let Some(shadow_root) = n.downcast::<ShadowRoot>() {
+                if shadow_including == ShadowIncluding::Yes
+                    && let Some(shadow_root) = n.downcast::<ShadowRoot>() {
                         return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
                     }
-                }
                 n.GetParentNode()
             },
         }
@@ -2016,11 +2006,10 @@ impl Node {
         }
 
         let parent_or_none = self.GetParentNode();
-        if let Some(parent) = parent_or_none.as_deref() {
-            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+        if let Some(parent) = parent_or_none.as_deref()
+            && let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
                 return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
             }
-        }
 
         parent_or_none
     }
@@ -2150,11 +2139,10 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     pub(crate) fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         let parent = self.parent_node_ref();
-        if let Some(parent) = parent {
-            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+        if let Some(parent) = parent
+            && let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
                 return Some(shadow_root.get_host_for_layout().upcast());
             }
-        }
         parent
     }
 
@@ -2636,15 +2624,13 @@ impl Iterator for TreeIterator {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() {
-            if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including == ShadowIncluding::Yes {
+        if let Some(element) = current.downcast::<Element>()
+            && let Some(shadow_root) = element.shadow_root()
+                && self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
                 }
-            }
-        }
 
         if let Some(first_child) = current.GetFirstChild() {
             self.current = Some(first_child);
@@ -2741,9 +2727,9 @@ where
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() {
-            if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including == ShadowIncluding::Yes {
+        if let Some(element) = current.downcast::<Element>()
+            && let Some(shadow_root) = element.shadow_root()
+                && self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(UnrootedDom::from_dom(
                         Dom::from_ref(shadow_root.upcast::<Node>()),
                         self.no_gc,
@@ -2751,8 +2737,6 @@ where
                     self.depth += 1;
                     return Some(current);
                 }
-            }
-        }
 
         let first_child_option = current.get_first_child_unrooted(self.no_gc);
         if let Some(first_child) = first_child_option {
@@ -2922,13 +2906,12 @@ impl Node {
         }
 
         // Step 3. If child is non-null and its parent is not parent, then throw a "NotFoundError" DOMException.
-        if let Some(child) = child {
-            if !parent.is_parent_of(child) {
+        if let Some(child) = child
+            && !parent.is_parent_of(child) {
                 return Err(Error::NotFound(Some(
                     "Child is non-null and its parent is not parent".to_owned(),
                 )));
             }
-        }
 
         match node.type_id() {
             // Step 5. If either node is a Text node and parent is a document,
@@ -2979,14 +2962,13 @@ impl Node {
                             if parent.child_elements_unrooted(no_gc).next().is_some() {
                                 return Err(Error::HierarchyRequest(None));
                             }
-                            if let Some(child) = child {
-                                if child
+                            if let Some(child) = child
+                                && child
                                     .inclusively_following_siblings_unrooted(no_gc)
                                     .any(|child| child.is_doctype())
                                 {
                                     return Err(Error::HierarchyRequest(None));
                                 }
-                            }
                         },
                         _ => return Err(Error::HierarchyRequest(None)),
                     }
@@ -2998,8 +2980,8 @@ impl Node {
                             "Parent has an element child".to_owned(),
                         )));
                     }
-                    if let Some(child) = child {
-                        if child
+                    if let Some(child) = child
+                        && child
                             .inclusively_following_siblings_unrooted(no_gc)
                             .any(|following| following.is_doctype())
                         {
@@ -3007,7 +2989,6 @@ impl Node {
                                 "Child is a doctype, or child is non-null and a doctype is following child".to_owned(),
                             )));
                         }
-                    }
                 },
                 NodeTypeId::DocumentType => {
                     // Step 6."DocumentType". parent has a doctype child, child is non-null and an element is preceding child,
@@ -3132,13 +3113,12 @@ impl Node {
         //        greater than child’s index, increase its start offset by count.
         //     2. For each live range whose end node is parent and end offset is
         //        greater than child’s index, increase its end offset by count.
-        if let Some(child) = child {
-            if !parent.ranges_is_empty() {
+        if let Some(child) = child
+            && !parent.ranges_is_empty() {
                 parent
                     .ranges()
                     .increase_above(parent, child.index(), count.try_into().unwrap());
             }
-        }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
         let previous_sibling = match suppress_observers {
@@ -3169,25 +3149,22 @@ impl Node {
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
-            if let Some(ref shadow_root) = parent_shadow_root {
-                if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
+            if let Some(ref shadow_root) = parent_shadow_root
+                && shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
                     let cx = GlobalScope::get_cx();
                     if kid.is::<Element>() || kid.is::<Text>() {
                         rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(kid)));
                         slottable.assign_a_slot();
                     }
                 }
-            }
 
             // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
             // is the empty list, then run signal a slot change for parent.
-            if parent_in_shadow_tree {
-                if let Some(slot_element) = parent_as_slot {
-                    if !slot_element.has_assigned_nodes() {
+            if parent_in_shadow_tree
+                && let Some(slot_element) = parent_as_slot
+                    && !slot_element.has_assigned_nodes() {
                         slot_element.signal_a_slot_change();
                     }
-                }
-            }
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
@@ -3383,13 +3360,11 @@ impl Node {
 
         // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
         // then run signal a slot change for parent.
-        if parent.is_in_a_shadow_tree() {
-            if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
-                if !slot_element.has_assigned_nodes() {
+        if parent.is_in_a_shadow_tree()
+            && let Some(slot_element) = parent.downcast::<HTMLSlotElement>()
+                && !slot_element.has_assigned_nodes() {
                     slot_element.signal_a_slot_change();
                 }
-            }
-        }
 
         // Step 10. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
@@ -4002,11 +3977,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-getrootnode>
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
-        if !options.composed {
-            if let Some(shadow_root) = self.containing_shadow_root() {
+        if !options.composed
+            && let Some(shadow_root) = self.containing_shadow_root() {
                 return DomRoot::upcast(shadow_root);
             }
-        }
 
         if self.is_connected() {
             DomRoot::from_ref(self.owner_doc().upcast::<Node>())
@@ -4537,9 +4511,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // This substep seems lacking in test coverage.
         // We hit this when comparing two attributes that have the
         // same owner element.
-        if let Some(node2) = node2 {
-            if Some(node2) == node1 {
-                if let (Some(a1), Some(a2)) = (attr1, attr2) {
+        if let Some(node2) = node2
+            && Some(node2) == node1
+                && let (Some(a1), Some(a2)) = (attr1, attr2) {
                     let attrs = node2.downcast::<Element>().unwrap().attrs();
                     // go through the attrs in order to see if self
                     // or other is first; spec is clear that we
@@ -4564,8 +4538,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     // we can't have left the loop without seeing them
                     unreachable!();
                 }
-            }
-        }
 
         // Step 6
         match (node1, node2) {
@@ -4758,11 +4730,10 @@ impl VirtualMethods for Node {
             s.children_changed(cx, mutation);
         }
 
-        if let Some(data) = self.rare_data().as_ref() {
-            if let Some(list) = data.child_list.get() {
+        if let Some(data) = self.rare_data().as_ref()
+            && let Some(list) = data.child_list.get() {
                 list.as_children_list().children_changed(mutation);
             }
-        }
 
         self.owner_doc().content_and_heritage_changed(self);
     }
@@ -4791,12 +4762,11 @@ impl VirtualMethods for Node {
         // including descendants. If we're in a shadow tree at this point then the
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
-        if let Some(old_parent) = context.old_parent {
-            if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
+        if let Some(old_parent) = context.old_parent
+            && !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
                 self.ranges()
                     .drain_to_parent(old_parent, context.index(), self);
             }
-        }
 
         self.owner_doc().content_and_heritage_changed(self);
     }

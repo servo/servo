@@ -717,8 +717,8 @@ impl Document {
                 // will trigger a new empty display list.
                 self.root_removal_noted.set(false);
 
-                if let Some(dirty_root) = self.dirty_root.get() {
-                    if dirty_root.is_connected() {
+                if let Some(dirty_root) = self.dirty_root.get()
+                    && dirty_root.is_connected() {
                         // There was an existing dirty root so we mark its
                         // ancestors as dirty until the document element.
                         for ancestor in dirty_root
@@ -730,7 +730,6 @@ impl Document {
                             }
                         }
                     }
-                }
                 self.dirty_root.set(Some(&document_element));
                 return;
             },
@@ -974,11 +973,10 @@ impl Document {
 
         // Step 2: If document's URL matches about:blank and document's about base URL is
         // non-null, then return document's about base URL.
-        if document_url.matches_about_blank() {
-            if let Some(about_base_url) = self.about_base_url() {
+        if document_url.matches_about_blank()
+            && let Some(about_base_url) = self.about_base_url() {
                 return about_base_url;
             }
-        }
 
         // Step 3: Return document's URL.
         document_url
@@ -1011,11 +1009,10 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if let Some(root) = self.GetDocumentElement() {
-            if root.upcast::<Node>().has_dirty_descendants() {
+        if let Some(root) = self.GetDocumentElement()
+            && root.upcast::<Node>().has_dirty_descendants() {
                 condition.insert(RestyleReason::DOMChanged);
             }
-        }
 
         if !self.pending_restyles.borrow().is_empty() {
             condition.insert(RestyleReason::PendingRestyles);

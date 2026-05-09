@@ -1612,8 +1612,7 @@ impl InlineFormattingContextLayout<'_> {
         let current_inline_box_identifier = self.current_inline_box_identifier();
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
             self.current_line_segment.line_items.last_mut()
-        {
-            if *inline_box_identifier == current_inline_box_identifier &&
+            && *inline_box_identifier == current_inline_box_identifier &&
                 line_item.merge_if_possible(
                     info,
                     &glyph_store,
@@ -1623,7 +1622,6 @@ impl InlineFormattingContextLayout<'_> {
             {
                 return;
             }
-        }
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             current_inline_box_identifier,
@@ -2629,11 +2627,10 @@ impl FloatBox {
 
 fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mut [LineItem]) {
     for item in line_items.iter_mut() {
-        if let LineItem::Float(_, float_line_item) = item {
-            if float_line_item.needs_placement {
+        if let LineItem::Float(_, float_line_item) = item
+            && float_line_item.needs_placement {
                 ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
             }
-        }
     }
 }
 

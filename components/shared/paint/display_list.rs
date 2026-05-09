@@ -112,8 +112,8 @@ impl StickyNodeInfo {
         // handling the bottom margin case. Note that the "don't have a sticky-top offset"
         // case includes the case where we *had* a sticky-top offset but we reduced it to
         // zero in the above block.
-        if sticky_offset.y <= 0.0 {
-            if let Some(margin) = self.margins.bottom {
+        if sticky_offset.y <= 0.0
+            && let Some(margin) = self.margins.bottom {
                 // If sticky_offset.y is nonzero that means we must have set it
                 // in the sticky-top handling code above, so this item must have
                 // both top and bottom sticky margins. We adjust the item's rect
@@ -131,7 +131,6 @@ impl StickyNodeInfo {
                     sticky_offset.y += bottom_viewport_edge - sticky_rect.max.y;
                 }
             }
-        }
 
         // Same as above, but for the x-axis.
         if let Some(margin) = self.margins.left {
@@ -141,8 +140,8 @@ impl StickyNodeInfo {
             }
         }
 
-        if sticky_offset.x <= 0.0 {
-            if let Some(margin) = self.margins.right {
+        if sticky_offset.x <= 0.0
+            && let Some(margin) = self.margins.right {
                 sticky_rect.min.x += sticky_offset.x;
                 sticky_rect.max.x += sticky_offset.x;
                 let right_viewport_edge = viewport_rect.max.x - margin;
@@ -150,7 +149,6 @@ impl StickyNodeInfo {
                     sticky_offset.x += right_viewport_edge - sticky_rect.max.x;
                 }
             }
-        }
 
         // The total "sticky offset" and the extra amount we computed as a result of
         // scrolling, stored in sticky_offset needs to be clamped to the provided bounds.
@@ -562,11 +560,10 @@ impl ScrollTree {
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         for node in self.nodes.iter_mut() {
-            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
-                if let Some(offset) = offsets.get(&scroll_info.external_id) {
+            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info
+                && let Some(offset) = offsets.get(&scroll_info.external_id) {
                     scroll_info.scroll_to_offset(*offset, ScrollType::Script);
                 }
-            }
         }
 
         self.invalidate_cached_transforms();

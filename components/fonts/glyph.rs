@@ -288,12 +288,11 @@ impl ShapedText {
             // this glyph corresponds to. More than one glyph can share a cluster.
             let glyph_cluster = shaped_glyph.string_byte_offset;
 
-            if let Some(previous_character_offset) = previous_character_offset {
-                if previous_character_offset == glyph_cluster {
+            if let Some(previous_character_offset) = previous_character_offset
+                && previous_character_offset == glyph_cluster {
                     glyph_store.add_glyph_for_current_character(&shaped_glyph, options);
                     continue;
                 }
-            }
 
             previous_character_offset = Some(glyph_cluster);
             let mut characters_skipped = 0;
@@ -407,12 +406,11 @@ impl ShapedText {
         // applied to the last glyph in the cluster. Note that this is unconditionally
         // converting the previous glyph to a detailed one because it's quite likely that
         // the advance will not fit into the simple bitmask due to being negative.
-        if let Some(letter_spacing) = options.letter_spacing {
-            if letter_spacing != Au::zero() {
+        if let Some(letter_spacing) = options.letter_spacing
+            && letter_spacing != Au::zero() {
                 let last_glyph_index = self.ensure_last_glyph_is_detailed();
                 self.detailed_glyphs[last_glyph_index].advance -= letter_spacing;
             }
-        }
 
         // Add a detailed glyph entry for this new glyph, but it corresponds to a character
         // we have already started processing. It should not contribute any character count.
@@ -485,12 +483,11 @@ impl ShapedGlyph {
         // space (U+00A0) left in the text after the white space processing rules have been
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
-        if let Some(word_spacing) = shaping_options.word_spacing {
-            if character == ' ' || character == '\u{a0}' {
+        if let Some(word_spacing) = shaping_options.word_spacing
+            && (character == ' ' || character == '\u{a0}') {
                 // https://drafts.csswg.org/css-text-3/#word-spacing-property
                 self.advance += word_spacing;
             }
-        }
     }
 }
 

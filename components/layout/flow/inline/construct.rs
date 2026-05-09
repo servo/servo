@@ -416,8 +416,8 @@ impl InlineFormattingContextBuilder {
 
         let current_inline_styles = self.shared_inline_styles();
 
-        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() {
-            if text_run
+        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last()
+            && text_run
                 .borrow()
                 .inline_styles
                 .ptr_eq(&current_inline_styles)
@@ -442,7 +442,6 @@ impl InlineFormattingContextBuilder {
                 box_slot.set(LayoutBox::Text(text_run.clone()));
                 return;
             }
-        }
 
         let box_slot = info.node.box_slot();
         let text_run = ArcRefCell::new(TextRun::new(
@@ -803,8 +802,8 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some(next_index) = bounds.peek() {
-            if *next_index == current_byte_index {
+        if let Some(next_index) = bounds.peek()
+            && *next_index == current_byte_index {
                 bounds.next();
 
                 if current_byte_index != 0 || allow_word_at_start {
@@ -812,7 +811,6 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
                     continue;
                 }
             }
-        }
 
         output_string.push(character);
     }

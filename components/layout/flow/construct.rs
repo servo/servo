@@ -210,8 +210,8 @@ impl BlockContainer {
     ) -> BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
-        if is_list_item {
-            if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
+        if is_list_item
+            && let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
                 match marker_info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
                         builder.handle_list_item_marker_inside(&marker_info, marker_contents)
@@ -223,7 +223,6 @@ impl BlockContainer {
                     ),
                 }
             }
-        }
 
         contents.traverse(context, info, &mut builder);
         builder.finish()
@@ -552,8 +551,8 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         );
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
-        if is_list_item {
-            if let Some((marker_info, marker_contents)) =
+        if is_list_item
+            && let Some((marker_info, marker_contents)) =
                 crate::lists::make_marker(self.context, info)
             {
                 // Ignore `list-style-position` here:
@@ -561,7 +560,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 // https://drafts.csswg.org/css-lists/#list-style-position-outside
                 self.handle_list_item_marker_inside(&marker_info, marker_contents)
             }
-        }
 
         // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
         non_replaced_contents.traverse(self.context, info, self);
@@ -666,8 +664,8 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
-            if !builder.is_empty {
+        if let Some(builder) = self.inline_formatting_context_builder.as_mut()
+            && !builder.is_empty {
                 let constructor = || {
                     ArcRefCell::new(FloatBox::construct(
                         self.context,
@@ -682,7 +680,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 box_slot.set(LayoutBox::InlineLevel(inline_level_box));
                 return;
             }
-        }
 
         let kind = BlockLevelCreator::OutOfFlowFloatBox {
             contents,

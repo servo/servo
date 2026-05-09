@@ -208,9 +208,9 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = global.origin().immutable();
 
-        if let Ok(url) = ServoUrl::parse(&url.str()) {
-            if url.fragment().is_none() && *origin == url.origin() {
-                if let Ok((id, _)) = parse_blob_url(&url) {
+        if let Ok(url) = ServoUrl::parse(&url.str())
+            && url.fragment().is_none() && *origin == url.origin()
+                && let Ok((id, _)) = parse_blob_url(&url) {
                     let resource_threads = global.resource_threads();
                     let (tx, rx) =
                         generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
@@ -219,8 +219,6 @@ impl URLMethods<crate::DomTypeHolder> for URL {
 
                     let _ = rx.recv().unwrap();
                 }
-            }
-        }
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-hash>

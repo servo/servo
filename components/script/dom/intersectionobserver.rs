@@ -939,8 +939,8 @@ fn compute_the_intersection(
         // >      by applying container’s clip.
         // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
         // Additionally, handle css `clip-path` as well.
-        if IntersectionObserver::has_content_clip(&containing_element) {
-            if let Some(container_padding_box) = containing_element
+        if IntersectionObserver::has_content_clip(&containing_element)
+            && let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
                 .padding_box_without_reflow()
             {
@@ -961,7 +961,6 @@ fn compute_the_intersection(
                     return None;
                 }
             }
-        }
 
         // > 3.5. If container is the root element of a browsing context, update container to be the
         // >      browsing context’s document; otherwise, update container to be the containing block

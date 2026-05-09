@@ -290,8 +290,8 @@ impl ConsoleActor {
             return;
         }
         let resource_type = resource.resource_type();
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(browsing_context_name) = &self.root {
+        if id == self.current_unique_id(registry)
+            && let Root::BrowsingContext(browsing_context_name) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(browsing_context_name)
                     .resource_array(
@@ -301,7 +301,6 @@ impl ConsoleActor {
                         stream,
                     )
             };
-        }
     }
 
     pub(crate) fn send_clear_message(
@@ -310,8 +309,8 @@ impl ConsoleActor {
         registry: &ActorRegistry,
         stream: &mut DevtoolsConnection,
     ) {
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(browsing_context_name) = &self.root {
+        if id == self.current_unique_id(registry)
+            && let Root::BrowsingContext(browsing_context_name) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(browsing_context_name)
                     .resource_array(
@@ -323,7 +322,6 @@ impl ConsoleActor {
                         stream,
                     )
             };
-        }
     }
 
     pub(crate) fn get_cached_messages(

@@ -298,11 +298,10 @@ mod imp {
         }
 
         fn set_uri(&self, uri: &str) -> Result<(), glib::Error> {
-            if let Ok(uri) = Url::parse(uri) {
-                if uri.scheme() == "mediastream" {
+            if let Ok(uri) = Url::parse(uri)
+                && uri.scheme() == "mediastream" {
                     return Ok(());
                 }
-            }
             Err(glib::Error::new(
                 gstreamer::URIError::BadUri,
                 format!("Invalid URI '{:?}'", uri,).as_str(),

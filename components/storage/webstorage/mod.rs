@@ -556,11 +556,10 @@ impl WebStorageManager {
                             Ok((true, Some(old)))
                         }
                     });
-            if storage_type == WebStorageType::Local {
-                if let Ok(env) = self.get_environment_mut(&origin) {
+            if storage_type == WebStorageType::Local
+                && let Ok(env) = self.get_environment_mut(&origin) {
                     env.set(&name, &value);
                 }
-            }
             result
         };
         sender.send(message).unwrap();
@@ -592,11 +591,10 @@ impl WebStorageManager {
         let data = self.select_data_mut(storage_type, webview_id, origin.clone());
         let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
-        if storage_type == WebStorageType::Local {
-            if let Ok(env) = self.get_environment_mut(&origin) {
+        if storage_type == WebStorageType::Local
+            && let Ok(env) = self.get_environment_mut(&origin) {
                 env.delete(&name);
             }
-        }
     }
 
     fn clear(
@@ -617,11 +615,10 @@ impl WebStorageManager {
                 }
             }))
             .unwrap();
-        if storage_type == WebStorageType::Local {
-            if let Ok(env) = self.get_environment_mut(&origin) {
+        if storage_type == WebStorageType::Local
+            && let Ok(env) = self.get_environment_mut(&origin) {
                 env.clear();
             }
-        }
     }
 
     fn clone(&mut self, src_webview_id: WebViewId, dest_webview_id: WebViewId) {

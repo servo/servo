@@ -1399,8 +1399,8 @@ impl LayoutThread {
             built_display_list,
         );
 
-        if paint_timing_handler.did_lcp_candidate_update() {
-            if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
+        if paint_timing_handler.did_lcp_candidate_update()
+            && let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
                 self.paint_api.send_lcp_candidate(
                     lcp_candidate,
                     self.webview_id,
@@ -1409,7 +1409,6 @@ impl LayoutThread {
                 );
                 paint_timing_handler.unset_lcp_candidate_updated();
             }
-        }
 
         let (keys, instance_keys) = self
             .font_context

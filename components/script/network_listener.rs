@@ -38,11 +38,10 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
     // will not be included as a PerformanceResourceTiming object in
     // the Performance Timeline.
-    if let Err(error) = &result {
-        if error.is_permanent_failure() {
+    if let Err(error) = &result
+        && error.is_permanent_failure() {
             return;
         }
-    }
 
     // Resource timings should only be submitted for the initial preload request,
     // not for the request that consumes the preload: https://github.com/whatwg/html/issues/12047

@@ -243,8 +243,8 @@ impl Render for RenderUnix {
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
-            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view() {
-                if let Some(el) = msg
+            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view()
+                && let Some(el) = msg
                     .src()
                     .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
                 {
@@ -262,7 +262,6 @@ impl Render for RenderUnix {
                         el.set_context(&ctxt);
                     }
                 }
-            }
 
             gstreamer::BusSyncReply::Pass
         });

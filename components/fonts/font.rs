@@ -701,13 +701,12 @@ impl FontGroup {
         }
 
         let fallback_key = FallbackKey::new(&options);
-        if let Some(fallback) = self.fallbacks.read().get(&fallback_key) {
-            if char_in_template(fallback.template.clone()) &&
+        if let Some(fallback) = self.fallbacks.read().get(&fallback_key)
+            && char_in_template(fallback.template.clone()) &&
                 font_has_glyph_and_presentation(fallback)
             {
                 return font_or_synthesized_small_caps(fallback.clone());
             }
-        }
 
         if let Some(font) = self.find_fallback_using_system_font_list(
             font_context,
@@ -726,11 +725,9 @@ impl FontGroup {
         if let Some(fallback) = first_font
             .as_ref()
             .and_then(|font| font.find_fallback_using_system_font_api(&options))
-        {
-            if font_has_glyph_and_presentation(&fallback) {
+            && font_has_glyph_and_presentation(&fallback) {
                 return Some(fallback);
             }
-        }
 
         first_font
     }

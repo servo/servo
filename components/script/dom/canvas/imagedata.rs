@@ -317,13 +317,13 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         }
         // 3. If length is not a nonzero integral multiple of bytesPerPixel,
         // then throw an "InvalidStateError" DOMException.
-        if length % bytes_per_pixel != 0 {
+        if !length.is_multiple_of(bytes_per_pixel) {
             return Err(Error::InvalidState(None));
         }
         // 4. Let length be length divided by bytesPerPixel.
         let length = length / bytes_per_pixel;
         // 5. If length is not an integral multiple of sw, then throw an "IndexSizeError" DOMException.
-        if sw == 0 || length % sw as usize != 0 {
+        if sw == 0 || !length.is_multiple_of(sw as usize) {
             return Err(Error::IndexSize(None));
         }
         // 6. Let height be length divided by sw.

@@ -281,13 +281,11 @@ impl VirtualMethods for HTMLLinkElement {
 
         // For stylesheets, we should only refetch when the actual attribute value
         // has been changed.
-        if self.relations.get().contains(LinkRelations::STYLESHEET) {
-            if let AttributeMutation::Set(Some(previous_value), _) = mutation {
-                if **previous_value == **attr.value() {
+        if self.relations.get().contains(LinkRelations::STYLESHEET)
+            && let AttributeMutation::Set(Some(previous_value), _) = mutation
+                && **previous_value == **attr.value() {
                     return;
                 }
-            }
-        }
 
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
@@ -364,11 +362,10 @@ impl VirtualMethods for HTMLLinkElement {
                 // https://html.spec.whatwg.org/multipage/#link-type-preload
                 // When the as attribute of the link element of an external resource link
                 // that is already browsing-context connected is changed.
-                if self.relations.get().contains(LinkRelations::PRELOAD) {
-                    if let AttributeMutation::Set(Some(_), _) = mutation {
+                if self.relations.get().contains(LinkRelations::PRELOAD)
+                    && let AttributeMutation::Set(Some(_), _) = mutation {
                         self.handle_preload_url();
                     }
-                }
             },
             local_name!("type") => {
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
@@ -407,8 +404,8 @@ impl VirtualMethods for HTMLLinkElement {
                         },
                         _ => {},
                     };
-                } else if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
+                } else if self.relations.get().contains(LinkRelations::STYLESHEET)
+                    && let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
                         let document = self.owner_document();
                         let shared_lock = document.style_shared_lock().clone();
                         let mut guard = shared_lock.write();
@@ -422,7 +419,6 @@ impl VirtualMethods for HTMLLinkElement {
                         };
                         self.owner_document().invalidate_stylesheets();
                     }
-                }
 
                 let matches_media_environment =
                     MediaList::matches_environment(&self.owner_document(), &attr.value());
@@ -737,11 +733,10 @@ impl HTMLLinkElement {
         if is_removal {
             self.is_explicitly_enabled.set(true);
         }
-        if let Some(stylesheet) = self.get_stylesheet() {
-            if stylesheet.set_disabled(!is_removal) {
+        if let Some(stylesheet) = self.get_stylesheet()
+            && stylesheet.set_disabled(!is_removal) {
                 self.stylesheet_list_owner().invalidate_stylesheets();
             }
-        }
     }
 
     fn handle_favicon_url(&self, href: &str) {

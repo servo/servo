@@ -243,8 +243,8 @@ impl HstsList {
             return;
         }
 
-        if let Some(header) = headers.typed_get::<StrictTransportSecurity>() {
-            if let Some(host) = url.domain() {
+        if let Some(header) = headers.typed_get::<StrictTransportSecurity>()
+            && let Some(host) = url.domain() {
                 let include_subdomains = if header.include_subdomains() {
                     IncludeSubdomains::Included
                 } else {
@@ -263,6 +263,5 @@ impl HstsList {
                     self.push(entry);
                 }
             }
-        }
     }
 }

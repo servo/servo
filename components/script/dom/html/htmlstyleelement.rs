@@ -377,15 +377,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if attr.name() == "type" {
-            if let AttributeMutation::Set(Some(old_value), _) = mutation {
-                if **old_value == **attr.value() {
+            if let AttributeMutation::Set(Some(old_value), _) = mutation
+                && **old_value == **attr.value() {
                     return;
                 }
-            }
             self.remove_stylesheet();
             self.update_a_style_block();
-        } else if attr.name() == "media" {
-            if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
+        } else if attr.name() == "media"
+            && let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
                 let shared_lock = node.owner_doc().style_shared_lock().clone();
                 let mut guard = shared_lock.write();
                 let media = stylesheet.media.write_with(&mut guard);
@@ -395,7 +394,6 @@ impl VirtualMethods for HTMLStyleElement {
                 };
                 self.owner_document().invalidate_stylesheets();
             }
-        }
     }
 }
 

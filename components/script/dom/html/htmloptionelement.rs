@@ -209,13 +209,12 @@ impl HTMLOptionElement {
         // * option's selectedness is true; and
         // * select's enabled selectedcontent is not null,
         // * then run clone an option into a selectedcontent given option and select's enabled selectedcontent.
-        if self.selectedness.get() {
-            if let Some(selectedcontent) =
+        if self.selectedness.get()
+            && let Some(selectedcontent) =
                 select.and_then(|select| select.get_enabled_selectedcontent())
             {
                 self.clone_an_option_into_selectedcontent(cx, &selectedcontent);
             }
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
@@ -502,16 +501,13 @@ impl VirtualMethods for HTMLOptionElement {
         if !self
             .upcast::<Element>()
             .has_attribute(&local_name!("label"))
-        {
-            if let Some(owner_select) = self.owner_select_element() {
-                if owner_select
+            && let Some(owner_select) = self.owner_select_element()
+                && owner_select
                     .selected_option()
                     .is_some_and(|selected_option| self == &*selected_option)
                 {
                     owner_select.update_shadow_tree(cx);
                 }
-            }
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-option-element:html-element-moving-steps>

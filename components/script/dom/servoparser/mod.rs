@@ -2089,11 +2089,10 @@ fn create_element_for_token(
     // Step 14. If element is a resettable element and not a form-associated custom
     // element, then invoke its reset algorithm. (This initializes the element's value and
     // checkedness based on the element's attributes.)
-    if let Some(html_element) = element.downcast::<HTMLElement>() {
-        if element.is_resettable() && !html_element.is_form_associated_custom_element() {
+    if let Some(html_element) = element.downcast::<HTMLElement>()
+        && element.is_resettable() && !html_element.is_form_associated_custom_element() {
             element.reset(cx);
         }
-    }
 
     // Step 15. If element is a form-associated element and not a form-associated custom
     // element, the form element pointer is not null, there is no template element on the

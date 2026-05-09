@@ -341,11 +341,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 1. If this’s relevant global object is a Window object and its associated
         // Document is not fully active, then throw an "InvalidStateError" DOMException.
         let global = self.global();
-        if let Some(window) = global.downcast::<Window>() {
-            if !window.Document().is_fully_active() {
+        if let Some(window) = global.downcast::<Window>()
+            && !window.Document().is_fully_active() {
                 return Err(Error::InvalidState(None));
             }
-        }
 
         // Step 5
         // FIXME(seanmonstar): use a Trie instead?
@@ -752,8 +751,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
             if !content_type_set {
                 let ct = request.headers.typed_get::<ContentType>();
-                if let Some(ct) = ct {
-                    if let Some(encoding) = encoding {
+                if let Some(ct) = ct
+                    && let Some(encoding) = encoding {
                         let mime: Mime = ct.to_string().parse().unwrap();
                         for param in mime.parameters.iter() {
                             if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
@@ -783,7 +782,6 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                             }
                         }
                     }
-                }
             }
         }
 

@@ -693,11 +693,10 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // end, duration, and detail exist, run the following checks:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
             &start_or_measure_options
-        {
-            if options.start.is_some() ||
+            && (options.start.is_some() ||
                 options.duration.is_some() ||
                 options.end.is_some() ||
-                options.detail.get().is_object_or_null()
+                options.detail.get().is_object_or_null())
             {
                 // Step 1.1 If endMark is given, throw a TypeError.
                 if end_mark.is_some() {
@@ -717,7 +716,6 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
                     return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
                 }
             }
-        }
 
         // Step 2. Compute end time as follows:
         // Step 2.1 If endMark is given, let end time be the value returned
@@ -821,8 +819,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // Step 9.1. If startOrMeasureOptions is a PerformanceMeasureOptions object and startOrMeasureOptions’s detail member exists:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
             &start_or_measure_options
-        {
-            if !options.detail.get().is_null_or_undefined() {
+            && !options.detail.get().is_null_or_undefined() {
                 // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
                 let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
 
@@ -834,7 +831,6 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
                     CanGc::from_cx(cx),
                 )?;
             }
-        }
         // Step 9.2. Otherwise, set it to null.
         //
         // Note: This is already the default value we set when creating the detail above

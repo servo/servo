@@ -828,9 +828,9 @@ impl FloatBandLink {
     ///     A   B          B   R
     /// ```
     fn skew(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref left) = this.left.0 {
-                if this.level == left.level {
+        if let Some(ref this) = self.0
+            && let Some(ref left) = this.left.0
+                && this.level == left.level {
                     return FloatBandLink(Some(Arc::new(FloatBandNode {
                         level: this.level,
                         left: left.left.clone(),
@@ -843,8 +843,6 @@ impl FloatBandLink {
                         }))),
                     })));
                 }
-            }
-        }
 
         (*self).clone()
     }
@@ -858,10 +856,10 @@ impl FloatBandLink {
     ///         B   X    A   B
     /// ```
     fn split(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref right) = this.right.0 {
-                if let Some(ref right_right) = right.right.0 {
-                    if this.level == right_right.level {
+        if let Some(ref this) = self.0
+            && let Some(ref right) = this.right.0
+                && let Some(ref right_right) = right.right.0
+                    && this.level == right_right.level {
                         return FloatBandLink(Some(Arc::new(FloatBandNode {
                             level: this.level + 1,
                             left: FloatBandLink(Some(Arc::new(FloatBandNode {
@@ -874,9 +872,6 @@ impl FloatBandLink {
                             right: right.right.clone(),
                         })));
                     }
-                }
-            }
-        }
 
         (*self).clone()
     }
