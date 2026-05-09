@@ -253,8 +253,9 @@ impl Fragment {
                     None
                 }
             },
-            // TODO: Using PositioningFragment's FragmentBase::rect are not fully correct, since it is
-            // not representing the inline bounds of the underlying fragments correctly.
+            // TODO: This rectangle does not include extra size from overflowing inline items. As
+            // this measurement is concerned with the actual fragments, it's quite likely that this
+            // rectangle should include that.
             Fragment::Positioning(fragment) => Some(fragment.borrow().base.rect),
             Fragment::AbsoluteOrFixedPositioned(_) => None,
             Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {

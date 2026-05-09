@@ -308,15 +308,13 @@ impl BoxFragment {
                     // wholly unrechable scrollable overflow area, but also clips it. This
                     // makes the resulting value more like the "scroll area" rather than the
                     // "scrollable overflow."
-                    if let Some(scrollable_overflow_from_child) = self
+                    let scrollable_overflow_from_child = self
                         .clip_wholly_unreachable_scrollable_overflow(
                             scrollable_overflow_from_child,
                             physical_padding_rect,
-                        ) {
-                        acc.union(&scrollable_overflow_from_child)
-                    } else {
-                        acc
-                    }
+                        );
+
+                    acc.union(&scrollable_overflow_from_child)
                 });
 
         // From <https://drafts.csswg.org/css-overflow-3/#scrollable>:
@@ -353,14 +351,10 @@ impl BoxFragment {
                     // Applying padding could also cause the rectangle to overflow to
                     // the wholly unreachable scrollable overflow, clipping the overflow
                     // here prevents this.
-                    let Some(padding_contribution) = self
-                        .clip_wholly_unreachable_scrollable_overflow(
-                            padding_contribution,
-                            physical_padding_rect,
-                        )
-                    else {
-                        return acc;
-                    };
+                    let padding_contribution = self.clip_wholly_unreachable_scrollable_overflow(
+                        padding_contribution,
+                        physical_padding_rect,
+                    );
 
                     acc.union(&padding_contribution)
                 });
@@ -506,7 +500,7 @@ impl BoxFragment {
         &self,
         scrollable_overflow_from_child: PhysicalRect<Au>,
         clipping_rect: PhysicalRect<Au>,
-    ) -> Option<PhysicalRect<Au>> {
+    ) -> PhysicalRect<Au> {
         // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
         // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
         // > beyond the scroll origin in either axis is considered the unreachable scrollable
@@ -534,8 +528,8 @@ impl BoxFragment {
             .intersection_unchecked(&clipping_box);
 
         match scrollable_overflow_box.is_negative() {
-            false => Some(scrollable_overflow_box.to_rect()),
-            true => None,
+            false => scrollable_overflow_box.to_rect(),
+            true => Rect::zero(),
         }
     }
 
