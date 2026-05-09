@@ -128,16 +128,16 @@ mod error {
     }
 }
 
-pub use error::Error;
-
-use buf_read_ext::BufReadExt;
-use http::header::{HeaderMap, HeaderName, HeaderValue};
-use mime::Mime;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::ops::Drop;
 use std::path::PathBuf;
 use std::str::FromStr;
+
+use buf_read_ext::BufReadExt;
+pub use error::Error;
+use http::header::{HeaderMap, HeaderName, HeaderValue};
+use mime::Mime;
 
 /// A multipart part which is not a file (stored in memory)
 #[derive(Clone, Debug, PartialEq)]
