@@ -80,7 +80,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
 
     fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
 
-    #[cfg_attr(not(all(feature = "tracing", feature = "tracing-hitrace")), expect(unused_variables))]
+    #[cfg_attr(
+        not(all(feature = "tracing", feature = "tracing-hitrace")),
+        expect(unused_variables)
+    )]
     fn update_user_interface_state(
         &self,
         state: &RunningAppState,
@@ -131,7 +134,8 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
             if new_load_status == LoadStatus::Complete {
                 let (callback, receiver) =
-                    servo_base::generic_channel::GenericCallback::new_blocking().expect("Could not create channel");
+                    servo_base::generic_channel::GenericCallback::new_blocking()
+                        .expect("Could not create channel");
                 state.servo().create_memory_report(callback);
                 std::thread::spawn(move || {
                     let result = receiver.recv().expect("Could not get memory report");
