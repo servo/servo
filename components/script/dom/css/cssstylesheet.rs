@@ -389,7 +389,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
     fn GetCssRules(&self, cx: &mut JSContext) -> Fallible<DomRoot<CSSRuleList>> {
-        // If the origin-clean flag is unset, we throw an error as it the API implicity allows modification of CSS rules.
+        // If the origin-clean flag is unset, we throw an error as the API implicitly allows modification of CSS rules.
         if !self.origin_clean.get() {
             return Err(Error::Security(Some(
                 "Not allowed to access cross-origin style sheet".to_string(),
