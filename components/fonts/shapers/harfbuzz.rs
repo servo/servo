@@ -148,6 +148,9 @@ impl GlyphShapingResult for HarfbuzzGlyphShapingResult {
     }
 
     fn is_rtl(&self) -> bool {
+        if self.count == 0 {
+            return false;
+        }
         unsafe {
             let first_glyph_info = self.glyph_infos.add(0);
             let last_glyph_info = self.glyph_infos.add(self.count - 1);
