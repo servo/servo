@@ -759,11 +759,6 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let mime_type = object.get_mime_type(cx);
     let success_promise = promise.clone();
 
-    // TODO: https://github.com/servo/servo/pull/44254
-    #[allow(unsafe_code)]
-    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-    let cx = &mut cx;
-
     // Read all bytes from reader, given successSteps and errorSteps.
     // Note: spec uses an intermediary concept of `fully_read`,
     // which seems useful when invoking fetch from other places.
