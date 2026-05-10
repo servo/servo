@@ -12,3 +12,5 @@ promise_test(async () => {
   const result = await session.prompt(kTestPrompt);
   assert_equals(typeof result, 'string');
 }, 'Simple LanguageModel.prompt() call');
+
+

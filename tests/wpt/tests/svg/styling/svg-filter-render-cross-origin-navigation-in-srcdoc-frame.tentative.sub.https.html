@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>SVG Filter: Cross-Origin Navigation in Srcdoc Frame</title>
+<link rel="match" href="svg-filter-render-cross-origin-navigation-in-srcdoc-frame-ref.tentative.sub.html">
+<svg width="0" height="0" display="none">
+    <filter id="svg-filter">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+    </filter>
+</svg>
+<style type="text/css">
+.svg-filter {
+    filter: url(#svg-filter);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await navigateAndWaitForLoad(iframe, 'https://{{hosts[alt][]}}:{{ports[https][0]}}/svg/styling/support/svg-filter-render-iframe.html');
+        takeScreenshot();
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the cross-origin navigation in the srcdoc frame.
+    </div>
+    <br />
+    <div>
+        <iframe id="iframe" width="100px" height="100px" frameBorder="0" class="svg-filter" srcdoc=""></iframe>
+    </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<title>SVG path 'd' to-animation with empty base value</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="">
+    <animate id="animation" attributeName="d"
+             to="M 0 0 L 100 0 L 100 100 L 0 100 Z"
+             begin="0s" dur="4s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// to-animation uses the base value as implicit from. Base is empty (d=""),
+// which is structurally incompatible with the to value; discrete at 50%.
+function sample1() {
+  assert_animated_path_equals(path, "");
+}
+
+function sample2() {
+  assert_animated_path_equals(path, "M 0 0 L 100 0 L 100 100 L 0 100 Z");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    ["animation", 0.001, sample1],
+    ["animation", 1.999, sample1],
+    ["animation", 2.001, sample2],
+    ["animation", 3.999, sample2],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

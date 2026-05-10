@@ -1024,7 +1024,6 @@ navigation-api/currententrychange-event/navigation-reload-intercept.html @web-pl
 navigation-api/currententrychange-event/navigation-updateCurrentEntry.html @web-platform-tests/interop
 navigation-api/currententrychange-event/not-on-load.html @web-platform-tests/interop
 navigation-api/currententrychange-event/properties.html @web-platform-tests/interop
-navigation-api/focus-reset/autofocus.html @web-platform-tests/interop
 navigation-api/focus-reset/basic.html @web-platform-tests/interop
 navigation-api/focus-reset/change-focus-again-in-blur-during-intercept.html @web-platform-tests/interop
 navigation-api/focus-reset/change-focus-back-to-origial-during-intercept.html @web-platform-tests/interop

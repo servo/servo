@@ -41,11 +41,19 @@ promise_test(async t => {
   let response = await waitForIframeMessage('getToolsResponse');
 
   const [tool] = response.tools;
+  assert_true(!!tool, 'Same-origin iframe should see parent tool with no exposedTo');
   assert_true(toolsAreEqual(tool, {
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    origin: self.origin
   }), 'Tool details should match');
+
+  // Iframe executes parent's tool.
+  iframe.contentWindow.postMessage({action: 'execute', name: 'parent_tool_default'}, '*');
+  const exec_response = await waitForIframeMessage('executeResponse');
+  assert_true(exec_response.success, 'Iframe should successfully execute parent tool');
+  assert_equals(exec_response.result, 'hello', 'Iframe should get correct result from parent tool');
 
   // Unregister and verify child gets event.
   iframe.contentWindow.postMessage('listenForToolchange', '*');
@@ -80,12 +88,20 @@ promise_test(async t => {
   iframe.contentWindow.postMessage('getTools', '*');
   let response = await waitForIframeMessage('getToolsResponse');
 
-  const [tool2] = response.tools;
-  assert_true(toolsAreEqual(tool2, {
+  const [tool] = response.tools;
+  assert_true(!!tool, 'Same-origin iframe should see parent tool with empty exposedTo');
+  assert_true(toolsAreEqual(tool, {
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    origin: self.origin
   }), 'Tool details should match');
+
+  // Iframe executes parent's tool.
+  iframe.contentWindow.postMessage({action: 'execute', name: 'parent_tool_empty'}, '*');
+  const exec_response = await waitForIframeMessage('executeResponse');
+  assert_true(exec_response.success, 'Iframe should successfully execute parent tool');
+  assert_equals(exec_response.result, 'hello', 'Iframe should get correct result from parent tool');
 
   // Unregister and verify child gets event.
   iframe.contentWindow.postMessage('listenForToolchange', '*');
@@ -122,7 +138,16 @@ promise_test(async t => {
   });
 
   let tools = await navigator.modelContext.getTools();
-  assert_true(tools.some(t => t.name === 'iframe_tool_default'), 'Same-origin parent should see iframe tool with default exposure');
+  const [tool] = tools;
+  assert_true(toolsAreEqual(tool, {
+    name: 'iframe_tool_default',
+    description: 'Iframe tool with default exposure',
+    origin: iframe.contentWindow.origin
+  }), 'Tool details should match');
+
+  // Parent executes iframe's tool.
+  const result = await navigator.modelContext.executeTool(tool, '{}');
+  assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Unregister tool.
   const unregister_promise = new Promise(resolve => {
@@ -152,7 +177,16 @@ promise_test(async t => {
   });
 
   let tools = await navigator.modelContext.getTools();
-  assert_true(tools.some(t => t.name === 'iframe_tool_empty'), 'Same-origin parent should see iframe tool with empty exposedTo');
+  const [tool] = tools;
+  assert_true(toolsAreEqual(tool, {
+    name: 'iframe_tool_empty',
+    description: 'Iframe tool with empty exposedTo',
+    origin: iframe.contentWindow.origin
+  }), 'Tool details should match');
+
+  // Parent executes iframe's tool.
+  const result = await navigator.modelContext.executeTool(tool, '{}');
+  assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Unregister tool.
   const unregister_promise = new Promise(resolve => {

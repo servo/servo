@@ -79,4 +79,6 @@ test_math_used("calc(20cqw / 1rem)", "2", {"prop": "z-index"});
 
 testComputedValueGreaterOrLowerThan("animation-duration", "calc(2s / (10s - 10s) * 1s)", REALLY_LARGE);
 testTransformValuesCloseTo("rotate(calc((40em - 40px) / 1px * 1deg - 0.5turn))", 0.0001, "rotate(180deg)", "subtraction of angle unit: deg minus turn");
+test_invalid_value("width", "calc(1px * 1px" + " * 2".repeat(200) + ")");
+test_invalid_value("width", "calc(1px + 1em" + " + 1em".repeat(200) + ")");
 </script>

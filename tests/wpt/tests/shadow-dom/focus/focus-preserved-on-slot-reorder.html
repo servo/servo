@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reordering a slot wrapper in the shadow tree doesn't drop focus from a slotted element</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2037337">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host">
+  <div slot="b"><input id="input" value="target"></div>
+</div>
+<script>
+function waitForFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+promise_test(async function() {
+  let host = document.getElementById("host");
+  let input = document.getElementById("input");
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = '<div id="rowA">A</div><div id="rowB"><slot name="b"></slot></div>';
+
+  input.focus();
+  assert_equals(document.activeElement, input, "activeElement after focus");
+
+  let blurred = false;
+  input.addEventListener("blur", () => { blurred = true; });
+
+  let rowA = root.getElementById("rowA");
+  let rowB = root.getElementById("rowB");
+  root.insertBefore(rowB, rowA);
+
+  assert_equals(document.activeElement, input, "activeElement right after reordering slot wrapper");
+
+  await waitForFrame();
+  await waitForFrame();
+
+  assert_equals(document.activeElement, input, "activeElement after reordering slot wrapper and waiting for the focus fixup");
+  assert_false(blurred, "input did not receive a blur event");
+}, "Reordering a slot wrapper in the shadow tree preserves focus on the slotted element");
+</script>

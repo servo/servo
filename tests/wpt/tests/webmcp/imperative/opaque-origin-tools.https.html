@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Opaque Origin Tool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  // Assert that our CSP header took effect.
+  assert_equals(self.origin, 'null');
+
+  const toolchange_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  navigator.modelContext.registerTool({
+    name: 'opaque_tool',
+    description: 'Opaque tool description',
+    execute: async () => 'success'
+  });
+
+  await toolchange_promise;
+
+  // The tool should be available, but its execution is rejected because opaque
+  // origins lose their same-origin identity during string serialization ("null").
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'opaque_tool');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    navigator.modelContext.executeTool(tool, '{}'),
+    'executeTool() must reject with UnknownError in opaque origin documents'
+  );
+}, 'An opaque origin document can register but not execute its own tools');
+</script>
+</body>
+</html>

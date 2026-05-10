@@ -396,15 +396,15 @@ test(t => {
 
 test(t => {
   let opt = { fill: true, stroke: true, markers: true, clipped: true };
-  assert_bbox("path1", opt, 6.2, 20.8, 115.8, 91.2, 0.1);
-  assert_bbox("path2", opt, 156.2, 20.8, 115.8, 91.2, 0.1);
-  assert_bbox("path3", opt, 6.2, 120.7, 115.8, 91.2, 0.1);
-  assert_bbox("path4", opt, 6.2, 20.8, 93.8, 79.2, 0.1);
-  assert_bbox("path5", opt, 156.2, 20.8, 43.8, 79.2, 0.1);
+  assert_bbox("path1", opt, 6.2, 21, 115.8, 91, 0.1);
+  assert_bbox("path2", opt, 156.2, 21, 115.8, 91, 0.1);
+  assert_bbox("path3", opt, 6.2, 121, 115.8, 91, 0.1);
+  assert_bbox("path4", opt, 6.2, 21, 93.8, 79, 0.1);
+  assert_bbox("path5", opt, 156.2, 21, 43.8, 79, 0.1);
   assert_bbox("path6", opt, 6.2, 150, 93.8, 62, 0.1);
-  assert_bbox("path7", opt, 6.2, 20.8, 93.8, 79.2, 0.1);
-  assert_bbox("path8", opt, 156.2, 20.8, 93.8, 79.2, 0.1);
-  assert_bbox("path9", opt, 6.2, 120.8, 93.8, 79.2, 0.1);
+  assert_bbox("path7", opt, 6.2, 21, 93.8, 79, 0.1);
+  assert_bbox("path8", opt, 156.2, 21, 93.8, 79, 0.1);
+  assert_bbox("path9", opt, 6.2, 121, 93.8, 79, 0.1);
   assert_bbox("path10", opt, 10, 25, 100, 75);
   assert_bbox("path11", opt, 160, 25, 100, 75);
   assert_bbox("path12", opt, 10, 125, 100, 75);
@@ -445,18 +445,18 @@ test(t => {
 
 test(t => {
   let opt = { fill: false, stroke: true, markers: false, clipped: false };
-  assert_bbox("path1", opt, 6.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path2", opt, 156.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path3", opt, 6.2, 120.8, 107.8, 83.2, 0.1);
-  assert_bbox("path4", opt, 6.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path5", opt, 156.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path6", opt, 6.2, 120.8, 107.8, 83.2, 0.1);
-  assert_bbox("path7", opt, 6.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path8", opt, 156.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path9", opt, 6.2, 120.8, 107.8, 83.2, 0.1);
-  assert_bbox("path10", opt, 6.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path11", opt, 156.2, 20.8, 107.8, 83.2, 0.1);
-  assert_bbox("path12", opt, 6.2, 120.8, 107.8, 83.2, 0.1);
+  assert_bbox("path1", opt, 6.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path2", opt, 156.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path3", opt, 6.2, 121, 107.8, 83, 0.1);
+  assert_bbox("path4", opt, 6.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path5", opt, 156.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path6", opt, 6.2, 121, 107.8, 83, 0.1);
+  assert_bbox("path7", opt, 6.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path8", opt, 156.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path9", opt, 6.2, 121, 107.8, 83, 0.1);
+  assert_bbox("path10", opt, 6.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path11", opt, 156.2, 21, 107.8, 83, 0.1);
+  assert_bbox("path12", opt, 6.2, 121, 107.8, 83, 0.1);
 }, "path with stroke");
 
 test(t => {

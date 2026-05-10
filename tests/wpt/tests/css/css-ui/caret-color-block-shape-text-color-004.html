@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>caret-color: Stick with second color for text when the first color is auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-block-shape-text-color-004-ref.html">
+<meta name="assert" content="For the case that caret-shape is block, when the first value of caret-color is auto, we resolve it to currentColor for the caret, and use the second color for the character under the block caret as it is when specified.">
+<style>
+  #target {
+    font-size: 5em;
+    color: blue;
+    caret-color: auto white;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+</script>

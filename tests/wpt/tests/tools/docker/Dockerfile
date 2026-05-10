@@ -20,6 +20,9 @@ RUN apt-get -qqy update \
     glib-networking-services \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-gl \
+    libatspi2.0-dev \
+    libcairo2-dev \
+    libgirepository1.0-dev \
     libosmesa6-dev \
     libproxy1-plugin-webkit \
     libvirt-daemon-system \

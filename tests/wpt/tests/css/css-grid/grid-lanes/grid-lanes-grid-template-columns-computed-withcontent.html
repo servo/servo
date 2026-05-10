@@ -72,7 +72,7 @@
           '30px 54px 54px 54px 54px 54px');
   test_computed_value("grid-template-columns", '[] 150px [] 1fr []', '150px 150px');
 
-  // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? <fixed-size> ]+ <line-names>? )
+  // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? [ <fixed-size> | auto ] ]+ <line-names>? )
   test_computed_value("grid-template-columns", 'repeat(auto-fill, 200px)', '200px');
   test_computed_value("grid-template-columns", 'repeat(auto-fit, [one] 20%)',
           '[one] 60px [one] 0px [one] 0px [one] 0px [one] 0px');
@@ -80,6 +80,10 @@
           '100px [two] 100px [two] 100px [two]');
   test_computed_value("grid-template-columns", 'repeat(auto-fit, [three] minmax(max-content, 6em) [four])',
           '[three] 240px [four]');
+  test_computed_value("grid-template-columns", 'repeat(auto-fill, auto)',
+          '30px 30px 30px 30px 30px 30px 30px 30px 30px 30px');
+  test_computed_value("grid-template-columns", 'repeat(auto-fit, auto)',
+          '300px 0px 0px 0px 0px 0px 0px 0px 0px 0px');
 
   // <auto-track-list> =
   // [ <line-names>? [ <fixed-size> | <fixed-repeat> ] ]* <line-names>?

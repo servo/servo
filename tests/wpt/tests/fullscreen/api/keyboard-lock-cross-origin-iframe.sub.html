@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>Fullscreen keyboardLock option with cross-origin iframe</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    #outer {
+      background-color: green;
+      width: 300px;
+      height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="outer">
+    <iframe
+      id="cross-origin-iframe"
+      src="http://{{hosts[alt][]}}:{{ports[http][0]}}/fullscreen/api/resources/keyboard-lock-inner.sub.html"
+      allowfullscreen
+    ></iframe>
+  </div>
+  <button id="fullscreen-btn">Enter fullscreen (keyboardLock: none)</button>
+  <div id="log"></div>
+  <script>
+    function waitForFullscreenChange() {
+      let { promise, resolve } = Promise.withResolvers();
+      document.addEventListener("fullscreenchange", resolve, { once: true });
+      return promise;
+    }
+
+    async function request(type) {
+      const iframe = document.getElementById("cross-origin-iframe");
+      let { promise, resolve, reject } = Promise.withResolvers();
+      switch(type) {
+        case "requestFullscreen": {
+          function onMessage(e) {
+            if (e.data.action !== "fullscreenResult") {
+              return;
+            }
+            window.removeEventListener("message", onMessage);
+            e.data.error ? reject(new Error(e.data.error)) : resolve();
+          }
+          window.addEventListener("message", onMessage);
+          break;
+        }
+        case "singlePressEsc":
+        case "holdPressEsc": {
+          function onMessage(e) {
+            if (e.data.action !== "keyDownResult") {
+              return;
+            }
+            window.removeEventListener("message", onMessage);
+            e.data.error ? reject(new Error(e.data.error)) : resolve();
+          }
+          window.addEventListener("message", onMessage);
+          break;
+        }
+      }
+      iframe.contentWindow.postMessage({ action: type }, "*");
+      await promise;
+    }
+
+    promise_test(async t => {
+      t.add_cleanup(() => document.exitFullscreen().catch(() => {}));
+
+      const iframe = document.getElementById("cross-origin-iframe");
+
+      let enterPromise = waitForFullscreenChange();
+      await new Promise(r => t.step_timeout(r, 500));
+      await request("requestFullscreen");
+      await enterPromise;
+      assert_equals(document.fullscreenElement, iframe,
+        "iframe should be the fullscreen element");
+
+      await request("singlePressEsc");
+      assert_equals(document.fullscreenElement, iframe,
+        "single Escape should not exit fullscreen when keyboardLock is browser");
+
+      await Promise.all([waitForFullscreenChange(), request("holdPressEsc")])
+      assert_equals(document.fullscreenElement, null,
+        "holding Escape should exit fullscreen when keyboardLock is browser");
+    }, "Cross-origin iframe fullscreen with keyboardLock:browser — hold Escape exits");
+
+    promise_test(async t => {
+      t.add_cleanup(() => document.exitFullscreen().catch(() => {}));
+
+      const iframe = document.getElementById("cross-origin-iframe");
+
+      let enterTopPromise = waitForFullscreenChange();
+      await test_driver.bless("requestFullscreen with keyboardLock:none", () =>
+        document.getElementById("outer").requestFullscreen({ keyboardLock: "none" })
+      );
+      await enterTopPromise;
+      assert_equals(document.fullscreenElement, document.getElementById("outer"),
+        "outer should be the fullscreen element");
+
+      await Promise.all([waitForFullscreenChange(), request("requestFullscreen")]);
+
+      assert_equals(document.fullscreenElement, iframe,
+        "iframe should be the fullscreen element after nested fullscreen request");
+
+      await request("singlePressEsc");
+
+      assert_equals(document.fullscreenElement, iframe,
+        "single Escape should not exit nested keyboardLock:browser fullscreen");
+
+      await Promise.all([waitForFullscreenChange(), request("holdPressEsc")]);
+      assert_not_equals(document.fullscreenElement, iframe,
+        "iframe should no longer be the fullscreen element after holding Escape");
+    }, "Nested fullscreen: top-level keyboardLock:none then cross-origin iframe keyboardLock:browser — hold Escape exits iframe fullscreen");
+  </script>
+</body>
+</html>

@@ -16,9 +16,6 @@
     initial-value: "empty";
   }
   div {
-    --condition-val: 3;
-    --str: text;
-    --true: true;
     --some-string: attr(data-foo);
     --some-string-list: "https://does-not-exist-2.test/404.png" attr(data-foo);
     --some-other-url: attr(data-foo);
@@ -223,77 +220,5 @@
     test_attr('background-image',
               `image-set(var(--image-set-invalid))`,
               url,
-              'none');
-
-    // Test attr-tainting carries through if() function.
-    test_attr('--x',
-              `image-set(if(style(--true): attr(data-foo);))`,
-              url,
-              `image-set("${url}")`);
-    test_attr('background-image',
-              'image-set(if(style(--true): attr(data-foo);))',
-              url,
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--true): url(${url2});
-                   else: attr(data-foo);))`,
-              url2,
-              `image-set(url("${url2}") 1dppx)`);
-    test_attr('background-image',
-              `image-set(
-                if(style(--some-string): url(${url});))`,
-              url,
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val: attr(data-foo type(*))): url(${url});))`,
-              '3',
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val: attr(data-foo type(*))): url(${url});
-                   style(--true): url(${url});
-                   else: url(${url});))`,
-              '1',
-              'none');
-    test_attr('background-image',
-              `image-set(if(style(--true): url(${url});
-                            style(--condition-val): url(${url});
-                            else: url(${url});))`,
-              'attr(data-foo type(*))',
-              `image-set(url("${url}") 1dppx)`);
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
-              '3',
-              'none');
-    test_attr('--x',
-              `image-set(if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
-              '3',
-              `image-set(url(${url}))`);
-    test_attr('--x',
-              `image-set(if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
-              '3',
-              `image-set(url(${url}))`);
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
-              '3',
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
-              '3',
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--str < attr(data-foo type(*))): url(${url});))`,
-              '3',
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
-              'text',
               'none');
 </script>

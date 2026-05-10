@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the same-origin frame marked as sandbox.
+    </div>
+    <br />
+    <div>
+        <iframe id="iframe" width="100px" height="100px" frameBorder="0" sandbox src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+    </div>
+</body>
+</html>

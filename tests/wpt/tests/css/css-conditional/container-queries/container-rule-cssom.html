@@ -66,6 +66,16 @@
   }, ".conditions without query");
 
   test(() => {
+    const rule = insertRule("@container style(--x > 0) {}");
+    assert_true(!!rule, "Rule successfully parsed");
+    assert_equals(rule.conditions.length, 1);
+    assert_equals(rule.conditions[0].name, "");
+    assert_equals(rule.conditions[0].query, "style(--x > 0)");
+    assert_equals(rule.containerName, "");
+    assert_equals(rule.containerQuery, "style(--x > 0)");
+  }, "style()");
+
+  test(() => {
     const rule = insertRule("@container (width > 300px), Name (width < 1000px) {}");
     assert_true(!!rule, "Rule successfully parsed");
     assert_equals(rule.conditions.length, 2);

@@ -1,0 +1,33 @@
+<!doctype html>
+<title>SVG path 'd' by-animation with empty base value</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="">
+    <animate id="animation" attributeName="d"
+             by="M 0 0 L 100 0 L 100 100 L 0 100 Z"
+             begin="0s" dur="4s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// by-animation is additive. An empty base path cannot be added to a non-empty
+// by value (structurally incompatible), so the animation fails and the base
+// value is preserved.
+function sample1() {
+  assert_animated_path_equals(path, "");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    ["animation", 0.001, sample1],
+    ["animation", 2.0, sample1],
+    ["animation", 3.999, sample1],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

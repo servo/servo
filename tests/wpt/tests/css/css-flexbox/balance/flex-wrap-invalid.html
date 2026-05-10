@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-wrap-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_invalid_value("flex-wrap", "auto");
+test_invalid_value("flex-wrap", "nowrap wrap");
+test_invalid_value("flex-wrap", "wrap wrap");
+test_invalid_value("flex-wrap", "balance balance");
+test_invalid_value("flex-wrap", "balance nowrap");
+test_invalid_value("flex-wrap", "nowrap balance");
+test_invalid_value("flex-wrap", "wrap balance wrap");
+test_invalid_value("flex-wrap", "balance wrap balance");
+test_invalid_value("flex-wrap", "wrap 2 balance");
+test_invalid_value("flex-wrap", "2 balance wrap");
+test_invalid_value("flex-wrap", "balance 0");
+test_invalid_value("flex-wrap", "balance 1.5");
+test_invalid_value("flex-wrap", "balance -1");
+</script>
+</body>

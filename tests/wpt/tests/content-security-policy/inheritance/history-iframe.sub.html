@@ -52,7 +52,8 @@
     await t.step_wait(
       condition = () => {
         try {
-          return iframe.contentWindow.location.href == "about:blank";
+          return iframe.contentWindow.location.href == "about:blank" &&
+                 iframe.contentDocument.readyState == "complete";
         } catch {}
         return false;
       },

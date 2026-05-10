@@ -886,4 +886,36 @@ test(t => {
 }, 'iteration composition of incompatible calc-size() bases ' +
    '(accumulation skipped at 0%, allowed at 50%)');
 
+test(t => {
+  const div = createDiv(t);
+  div.style.fontSize = '16px';
+  const anim =
+    div.animate({ lineHeight: ['1', '150%'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+
+
+  const lineHeight = () => {
+    const value = getComputedStyle(div).lineHeight;
+    if (value.endsWith('px')) {
+      return Number.parseFloat(value);
+    }
+    return Number.parseFloat(value) * 16;
+  };
+
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+  assert_equals(lineHeight(), 24,
+    'Animated line-height style at 50s of the first iteration');
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  // Non-additive units: number vs length.
+  assert_equals(lineHeight(), 16,
+    'Animated line-height style at 0s of the third iteration');
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
+  // Additive units: combining lengths.
+  assert_equals(lineHeight(), 72,
+  'Animated line-height style at 50s of the third iteration');
+}, 'iteration composition of animation non-additive units');
+
 </script>

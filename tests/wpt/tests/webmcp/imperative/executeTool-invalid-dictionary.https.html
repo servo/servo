@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP: executeTool dictionary member validation checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  // Register a legitimate tool first to retrieve a valid template.
+  navigator.modelContext.registerTool({
+    name: "legit_tool",
+    description: "Legitimate tool description",
+    execute: async (args) => "success"
+  });
+
+  const tools = await navigator.modelContext.getTools();
+  const legit = tools.find(t => t.name === "legit_tool");
+  assert_true(!!legit, "Legitimate tool must be successfully discovered");
+
+  // Construct a dictionary containing all required members except the required 'origin' member.
+  const invalidTool = {
+    name: legit.name,
+    description: legit.description,
+    window: legit.window
+    // 'origin' is intentionally omitted!
+  };
+
+  // Invoking executeTool() must return a Promise rejected with TypeError.
+  await promise_rejects_js(
+    t,
+    TypeError,
+    navigator.modelContext.executeTool(invalidTool, '{}'),
+    "executeTool() must reject with TypeError if 'origin' member is omitted"
+  );
+}, "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted");
+</script>
+</body>
+</html>
