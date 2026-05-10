@@ -80,7 +80,7 @@ impl ScriptMutationObservers {
         // with its bubbles attribute set to true, at slot.
         for slot in signal_set {
             slot.upcast::<EventTarget>()
-                .fire_event(cx, atom!("slotchange"));
+                .fire_bubbling_event(cx, atom!("slotchange"));
         }
     }
 
