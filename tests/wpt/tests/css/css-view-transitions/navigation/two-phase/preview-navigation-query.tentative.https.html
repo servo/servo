@@ -1,0 +1,102 @@
+<!doctype html>
+<head>
+  <title>View transitions: a preview transition runs until its end</title>
+  <link
+    rel="help"
+    href="https://github.com/w3c/csswg-drafts/blob/main/css-view-transitions-2/two-phase-transition-explainer.md"
+  />
+  <meta name="timeout" content="long" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    window.events = [];
+    switch (params.get("mode") || "test") {
+      case "test":
+        promise_test(async (t) => {
+          window.done = Promise.withResolvers();
+          const popup = window.open("?mode=old");
+          t.add_cleanup(() => popup.close());
+          await window.done.promise;
+          assert_array_equals(window.events, [
+            "navigate-event",
+            "rgb(255, 255, 0)",
+            "frame-after-navigate-event",
+            "rgb(0, 0, 255)",
+            "preview-vt",
+            "preview-ready",
+            "rgb(0, 0, 255)",
+            "pageswap",
+            "cross-doc-vt",
+          ]);
+        });
+        break;
+      case "old":
+        onload = async () => {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          const navigate_event = Promise.withResolvers();
+          navigation.addEventListener("navigate", async (e) => {
+            opener.events.push("navigate-event");
+            opener.events.push(
+              getComputedStyle(document.documentElement).backgroundColor,
+            );
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+            opener.events.push("frame-after-navigate-event");
+            opener.events.push(
+              getComputedStyle(document.documentElement).backgroundColor,
+            );
+            if (!document.activeViewTransition) {
+              opener.events.push("no-view-transition");
+              return;
+            }
+            opener.events.push(
+              Array.from(document.activeViewTransition.types).join(","),
+            );
+            await document.activeViewTransition.ready;
+            opener.events.push("preview-ready");
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+
+            opener.events.push(
+              getComputedStyle(document.documentElement).backgroundColor,
+            );
+          });
+          navigation.navigate("?mode=new&pipe=trickle(d1)");
+        };
+        onpageswap = (e) => {
+          window.opener.events.push("pageswap");
+        };
+        break;
+      case "new":
+        onpagereveal = (e) => {
+          opener.events.push(
+            e.viewTransition
+              ? Array.from(e.viewTransition.types).join(",")
+              : "null",
+          );
+          window.opener.done.resolve(e);
+        };
+        break;
+    }
+  </script>
+  <style>
+    ::view-transition-group(root) {
+      animation-duration: 100ms;
+    }
+    @view-transition {
+      navigation: auto;
+      types: cross-doc-vt;
+    }
+    @view-transition {
+      navigation: preview;
+      types: preview-vt;
+    }
+    html {
+      background-color: rgb(255, 255, 0);
+    }
+    @navigation (preview) {
+      html {
+        background-color: rgb(0, 0, 255);
+      }
+    }
+  </style>
+</head>

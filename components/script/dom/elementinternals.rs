@@ -6,15 +6,16 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
+use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
     ElementInternalsMethods, ValidityStateFlags,
 };
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVStringOrFormData;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::customstateset::CustomStateSet;
@@ -192,10 +193,6 @@ impl ElementInternals {
             !self.satisfies_constraints(can_gc)
     }
 
-    pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
-        self.states.get()
-    }
-
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
         #[expect(unsafe_code)]
         unsafe {
@@ -263,8 +260,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         let bits: ValidationFlags = flags.into();
         if !bits.is_empty() && !message.as_ref().map_or_else(|| false, |m| !m.is_empty()) {
             return Err(Error::Type(
-                "Setting an element to invalid requires a message string as the second argument."
-                    .to_string(),
+                c"Setting an element to invalid requires a message string as the second argument."
+                    .to_owned(),
             ));
         }
 
@@ -362,19 +359,19 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> Fallible<bool> {
+    fn CheckValidity(&self, cx: &mut JSContext) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(None));
         }
-        Ok(self.check_validity(can_gc))
+        Ok(self.check_validity(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> Fallible<bool> {
+    fn ReportValidity(&self, cx: &mut JSContext) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(None));
         }
-        Ok(self.report_validity(can_gc))
+        Ok(self.report_validity(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>

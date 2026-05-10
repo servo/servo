@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_remove_preload_script_from_sandbox(bidi_session):
     # Add preload script to make changes in window
     script_1 = await bidi_session.script.add_preload_script(

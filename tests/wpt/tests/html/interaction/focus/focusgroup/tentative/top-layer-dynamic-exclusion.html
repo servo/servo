@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Top-layer exclusion is dynamic</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div id=inline_fg focusgroup="toolbar inline wrap">
+  <button id=a>A</button>
+  <div id=pop popover>
+    <button id=x>X</button>
+  </div>
+  <button id=b>B</button>
+</div>
+
+<div id=block_fg focusgroup="toolbar block">
+  <button id=up>Up</button>
+  <div id=pop_block popover>
+    <button id=block_inner>Inner</button>
+  </div>
+  <button id=down>Down</button>
+</div>
+
+<div id=multi_fg focusgroup="toolbar inline">
+  <button id=m_a>A</button>
+  <div id=pop_m1 popover>
+    <button id=m_x1>X1</button>
+  </div>
+  <button id=m_b>B</button>
+  <div id=pop_m2 popover>
+    <button id=m_x2>X2</button>
+  </div>
+  <button id=m_c>C</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("pop");
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Hidden popover: items not rendered, naturally skipped. Guard against
+  // the popover defaulting to open: if it were already shown, the rest of
+  // the test would not actually exercise the hidden phase.
+  assert_false(pop.matches(":popover-open"),
+    "Popover must start in the hidden state");
+  await focusAndSendDirectionalInput(a, kRight);
+  assert_equals(document.activeElement, b,
+    "With hidden popover, arrow right should go A to B");
+
+  // Show popover: items enter top layer and are excluded.
+  pop.showPopover();
+
+  await focusAndSendDirectionalInput(a, kRight);
+  assert_equals(document.activeElement, b,
+    "With shown popover, arrow right should still go A to B");
+
+  // Hide popover, after which items return to display:none and are
+  // naturally skipped. (Re-participation of visible items can't be tested
+  // with popovers since they go to display:none on hide.)
+  pop.hidePopover();
+
+  await focusAndSendDirectionalInput(a, kRight);
+  assert_equals(document.activeElement, b,
+    "After hiding popover, arrow right should go A to B");
+}, "Top-layer exclusion is dynamic: show and hide cycles");
+
+promise_test(async t => {
+  const pop = document.getElementById("pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Wrap should skip the shown popover items.
+  await assert_directional_navigation_bidirectional([a, b], /*shouldWrap=*/true);
+}, "Wrapping navigation skips shown popover subtree");
+
+promise_test(async t => {
+  const pop = document.getElementById("pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  await focusAndSendHomeInput(a);
+  assert_equals(document.activeElement, a,
+    "Home from first item should stay on A");
+
+  await focusAndSendEndInput(a);
+  assert_equals(document.activeElement, b,
+    "End should skip shown popover and land on B");
+
+  await focusAndSendHomeInput(b);
+  assert_equals(document.activeElement, a,
+    "Home should skip shown popover and land on A");
+}, "Home and End keys skip shown popover subtree");
+
+promise_test(async t => {
+  const pop_b = document.getElementById("pop_block");
+  pop_b.showPopover();
+  t.add_cleanup(() => pop_b.hidePopover());
+
+  await focusAndSendDirectionalInput(up, kDown);
+  assert_equals(document.activeElement, down,
+    "Arrow down should skip the shown popover in block-axis navigation");
+
+  await focusAndSendDirectionalInput(down, kUp);
+  assert_equals(document.activeElement, up,
+    "Arrow up should skip the shown popover in block-axis navigation");
+}, "Block-axis navigation skips shown popover subtree");
+
+promise_test(async t => {
+  const p1 = document.getElementById("pop_m1");
+  const p2 = document.getElementById("pop_m2");
+  p1.showPopover();
+  p2.showPopover();
+  t.add_cleanup(() => {
+    p1.hidePopover();
+    p2.hidePopover();
+  });
+
+  await assert_directional_navigation_bidirectional([m_a, m_b, m_c]);
+}, "Arrow navigation skips multiple simultaneously shown popovers");
+
+</script>
+
+<!--
+  Memory fallthrough: an item inside a subtree that later enters the top
+  layer must not remain the focusgroup's last-focused entry. After the
+  subtree is promoted to a popover, the next Tab into the focusgroup must
+  fall through to the first item rather than restoring focus to the now-
+  excluded memory item.
+-->
+<button id=mem_before>Before</button>
+<div id=mem_fg focusgroup="toolbar inline">
+  <button id=mem_a>A</button>
+  <div id=mem_pop>
+    <button id=mem_x>X</button>
+  </div>
+  <button id=mem_b>B</button>
+</div>
+<button id=mem_after>After</button>
+
+<script>
+
+promise_test(async t => {
+  // Set the focusgroup's memory to X while X is still a normal item.
+  mem_x.focus();
+  assert_equals(document.activeElement, mem_x,
+    "X should be focusable while it is still a normal focusgroup item");
+
+  // Promote the wrapper to a popover, moving X into the top layer.
+  mem_pop.setAttribute("popover", "");
+  assert_false(mem_pop.matches(":popover-open"),
+    "Popover must start in the hidden state before showPopover()");
+  mem_pop.showPopover();
+  t.add_cleanup(() => {
+    mem_pop.hidePopover();
+    mem_pop.removeAttribute("popover");
+  });
+
+  // Tab into the focusgroup should fall through to the first item, not
+  // restore focus to the excluded memory item.
+  mem_before.focus();
+  await sendTabForward();
+  assert_equals(document.activeElement, mem_a,
+    "Tab should land on the first item, not the now-excluded memory item");
+}, "Focusgroup memory falls through when the remembered item enters the top layer");
+
+</script>

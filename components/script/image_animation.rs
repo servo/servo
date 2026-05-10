@@ -3,38 +3,43 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::ffi::c_void;
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositing_traits::{ImageUpdate, SerializableImageData};
+use embedder_traits::UntrustedNodeAddress;
 use layout_api::AnimatingImages;
-use malloc_size_of::MallocSizeOf;
+use paint_api::ImageUpdate;
 use parking_lot::RwLock;
+use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::root::Dom;
+use style::dom::OpaqueNode;
 use timers::{TimerEventRequest, TimerId};
 
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::trace::NoTrace;
+use crate::dom::from_untrusted_node_address;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_thread::with_script_thread;
 
-#[derive(Clone, Default, JSTraceable)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct ImageAnimationManager {
     /// The set of [`AnimatingImages`] which is used to communicate the addition
     /// and removal of animating images from layout.
     #[no_trace]
+    #[conditional_malloc_size_of]
     animating_images: Arc<RwLock<AnimatingImages>>,
 
     /// The [`TimerId`] of the currently scheduled animated image update callback.
     #[no_trace]
     callback_timer_id: Cell<Option<TimerId>>,
-}
 
-impl MallocSizeOf for ImageAnimationManager {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        (*self.animating_images.read()).size_of(ops)
-    }
+    /// A map of nodes with in-progress image animations. This is kept outside
+    /// of [`Self::animating_images`] as that data structure is shared with layout.
+    rooted_nodes: FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>,
 }
 
 impl ImageAnimationManager {
@@ -67,15 +72,22 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
-                let (descriptor, ipc_shared_memory) =
-                    image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
-
-                Some(ImageUpdate::UpdateImage(
-                    image.id.unwrap(),
-                    descriptor,
-                    SerializableImageData::Raw(ipc_shared_memory),
-                    None,
-                ))
+                let frame = image
+                    .frame_data(state.active_frame)
+                    .expect("No frame found")
+                    .clone();
+                if let Some(mut descriptor) =
+                    image.webrender_image_descriptor_and_offset_for_frame()
+                {
+                    descriptor.offset = frame.byte_range.start as i32;
+                    Some(ImageUpdate::UpdateImageForAnimation(
+                        image.id.unwrap(),
+                        descriptor,
+                    ))
+                } else {
+                    error!("Doing normal image update which will be slow!");
+                    None
+                }
             })
             .collect();
         window
@@ -85,11 +97,37 @@ impl ImageAnimationManager {
         self.maybe_schedule_update(window, now);
     }
 
-    /// After doing a layout, if the set of animating images was updated in some way,
-    /// schedule a new animation update.
-    pub(crate) fn maybe_schedule_update_after_layout(&self, window: &Window, now: f64) {
+    /// This does three things:
+    ///  - Root any nodes with newly animating images
+    ///  - Schedule an image update for newly animating images
+    ///  - Cancel animations for any nodes that no longer have layout boxes.
+    pub(crate) fn do_post_reflow_update(&mut self, window: &Window, now: f64) {
+        // Cancel animations for any images that are no longer rendering.
+        self.rooted_nodes.retain(|opaque_node, node| {
+            if node.is_being_rendered(None) {
+                return true;
+            }
+            self.animating_images.write().remove(opaque_node.0);
+            false
+        });
+
         if self.animating_images().write().clear_dirty() {
+            self.root_nodes_with_newly_animating_images();
             self.maybe_schedule_update(window, now);
+        }
+    }
+
+    fn root_nodes_with_newly_animating_images(&mut self) {
+        for opaque_node in self.animating_images().read().node_to_state_map.keys() {
+            #[expect(unsafe_code)]
+            self.rooted_nodes
+                .entry(NoTrace(*opaque_node))
+                .or_insert_with(|| {
+                    // SAFETY: This should be safe as this method is run directly after layout,
+                    // which should not remove any nodes.
+                    let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
+                    unsafe { Dom::from_ref(&*from_untrusted_node_address(address)) }
+                });
         }
     }
 
@@ -114,7 +152,9 @@ impl ImageAnimationManager {
         })
     }
 
-    pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
-        self.animating_images().write().remove(node.to_opaque());
+    pub(crate) fn cancel_animations_for_node(&mut self, node: &Node) {
+        let opaque_node = node.to_opaque();
+        self.animating_images().write().remove(opaque_node);
+        self.rooted_nodes.remove(&NoTrace(opaque_node));
     }
 }

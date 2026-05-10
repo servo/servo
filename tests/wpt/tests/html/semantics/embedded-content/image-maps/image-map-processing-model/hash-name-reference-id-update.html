@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Map element id change updates getElementById</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+test(() => {
+    const map = document.createElement("map");
+    map.id = "foo";
+    document.body.appendChild(map);
+    assert_equals(document.getElementById("foo"), map);
+    map.id = "bar";
+    assert_equals(document.getElementById("foo"), null);
+    assert_equals(document.getElementById("bar"), map);
+    map.remove();
+}, "Changing a map element's id properly updates getElementById");
+</script>

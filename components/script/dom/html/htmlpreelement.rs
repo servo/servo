@@ -15,7 +15,6 @@ use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLPreElement {
@@ -34,17 +33,17 @@ impl HTMLPreElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLPreElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLPreElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -67,8 +66,8 @@ impl VirtualMethods for HTMLPreElement {
 
 impl HTMLPreElementMethods<crate::DomTypeHolder> for HTMLPreElement {
     // https://html.spec.whatwg.org/multipage/#dom-pre-width
-    make_int_getter!(Width, "width", 0);
+    make_int_getter!(Width, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-pre-width
-    make_int_setter!(SetWidth, "width", 0);
+    make_int_setter!(SetWidth, "width");
 }

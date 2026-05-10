@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo Test: CSSPseudoElement and a click event on ::backdrop pseudo-element</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  dialog {
+    width: 100px;
+    height: 100px;
+    margin: auto;
+    padding: 0;
+    border: none;
+    background: blue;
+  }
+
+  dialog::backdrop {
+    background: red;
+  }
+</style>
+<dialog id="target"></dialog>
+<script>
+  const target = document.getElementById("target");
+  target.showModal();
+
+  let clickTarget = null;
+  let clickPseudoTarget = null;
+
+  target.addEventListener("click", (e) => {
+    clickTarget = e.target;
+    clickPseudoTarget = e.pseudoTarget;
+  });
+
+  promise_test(async t => {
+    // Wait for layout
+    await new Promise(requestAnimationFrame);
+
+    const rect = target.getBoundingClientRect();
+
+    // Click inside the dialog
+    await new test_driver.Actions()
+      .pointerMove(Math.round(rect.left + 50), Math.round(rect.top + 50))
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_equals(clickTarget, target, "Click inside dialog: target is the dialog");
+    assert_equals(clickPseudoTarget, null, "Click inside dialog: pseudoTarget is null");
+
+    clickTarget = null;
+    clickPseudoTarget = null;
+
+    // Click outside the dialog (on the backdrop)
+    // The dialog is centered, so (10, 10) should be on the backdrop.
+    await new test_driver.Actions()
+      .pointerMove(10, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_equals(clickTarget, target, "Click on backdrop: target is the dialog");
+    assert_not_equals(clickPseudoTarget, null, "Click on backdrop: pseudoTarget is not null");
+    assert_equals(clickPseudoTarget, target.pseudo("::backdrop"), "Click on backdrop: pseudoTarget is ::backdrop");
+
+  }, "Clicking on dialog's ::backdrop sets pseudoTarget to the CSSPseudoElement");
+</script>

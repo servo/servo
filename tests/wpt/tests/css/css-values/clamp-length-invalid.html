@@ -21,4 +21,15 @@ test_invalid_length('clamp(1px, 1px, )');
 test_invalid_length('clamp(1px, 1px, 1px, )');
 test_invalid_length('clamp(1px 1px 1px)');
 test_invalid_length('clamp(0, 10rem, 100%)');
+test_invalid_length('clamp(none, none, none)');
+test_invalid_length('clamp(none, none + none, none)');
+test_invalid_length('clamp(none, none + 1, none)');
+test_invalid_length('clamp(-none, 1px, 1px)');
+test_invalid_length('clamp(10px, none * none, 20px)');
+test_invalid_length('clamp(10px, 2px * none, 20px)');
+test_invalid_length('clamp(10px, 2px + none, 20px)');
+test_invalid_length('clamp(10px + none, 10px / 2px + none, 20px / none)');
+test_invalid_length('clamp(10px, -none, 20px)');
+test_invalid_length('clamp(10px, 15px, abs(none) * 1px)');
+test_invalid_length('clamp(10px, 15px, abs(none * 1px))');
 </script>

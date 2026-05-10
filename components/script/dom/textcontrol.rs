@@ -7,25 +7,36 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use base::text::Utf16CodeUnitLength;
+use std::cell::Ref;
+
+use script_bindings::cell::DomRefCell;
+use servo_base::text::Utf16CodeUnitLength;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::types::Element;
 use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 
-pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
+pub(crate) trait TextControlElement:
+    DerivedFrom<EventTarget> + DerivedFrom<Node> + DerivedFrom<Element>
+{
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
-    fn has_selection(&self) -> bool;
+    fn has_uncollapsed_selection(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
     fn select_all(&self);
+    fn maybe_update_shared_selection(&self);
+    fn is_password_field(&self) -> bool {
+        false
+    }
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString>;
+    fn value_text(&self) -> DOMString;
 }
 
 pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
@@ -341,9 +352,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         direction: Option<SelectionDirection>,
         original_selection_state: Option<SelectionState>,
     ) {
-        let mut textinput = self.textinput.borrow_mut();
         let original_selection_state =
-            original_selection_state.unwrap_or_else(|| textinput.selection_state());
+            original_selection_state.unwrap_or_else(|| self.textinput.borrow().selection_state());
 
         // To set the selection range with an integer or null start, an integer or null or
         // the special value infinity end, and optionally a string direction, run the
@@ -370,7 +380,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // the direction argument was not given, set direction to "none".
         //
         // Step 5: Set the selection direction of the text control to direction.
-        textinput.set_selection_range_utf16(
+        self.textinput.borrow_mut().set_selection_range_utf16(
             start,
             end,
             direction.unwrap_or(SelectionDirection::None),
@@ -380,19 +390,20 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // modified (in either extent or direction), then queue an element task on the
         // user interaction task source given the element to fire an event named select at
         // the element, with the bubbles attribute initialized to true.
-        if textinput.selection_state() != original_selection_state {
-            self.element
-                .owner_global()
-                .task_manager()
-                .user_interaction_task_source()
-                .queue_event(
-                    self.element.upcast::<EventTarget>(),
-                    atom!("select"),
-                    EventBubbles::Bubbles,
-                    EventCancelable::NotCancelable,
-                );
+        if self.textinput.borrow().selection_state() == original_selection_state {
+            return;
         }
 
-        self.element.upcast::<Node>().dirty(NodeDamage::Other);
+        self.element
+            .owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue_event(
+                self.element.upcast::<EventTarget>(),
+                atom!("select"),
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+            );
+        self.element.maybe_update_shared_selection();
     }
 }

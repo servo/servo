@@ -56,7 +56,7 @@ async def test_multiple_contexts(bidi_session, new_tab, default_user_agent,
 @pytest.mark.parametrize("domain", ["", "alt"],
                          ids=["same_origin", "cross_origin"])
 async def test_iframe(bidi_session, new_tab, default_user_agent,
-        assert_user_agent, domain, inline):
+        assert_user_agent, domain, inline, iframe):
     # Set user-agent override
     await bidi_session.emulation.set_user_agent_override(
         contexts=[new_tab["context"]],
@@ -66,8 +66,7 @@ async def test_iframe(bidi_session, new_tab, default_user_agent,
     # Assert user-agent override is set in the required context.
     await assert_user_agent(new_tab, SOME_USER_AGENT)
 
-    iframe_url = inline("<div id='in-iframe'>foo</div>", domain=domain)
-    page_url = inline(f"<iframe src='{iframe_url}'></iframe>")
+    page_url = inline(iframe("<div id='in-iframe'>foo</div>", domain=domain))
 
     # Load the page with iframes.
     await bidi_session.browsing_context.navigate(

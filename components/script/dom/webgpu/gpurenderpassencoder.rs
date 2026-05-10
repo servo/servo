@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
 use crate::conversions::TryConvert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUColor, GPUIndexFormat, GPURenderPassEncoderMethods,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -23,16 +23,31 @@ use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
 use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPURenderPassEncoder {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    render_pass: WebGPURenderPass,
+}
+
+impl Drop for DroppableGPURenderPassEncoder {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderPass(self.render_pass.0))
+        {
+            warn!("Failed to send WebGPURequest::DropRenderPass with {e:?}");
+        }
+    }
+}
 #[dom_struct]
 pub(crate) struct GPURenderPassEncoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    render_pass: WebGPURenderPass,
     command_encoder: Dom<GPUCommandEncoder>,
+    droppable: DroppableGPURenderPassEncoder,
 }
 
 impl GPURenderPassEncoder {
@@ -43,11 +58,13 @@ impl GPURenderPassEncoder {
         label: USVString,
     ) -> Self {
         Self {
-            channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            render_pass,
             command_encoder: Dom::from_ref(parent),
+            droppable: DroppableGPURenderPassEncoder {
+                channel,
+                render_pass,
+            },
         }
     }
 
@@ -72,13 +89,24 @@ impl GPURenderPassEncoder {
     }
 
     fn send_render_command(&self, render_command: RenderCommand) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command,
-            device_id: self.command_encoder.device_id().0,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::RenderPassCommand {
+                render_pass_id: self.id().0,
+                render_command,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
             warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
         }
+    }
+}
+
+impl GPURenderPassEncoder {
+    pub(crate) fn id(&self) -> WebGPURenderPass {
+        self.droppable.render_pass
     }
 }
 
@@ -145,8 +173,8 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
     fn End(&self) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::EndRenderPass {
-            render_pass_id: self.render_pass.0,
+        if let Err(e) = self.droppable.channel.0.send(WebGPURequest::EndRenderPass {
+            render_pass_id: self.id().0,
             device_id: self.command_encoder.device_id().0,
             command_encoder_id: self.command_encoder.id().0,
         }) {
@@ -236,17 +264,5 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
         let bundle_ids: Vec<_> = bundles.iter().map(|b| b.id().0).collect();
         self.send_render_command(RenderCommand::ExecuteBundles(bundle_ids))
-    }
-}
-
-impl Drop for GPURenderPassEncoder {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderPass(self.render_pass.0))
-        {
-            warn!("Failed to send WebGPURequest::DropRenderPass with {e:?}");
-        }
     }
 }

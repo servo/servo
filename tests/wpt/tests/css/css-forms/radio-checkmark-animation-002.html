@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Web Animations on ::checkmark (radio)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#checkmark">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+input {
+  all: unset;
+  appearance: base;
+}
+input::checkmark {
+  all: unset;
+  content: "";
+  display: block;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<input type="radio" checked>
+<script>
+document.querySelector("input").animate({
+  backgroundColor: ["green", "green"],
+}, {
+  pseudoElement: "::checkmark",
+  duration: Infinity,
+});
+</script>

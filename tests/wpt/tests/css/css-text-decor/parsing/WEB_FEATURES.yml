@@ -2,3 +2,11 @@ features:
 - name: text-emphasis
   files:
   - "*"
+  - "!text-decoration-*"
+  - "!text-underline-position-*"
+- name: text-decoration
+  files:
+  - "text-decoration-*"
+- name: text-underline-position
+  files:
+  - text-underline-position-*

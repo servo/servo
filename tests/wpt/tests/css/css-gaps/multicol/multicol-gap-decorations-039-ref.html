@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin-left: 100px;
+    margin-top: 100px;
+  }
+
+  .multicol-container {
+    width: 320px;
+    height: 320px;
+    column-count: 3;
+    column-width: 100px;
+    column-height: 100px;
+    column-gap: 10px;
+    row-gap: 10px;
+    column-wrap: wrap;
+  }
+
+  p {
+    background: gray;
+    opacity: 0.5;
+    height: 100px;
+    margin: 0px;
+  }
+
+  .row-gap {
+    position: absolute;
+    width: 520px;
+    height: 0px;
+    border-bottom: solid 5px red;
+    left: 0px;
+  }
+
+  .row-gap1 {
+    top: 202.5px;
+  }
+
+  .row-gap2 {
+    top: 312.5px;
+  }
+
+  .col-gap {
+    position: absolute;
+    top: 0px;
+    width: 0px;
+    height: 520px;
+    border-left: solid 5px blue;
+  }
+
+  .col-gap1 {
+    left: 202.5px;
+  }
+
+  .col-gap2 {
+    left: 312.5px;
+  }
+</style>
+<div class="multicol-container">
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+</div>
+
+<div class="col-gap col-gap1"> </div>
+<div class="col-gap col-gap2"> </div>
+
+<div class="row-gap row-gap1"> </div>
+<div class="row-gap row-gap2"> </div>

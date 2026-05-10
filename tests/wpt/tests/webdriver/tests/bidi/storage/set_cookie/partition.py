@@ -66,9 +66,9 @@ async def test_partition_context(bidi_session, set_cookie, top_context, test_pag
     assert result == {"type": "string", "value": f"{cookie_name}={cookie_value}"}
 
 
-async def test_partition_context_frame(bidi_session, set_cookie, top_context, test_page, domain_value, inline):
-    frame_url = inline("<div>bar</div>", domain="alt")
-    root_page_url = inline(f"<iframe src='{frame_url}'></iframe>")
+async def test_partition_context_frame(bidi_session, set_cookie, top_context, test_page, domain_value, inline, iframe):
+    frame_html = "<div>bar</div>"
+    root_page_url = inline(iframe(frame_html, domain="alt"))
     root_page_domain = domain_value()
 
     # Navigate to a page with a frame.

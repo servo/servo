@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 //
 // WebGL IDL definitions scraped from the Khronos specification:
-// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+// https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.14
 //
 
 [Exposed=Window, Pref="dom_webgl2_enabled"]

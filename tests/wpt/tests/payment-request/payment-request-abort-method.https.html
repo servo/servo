@@ -80,12 +80,3 @@ promise_test(async t => {
   await promise_rejects_dom(t, "AbortError", acceptPromise);
 }, "Aborting a request before it is shown doesn't prevent it from being shown later.");
 </script>
-<small>
-  If you find a buggy test, please
-  <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a> and
-  tag one of the
-  <a
-    href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml"
-    >suggested reviewers</a
-  >.
-</small>

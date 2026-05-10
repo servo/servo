@@ -34,7 +34,7 @@
         assert_true('requestOverride' in navigator.preferences.contrast, 'navigator.preferences.contrast.requestOverride() defined');
         return navigator.preferences.contrast.requestOverride('this-is-an-invalid-value')
           .then(() => {
-            assert_not_reached('requestOverride with invalid value should not resolve');
+            assert_unreached('requestOverride with invalid value should not resolve');
           })
           .catch((e) => {
             assert_true(e instanceof DOMException);
@@ -45,7 +45,7 @@
       promise_test((t) => {
         return navigator.preferences.contrast.requestOverride('custom')
           .then(() => {
-            assert_not_reached('requestOverride with invalid value should not resolve');
+            assert_unreached('requestOverride with invalid value should not resolve');
           })
           .catch((e) => {
             assert_true(e instanceof DOMException);

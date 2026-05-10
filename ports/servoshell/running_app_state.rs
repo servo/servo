@@ -12,25 +12,40 @@ use std::rc::Rc;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
+#[cfg(all(
+    any(coverage, llvm_pgo),
+    any(target_os = "android", target_env = "ohos")
+))]
+use libc::c_char;
 use log::{error, info, warn};
-#[cfg(feature = "gamepad")]
-use servo::GamepadHapticEffectType;
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
-    DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GenericSender, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
-    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
-    ServoError, TraversalId, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
-    WebViewId, pref,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
+    ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
+    EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
+    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
+    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
 
-#[cfg(feature = "gamepad")]
-use crate::GamepadSupport;
+#[cfg(all(
+    feature = "gamepad",
+    not(any(target_os = "android", target_env = "ohos"))
+))]
+pub(crate) use crate::desktop::gamepad::ServoshellGamepadDelegate;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
+
+#[cfg(all(
+    any(coverage, llvm_pgo),
+    any(target_os = "android", target_env = "ohos")
+))]
+unsafe extern "C" {
+    fn __llvm_profile_set_filename(file: *const c_char);
+    fn __llvm_profile_write_file();
+}
 
 #[derive(Default)]
 pub struct WebViewCollection {
@@ -125,12 +140,12 @@ impl WebViewCollection {
     }
 
     pub(crate) fn activate_webview_by_index(&mut self, index: usize) {
-        self.activate_webview(
-            *self
-                .creation_order
-                .get(index)
-                .expect("Tried to activate an unknown WebView"),
-        );
+        let Some(webview_id) = self.creation_order.get(index) else {
+            // Just ignore requests to activate uknown WebViews. This can happen by pressing
+            // keyboard shortcuts in the interface.
+            return;
+        };
+        self.activate_webview(*webview_id);
     }
 }
 
@@ -148,9 +163,13 @@ pub(crate) enum UserInterfaceCommand {
 }
 
 pub(crate) struct RunningAppState {
-    /// Gamepad support, which may be `None` if it failed to initialize.
-    #[cfg(feature = "gamepad")]
-    gamepad_support: RefCell<Option<GamepadSupport>>,
+    /// The gamepad provider, used for handling gamepad events and set on each WebView.
+    /// May be `None` if gamepad support is disabled or failed to initialize.
+    #[cfg(all(
+        feature = "gamepad",
+        not(any(target_os = "android", target_env = "ohos"))
+    ))]
+    gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
 
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
@@ -197,6 +216,13 @@ pub(crate) struct RunningAppState {
 
     /// The currently focused [`ServoShellWindow`], if one is focused.
     focused_window: RefCell<Option<Rc<ServoShellWindow>>>,
+
+    /// Whether accessibility is active in servoshell.
+    ///
+    /// Set by the platform via AccessKit, and forwarded to existing and new WebViews via
+    /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
+    /// and [`ServoShellWindow::create_toplevel_webview()`].
+    accessibility_active: Cell<bool>,
 }
 
 impl RunningAppState {
@@ -205,19 +231,23 @@ impl RunningAppState {
         servoshell_preferences: ServoShellPreferences,
         event_loop_waker: Box<dyn EventLoopWaker>,
         user_content_manager: Rc<UserContentManager>,
+        default_preferences: Preferences,
+        #[cfg(all(
+            feature = "gamepad",
+            not(any(target_os = "android", target_env = "ohos"))
+        ))]
+        gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
-        #[cfg(feature = "gamepad")]
-        let gamepad_support = if pref!(dom_gamepad_enabled) {
-            GamepadSupport::maybe_new()
-        } else {
-            None
-        };
-
         let webdriver_receiver = servoshell_preferences.webdriver_port.get().map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
-            webdriver_server::start_server(port, embedder_sender, event_loop_waker);
+            webdriver_server::start_server(
+                port,
+                embedder_sender,
+                event_loop_waker,
+                default_preferences,
+            );
             embedder_receiver
         });
 
@@ -227,8 +257,11 @@ impl RunningAppState {
         Self {
             windows: Default::default(),
             focused_window: Default::default(),
-            #[cfg(feature = "gamepad")]
-            gamepad_support: RefCell::new(gamepad_support),
+            #[cfg(all(
+                feature = "gamepad",
+                not(any(target_os = "android", target_env = "ohos"))
+            ))]
+            gamepad_delegate,
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
@@ -239,6 +272,7 @@ impl RunningAppState {
             exit_scheduled: Default::default(),
             user_content_manager,
             experimental_preferences_enabled,
+            accessibility_active: Cell::new(false),
         }
     }
 
@@ -248,10 +282,10 @@ impl RunningAppState {
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window.clone()));
-        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
             .insert(window.id(), window.clone());
+        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
 
         // If the window already has platform focus, mark it as focused in our application state.
         if platform_window.has_platform_focus() {
@@ -294,6 +328,14 @@ impl RunningAppState {
         &self.servo
     }
 
+    #[cfg(all(
+        feature = "gamepad",
+        not(any(target_os = "android", target_env = "ohos"))
+    ))]
+    pub(crate) fn gamepad_delegate(&self) -> Option<Rc<ServoshellGamepadDelegate>> {
+        self.gamepad_delegate.clone()
+    }
+
     pub(crate) fn schedule_exit(&self) {
         // When explicitly required to shutdown, unset webdriver port
         // which allows normal shutdown.
@@ -302,6 +344,28 @@ impl RunningAppState {
         // to run wpt test using servodriver.
         self.servoshell_preferences.webdriver_port.set(None);
         self.exit_scheduled.set(true);
+
+        #[cfg(all(
+            any(coverage, llvm_pgo),
+            any(target_os = "android", target_env = "ohos")
+        ))]
+        {
+            use std::ffi::CString;
+
+            use crate::prefs::default_config_dir;
+
+            let mut profile_path = default_config_dir().expect("Need a config dir");
+            profile_path.push("profiles/");
+            let filename = format!(
+                "{}/profile-%h-%p.profraw",
+                profile_path.to_str().expect("Should be unicode")
+            );
+            let c_filename = CString::new(filename).expect("Need a valid cstring");
+            unsafe {
+                __llvm_profile_set_filename(c_filename.as_ptr() as *const c_char);
+                __llvm_profile_write_file()
+            }
+        }
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -327,10 +391,10 @@ impl RunningAppState {
                 return true;
             }
 
-            if let Some(focused_window) = self.focused_window() {
-                if Rc::ptr_eq(window, &focused_window) {
-                    *self.focused_window.borrow_mut() = None;
-                }
+            if let Some(focused_window) = self.focused_window() &&
+                Rc::ptr_eq(window, &focused_window)
+            {
+                *self.focused_window.borrow_mut() = None;
             }
             false
         });
@@ -355,8 +419,11 @@ impl RunningAppState {
 
         self.handle_webdriver_messages(create_platform_window);
 
-        #[cfg(feature = "gamepad")]
-        if pref!(dom_gamepad_enabled) {
+        #[cfg(all(
+            feature = "gamepad",
+            not(any(target_os = "android", target_env = "ohos"))
+        ))]
+        if servo::pref!(dom_gamepad_enabled) {
             self.handle_gamepad_events();
         }
 
@@ -397,7 +464,7 @@ impl RunningAppState {
 
     pub(crate) fn window_for_webview_id(&self, webview_id: WebViewId) -> Rc<ServoShellWindow> {
         self.maybe_window_for_webview_id(webview_id)
-            .expect("Looking for unexpected WebView: {webview_id:?}")
+            .unwrap_or_else(|| panic!("Looking for unexpected WebView: {webview_id:?}"))
     }
 
     pub(crate) fn platform_window_for_webview_id(
@@ -559,21 +626,25 @@ impl RunningAppState {
         webview.load(url);
     }
 
-    #[cfg(feature = "gamepad")]
+    #[cfg(all(
+        feature = "gamepad",
+        not(any(target_os = "android", target_env = "ohos"))
+    ))]
     pub(crate) fn handle_gamepad_events(&self) {
+        let Some(gamepad_delegate) = self.gamepad_delegate.as_ref() else {
+            return;
+        };
         let Some(active_webview) = self
             .focused_window()
             .and_then(|window| window.active_webview())
         else {
             return;
         };
-        if let Some(gamepad_support) = self.gamepad_support.borrow_mut().as_mut() {
-            gamepad_support.handle_gamepad_events(active_webview);
-        }
+        gamepad_delegate.handle_gamepad_events(active_webview);
     }
 
     pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
-        *self.focused_window.borrow_mut() = Some(window.clone());
+        *self.focused_window.borrow_mut() = Some(window);
     }
 
     /// Interrupt any ongoing WebDriver-based script evaluation.
@@ -597,6 +668,25 @@ impl RunningAppState {
                 );
             });
         }
+    }
+
+    pub(crate) fn set_accessibility_active(&self, active: bool) {
+        let was_active = self.accessibility_active.replace(active);
+        if active == was_active {
+            return;
+        }
+
+        for window in self.windows().values() {
+            for (_, webview) in window.webviews() {
+                // Activate accessibility in the WebView.
+                // There are two sites like this; this is the a11y activation site.
+                webview.set_accessibility_active(active);
+            }
+        }
+    }
+
+    pub(crate) fn accessibility_active(&self) -> bool {
+        self.accessibility_active.get()
     }
 }
 
@@ -716,11 +806,10 @@ impl WebViewDelegate for RunningAppState {
     fn show_bluetooth_device_dialog(
         &self,
         webview: WebView,
-        devices: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        request: BluetoothDeviceSelectionRequest,
     ) {
         self.platform_window_for_webview_id(webview.id())
-            .show_bluetooth_device_dialog(webview.id(), devices, response_sender);
+            .show_bluetooth_device_dialog(webview.id(), request);
     }
 
     fn request_permission(&self, webview: WebView, permission_request: PermissionRequest) {
@@ -730,38 +819,6 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_new_frame_ready(&self, webview: WebView) {
         self.window_for_webview_id(webview.id()).set_needs_repaint();
-    }
-
-    #[cfg(feature = "gamepad")]
-    fn play_gamepad_haptic_effect(
-        &self,
-        _webview: WebView,
-        index: usize,
-        effect_type: GamepadHapticEffectType,
-        effect_complete_callback: Box<dyn FnOnce(bool)>,
-    ) {
-        match self.gamepad_support.borrow_mut().as_mut() {
-            Some(gamepad_support) => {
-                gamepad_support.play_haptic_effect(index, effect_type, effect_complete_callback);
-            },
-            None => {
-                effect_complete_callback(false);
-            },
-        }
-    }
-
-    #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(
-        &self,
-        _webview: WebView,
-        index: usize,
-        haptic_stop_callback: Box<dyn FnOnce(bool)>,
-    ) {
-        let stopped = match self.gamepad_support.borrow_mut().as_mut() {
-            Some(gamepad_support) => gamepad_support.stop_haptic_effect(index),
-            None => false,
-        };
-        haptic_stop_callback(stopped);
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
@@ -818,6 +875,15 @@ impl WebViewDelegate for RunningAppState {
     fn show_console_message(&self, webview: WebView, level: ConsoleLogLevel, message: String) {
         self.platform_window_for_webview_id(webview.id())
             .show_console_message(level, &message);
+    }
+
+    fn notify_accessibility_tree_update(
+        &self,
+        webview: WebView,
+        tree_update: accesskit::TreeUpdate,
+    ) {
+        self.platform_window_for_webview_id(webview.id())
+            .notify_accessibility_tree_update(webview, tree_update);
     }
 }
 

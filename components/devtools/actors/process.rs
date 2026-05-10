@@ -6,6 +6,7 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -30,6 +31,7 @@ pub(crate) struct ProcessActorMsg {
     traits: DescriptorTraits,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ProcessActor {
     name: String,
 }
@@ -66,8 +68,11 @@ impl Actor for ProcessActor {
 }
 
 impl ProcessActor {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
     }
 }
 

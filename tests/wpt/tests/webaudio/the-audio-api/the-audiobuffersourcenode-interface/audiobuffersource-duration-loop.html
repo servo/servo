@@ -7,46 +7,47 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
-      audit.define('loop with duration', (task, should) => {
-        // Create the context
-        let context = new OfflineAudioContext(1, 4096, 48000);
+    <script>
+      promise_test(async () => {
+        const context = new OfflineAudioContext(1, 4096, 48000);
 
         // Create the sample buffer and fill the second half with 1
-        let buffer = context.createBuffer(1, 2048, context.sampleRate);
+        const buffer = new AudioBuffer({
+          numberOfChannels: 1,
+          length: 2048,
+          sampleRate: context.sampleRate
+        });
         for (let i = 1024; i < 2048; i++) {
           buffer.getChannelData(0)[i] = 1;
         }
 
         // Create the source and set its value
-        let source = context.createBufferSource();
-        source.loop = true;
-        source.loopStart = 1024 / context.sampleRate;
-        source.loopEnd = 2048 / context.sampleRate;
-        source.buffer = buffer;
+        const source = new AudioBufferSourceNode(context, {
+          buffer,
+          loop: true,
+          loopEnd: 2048 / context.sampleRate,
+          loopStart: 1024 / context.sampleRate,
+        });
         source.connect(context.destination);
         source.start(0, 1024 / context.sampleRate, 2048 / context.sampleRate);
-        // Expectations
-        let expected = new Float32Array(4096);
-        for (let i = 0; i < 2048; i++) {
-          expected[i] = 1;
-        }
-        // Render it!
-        context.startRendering()
-            .then(function(audioBuffer) {
-              should(
-                  audioBuffer.getChannelData(0), 'audioBuffer.getChannelData')
-                  .beEqualToArray(expected);
-            })
-            .then(task.done.bind(task));
-      });
 
-      audit.run();
+        const audioBuffer = await context.startRendering();
+        const actual = audioBuffer.getChannelData(0);
 
+        // The duration is 2048 frames. The source output should be 1s.
+        assert_array_constant_value(
+            actual.subarray(0, 2048),
+            1,
+            'Output during duration');
+
+        // After the duration expires, the output should be silence (0).
+        assert_array_constant_value(
+            actual.subarray(2048),
+            0,
+            'Output after duration');
+      }, 'loop with duration');
     </script>
   </body>
 </html>

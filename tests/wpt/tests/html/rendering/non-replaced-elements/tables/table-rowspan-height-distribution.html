@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Table cell height with rowspan exceeding actual row count</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=21397">
+<link rel="author" title="Karl Dubost" href="https://otsukare.info/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    table { border-collapse: collapse; }
+    td { padding: 0; }
+</style>
+
+<!-- Test 1: Single row, table height attribute, rowspan=5 -->
+<table id="t1" height="100" border="1">
+  <tr>
+    <td id="t1-a">&nbsp;</td>
+    <td id="t1-b" rowspan="5">&nbsp;</td>
+  </tr>
+</table>
+
+<!-- Test 2: Single row, CSS height, rowspan=5 -->
+<table id="t2" style="height: 100px" border="1">
+  <tr>
+    <td id="t2-a">&nbsp;</td>
+    <td id="t2-b" rowspan="5">&nbsp;</td>
+  </tr>
+</table>
+
+<!-- Test 3: Two rows, rowspan=10 on first row -->
+<table id="t3" height="200" border="1">
+  <tr>
+    <td id="t3-a">&nbsp;</td>
+    <td id="t3-b" rowspan="10">&nbsp;</td>
+  </tr>
+  <tr>
+    <td id="t3-c">&nbsp;</td>
+  </tr>
+</table>
+
+<!-- Test 4: Single row, rowspan=3, larger table height -->
+<table id="t4" height="300" border="1">
+  <tr>
+    <td id="t4-a">&nbsp;</td>
+    <td id="t4-b" rowspan="3">&nbsp;</td>
+  </tr>
+</table>
+
+<script>
+test(function() {
+    const cellA = document.getElementById("t1-a");
+    const cellB = document.getElementById("t1-b");
+    assert_equals(cellA.offsetHeight, cellB.offsetHeight,
+        "Both cells should have the same height");
+}, "Single row with height attribute and rowspan=5: cells have equal height");
+
+test(function() {
+    const cellA = document.getElementById("t2-a");
+    const cellB = document.getElementById("t2-b");
+    assert_equals(cellA.offsetHeight, cellB.offsetHeight,
+        "Both cells should have the same height");
+}, "Single row with CSS height and rowspan=5: cells have equal height");
+
+test(function() {
+    const cellA = document.getElementById("t3-a");
+    const cellB = document.getElementById("t3-b");
+    const cellC = document.getElementById("t3-c");
+    assert_approx_equals(cellA.offsetHeight + cellC.offsetHeight, cellB.offsetHeight, 1,
+        "Real rows together should approximately equal the rowspan cell height");
+}, "Two rows with rowspan=10: real rows share full table height");
+
+test(function() {
+    const cellA = document.getElementById("t4-a");
+    const cellB = document.getElementById("t4-b");
+    assert_equals(cellA.offsetHeight, cellB.offsetHeight,
+        "Both cells should have the same height");
+}, "Single row with height attribute and rowspan=3: cells have equal height");
+</script>

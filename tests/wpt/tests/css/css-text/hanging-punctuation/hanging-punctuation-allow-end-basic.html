@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation allow-end basic overflow cases</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-allow-end-basic-ref.html">
+<meta name="assert" content="hanging-punctuation: allow-end causes a punctuation character to hang at the end of a line only when it would otherwise cause an overflow, not when a non-punctuation character causes the overflow.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    .hang { hanging-punctuation: allow-end; }
+    .not-hang { hanging-punctuation: allow-end; }
+    .frame { width: 65px; font-family: ahem; border: solid 3px cyan; }
+</style>
+<!-- Overflow occurred at U+3001. This should hang. -->
+<div class="hang frame">ab c&#x3001;</div>
+<!-- Overflow occurred at "d". This should NOT hang. -->
+<div class="not-hang frame">ab cd&#x3001;</div>
+<!-- Overflow occurred at first U+3001. This should NOT hang. -->
+<div class="not-hang frame">ab c&#x3001;&#x3001;</div>
+<!-- Overflow occurred at second U+3001. This should hang. -->
+<div class="hang frame">a b&#x3001;&#x3001;</div>
+<!-- Hanging with soft hyphen. This should hang. -->
+<div class="hang frame">a b&shy;c&#x3001;</div>
+<!-- Overflow occurred at U+3001 and there is a <br> after it. This should hang. -->
+<div class="hang frame">ab c&#x3001;<br></div>

@@ -1,4 +1,4 @@
-/* eslint-env node */
+
 'use strict';
 
 // SDP helpers.

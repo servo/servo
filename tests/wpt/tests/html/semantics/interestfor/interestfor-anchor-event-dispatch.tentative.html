@@ -49,7 +49,7 @@
     assert_true(event instanceof InterestEvent, "event is InterestEvent");
     assert_equals(event.type, "interest", "type");
     assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, true, "composed");
+    assert_equals(event.composed, false, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
     assert_equals(event.target, interestee, "target");
     assert_equals(event.source, interestanchor, "source");

@@ -12,7 +12,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLQuoteElement {
@@ -31,19 +30,19 @@ impl HTMLQuoteElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLQuoteElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLQuoteElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 }

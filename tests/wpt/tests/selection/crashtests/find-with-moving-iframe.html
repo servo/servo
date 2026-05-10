@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const iframe = document.querySelector("iframe");
+  document.documentElement.appendChild(iframe);
+  iframe.contentDocument.documentElement.focus();
+}, {once: true});
+
+function onLoadIframe() {
+  frames[0].find("x");
+}
+</script>
+</head>
+<body>
+  <iframe srcdoc="data:text/html,foo" onload="onLoadIframe()"></iframe>
+</body>
+</html>

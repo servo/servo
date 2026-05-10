@@ -10,3 +10,6 @@ features:
   files:
   - clip-*
   - "!clip-path-*"
+- name: mask-border
+  files:
+  - mask-border-*

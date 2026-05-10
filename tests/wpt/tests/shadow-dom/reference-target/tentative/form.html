@@ -168,5 +168,209 @@
         assert_equals(realForm.elements[2], input, "The 3rd element should be the input inside the real form.");
       }, "Reference target works with nested shadow trees.");
   </script>
+
+
+  <button id="reset-button-6" type="reset" form="fancy-form-6"></button>
+
+
+  <script>
+    test(function() {
+      const resetButton = document.getElementById("reset-button-6");
+      assert_equals(resetButton.form, null, "The reset button doesn't have a form association before the form is created.");
+
+      // Construct disconnected custom element with shadow root
+      const fancyForm = document.createElement("fancy-form-6");
+      fancyForm.id = "fancy-form-6";
+      fancyForm.attachShadow({ mode: "open", referenceTarget: "real-form" });
+      const input = document.createElement("input");
+      input.id = "input-in-shadow";
+      input.setAttribute("value", "default value");
+      input.setAttribute("form", "real-form");
+      fancyForm.shadowRoot.appendChild(input);
+      assert_equals(input.form, null, "The inner input doesn't have a form association before the form is created.");
+
+      const realForm = document.createElement("form");
+      realForm.id = "real-form";
+      fancyForm.shadowRoot.appendChild(realForm);
+
+      assert_equals(realForm.elements.length, 0, "When the form is in disconnected DOM, it has no associated form elements.");
+      assert_equals(resetButton.form, null, "The reset button should not have a form before the form is connected to the document.");
+      assert_equals(input.form, null, "The inner input element should not have a form before the form is connected to the document.");
+
+      // Connect the custom element to the document
+      resetButton.after(fancyForm);
+
+      assert_equals(realForm.elements.length, 2, "Once the form is connected, it has two associated form elements.");
+      assert_equals(realForm.elements[0], resetButton, "The first element should be the reset button outside the shadow root.");
+      assert_equals(realForm.elements[1], input, "The second element should be the input element inside the shadow root.");
+      assert_equals(resetButton.form, fancyForm, "The reset button should show the shadow host as its form property.");
+      assert_equals(input.form, realForm, "The inner input element should show the actual form element as its form property.");
+      input.value = "new value";
+      assert_equals(input.value, "new value", "Before the reset button is clicked, the input element's value should be 'new value'.");
+      resetButton.click();
+      assert_equals(input.value, "default value", "After the reset button is clicked, the input element's value should be 'default value'.")
+
+      // Setting referenceTarget to null causes the reset button to no longer be
+      // associated with the form, but the inner input remains associated.
+      fancyForm.shadowRoot.referenceTarget = null;
+      assert_equals(realForm.elements.length, 1, "Once the reference target is set to null, the form should only have one form element.");
+      assert_equals(realForm.elements[0], input, "The sole element associated with the form should be the input element.");
+      assert_equals(resetButton.form, null, "The reset button should have null as its form property.");
+      assert_equals(input.form, realForm, "The inner input element should still have the form as its form property.");
+
+      input.value = "second new value";
+      assert_equals("second new value", input.value, "After the reference target is re-set, before the reset button is clicked, the input element's value should be 'new value'.");
+      resetButton.click();
+      assert_equals("second new value", input.value, "After the reference target is re-set, after the reset button is clicked, the input element's value should still be 'new new value'.")
+
+      realForm.remove();
+      assert_equals(realForm.elements.length, 0, "Before the inner-fancy-form containing the real form is inserted, it should have no associated form elements.");
+      assert_equals(input.form, null, "After the real form is removed from the first shadow root, the input should have no associated form");
+      assert_equals(resetButton.form, null, "After the real form is removed from the first shadow root, the reset button should have no associated form.");
+
+      // Adding a form nested inside another fancy-form with the appropriate
+      // referenceTarget values still causes the form association to be set up
+      const innerFancyForm = document.createElement('fancy-form-6');
+      innerFancyForm.id = "inner-fancy-form";
+      innerFancyForm.attachShadow({mode: "open", referenceTarget: "real-form"});
+      innerFancyForm.shadowRoot.appendChild(realForm);
+      fancyForm.shadowRoot.referenceTarget = "inner-fancy-form";
+      fancyForm.shadowRoot.appendChild(innerFancyForm);
+      assert_equals(realForm.elements.length, 1, "After the inner-fancy-form is connected, the real form should have 1 associated form elements");
+      assert_equals(realForm.elements[0], resetButton, "The associated element should be the reset button outside the shadow root.");
+      assert_equals(resetButton.form, fancyForm, "The reset button should have the outer fancy-form-6 as its form property.");
+      assert_equals(input.form, null, "The inner input element should have null as its form property.");
+
+      input.setAttribute("form", "inner-fancy-form");
+      assert_equals(realForm.elements.length, 2, "After the input's form attribute is updated, the real form should have 2 associated form elements");
+      assert_equals(realForm.elements[0], resetButton, "The first associated element should be the reset button outside the shadow root.");
+      assert_equals(realForm.elements[1], input, "The second associated element should be the input inside the first shadow root.");
+      assert_equals(resetButton.form, fancyForm, "The reset button should have the outer fancy-form-6 as its form property.");
+      assert_equals(input.form, innerFancyForm, "The inner input element should have the inner fancy-form-6 as its form property.");
+
+      input.value = "third new value";
+      assert_equals("third new value", input.value, "After the form is added to the nested shadow root, before the reset button is clicked, the input element's value should be 'new value'.");
+      resetButton.click();
+      assert_equals("default value", input.value, "After the form is added to the nested shadow root, after the reset button is clicked, the input element's value should still be 'new new value'.")
+
+      // Prepending an element with the same ID as the inner form causes all form associations to be reset to null
+      const fakeForm = document.createElement("div");
+      fakeForm.id = "real-form";
+      realForm.before(fakeForm);
+      assert_equals(realForm.elements.length, 0, "After an element with the same ID is inserted, the form should have no associated form elements.");
+      assert_equals(input.form, null, "After an element with the same ID as the form is inserted, the input should have no associated form");
+      assert_equals(resetButton.form, null, "After an element with the same ID as the form is inserted, the reset button should have no associated form.");
+
+      // Changing the ID of the inner form, and the reference target of the inner-fancy-form, causes the form associations to be recreated.
+      realForm.id = "real-form-redux";
+      innerFancyForm.shadowRoot.referenceTarget = "real-form-redux";
+      assert_equals(realForm.elements.length, 2, "After the ID of the inner form and reference target of inner-fancy-form are changed, the real form should have 2 associated form elements");
+      assert_equals(realForm.elements[0], resetButton, "After the ID of the inner form and reference target of inner-fancy-form are changed, the first associated element should be the reset button outside the shadow root.");
+      assert_equals(realForm.elements[1], input, "After the ID of the inner form and reference target of inner-fancy-form are changed, the second associated element should be the input inside the first shadow root.");
+      assert_equals(resetButton.form, fancyForm, "After the ID of the inner form and reference target of inner-fancy-form are changed, the reset button should have the outer fancy-form-6 as its form property.");
+      assert_equals(input.form, innerFancyForm, "After the ID of the inner form and reference target of inner-fancy-form are changed, the inner input element should have the inner fancy-form-6 as its form property.");
+
+      // Prepending an element with the same ID as the inner-fancy-form causes all form associations to be reset to null again
+      const fakeInnerFancyForm = document.createElement("div");
+      fakeInnerFancyForm.id = "inner-fancy-form"
+      innerFancyForm.before(fakeInnerFancyForm);
+
+      assert_equals(realForm.elements.length, 0, "After an element with the same ID as its shadow host is inserted, the form should have no associated form elements.");
+      assert_equals(input.form, null, "After an element with the same ID as the form's shadow host is inserted, the input should have no associated form");
+      assert_equals(resetButton.form, null, "After an element with the same ID as the form's shadow host is inserted, the reset button should have no associated form.");
+
+      // Removing that element should cause the form associations to be re-created
+      fakeInnerFancyForm.remove();
+      assert_equals(realForm.elements.length, 2, "After the fake inner-fancy-form is removed, the real form should have 2 associated form elements");
+      assert_equals(realForm.elements[0], resetButton, "After the fake inner-fancy-form is removed, the first associated element should be the reset button outside the shadow root.");
+      assert_equals(realForm.elements[1], input, "After the fake inner-fancy-form is removed, the second associated element should be the input inside the first shadow root.");
+      assert_equals(resetButton.form, fancyForm, "After the fake inner-fancy-form is removed, the reset button should have the outer fancy-form-6 as its form property.");
+      assert_equals(input.form, innerFancyForm, "After the fake inner-fancy-form is removed, the inner input element should have the inner fancy-form-6 as its form property.");
+
+      // Removing the ID of the real form causes all form associations to be reset to null
+      realForm.removeAttribute("id")
+      assert_equals(realForm.elements.length, 0, "After removing the ID of the real form, the form should have no associated form elements.");
+      assert_equals(input.form, null, "After removing the ID of the real form, the input should have no associated form");
+      assert_equals(resetButton.form, null, "After removing the ID of the real form, the reset button should have no associated form.");
+
+      // Reinstating the ID causes all associations to be re-created again
+      realForm.id = "real-form-redux";
+      assert_equals(realForm.elements.length, 2, "After the ID of the inner form is reinstated, the real form should have 2 associated form elements");
+      assert_equals(realForm.elements[0], resetButton, "After the ID of the inner form is reinstated, the first associated element should be the reset button outside the shadow root.");
+      assert_equals(realForm.elements[1], input, "After the ID of the inner form is reinstated, the second associated element should be the input inside the first shadow root.");
+      assert_equals(resetButton.form, fancyForm, "After the ID of the inner form is reinstated, the reset button should have the outer fancy-form-6 as its form property.");
+      assert_equals(input.form, innerFancyForm, "After the ID of the inner form is reinstated, the inner input element should have the inner fancy-form-6 as its form property.");
+
+      // Removing the inner form should cause the form-associated elements to have their forms set to null.
+      realForm.remove();
+      assert_equals(resetButton.form, null, "After removing the real form, the reset button should have the null form property.");
+      assert_equals(input.form, null, "After removing the real form, the inner input element should have null as its form property.");
+    }, "Form association is updated when form is inserted in or removed from shadow DOM, including in nested shadow DOM");
+  </script>
+
+  <input type="image" id="image-input-7" form="fancy-form-7">
+  <fancy-form-7 id="fancy-form-7">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+      </form>
+    </template>
+  </fancy-form-7>
+
+  <script>
+    test(function() {
+      let imageInput = document.getElementById("image-input-7");
+      let fancyForm = document.getElementById("fancy-form-7");
+      let realForm = fancyForm.shadowRoot.getElementById("real-form");
+
+      assert_equals(imageInput.form, fancyForm);
+      assert_equals(realForm.elements.length, 0);
+    }, "Form association works for image inputs, which aren't in the elements collection");
+  </script>
+
+
+  <input id="input-8" form="fancy-form-8" value="default value">
+  <fancy-form-8 id="fancy-form-8">
+    <template shadowRootMode="open">
+      <fancy-form-8 id="inner-fancy-form">
+        <template shadowRootMode="open">
+          <form id="real-form">
+            <button type="reset" id="reset">Reset</button>
+          </form>
+        </template>
+      </fancy-form-8>
+    </template>
+  </fancy-form-8>
+
+  <script>
+    test(function() {
+      let input = document.getElementById("input-8");
+      let outerFancyForm = document.getElementById("fancy-form-8");
+      let innerFancyForm = outerFancyForm.shadowRoot.getElementById("inner-fancy-form");
+      let realForm = innerFancyForm.shadowRoot.getElementById("real-form");
+      let resetButton = innerFancyForm.shadowRoot.getElementById("reset");
+
+      assert_equals(input.form, null, "Form is null before reference target change");
+      assert_equals(input.value, "default value", "Value is default");
+
+      input.value = "new value";
+      assert_equals(input.value, "new value", "Value is updated");
+
+      resetButton.click();
+      assert_equals(input.value, "new value", "Before reference target change, reset button doesn't reset outer input");
+
+      outerFancyForm.shadowRoot.referenceTarget = "inner-fancy-form";
+      assert_equals(input.form, null, "Form is still null after outer reference target change");
+      assert_equals(input.value, "new value", "Value is updated");
+
+      resetButton.click();
+      assert_equals(input.value, "new value", "After outer reference target change, reset button doesn't reset outer input");
+
+      innerFancyForm.shadowRoot.referenceTarget = "real-form";
+      assert_equals(input.form, outerFancyForm, "Form is outer-fancy-form after reference target change");
+
+      resetButton.click();
+      assert_equals(input.value, "default value", "After inner reference target change, reset resets outer input");
+    }, "Changing the reference target of a nested shadow root sets form association");
+  </script>
 </body>
 </html>

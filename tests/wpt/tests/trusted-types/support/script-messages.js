@@ -67,15 +67,10 @@ function script_messages_for(fn) {
 
     // Indicate the last message.
     // This is done by appending an inline script to make sure it is executed
-    // after processing any previously inserted inline script. Additionally, we
-    // delay by a double requestAnimationFrame to work around incompatible
-    // interop bugs:
-    // - WebKit/Chromium seems to give lower priority to module, so it looks
-    //   like the appended script should have type="module" here to work with
-    //   tests for inline modules.
-    // - but Firefox does not allow type="importmaps" after a type="module" so
-    //   making the appended script a module would make importmap tests fail...
-    //   See https://bugzilla.mozilla.org/show_bug.cgi?id=1916277#c4
+    // after processing any previously inserted inline script. Some browsers seem
+    // to prioritize script execution depending on the type attribute, so use a
+    // double requestAnimationFrame to make sure previously inserted module or
+    // importmaps scripts are not executed after the DONE script.
     requestAnimationFrame(_ => requestAnimationFrame(_ => {
       let script = create_html_script_with_trusted_source_text(`window.log_message("DONE")`);
       script.setAttribute("nonce", "script-messages");

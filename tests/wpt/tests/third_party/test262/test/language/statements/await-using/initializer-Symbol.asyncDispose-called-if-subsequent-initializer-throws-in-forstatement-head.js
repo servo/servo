@@ -1,0 +1,68 @@
+// Copyright (C) 2023 Ron Buckton. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+esid: sec-runtime-semantics-forloopevaluation
+description: Initialized value is disposed at end of FunctionBody
+info: |
+  RS: ForLoopEvaluation
+    ForStatement : for ( LexicalDeclaration Expressionopt ; Expressionopt ) Statement
+
+    ...
+    7. Let forDcl be Completion(Evaluation of LexicalDeclaration).
+    8. If forDcl is an abrupt completion, then
+      a. Set forDcl to Completion(DisposeResources(loopEnv.[[DisposeCapability]], forDcl)).
+      b. Assert: forDcl is an abrupt completion.
+      c. Set the running execution context's LexicalEnvironment to oldEnv.
+      d. Return ? forDcl.
+    ...
+
+  DisposeResources ( disposeCapability, completion )
+
+  1. For each resource of disposeCapability.[[DisposableResourceStack]], in reverse list order, do
+    a. Let result be Dispose(resource.[[ResourceValue]], resource.[[Hint]], resource.[[DisposeMethod]]).
+    b. If result.[[Type]] is throw, then
+      i. If completion.[[Type]] is throw, then
+        1. Set result to result.[[Value]].
+        2. Let suppressed be completion.[[Value]].
+        3. Let error be a newly created SuppressedError object.
+        4. Perform ! CreateNonEnumerableDataPropertyOrThrow(error, "error", result).
+        5. Perform ! CreateNonEnumerableDataPropertyOrThrow(error, "suppressed", suppressed).
+        6. Set completion to ThrowCompletion(error).
+      ii. Else,
+        1. Set completion to result.
+  2. Return completion.
+
+  Dispose ( V, hint, method )
+
+  1. If method is undefined, let result be undefined.
+  2. Else, let result be ? Call(method, V).
+  3. If hint is async-dispose, then
+    a. Perform ? Await(result).
+  4. Return undefined.
+
+flags: [async]
+includes: [asyncHelpers.js]
+features: [explicit-resource-management]
+---*/
+
+asyncTest(async function () {
+  var resource = {
+      disposed: false,
+      async [Symbol.asyncDispose]() {
+          this.disposed = true;
+      }
+  };
+
+  function getResource() {
+    throw new Error();
+  }
+
+  await assert.throwsAsync(Error, async function () {
+    var i = 0;
+    for (await using _1 = resource, _2 = getResource(); i < 1; i++) {
+    }
+  }, 'for');
+
+  assert.sameValue(resource.disposed, true, 'Expected resource to have been disposed');
+});

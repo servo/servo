@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::Epoch;
-use canvas_traits::canvas::*;
-use compositing_traits::CrossProcessPaintApi;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
+use servo_base::Epoch;
+use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
 
 use crate::backend::GenericDrawTarget;
@@ -41,7 +41,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
     pub(crate) fn set_image_key(&mut self, image_key: ImageKey) {
         let (descriptor, data) = self.draw_target.image_descriptor_and_serializable_data();
-        self.paint_api.add_image(image_key, descriptor, data);
+        self.paint_api.add_image(image_key, descriptor, data, false);
 
         if let Some(old_image_key) = self.image_key.replace(image_key) {
             self.paint_api.delete_image(old_image_key);
@@ -318,7 +318,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
         let (descriptor, data) = {
             let _span =
-                profile_traits::trace_span!("image_descriptor_and_serializable_data",).entered();
+                profile_traits::trace_span!("image_descriptor_and_serializable_data").entered();
             self.draw_target.image_descriptor_and_serializable_data()
         };
 

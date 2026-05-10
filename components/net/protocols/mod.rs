@@ -11,6 +11,7 @@ use std::pin::Pin;
 use headers::Range;
 use http::StatusCode;
 use log::error;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
@@ -29,7 +30,7 @@ use blob::BlobProtocolHander;
 use data::DataProtocolHander;
 use file::FileProtocolHander;
 
-type FutureResponse = Pin<Box<dyn Future<Output = Response> + Send>>;
+type FutureResponse<'a> = Pin<Box<dyn Future<Output = Response> + Send + 'a>>;
 
 // The set of schemes that can't be registered.
 static FORBIDDEN_SCHEMES: [&str; 4] = ["http", "https", "chrome", "about"];
@@ -47,12 +48,12 @@ pub trait ProtocolHandler: Send + Sync {
     /// http endpoint, it is recommended to a least provide:
     /// - A relevant status code.
     /// - A Content Type.
-    fn load(
-        &self,
-        request: &mut Request,
+    fn load<'a>(
+        &'a self,
+        request: &'a mut Request,
         done_chan: &mut DoneChannel,
         context: &FetchContext,
-    ) -> FutureResponse;
+    ) -> FutureResponse<'a>;
 
     /// Specify if resources served by that protocol can be retrieved
     /// with `fetch()` without no-cors mode to allow the caller direct
@@ -177,12 +178,12 @@ struct WebPageContentProtocolHandler {
 
 impl ProtocolHandler for WebPageContentProtocolHandler {
     /// <https://html.spec.whatwg.org/multipage/#protocol-handler-invocation>
-    fn load(
-        &self,
-        request: &mut Request,
+    fn load<'a>(
+        &'a self,
+        request: &'a mut Request,
         _done_chan: &mut DoneChannel,
         context: &FetchContext,
-    ) -> FutureResponse {
+    ) -> FutureResponse<'a> {
         let mut url = request.current_url();
         // Step 1. Assert: inputURL's scheme is normalizedScheme.
         assert!(url.scheme() == self.scheme);
@@ -219,7 +220,9 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
         // Ensure we did a proper substitution with a HTTP result
         assert!(matches!(result_url.scheme(), "http" | "https"));
         // Step 9. Navigate an appropriate navigable to resultURL.
-        request.url_list.push(result_url);
+        request
+            .url_list
+            .push(UrlWithBlobClaim::new(result_url, None));
         let request2 = request.clone();
         let context2 = context.clone();
         Box::pin(async move { fetch(request2, &mut DiscardFetch, &context2).await })

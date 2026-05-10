@@ -32,7 +32,7 @@
         assert_true('requestOverride' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.requestOverride() defined');
         return navigator.preferences.reducedData.requestOverride('this-is-an-invalid-value')
           .then(() => {
-            assert_not_reached('requestOverride with invalid value should not resolve');
+            assert_unreached('requestOverride with invalid value should not resolve');
           })
           .catch((e) => {
             assert_true(e instanceof DOMException);

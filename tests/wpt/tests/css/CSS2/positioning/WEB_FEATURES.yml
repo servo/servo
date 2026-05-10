@@ -18,11 +18,19 @@ features:
   - 'left-*'
   - '!left-applies-to*'
   - '!left-offset*'
-- name: width-height
+- name: relative-positioning
   files:
-  - '*width*'
-  - '*height*'
+  - 'position-relative-*'
+  - 'relpos-calcs-*'
+  - top-offset-002.xht
+  - bottom-offset-002.xht
+  - left-offset-002.xht
+  - right-offset-002.xht
 - name: static-positioning
   files:
   - position-001.xht
   - "position-static-*.xht"
+- name: width-height
+  files:
+  - '*width*'
+  - '*height*'

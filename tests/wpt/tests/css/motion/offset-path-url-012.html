@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>offset-path url() referenced path mutation</title>
+<link rel="help" href="https://drafts.csswg.org/motion/#valdef-offset-path-url">
+<link rel="help" href="https://crbug.com/485900033">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  svg > rect {
+    offset-path: url(#target);
+    offset-distance: 50%;
+    offset-rotate: 0deg;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<svg>
+  <path id="target" d="M150,0h-100"/>
+  <rect x="50" width="100" height="100" fill="green"/>
+</svg>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById("target").setAttribute("d", "M100,0h-300");
+    document.documentElement.removeAttribute('class');
+  }));
+</script>

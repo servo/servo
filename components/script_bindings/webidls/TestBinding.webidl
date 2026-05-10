@@ -303,6 +303,19 @@ interface TestBinding {
   DOMString passOverloadedDict(Node arg);
   DOMString passOverloadedDict(TestURLLike arg);
 
+  DOMString passOverloadedUnionOfObjectAndString((object or DOMString) arg);
+  DOMString passOverloadedUnionOfObjectAndString(boolean arg);
+  DOMString passOverloadedUnionOfObjectAndNumber((object or long) arg);
+  DOMString passOverloadedUnionOfObjectAndNumber(boolean arg);
+  DOMString passOverloadedUnionOfObjectAndBoolean((object or boolean) arg);
+  DOMString passOverloadedUnionOfObjectAndBoolean(long arg);
+  DOMString passOverloadedUnionOfStringAndNumber((DOMString or long) arg);
+  DOMString passOverloadedUnionOfStringAndNumber(boolean arg);
+  DOMString passOverloadedUnionOfStringAndBoolean((DOMString or boolean) arg);
+  DOMString passOverloadedUnionOfStringAndBoolean(long arg);
+  DOMString passOverloadedUnionOfNumberAndBoolean((long or boolean) arg);
+  DOMString passOverloadedUnionOfNumberAndBoolean(DOMString arg);
+
   undefined passNullableBoolean(boolean? arg);
   undefined passNullableByte(byte? arg);
   undefined passNullableOctet(octet? arg);
@@ -533,8 +546,6 @@ interface TestBinding {
   static undefined prefControlledStaticMethodDisabled();
   [Pref="dom_testbinding_prefcontrolled_enabled"]
   const unsigned short prefControlledConstDisabled = 0;
-  [Pref="layout_animations_test_enabled"]
-  undefined advanceClock(long millis);
 
   [Pref="dom_testbinding_prefcontrolled2_enabled"]
   readonly attribute boolean prefControlledAttributeEnabled;
@@ -589,8 +600,6 @@ interface TestBinding {
   static Promise<any> staticInternalThrowToRejectPromise([EnforceRange] unsigned long long arg);
   Promise<any> methodInternalThrowToRejectPromise([EnforceRange] unsigned long long arg);
 
-  undefined panic();
-
   GlobalScope entryGlobal();
   GlobalScope incumbentGlobal();
 
@@ -613,11 +622,6 @@ partial interface TestBinding {
 
 callback SimpleCallback = undefined(any value);
 callback callbackWithOnlyOneOptionalArg = Promise<undefined> (optional any reason);
-
-partial interface TestBinding {
-  [Pref="dom_testable_crash_enabled"]
-  undefined crashHard();
-};
 
 [Exposed=(Window,Worker), Pref="dom_testbinding_enabled"]
 namespace TestNS {

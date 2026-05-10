@@ -1,0 +1,16 @@
+[package]
+name = "servo-default-resources"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }

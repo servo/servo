@@ -3,27 +3,46 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderBundleMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
-pub(crate) struct GPURenderBundle {
-    reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPURenderBundle {
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
-    device: WebGPUDevice,
-    #[no_trace]
     render_bundle: WebGPURenderBundle,
+}
+
+impl Drop for DroppableGPURenderBundle {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
+        {
+            warn!(
+                "Failed to send DropRenderBundle ({:?}) ({})",
+                self.render_bundle.0, e
+            );
+        }
+    }
+}
+
+#[dom_struct]
+pub(crate) struct GPURenderBundle {
+    reflector_: Reflector,
+    #[no_trace]
+    device: WebGPUDevice,
     label: DomRefCell<USVString>,
+    droppable: DroppableGPURenderBundle,
 }
 
 impl GPURenderBundle {
@@ -35,10 +54,12 @@ impl GPURenderBundle {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            render_bundle,
             device,
-            channel,
             label: DomRefCell::new(label),
+            droppable: DroppableGPURenderBundle {
+                channel,
+                render_bundle,
+            },
         }
     }
 
@@ -65,7 +86,7 @@ impl GPURenderBundle {
 
 impl GPURenderBundle {
     pub(crate) fn id(&self) -> WebGPURenderBundle {
-        self.render_bundle
+        self.droppable.render_bundle
     }
 }
 
@@ -78,20 +99,5 @@ impl GPURenderBundleMethods<crate::DomTypeHolder> for GPURenderBundle {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl Drop for GPURenderBundle {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
-        {
-            warn!(
-                "Failed to send DropRenderBundle ({:?}) ({})",
-                self.render_bundle.0, e
-            );
-        }
     }
 }

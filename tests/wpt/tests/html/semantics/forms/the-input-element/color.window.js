@@ -244,3 +244,19 @@ test(() => {
   input.value = "color(display-p3 3 none .2 / .6)";
   assert_equals(input.value, "color(display-p3 3 0 0.2 / 0.6)");
 }, "Display P3 colors can be out-of-bounds");
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "color";
+  input.value = "white";
+  input.setAttribute("colorspace", "display-p3");
+  assert_equals(input.value, "color(display-p3 1 1 1)");
+}, "Setting colorspace by setAttribute should update the value");
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "color";
+  input.value = "blue";
+  input.setAttribute("alpha", "");
+  assert_equals(input.value, "color(srgb 0 0 1)");
+}, "Setting alpha by setAttribute should update the value");

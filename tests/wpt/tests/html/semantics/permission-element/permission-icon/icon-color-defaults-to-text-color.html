@@ -9,17 +9,17 @@
 <body>
 
   <style>
-    permission {
+    usermedia {
       color: #ff0000;
     }
   </style>
 
-  <permission id="permission_element" type="camera"></permission>
+  <usermedia id="usermedia_element" type="camera"></usermedia>
 
   <script>
     promise_test(async() => {
-      let permission_element = document.getElementById("permission_element");
-      assert_equals(getComputedStyle(permission_element, "::permission-icon").fill, 'rgb(255, 0, 0)')
-    }, "Permission element icon's color should be same as the text color unless explicitly changed.")
+      let usermedia_element = document.getElementById("usermedia_element");
+      assert_equals(getComputedStyle(usermedia_element, "::permission-icon").fill, 'rgb(255, 0, 0)')
+    }, "Usermedia element icon's color should be same as the text color unless explicitly changed.")
   </script>
 </body>

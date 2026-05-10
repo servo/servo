@@ -1,0 +1,21 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+pub(crate) mod backcolor;
+pub(crate) mod bold;
+pub(crate) mod createlink;
+pub(crate) mod defaultparagraphseparator;
+pub(crate) mod delete;
+pub(crate) mod fontname;
+pub(crate) mod fontsize;
+pub(crate) mod forecolor;
+pub(crate) mod hilitecolor;
+pub(crate) mod italic;
+pub(crate) mod removeformat;
+pub(crate) mod strikethrough;
+pub(crate) mod stylewithcss;
+pub(crate) mod subscript;
+pub(crate) mod superscript;
+pub(crate) mod underline;
+pub(crate) mod unlink;

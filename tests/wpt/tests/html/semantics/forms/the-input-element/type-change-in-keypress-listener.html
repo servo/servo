@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Change type attribute inside keypress event handler</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=928224">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<input id="target" type="text">
+
+<script>
+promise_test(async () => {
+  target.focus();
+  target.addEventListener("keypress", () => {
+    target.type = "password";
+  });
+  await test_driver.send_keys(target, "xyz");
+  assert_equals(target.value, "xyz");
+}, "characters are not dropped when type changes to password during keypress");
+</script>
+</body>

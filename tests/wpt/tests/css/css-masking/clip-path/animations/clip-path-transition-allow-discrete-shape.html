@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-transition-ref.html">
+<meta name="fuzzy" content="maxDifference=0-32;totalPixels=0-32">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    clip-path: shape(from 0 40px, arc to 80px 40px of 40px, arc to 0 40px of 40px);
+    background-color: green;
+    transition-property: clip-path;
+    transition-duration: 20s;
+    transition-timing-function: steps(2, jump-end);
+    transition-delay: -9.95s;
+    transition-behavior: allow-discrete;
+  }
+
+  .container.next {
+    clip-path: shape(from 0 40%, arc to 80% 40% of 40%, arc to 0 40% of 40%);
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container" id="target"></div>
+
+  <script>
+    function update() {
+      // This should trigger a CSS transition.
+      document.getElementById('target').classList.add('next');
+      waitForAnimationTime(document.getAnimations()[0], 50).then(takeScreenshot);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(update);
+    });
+  </script>
+</body>
+
+</html>

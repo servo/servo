@@ -64,3 +64,17 @@ features:
 - name: lang
   files:
   - case-sensitive-004.xht
+- name: import
+  files:
+  - at-keywords-000.xht
+  - at-rule-004.xht
+  - at-rule-005.xht
+  - at-rule-006.xht
+  - at-rule-007.xht
+  - at-rule-008.xht
+  - at-rule-009.xht
+  - at-rule-010.xht
+  - at-rule-013.xht
+  - eof-005.xht
+  - eof-006.xht
+  - import-*

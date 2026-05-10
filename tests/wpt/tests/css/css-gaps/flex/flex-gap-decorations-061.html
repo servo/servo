@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Flex gaps are painted with a flex line of size 0.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-061-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+body {
+  margin: 0;
+}
+
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  width: 130px;
+  column-gap: 10px;
+  row-gap: 10px;
+  background: green;
+  column-rule: 10px solid gold;
+  row-rule: 10px solid blue;
+}
+
+.item {
+  width: 60px;
+}
+
+.tall {
+  height: 50px;
+  background: lightblue;
+}
+
+.zero {
+  height: 0;
+  background: red;
+}
+</style>
+<div class="flex">
+  <div class="item tall"></div>
+  <div class="item tall"></div>
+  <div class="item zero"></div>
+  <div class="item zero"></div>
+  <div class="item tall"></div>
+  <div class="item tall"></div>
+</div>

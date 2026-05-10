@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection.prototype.setLocalDescription</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -43,6 +47,7 @@
       };
    */
 
+if (rest) {
   /*
     4.3.2.  setLocalDescription
       2.  Let lastOffer be the result returned by the last call to createOffer.
@@ -94,6 +99,7 @@
         assert_equals(pc.currentLocalDescription, null);
       }));
   }, 'setLocalDescription with type offer and null sdp should use lastOffer generated from createOffer');
+} // rest
 
   /*
     4.3.2.  setLocalDescription
@@ -102,6 +108,7 @@
           reject the promise with a newly created InvalidModificationError and abort
           these steps.
    */
+if (interop2026) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -114,7 +121,9 @@
     .then(() => t.unreached_func("setLocalDescription should have rejected"),
           (error) => assert_equals(error.name, 'InvalidModificationError'));
   }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
+} // interop2026
 
+if (rest) {
   promise_test(t => {
     // Create first offer with audio line, then second offer with
     // both audio and video line. Since the second offer is the
@@ -225,5 +234,6 @@
 
     await sldPromise;
   }, "setLocalDescription(offer) should update internal state with a queued task, in the right order");
+} // rest
 
 </script>

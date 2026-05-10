@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>keyTimes does not end with one, calcMode=spline</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<svg id="anim" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect id="rect" x="0" y="0" width="40" height="40" fill="blue">
+    <animateMotion path="M-10,-10 L-100,-10 L-100,-100 Z" keyTimes="0;0.1;0.1" keyPoints="0;0.5;1"
+      keySplines="0.5 0 0.5 1;0.5 0 0.5 1" calcMode="spline" dur="2s" repeatCount="indefinite" />
+  </rect>
+</svg>
+<script>
+var rootSVGElement = document.querySelector("svg");
+
+function sample() {
+    // The spline should not be applied because keyTimes does not end with 1.
+    let rect = document.querySelector("svg > rect");
+    assert_equals(rect.getCTM().e, 0, "motion path not applied");
+}
+
+smil_async_test((t) => {
+    runAnimationTest(t, [
+        // [animationId, time, sampleCallback]
+        ["anim", 0.0,   sample],
+        ["anim", 1.0,   sample],
+        ["anim", 2.0,   sample]
+    ]);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

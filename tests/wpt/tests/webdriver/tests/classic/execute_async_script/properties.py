@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_same_element, assert_success
+from tests.support.classic.asserts import assert_same_element, assert_success
 from . import execute_async_script
 
 

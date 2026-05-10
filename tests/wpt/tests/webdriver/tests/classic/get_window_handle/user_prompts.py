@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 
 
 def get_window_handle(session):

@@ -1,0 +1,7 @@
+features:
+- name: text-decoration-selection
+  files:
+  - "selection-pseudo-with-decoration-invalidation-*"
+- name: text-decoration
+  files:
+  - "text-decoration-*"

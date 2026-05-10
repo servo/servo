@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Console Timing Methods - Automated Test</title>
+<link rel="help" href="https://console.spec.whatwg.org/#timing">
+<meta name="assert" content="Console timing methods emit observable log entries via WebDriver BiDi log.entryAdded">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/console/helper.js"></script>
+
+<script>
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasStringArg(entry, expected) {
+  if (!Array.isArray(entry.args))
+    return false;
+  return entry.args.some(arg =>
+    arg && arg.type === "string" && arg.value === expected
+  );
+}
+
+function isTimingLine(message) {
+  return message.startsWith("default:") ||
+         message.startsWith("custom toString():") ||
+         message.startsWith("a label:");
+}
+
+function assertLabelledDuration(message, label) {
+  const re = new RegExp("^" + escapeRegExp(label) + ":\\s*\\S");
+  assert_true(
+    re.test(message),
+    `Expected a "${label}: <duration>"-shaped message, got: "${message}"`
+  );
+}
+
+promise_test(async (t) => {
+  const unsubscribe = await test_driver.bidi.log.entry_added.subscribe({contexts: [window]});
+  t.add_cleanup(async () => await unsubscribe());
+
+  const expected = [
+    {label: "default", extra: false}, // timeLog()
+    {label: "default", extra: false}, // timeEnd()
+
+    {label: "default", extra: false}, // timeLog(undefined)
+    {label: "default", extra: true }, // timeLog(undefined, "extra data")
+    {label: "default", extra: false}, // timeEnd(undefined)
+
+    {label: "default", extra: false}, // timeLog("default")
+    {label: "default", extra: true },
+    {label: "default", extra: false}, // timeEnd("default")
+
+    {label: "default", extra: false}, // timeLog({toString:"default"})
+    {label: "default", extra: true },
+    {label: "default", extra: false}, // timeEnd({toString:"default"})
+
+    {label: "custom toString()", extra: false},
+    {label: "custom toString()", extra: true },
+    {label: "custom toString()", extra: false},
+
+    {label: "a label", extra: false},
+    {label: "a label", extra: true },
+    {label: "a label", extra: false},
+  ];
+
+  const entriesPromise = waitForConsoleEntries(t, {
+    count: expected.length,
+    accept: (entry) =>
+      typeof entry.text === "string" && isTimingLine(entry.text),
+  });
+  console.time();
+  console.timeLog();
+  console.timeEnd();
+
+  console.time(undefined);
+  console.timeLog(undefined);
+  console.timeLog(undefined, "extra data");
+  console.timeEnd(undefined);
+
+  console.time("default");
+  console.timeLog("default");
+  console.timeLog("default", "extra data");
+  console.timeEnd("default");
+
+  console.time({toString() {return "default"}});
+  console.timeLog({toString() {return "default"}});
+  console.timeLog({toString() {return "default"}}, "extra data");
+  console.timeEnd({toString() {return "default"}});
+
+  console.time({toString() {return "custom toString()"}});
+  console.timeLog({toString() {return "custom toString()"}});
+  console.timeLog({toString() {return "custom toString()"}}, "extra data");
+  console.timeEnd({toString() {return "custom toString()"}});
+
+  console.time("a label");
+  console.timeLog("a label");
+  console.timeLog("a label", "extra data");
+  console.timeEnd("a label");
+
+  const entries = await entriesPromise;
+  assert_equals(entries.length, expected.length);
+
+  for (let i = 0; i < expected.length; i++) {
+    const exp = expected[i];
+    const entry = entries[i];
+    const msg = entry.text;
+
+    assert_true(msg !== null, `Entry ${i} should have a message`);
+    assertLabelledDuration(msg, exp.label);
+
+    if (exp.extra) {
+      assert_true(
+        msg.includes("extra data") || hasStringArg(entry, "extra data"),
+        `Entry ${i} should include extra data; got: "${msg}"`
+      );
+    }
+  }
+}, "Console timing methods produce observable timing log entries");
+</script>

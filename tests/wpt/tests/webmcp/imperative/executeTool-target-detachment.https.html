@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with Target Frame Detachment</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = host_info.HTTPS_REMOTE_ORIGIN + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  // Have the iframe register a tool (it will never execute though).
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool',
+      description: 'Iframe tool description'
+    },
+    options: {
+      exposedTo: [self.origin]
+    }
+  }, '*');
+
+  await toolchange_promise;
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'iframe_tool');
+  assert_true(!!tool, 'Tool should be retrieved successfully');
+
+  // Detach the frame before executing the tool.
+  iframe.remove();
+
+  // Calling executeTool() on the detached tool will internally fail to locate
+  // the frame, and thus reject the caller's Promise.
+  //
+  // TODO(https://crbug.com/509555636): It should probably reject with a `NotFoundError`.
+  await promise_rejects_dom(
+    t,
+    'InvalidStateError',
+    navigator.modelContext.executeTool(tool, '{}'),
+    'Promise should be rejected with InvalidStateError when target frame is detached before execution'
+  );
+}, 'executeTool() rejects when target frame is detached before execution');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = host_info.HTTPS_REMOTE_ORIGIN + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  // The iframe tool hangs forever, because it must be executing *while* we
+  // detach the iframe.
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    hangsForever: true,
+    tool: {
+      name: 'iframe_tool_hanging',
+      description: 'Iframe tool description'
+    },
+    options: {
+      exposedTo: [self.origin]
+    }
+  }, '*');
+
+  await toolchange_promise;
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'iframe_tool_hanging');
+  assert_true(!!tool, 'Tool should be retrieved successfully');
+
+  // Execute the tool (hangs forever).
+  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+
+  iframe.remove();
+
+  // The execute promise rejects because the target document died
+  // mid-execution. See the bug referenced from the above test, about making
+  // the reason more specific.
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    execute_promise,
+    'Promise should be rejected with UnknownError when target frame is detached mid-execution'
+  );
+}, 'executeTool() rejects when target frame is detached mid-execution');
+</script>
+</body>
+</html>

@@ -66,19 +66,22 @@ async def test_basic_authentication(
 
     assert_before_request_sent_event(
         before_request_sent_events[0],
-        expected_request=expected_request,
-        is_blocked=False,
+        expected_event={
+            "request": expected_request,
+            "isBlocked": False,
+        },
     )
     assert_response_event(
         response_started_events[0],
-        expected_request=expected_request,
-        is_blocked=False,
+        expected_event={"request": expected_request, "isBlocked": False},
     )
     assert_response_event(
         auth_required_events[0],
-        expected_request=expected_request,
-        is_blocked=True,
-        intercepts=[intercept],
+        expected_event={
+            "request": expected_request,
+            "isBlocked": True,
+            "intercepts": [intercept],
+        },
     )
 
     # The request should remain blocked at the authRequired phase.
@@ -129,18 +132,15 @@ async def test_no_authentication(
     # intercept since the URL does not trigger an auth prompt.
     assert_before_request_sent_event(
         before_request_sent_events[0],
-        expected_request=expected_request,
-        is_blocked=False,
+        expected_event={"request": expected_request, "isBlocked": False},
     )
     assert_response_event(
         response_started_events[0],
-        expected_request=expected_request,
-        is_blocked=False,
+        expected_event={"request": expected_request, "isBlocked": False},
     )
     assert_response_event(
         response_completed_events[0],
-        expected_request=expected_request,
-        is_blocked=False,
+        expected_event={"request": expected_request, "isBlocked": False},
     )
 
     # No authRequired event should have been received.

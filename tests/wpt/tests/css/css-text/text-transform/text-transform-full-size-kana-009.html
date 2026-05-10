@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>text-transform full-size-kana Selection.toString()</title>
+    <link rel="help" href="https://drafts.csswg.org/css-text-3/#small-kana-mappings">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta name="assert" content="Verify Selection.toString() on a character with 'text-transform: full-size-kana' returns the transformed unicode character.">
+    <style>
+      #container {
+        text-transform: full-size-kana;
+      }
+    </style>
+  </head>
+  <body>
+    <span id="container"></span>
+    <script>
+      // Based on CSS Text Level 3, Appendix G: Small Kana Mappings
+      // https://drafts.csswg.org/css-text-3/#small-kana-mappings
+      const full_size_kana_mapping = {
+        0x3041: 0x3042,
+        0x3043: 0x3044,
+        0x3045: 0x3046,
+        0x3047: 0x3048,
+        0x3049: 0x304A,
+        0x3063: 0x3064,
+        0x3083: 0x3084,
+        0x3085: 0x3086,
+        0x3087: 0x3088,
+        0x308E: 0x308F,
+        0x3095: 0x304B,
+        0x3096: 0x3051,
+        0x30A1: 0x30A2,
+        0x30A3: 0x30A4,
+        0x30A5: 0x30A6,
+        0x30A7: 0x30A8,
+        0x30A9: 0x30AA,
+        0x30C3: 0x30C4,
+        0x30E3: 0x30E4,
+        0x30E5: 0x30E6,
+        0x30E7: 0x30E8,
+        0x30EE: 0x30EF,
+        0x30F5: 0x30AB,
+        0x30F6: 0x30B1,
+        0x31F0: 0x30AF,
+        0x31F1: 0x30B7,
+        0x31F2: 0x30B9,
+        0x31F3: 0x30C8,
+        0x31F4: 0x30CC,
+        0x31F5: 0x30CF,
+        0x31F6: 0x30D2,
+        0x31F7: 0x30D5,
+        0x31F8: 0x30D8,
+        0x31F9: 0x30DB,
+        0x31FA: 0x30E0,
+        0x31FB: 0x30E9,
+        0x31FC: 0x30EA,
+        0x31FD: 0x30EB,
+        0x31FE: 0x30EC,
+        0x31FF: 0x30ED,
+        0x1B132: 0x3053,
+        0x1B150: 0x3090,
+        0x1B151: 0x3091,
+        0x1B152: 0x3092,
+        0x1B155: 0x30B3,
+        0x1B164: 0x30F0,
+        0x1B165: 0x30F1,
+        0x1B166: 0x30F2,
+        0x1B167: 0x30F3,
+        0xFF67: 0xFF71,
+        0xFF68: 0xFF72,
+        0xFF69: 0xFF73,
+        0xFF6A: 0xFF74,
+        0xFF6B: 0xFF75,
+        0xFF6C: 0xFF94,
+        0xFF6D: 0xFF95,
+        0xFF6E: 0xFF96,
+        0xFF6F: 0xFF82,
+      };
+
+      add_completion_callback(() => {
+        container.remove();
+      });
+      for (let code_point in full_size_kana_mapping) {
+        test(() => {
+          const sourceChar = String.fromCodePoint(code_point);
+          container.textContent = sourceChar;
+          // Use sourceChar.length as the end offset (1 for BMP, 2 for surrogate pairs).
+          window
+            .getSelection()
+            .setBaseAndExtent(container.firstChild, 0, container.firstChild, sourceChar.length);
+          assert_equals(
+            window.getSelection().toString(),
+            String.fromCodePoint(full_size_kana_mapping[code_point])
+          );
+        }, `Selection.toString() for full-size-kana '${String.fromCodePoint(code_point)}' (U+${Number(code_point).toString(16).toUpperCase()}) returns the transformed character.`);
+      }
+    </script>
+  </body>
+</html>

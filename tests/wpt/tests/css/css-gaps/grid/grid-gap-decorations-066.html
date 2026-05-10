@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Gap decorations are painted in inline grid containers.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-066-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .container {
+    gap: 10px;
+    row-rule: 2px solid red;
+    column-rule: 2px solid blue;
+  }
+  .grid {
+    display: inline-grid;
+    grid-template: repeat(2, 50px) / repeat(2, 50px);
+  }
+  .item {
+    background: lightgray;
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<div class="grid container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -13,11 +14,13 @@
 <menulist id="list">
  <menuitem id="A1">Command A1</menuitem>
  <menuitem id="A2">Command A2</menuitem>
+ <menuitem id="A3">Command A3</menuitem>
 </menulist>
 
 <menubar id="bar">
   <menuitem id="B1">Command B1</menuitem>
   <menuitem id="B2">Command B2</menuitem>
+  <menuitem id="B3">Command B3</menuitem>
 </menubar>
 
 <style>
@@ -52,7 +55,9 @@ const ArrowDown = '\uE015';
     await test_driver.send_keys(document.activeElement, ArrowUp);
     assert_equals(document.activeElement, A1, 'arrow up changes to previous menuitem.');
     await test_driver.send_keys(document.activeElement, ArrowUp);
-    assert_equals(document.activeElement, A1, 'arrow keys do not loop.');
+    assert_equals(document.activeElement, A3, 'arrow up key loops.');
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    assert_equals(document.activeElement, A1, 'arrow down key loops.');
 
     list.hidePopover();
     await test_driver.click(btn);
@@ -94,7 +99,9 @@ const ArrowDown = '\uE015';
     await test_driver.send_keys(document.activeElement, ArrowLeft);
     assert_equals(document.activeElement, B1, 'arrow left changes to previous menuitem.');
     await test_driver.send_keys(document.activeElement, ArrowLeft);
-    assert_equals(document.activeElement, B1, 'arrow keys do not loop.');
+    assert_equals(document.activeElement, B3, 'arrow left key loops.');
+    await test_driver.send_keys(document.activeElement, ArrowRight);
+    assert_equals(document.activeElement, B1, 'arrow right key loops.');
   }, `Should use arrow keys to move between menuitems in menubar${description}`);
 });
 

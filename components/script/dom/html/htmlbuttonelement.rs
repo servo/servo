@@ -7,18 +7,27 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
+use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::commandevent::CommandEvent;
 use crate::dom::document::Document;
+use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
@@ -28,9 +37,10 @@ use crate::dom::html::htmlformelement::{
 };
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
+use crate::dom::types::HTMLInputElement;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -70,19 +80,19 @@ impl HTMLButtonElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLButtonElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLButtonElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -93,34 +103,53 @@ impl HTMLButtonElement {
 }
 
 impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
+    /// <https://html.spec.whatwg.org/multipage/#dom-button-command>
+    fn Command(&self) -> DOMString {
+        // Step 1. Let command be this's command attribute.
+        match self.command_state() {
+            // Step 2. If command is in the Custom state, then return command's value.
+            CommandState::Custom => self
+                .upcast::<Element>()
+                .get_string_attribute(&local_name!("command")),
+            // Step 3. If command is in the Unknown state, then return the empty string.
+            CommandState::Unknown => DOMString::default(),
+            // Step 4. Return the keyword corresponding to the value of command.
+            CommandState::Close => DOMString::from("close"),
+            CommandState::ShowModal => DOMString::from("show-modal"),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-button-command
+    make_setter!(cx, SetCommand, "command");
+
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_setter!(cx, SetDisabled, "disabled");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
-    // <https://html.spec.whatwg.org/multipage/#dom-button-type>
-    make_enumerated_getter!(
-        Type,
-        "type",
-        "submit" | "reset" | "button",
-        missing => "submit",
-        invalid => "submit"
-    );
+    /// <https://html.spec.whatwg.org/multipage/#dom-button-type>
+    fn Type(&self) -> DOMString {
+        match self.button_type.get() {
+            ButtonType::Submit => DOMString::from("submit"),
+            ButtonType::Button => DOMString::from("button"),
+            ButtonType::Reset => DOMString::from("reset"),
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_setter!(SetType, "type");
+    make_setter!(cx, SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_form_action_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
-    make_setter!(SetFormAction, "formaction");
+    make_setter!(cx, SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_enumerated_getter!(
@@ -131,7 +160,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_setter!(SetFormEnctype, "formenctype");
+    make_setter!(cx, SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_enumerated_getter!(
@@ -142,31 +171,31 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_setter!(SetFormMethod, "formmethod");
+    make_setter!(cx, SetFormMethod, "formmethod");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_getter!(FormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
-    make_setter!(SetFormTarget, "formtarget");
+    make_setter!(cx, SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
     make_bool_getter!(FormNoValidate, "formnovalidate");
 
     // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
-    make_bool_setter!(SetFormNoValidate, "formnovalidate");
+    make_bool_setter!(cx, SetFormNoValidate, "formnovalidate");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_atomic_setter!(SetName, "name");
+    make_atomic_setter!(cx, SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_getter!(Value, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
-    make_setter!(SetValue, "value");
+    make_setter!(cx, SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     make_labels_getter!(Labels, labels_node_list);
@@ -182,13 +211,13 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -197,8 +226,9 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
-        self.validity_state(can_gc).set_custom_error_message(error);
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(CanGc::from_cx(cx))
+            .set_custom_error_message(error);
     }
 }
 
@@ -233,6 +263,99 @@ impl HTMLButtonElement {
             value: FormDatumValue::String(self.Value()),
         })
     }
+
+    fn set_type(&self, value: DOMString, can_gc: CanGc) {
+        let value = match value.to_ascii_lowercase().as_str() {
+            "reset" => ButtonType::Reset,
+            "button" => ButtonType::Button,
+            "submit" => ButtonType::Submit,
+            _ => {
+                let element = self.upcast::<Element>();
+                if element.has_attribute(&local_name!("command")) ||
+                    element.has_attribute(&local_name!("commandfor"))
+                {
+                    ButtonType::Button
+                } else {
+                    ButtonType::Submit
+                }
+            },
+        };
+        self.button_type.set(value);
+        self.validity_state(can_gc)
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+    }
+
+    fn command_for_element(&self) -> Option<DomRoot<Element>> {
+        let command_for_value = self
+            .upcast::<Element>()
+            .get_attribute(&local_name!("commandfor"))?
+            .Value();
+
+        let root_node = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+
+        if let Some(document) = root_node.downcast::<Document>() {
+            return document.GetElementById(command_for_value);
+        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
+            return document_fragment.GetElementById(command_for_value);
+        }
+        unreachable!("Button element must be in a document or document fragment");
+    }
+
+    fn command_state(&self) -> CommandState {
+        let command = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("command"));
+        if command.starts_with_str("--") {
+            return CommandState::Custom;
+        }
+        let value = command.to_ascii_lowercase();
+        if value == "close" {
+            return CommandState::Close;
+        }
+        if value == "show-modal" {
+            return CommandState::ShowModal;
+        }
+
+        CommandState::Unknown
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#determine-if-command-is-valid>
+    fn determine_if_command_is_valid_for_target(
+        command: CommandState,
+        target: DomRoot<Element>,
+    ) -> bool {
+        // Step 1. If command is in the Unknown state, then return false.
+        if command == CommandState::Unknown {
+            return false;
+        }
+        // Step 2. If command is in the Custom state, then return true.
+        if command == CommandState::Custom {
+            return true;
+        }
+        // Step 3. If target is not an HTML element, then return false.
+        if !target.is_html_element() {
+            return false;
+        }
+        // TODO Step 4. If command is in any of the following states:
+        // - Toggle Popover
+        // - Show Popover
+        // - Hide Popover
+        // then return true.
+        // Step 5. If this standard does not define is valid command steps for target's local name, then return false.
+        // Step 6. Otherwise, return the result of running target's corresponding is valid command steps given command.
+        vtable_for(target.upcast::<Node>()).is_valid_command_steps(command)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-button-element:concept-fe-optional-value>
+    pub(crate) fn optional_value(&self) -> Option<DOMString> {
+        // The element's optional value is the value of the element's value attribute,
+        // if there is one; otherwise null.
+        self.upcast::<Element>()
+            .get_attribute(&local_name!("value"))
+            .map(|attribute| attribute.Value())
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
@@ -240,10 +363,15 @@ impl VirtualMethods for HTMLButtonElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -259,45 +387,40 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status(can_gc);
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
             },
-            local_name!("type") => match mutation {
-                AttributeMutation::Set(..) => {
-                    let value = match &**attr.value() {
-                        "reset" => ButtonType::Reset,
-                        "button" => ButtonType::Button,
-                        _ => ButtonType::Submit,
-                    };
-                    self.button_type.set(value);
-                    self.validity_state(can_gc)
-                        .perform_validation_and_update(ValidationFlags::all(), can_gc);
-                },
-                AttributeMutation::Removed => {
-                    self.button_type.set(ButtonType::Submit);
-                },
-            },
+            local_name!("type") => self.set_type(attr.to_dom_string(), CanGc::from_cx(cx)),
+            local_name!("command") => self.set_type(
+                self.upcast::<Element>()
+                    .get_string_attribute(&local_name!("type")),
+                CanGc::from_cx(cx),
+            ),
+            local_name!("commandfor") => self.set_type(
+                self.upcast::<Element>()
+                    .get_string_attribute(&local_name!("type")),
+                CanGc::from_cx(cx),
+            ),
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::empty(), can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::empty(), CanGc::from_cx(cx));
             },
             _ => {},
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -357,39 +480,117 @@ impl Activatable for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
-    fn activation_behavior(&self, _event: &Event, target: &EventTarget, can_gc: CanGc) {
-        let ty = self.button_type.get();
-        match ty {
-            // https://html.spec.whatwg.org/multipage/#the-button-element:attr-button-type-submit-state
-            ButtonType::Submit => {
-                // Step 2. If element's node document is not fully active, then return.
-                if !target
-                    .downcast::<Node>()
-                    .is_none_or(|node| node.owner_document().is_fully_active())
-                {
-                    return;
-                }
-                if let Some(owner) = self.form_owner() {
-                    owner.submit(
-                        SubmittedFrom::NotFromForm,
-                        FormSubmitterElement::Button(self),
-                        can_gc,
-                    );
-                }
-            },
-            ButtonType::Reset => {
-                // Step 2. If element's node document is not fully active, then return.
-                if !target
-                    .downcast::<Node>()
-                    .is_none_or(|node| node.owner_document().is_fully_active())
-                {
-                    return;
-                }
-                if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromForm, can_gc);
-                }
-            },
-            _ => (),
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        event: &Event,
+        target: &EventTarget,
+    ) {
+        // Step 2. If element's node document is not fully active, then return.
+        if !target
+            .downcast::<Node>()
+            .is_none_or(|node| node.owner_document().is_fully_active())
+        {
+            return;
         }
+
+        let button_type = self.button_type.get();
+        // Step 3. If element has a form owner:
+        if let Some(owner) = self.form_owner() {
+            // Step 3.1 If element is a submit button, then submit element's form owner from element
+            // ..., and return.
+            if button_type == ButtonType::Submit {
+                owner.submit(
+                    cx,
+                    SubmittedFrom::NotFromForm,
+                    FormSubmitterElement::Button(self),
+                );
+                return;
+            }
+            // Step 3.2 If element's type attribute is in the Reset Button state, then reset
+            // element's form owner and return.
+            if button_type == ButtonType::Reset {
+                owner.reset(cx, ResetFrom::NotFromForm);
+                return;
+            }
+            // Step 3.3 If element's type attribute is in the Auto state, then return.
+            if button_type == ButtonType::Button &&
+                self.upcast::<Element>()
+                    .get_string_attribute(&local_name!("type"))
+                    .to_ascii_lowercase() !=
+                    "button"
+            {
+                return;
+            }
+        }
+        // Adhoc, this step is needed so that file inputs button activates the input.
+        if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
+            if pseudo_element == PseudoElement::FileSelectorButton {
+                let Some(parent) = self.upcast::<Node>().parent_in_flat_tree() else {
+                    return;
+                };
+
+                parent
+                    .downcast::<HTMLInputElement>()
+                    .expect("File select button should always be a child of an input element")
+                    .activation_behavior(cx, event, target);
+            }
+
+            return;
+        }
+
+        // Step 4. Let target be the result of running element's get the commandfor-associated
+        // element.
+        // Step 5. If target is not null:
+        if let Some(target) = self.command_for_element() {
+            // Steps 5.1 Let command be element's command attribute.
+            let command = self.command_state();
+            // Step 5.2 If the result of determining if a command is valid for a target given command and target is false, then return.
+            if !Self::determine_if_command_is_valid_for_target(command, target.clone()) {
+                return;
+            }
+            // Step 5.3 Let continue be the result of firing an event named command at target, using
+            // CommandEvent, with its command attribute initialized to command, its source attribute
+            // initialized to element, and its cancelable attribute initialized to true.
+            // TODO source attribute
+            // Step 5.4 If continue is false, then return.
+            let event = CommandEvent::new(
+                &self.owner_window(),
+                atom!("command"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::Cancelable,
+                Some(DomRoot::from_ref(self.upcast())),
+                self.upcast::<Element>()
+                    .get_string_attribute(&local_name!("command")),
+                CanGc::from_cx(cx),
+            );
+            let event = event.upcast::<Event>();
+            if !event.fire(target.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
+                return;
+            }
+            // Step 5.5 If target is not connected, then return.
+            let target_node = target.upcast::<Node>();
+            if !target_node.is_connected() {
+                return;
+            }
+            // Step 5.6 If command is in the Custom state, then return.
+            if command == CommandState::Custom {
+                return;
+            }
+            // TODO Steps 5.7, 5.8, 5.9
+            // Step 5.10 Otherwise, if this standard defines command steps for target's local name,
+            // then run the corresponding command steps given target, element, and command.
+            let _ = vtable_for(target_node).command_steps(cx, DomRoot::from_ref(self), command);
+        }
+        // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element
+        // and event's target.
     }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub(crate) enum CommandState {
+    Unknown,
+    Custom,
+    ShowModal,
+    Close,
 }

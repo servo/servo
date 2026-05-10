@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+.hidden {
+  display:none
+}
+</style>
+
+<div id="visibleDiv">Visible Text</div>
+<div id="hiddenDiv" class="hidden">Hidden Text</div>
+<div><button id="navigateButton">Navigate!</button></div>
+
+<script>
+  promise_test(t => {
+    const url = '/toggleHidden';
+    const modifyDOM = () => {
+      visibleDiv.setAttribute('class', 'hidden');
+      hiddenDiv.setAttribute('class', '');
+      return hiddenDiv.id;
+    };
+    const helper = new SoftNavigationTestHelper(t);
+    return helper.clickAndExpectSoftNavigation(navigateButton, url, modifyDOM);
+  }, 'Soft Navigation Detection supports class attribute changes via setAttribute');
+</script>

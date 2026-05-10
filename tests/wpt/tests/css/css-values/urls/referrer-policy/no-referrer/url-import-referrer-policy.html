@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: referrer-policy(no-referrer) for @import</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrer-policy-modifier">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test">X</div>
+<script>
+promise_test(async t => {
+  const url = `/css/css-values/urls/support/stylesheet-referrer-policy.py?expected_referrer=none`;
+  const style = document.createElement("style");
+  style.textContent = `@import url("${url}" referrer-policy(no-referrer));`;
+  const { promise, resolve, reject } = Promise.withResolvers();
+  style.onload = resolve;
+  style.onerror = reject;
+  document.head.prepend(style);
+  await promise;
+  assert_equals(
+    getComputedStyle(document.getElementById("test")).color,
+    "rgb(0, 128, 0)",
+    "@import with referrer-policy(no-referrer) should apply green style");
+}, "referrer-policy(no-referrer) sends no referrer for @import");
+</script>

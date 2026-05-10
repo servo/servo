@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The meter element: parsing floating-point number values with leading plus sign</title>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#rules-for-parsing-floating-point-number-values">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-meter-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <h1>Meter element: leading plus sign in content attributes</h1>
+    <div id="log"></div>
+    <div style="display: none;">
+      <meter id="meter_plus_value" value="+5" min="0" max="10"></meter>
+      <meter id="meter_plus_max" value="5" min="0" max="+10"></meter>
+      <meter id="meter_plus_min" value="5" min="+1" max="10"></meter>
+      <meter id="meter_plus_low" value="5" min="0" max="10" low="+2"></meter>
+      <meter id="meter_plus_high" value="5" min="0" max="10" high="+8"></meter>
+      <meter id="meter_plus_optimum" value="5" min="0" max="10" optimum="+6"></meter>
+      <meter id="meter_plus_decimal" value="+3.14" min="0" max="10"></meter>
+      <meter id="meter_bare_plus_max" max="+"></meter>
+      <meter id="meter_bare_minus_max" max="-"></meter>
+      <meter id="meter_bare_dot_max" max="."></meter>
+      <meter id="meter_plus_minus_max" max="+-5"></meter>
+    </div>
+    <script>
+      // The HTML spec "rules for parsing floating-point number values" (step 9)
+      // says a leading U+002B PLUS SIGN (+) should be accepted and skipped.
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_value").value, 5);
+      }, "value with leading '+' should parse as 5");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_max").max, 10);
+      }, "max with leading '+' should parse as 10");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_min").min, 1);
+      }, "min with leading '+' should parse as 1");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_low").low, 2);
+      }, "low with leading '+' should parse as 2");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_high").high, 8);
+      }, "high with leading '+' should parse as 8");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_optimum").optimum, 6);
+      }, "optimum with leading '+' should parse as 6");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_decimal").value, 3.14);
+      }, "value '+3.14' should parse as 3.14");
+
+      test(function() {
+        var meter = document.createElement("meter");
+        meter.setAttribute("min", "0");
+        meter.setAttribute("max", "+10");
+        meter.setAttribute("value", "+5");
+        assert_equals(meter.max, 10, "max");
+        assert_equals(meter.value, 5, "value");
+      }, "setAttribute with leading '+' should parse correctly");
+
+      // Bare '+', '-', '.' are parse errors per the spec (step 10: after
+      // consuming the sign, if position is past the end of input or not at
+      // a '.' or ASCII digit, return an error). The meter element should
+      // use its default/fallback values.
+
+      test(function() {
+        assert_equals(document.getElementById("meter_bare_plus_max").max, 1);
+      }, "bare '+' for max should use default value 1");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_bare_minus_max").max, 1);
+      }, "bare '-' for max should use default value 1");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_bare_dot_max").max, 1);
+      }, "bare '.' for max should use default value 1");
+
+      test(function() {
+        assert_equals(document.getElementById("meter_plus_minus_max").max, 1);
+      }, "'+-5' for max should use default value 1");
+    </script>
+  </body>
+</html>

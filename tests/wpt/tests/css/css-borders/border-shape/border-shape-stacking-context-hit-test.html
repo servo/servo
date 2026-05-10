@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>CSS Borders: border-shape blocks hits on stacking-context children outside the shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0; }
+  #target {
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-shape: circle(50% at 50% 50%);
+    border: 10px solid purple;
+    background: green;
+    z-index: 10;
+  }
+  #target:hover {
+    background: lime;
+  }
+  #child {
+    position: relative;
+    z-index: 0;
+    width: 100px;
+    height: 100px;
+    background: lightblue;
+  }
+</style>
+<div id="target">
+  <div id="child"></div>
+</div>
+<script>
+  const target = document.getElementById('target');
+  const child  = document.getElementById('child');
+  const rect   = target.getBoundingClientRect();
+  const cx = rect.left + rect.width  / 2;  // 100
+  const cy = rect.top  + rect.height / 2;  // 100
+
+  // #child occupies [10,110]×[10,110] (content area inset by 10px border).
+  // circle(50%) on the outer reference rect gives an effective radius of ~100px.
+  // A point at (cx-85, cy-85) is inside #child's bounds but ~120px from centre.
+
+  test(() => {
+    const outside = document.elementFromPoint(cx - 85, cy - 85);
+    assert_not_equals(outside, child,  'corner of child outside circle must not hit child');
+    assert_not_equals(outside, target, 'corner of child outside circle must not hit target');
+  }, 'point inside child bounds but outside circle does not hit child or target');
+
+  test(() => {
+    const outside = document.elementFromPoint(rect.right - 5, rect.bottom - 5);
+    assert_not_equals(outside, child,  'bottom-right corner must not hit child');
+    assert_not_equals(outside, target, 'bottom-right corner must not hit target');
+  }, 'bottom-right corner outside circle does not hit target');
+
+  test(() => {
+    assert_equals(document.elementFromPoint(cx - 30, cy - 30), child,
+        'point inside circle and inside child bounds must hit child');
+  }, 'point inside circle and inside child hits child');
+
+  test(() => {
+    assert_equals(document.elementFromPoint(cx + 30, cy), target,
+        'point inside circle but outside child must hit target');
+  }, 'point inside circle but outside child hits target');
+
+  promise_test(async t => {
+    await new test_driver.Actions().pointerMove(cx - 85, cy - 85).send();
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    assert_false(target.matches(':hover'),
+        'target must not be :hover when pointer is inside child bounds but outside circle');
+  }, ':hover not triggered at corner of stacking-context child outside border-shape circle');
+
+  promise_test(async t => {
+    await new test_driver.Actions().pointerMove(cx, cy).send();
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    assert_true(target.matches(':hover'),
+        'target must be :hover when pointer is at circle centre');
+  }, ':hover triggered at circle centre');
+</script>

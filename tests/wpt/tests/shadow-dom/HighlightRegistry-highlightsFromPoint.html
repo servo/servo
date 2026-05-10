@@ -151,5 +151,55 @@ body {
         highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
         assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the given coordinates point at text in the shadow DOM that is not highlighted even when there is a Highlight set with a StaticRange that starts in the light DOM and ends in the shadow DOM surrounding it');
     }, 'CSS.highlights.highlightsFromPoint() doesn\'t return Highlights that are not painted at the given coordinates even when they fall inside the Highlights\' ranges');
+
+    test(() => {
+        CSS.highlights.clear();
+
+        // Light DOM content slotted into a shadow tree wrapper.
+        container.setHTMLUnsafe(`
+            <div id="slot-host">
+                <template shadowrootmode=open>
+                    <div id="in-shadow"><slot></slot></div>
+                </template>
+                <span id="slotted-span">0123456789</span>
+            </div>`);
+
+        const slottedSpan = container.querySelector("#slotted-span");
+        const shadowRoot = container.querySelector("#slot-host").shadowRoot;
+
+        const lightRange = new Range();
+        lightRange.setStart(slottedSpan.childNodes[0], 0);
+        lightRange.setEnd(slottedSpan.childNodes[0], 10);
+        const lightHighlight = new Highlight(lightRange);
+        CSS.highlights.set("example-highlight", lightHighlight);
+
+        const shadowSpan = shadowRoot.querySelector("#in-shadow");
+        const shadowRange = new Range();
+        shadowRange.setStart(shadowSpan, 0);
+        shadowRange.setEnd(shadowSpan, shadowSpan.childNodes.length);
+        const shadowHighlight = new Highlight(shadowRange);
+        CSS.highlights.set("example-highlight-2", shadowHighlight);
+
+        // getBoundingClientRect() on the slotted span gives its rendered position
+        // inside the shadow tree's slot.
+        const rect = slottedSpan.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+
+        // The slotted span is light DOM: no shadowRoots option is needed to reach it.
+        let results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(results.length, 1,
+            'highlightsFromPoint() returns the light DOM highlight for slotted content');
+        assert_equals(results[0].highlight, lightHighlight,
+            'the light DOM highlight is returned, not the shadow DOM one');
+        assert_array_equals(results[0].ranges, [lightRange]);
+
+        // With shadowRoots provided, the shadow highlight's rects don't cover the
+        // slotted text's position, so it is still not returned.
+        results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(results.length, 1,
+            'adding shadowRoots does not cause the shadow highlight to appear at the slotted position');
+        assert_equals(results[0].highlight, lightHighlight);
+    }, 'CSS.highlights.highlightsFromPoint() handles slotted light DOM content correctly.');
 </script>
 </body>

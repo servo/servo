@@ -5,6 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use content_security_policy::Violation;
+use js::context::JSContext;
 use net_traits::request::RequestId;
 use net_traits::{
     BoxedFetchCallback, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
@@ -19,7 +20,6 @@ use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performanceresourcetiming::{
     InitiatorType, PerformanceResourceTiming,
 };
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 pub(crate) trait ResourceTimingListener {
@@ -28,31 +28,18 @@ pub(crate) trait ResourceTimingListener {
 }
 
 pub(crate) fn submit_timing<T: ResourceTimingListener>(
+    cx: &mut JSContext,
     listener: &T,
     result: &Result<(), NetworkError>,
     resource_timing: &ResourceFetchTiming,
-    can_gc: CanGc,
 ) {
     // https://www.w3.org/TR/resource-timing/#resources-included-in-the-performanceresourcetiming-interface
     // If a resource fetch is aborted because it failed a fetch precondition
     // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
     // will not be included as a PerformanceResourceTiming object in
     // the Performance Timeline.
-    if let Err(
-        NetworkError::ContentSecurityPolicy |
-        NetworkError::MixedContent |
-        NetworkError::SubresourceIntegrity |
-        NetworkError::Nosniff |
-        NetworkError::InvalidPort |
-        NetworkError::CorsGeneral |
-        NetworkError::CrossOriginResponse |
-        NetworkError::CorsCredentials |
-        NetworkError::CorsAllowMethods |
-        NetworkError::CorsAllowHeaders |
-        NetworkError::CorsMethod |
-        NetworkError::CorsAuthorization |
-        NetworkError::CorsHeaders,
-    ) = &result
+    if let Err(error) = &result &&
+        error.is_permanent_failure()
     {
         return;
     }
@@ -83,23 +70,23 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     }
 
     submit_timing_data(
+        cx,
         &listener.resource_timing_global(),
         url,
         initiator_type,
         resource_timing,
-        can_gc,
     );
 }
 
 pub(crate) fn submit_timing_data(
+    cx: &mut JSContext,
     global: &GlobalScope,
     url: ServoUrl,
     initiator_type: InitiatorType,
     resource_timing: &ResourceFetchTiming,
-    can_gc: CanGc,
 ) {
     let performance_entry =
-        PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing, can_gc);
+        PerformanceResourceTiming::new(cx, global, url, initiator_type, None, resource_timing);
     global
         .performance()
         .queue_entry(performance_entry.upcast::<PerformanceEntry>());
@@ -114,15 +101,16 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     }
 
     fn process_request_body(&mut self, request_id: RequestId);
-    fn process_request_eof(&mut self, request_id: RequestId);
     fn process_response(
         &mut self,
+        cx: &mut JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     );
-    fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>);
+    fn process_response_chunk(&mut self, cx: &mut JSContext, request_id: RequestId, chunk: Vec<u8>);
     fn process_response_eof(
         self,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -148,7 +136,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
     pub(crate) fn notify(&mut self, message: FetchResponseMsg) {
         let context = self.context.clone();
         self.task_source
-            .queue(task!(network_listener_response: move || {
+            .queue(task!(network_listener_response: move |cx| {
                 let mut context = context.lock().unwrap();
                 let Some(fetch_listener) = &mut *context else {
                     return;
@@ -162,18 +150,15 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     FetchResponseMsg::ProcessRequestBody(request_id) => {
                         fetch_listener.process_request_body(request_id)
                     },
-                    FetchResponseMsg::ProcessRequestEOF(request_id) => {
-                        fetch_listener.process_request_eof(request_id)
-                    },
                     FetchResponseMsg::ProcessResponse(request_id, meta) => {
-                        fetch_listener.process_response(request_id, meta)
+                        fetch_listener.process_response(cx, request_id, meta)
                     },
                     FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
-                        fetch_listener.process_response_chunk(request_id, data.0)
+                        fetch_listener.process_response_chunk(cx, request_id, data.0)
                     },
                     FetchResponseMsg::ProcessResponseEOF(request_id, result, timing) => {
                         if let Some(fetch_listener) = context.take() {
-                            fetch_listener.process_response_eof(request_id, result, timing);
+                            fetch_listener.process_response_eof(cx, request_id, result, timing);
                         };
                     },
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="match" href="textarea-caret-following-linebreak-blank-line-ref.html">
+    <style>
+    textarea {
+        caret-animation: manual;
+    }
+    </style>
+</head>
+<body>
+    <textarea cols=50 rows="5">Caret should render below&#13;&#13;Caret should render above</textarea>
+    <script>
+        const textarea = document.getElementsByTagName('textarea')[0];
+        textarea.setSelectionRange(26, 26);
+        textarea.focus();
+    </script>
+</body>

@@ -4,13 +4,14 @@
 
 use std::ops::Deref;
 
-use base::id::TEST_WEBVIEW_ID;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::Referrer;
 use net_traits::response::ResponseBody;
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
+use servo_base::id::TEST_WEBVIEW_ID;
 use servo_url::ServoUrl;
 
 use crate::fetch;
@@ -24,7 +25,7 @@ fn assert_parse(
 ) {
     use net_traits::request::RequestBuilder;
 
-    let url = ServoUrl::parse(url).unwrap();
+    let url = UrlWithBlobClaim::new(ServoUrl::parse(url).unwrap(), None);
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
         .origin(url.origin())
         .pipeline_id(None)

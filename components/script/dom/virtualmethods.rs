@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::LocalName;
-use script_bindings::script_runtime::CanGc;
+use js::context::JSContext;
+use script_bindings::root::DomRoot;
 use style::attr::AttrValue;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::{
     Castable, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId,
     NodeTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
@@ -14,6 +14,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -31,7 +32,6 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
@@ -58,7 +58,12 @@ use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
-use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::htmlbuttonelement::CommandState;
+use crate::dom::htmldialogelement::HTMLDialogElement;
+use crate::dom::node::{
+    BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
+};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
@@ -74,15 +79,20 @@ pub(crate) trait VirtualMethods {
     /// Called when attributes of a node are mutated.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
     /// <https://dom.spec.whatwg.org/#attribute-is-removed>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
     }
 
     /// Returns `true` if given attribute `attr` affects style of the
     /// given element.
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match self.super_type() {
             Some(s) => s.attribute_affects_presentational_hints(attr),
             None => false,
@@ -101,67 +111,91 @@ pub(crate) trait VirtualMethods {
     /// Invoked during a DOM tree mutation after a node becomes connected, once all
     /// related DOM tree mutations have been applied.
     /// <https://dom.spec.whatwg.org/#concept-node-post-connection-ext>
-    fn post_connection_steps(&self, can_gc: CanGc) {
+    fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps(can_gc);
+            s.post_connection_steps(cx);
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(s) = self.super_type() {
+            s.moving_steps(cx, context);
         }
     }
 
     /// Called when a Node is appended to a tree.
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
     }
 
     /// Called when a Node is removed from a tree.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
     }
 
     /// Called on the parent when its children are changed.
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
+            s.handle_event(cx, event);
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.is_valid_command_steps(command))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#command-steps>
+    fn command_steps(
+        &self,
+        cx: &mut js::context::JSContext,
+        button: DomRoot<HTMLButtonElement>,
+        command: CommandState,
+    ) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.command_steps(cx, button, command))
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
         if let Some(s) = self.super_type() {
-            s.adopting_steps(old_doc, can_gc);
+            s.adopting_steps(cx, old_doc);
         }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
     }
 
     /// Called on an element when it is popped off the stack of open elements
     /// of a parser.
-    fn pop(&self) {
+    fn pop(&self, cx: &mut js::context::JSContext) {
         if let Some(s) = self.super_type() {
-            s.pop();
+            s.pop(cx);
         }
     }
 }
@@ -192,6 +226,9 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
             node.downcast::<HTMLDetailsElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)) => {
+            node.downcast::<HTMLDialogElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             node.downcast::<HTMLFieldSetElement>().unwrap() as &dyn VirtualMethods

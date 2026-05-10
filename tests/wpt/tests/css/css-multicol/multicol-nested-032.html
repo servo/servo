@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#the-multi-column-model">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test that the nested column container has a correct column width in the outer multicol's second column.">
+
+<style>
+.multicol {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 0;
+}
+#outer {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#nested {
+  width: 100%;
+  height: 200px;
+}
+#abscb {
+  position: relative;
+  width: 100%;
+
+  /* Use a height less than the outer column container's height 100px to trigger
+     the bug. */
+  height: 50px;
+}
+#abspos {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 400px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="outer" class="multicol">
+  <div id="nested" class="multicol">
+    <div id="abscb">
+      <div id="abspos"></div>
+    </div>
+  </div>
+</div>

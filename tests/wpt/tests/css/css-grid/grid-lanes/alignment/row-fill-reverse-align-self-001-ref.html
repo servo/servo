@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      height: min-content;
+      width: 180px;
+      border: 1px solid blue;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row-reverse;
+      height: 80px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>align-self</p>
+  <div class="container">
+    <div class="row">
+      <item style="align-self: start;">start</item>
+    </div>
+    <div class="row">
+      <item style="align-self: end;">end</item>
+      <item style="align-self: center;">center</item>
+      <item style="align-self: last baseline;">baseline</item>
+      <item style="align-self: last baseline;">item with some extra</item>
+    </div>
+  </div>
+</body>
+</html>

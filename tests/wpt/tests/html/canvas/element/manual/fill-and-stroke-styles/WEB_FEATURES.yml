@@ -1,4 +1,8 @@
 features:
+- name: canvas-2d
+  files:
+  - "*"
+  - "!conic-gradient*"
 - name: canvas-createconicgradient
   files:
   - conic-gradient.html

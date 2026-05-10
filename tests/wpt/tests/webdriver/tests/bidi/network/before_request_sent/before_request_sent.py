@@ -1,10 +1,11 @@
 import asyncio
+from urllib.parse import urlencode
 
 import pytest
+import pytest_asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_before_request_sent_event,
     get_network_event_timerange,
@@ -19,8 +20,14 @@ from .. import (
     BEFORE_REQUEST_SENT_EVENT,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
+@pytest_asyncio.fixture(autouse=True)
+async def delete_cookies(bidi_session):
+    await bidi_session.storage.delete_cookies()
+
+
 async def test_subscribe_status(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, url, fetch):
     await subscribe_events(events=[BEFORE_REQUEST_SENT_EVENT])
 
@@ -48,9 +55,7 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
     assert len(events) == 1
     expected_request = {"method": "GET", "url": text_url}
     assert_before_request_sent_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
     await bidi_session.session.unsubscribe(events=[BEFORE_REQUEST_SENT_EVENT])
@@ -64,7 +69,6 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_iframe_load(
     bidi_session,
     top_context,
@@ -87,17 +91,21 @@ async def test_iframe_load(
     assert len(events) == 2
     assert_before_request_sent_event(
         events[0],
-        expected_request={"url": test_page_same_origin_frame},
-        context=top_context["context"],
+        expected_event={
+            "request": {"url": test_page_same_origin_frame},
+            "context": top_context["context"],
+        },
     )
+
     assert_before_request_sent_event(
         events[1],
-        expected_request={"url": test_page},
-        context=frame_context["context"],
+        expected_event={
+            "request": {"url": test_page},
+            "context": frame_context["context"],
+        },
     )
 
 
-@pytest.mark.asyncio
 async def test_load_page_twice(
     bidi_session, top_context, wait_for_event, url, setup_network_test, wait_for_future_safe
 ):
@@ -117,13 +125,10 @@ async def test_load_page_twice(
     assert len(events) == 1
     expected_request = {"method": "GET", "url": html_url}
     assert_before_request_sent_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
 
-@pytest.mark.asyncio
 async def test_navigation_id(
     bidi_session, top_context, wait_for_event, url, fetch, setup_network_test, wait_for_future_safe
 ):
@@ -143,7 +148,11 @@ async def test_navigation_id(
     assert len(events) == 1
     expected_request = {"method": "GET", "url": html_url}
     assert_before_request_sent_event(
-        events[0], expected_request=expected_request, navigation=result["navigation"]
+        events[0],
+        expected_event={
+            "request": expected_request,
+            "navigation": result["navigation"],
+        },
     )
     assert events[0]["navigation"] is not None
 
@@ -155,8 +164,7 @@ async def test_navigation_id(
     assert len(events) == 2
     expected_request = {"method": "GET", "url": text_url}
     assert_before_request_sent_event(
-        events[1],
-        expected_request=expected_request,
+        events[1], expected_event={"request": expected_request}
     )
     # Check that requests not related to a navigation have no navigation id.
     assert events[1]["navigation"] is None
@@ -174,7 +182,6 @@ async def test_navigation_id(
         "PATCH",
     ],
 )
-@pytest.mark.asyncio
 async def test_request_method(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, method
 ):
@@ -190,13 +197,10 @@ async def test_request_method(
     assert len(events) == 1
     expected_request = {"method": method, "url": text_url}
     assert_before_request_sent_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
 
-@pytest.mark.asyncio
 async def test_request_headers(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
@@ -216,13 +220,10 @@ async def test_request_headers(
         "url": text_url,
     }
     assert_before_request_sent_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
 
-@pytest.mark.asyncio
 async def test_request_cookies(
     bidi_session, top_context, wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
@@ -232,7 +233,7 @@ async def test_request_cookies(
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     await bidi_session.script.evaluate(
-        expression="document.cookie = 'foo=bar';",
+        expression="document.cookie = 'foo=bar; Path=/;';",
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
@@ -243,18 +244,26 @@ async def test_request_cookies(
 
     assert len(events) == 1
     expected_request = {
-        "cookies": ({"name": "foo", "value": {"type": "string", "value": "bar"}},),
+        "cookies": (
+            {
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+        ),
         "method": "GET",
         "url": text_url,
     }
     assert_before_request_sent_event(
         events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
 
     await bidi_session.script.evaluate(
-        expression="document.cookie = 'fuu=baz';",
+        expression="document.cookie = 'fuu=baz; Path=/;';",
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
@@ -264,23 +273,99 @@ async def test_request_cookies(
     await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 2
-
     expected_request = {
         "cookies": (
-            {"name": "foo", "value": {"type": "string", "value": "bar"}},
-            {"name": "fuu", "value": {"type": "string", "value": "baz"}},
+            {
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+            {
+                "httpOnly": False,
+                "name": "fuu",
+                "path": "/",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "baz"},
+            },
         ),
         "method": "GET",
         "url": text_url,
     }
     assert_before_request_sent_event(
         events[1],
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
 
 
-@pytest.mark.asyncio
+async def test_request_cookie_same_name_different_host(
+    bidi_session,
+    new_tab,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    domain_value,
+    setup_network_test,
+):
+    # Set a cookie on the main origin.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(
+            PAGE_EMPTY_HTML, query=urlencode({"pipe": "header(Set-Cookie, foo=bar)"})
+        ),
+        wait="complete",
+    )
+
+    # Set a cookie with the same name on a different origin.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(
+            PAGE_EMPTY_HTML,
+            domain="alt",
+            query=urlencode({"pipe": "header(Set-Cookie, foo=baz)"}),
+        ),
+        wait="complete",
+    )
+
+    network_events = await setup_network_test(
+        events=[BEFORE_REQUEST_SENT_EVENT],
+        context=new_tab["context"],
+    )
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    text_url = url(PAGE_EMPTY_TEXT)
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+    await fetch(text_url, context=new_tab)
+    await wait_for_future_safe(on_before_request_sent)
+
+    expected_request = {
+        # Only the cookie from the request's host should be included, not the
+        # one from a different host that happens to share the same name.
+        "cookies": (
+
+            {
+                "domain": domain_value(),
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/webdriver/tests/bidi/network/support",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+        ),
+        "method": "GET",
+        "url": text_url,
+    }
+    assert_before_request_sent_event(
+        events[0],
+        expected_event={"request": expected_request, "redirectCount": 0},
+    )
+
+
 async def test_request_timing_info(
     bidi_session,
     url,
@@ -311,14 +396,15 @@ async def test_request_timing_info(
     }
     assert_before_request_sent_event(
         events[0],
-        expected_request=expected_request,
-        expected_time_range=time_range,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "timestamp": time_range,
+            "redirectCount": 0,
+        },
     )
 
 
-@pytest.mark.asyncio
-async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_test):
+async def test_redirect(bidi_session, wait_for_event, wait_for_bidi_events, url, fetch, setup_network_test):
     text_url = url(PAGE_EMPTY_TEXT)
     redirect_url = url(
         f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
@@ -331,25 +417,22 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
 
     # Wait until we receive two events, one for the initial request and one for
     # the redirection.
-    await wait_for_bidi_events(bidi_session, events, 2)
+    await wait_for_bidi_events(events, 2)
     expected_request = {"method": "GET", "url": redirect_url}
     assert_before_request_sent_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
     expected_request = {"method": "GET", "url": text_url}
     assert_before_request_sent_event(
-        events[1], expected_request=expected_request, redirect_count=1
+        events[1], expected_event={"request": expected_request, "redirectCount": 1}
     )
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
 
 
-@pytest.mark.asyncio
 async def test_redirect_http_equiv(
-    bidi_session, top_context, wait_for_event, url, setup_network_test
+    bidi_session, top_context, wait_for_event, wait_for_bidi_events, url, setup_network_test
 ):
     # PAGE_REDIRECT_HTTP_EQUIV should redirect to PAGE_REDIRECTED_HTML immediately
     http_equiv_url = url(PAGE_REDIRECT_HTTP_EQUIV)
@@ -366,21 +449,21 @@ async def test_redirect_http_equiv(
 
     # Wait until we receive two events, one for the initial request and one for
     # the http-equiv "redirect".
-    await wait_for_bidi_events(bidi_session, events, 2)
+    await wait_for_bidi_events(events, 2)
     expected_request = {"method": "GET", "url": http_equiv_url}
     assert_before_request_sent_event(
         events[0],
-        expected_request=expected_request,
-        redirect_count=0,
-        navigation=result["navigation"],
+        expected_event={
+            "request": expected_request,
+            "redirectCount": 0,
+            "navigation": result["navigation"],
+        },
     )
     # http-equiv redirect should not be considered as a redirect: redirect_count
     # should be 0.
     expected_request = {"method": "GET", "url": redirected_url}
     assert_before_request_sent_event(
-        events[1],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[1], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
     # Check that the http-equiv redirect request has a different requestId
@@ -392,7 +475,6 @@ async def test_redirect_http_equiv(
     assert events[1]["navigation"] != events[0]["navigation"]
 
 
-@pytest.mark.asyncio
 async def test_redirect_navigation(
     bidi_session, top_context, wait_for_event, url, setup_network_test
 ):
@@ -414,23 +496,26 @@ async def test_redirect_navigation(
     expected_request = {"method": "GET", "url": redirect_url}
     assert_before_request_sent_event(
         events[0],
-        expected_request=expected_request,
-        navigation=result["navigation"],
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "navigation": result["navigation"],
+            "redirectCount": 0,
+        },
     )
     expected_request = {"method": "GET", "url": html_url}
     assert_before_request_sent_event(
         events[1],
-        expected_request=expected_request,
-        navigation=result["navigation"],
-        redirect_count=1,
+        expected_event={
+            "request": expected_request,
+            "navigation": result["navigation"],
+            "redirectCount": 1,
+        },
     )
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
 
 
-@pytest.mark.asyncio
 async def test_serviceworker_request(
     bidi_session,
     new_tab,
@@ -474,16 +559,17 @@ async def test_serviceworker_request(
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": serviceworker_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": serviceworker_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_time_range=time_range,
-        redirect_count=0,
     )
 
 
-@pytest.mark.asyncio
 async def test_url_with_fragment(
     bidi_session,
     url,
@@ -514,12 +600,14 @@ async def test_url_with_fragment(
     # Assert that the event contains the full fragment URL in requestData.
     assert_before_request_sent_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": fragment_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": fragment_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_time_range=time_range,
-        redirect_count=0,
     )
 
 
@@ -528,7 +616,6 @@ async def test_url_with_fragment(
     [PAGE_DATA_URL_HTML, PAGE_DATA_URL_IMAGE],
     ids=["html", "image"],
 )
-@pytest.mark.asyncio
 async def test_navigate_data_url(
     bidi_session,
     top_context,
@@ -558,13 +645,15 @@ async def test_navigate_data_url(
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": page_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": page_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
+            "navigation": result["navigation"],
         },
-        expected_time_range=time_range,
-        redirect_count=0,
-        navigation=result["navigation"],
     )
     assert events[0]["navigation"] is not None
 
@@ -574,7 +663,6 @@ async def test_navigate_data_url(
     [PAGE_DATA_URL_HTML, PAGE_DATA_URL_IMAGE],
     ids=["html", "image"],
 )
-@pytest.mark.asyncio
 async def test_fetch_data_url(
     bidi_session,
     wait_for_event,
@@ -602,17 +690,18 @@ async def test_fetch_data_url(
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": fetch_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": fetch_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_time_range=time_range,
-        redirect_count=0,
     )
     assert events[0]["navigation"] is None
 
 
-@pytest.mark.asyncio
 async def test_destination_initiator(
     bidi_session,
     top_context,
@@ -637,9 +726,11 @@ async def test_destination_initiator(
         event = next(e for e in events if url in e["request"]["url"])
         assert_before_request_sent_event(
             event,
-            expected_request={
-                "destination": destination,
-                "initiatorType": initiator_type,
+            expected_event={
+                "request": {
+                    "destination": destination,
+                    "initiatorType": initiator_type,
+                }
             },
         )
 
@@ -657,8 +748,10 @@ async def test_destination_initiator(
 
     assert_before_request_sent_event(
         event,
-        expected_request={
-            "destination": "",
-            "initiatorType": "fetch",
+        expected_event={
+            "request": {
+                "destination": "",
+                "initiatorType": "fetch",
+            }
         },
     )

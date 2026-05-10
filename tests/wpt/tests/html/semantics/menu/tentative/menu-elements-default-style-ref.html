@@ -6,7 +6,7 @@ body { background-color: orange; }
 </style>
 
 <div class="menubar">
-  <div class="menuitem">Menubar item A</div>
+  <button class="menuitem" id=invoker popovertarget=menulist>Menubar item A</button>
   <div class="menuitem">Menubar item B</div>
   <div class="menuitem">Menubar item C</div>
 </div>
@@ -14,9 +14,14 @@ body { background-color: orange; }
 <!-- A <br> here because menubars are inline(-flex) by default -->
 <br>
 
-<div class="menulist">
+<div class="menulist menulist-with-menubar-anchor" popover id=menulist>
   <div class="menuitem">Menulist item A</div>
   <div class="menuitem">Menulist item B</div>
   <hr>
   <div class="menuitem">Menulist item C</div>
 </div>
+
+<script>
+document.getElementById('menulist').showPopover(
+  {source: document.getElementById('invoker')});
+</script>

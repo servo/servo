@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="div" style="rotate:1deg">Example</div>
+<script>
+    setup({explicit_done:true});
+    window.onload = () => {
+        test((t) => {
+            div.style.rotate = '90deg';
+            t.add_cleanup(() => {
+                div.style.rotate = '';
+            });
+
+            assert_array_equals(
+              ServoTestUtils.forceLayout().phases,
+              ["CalculatedOverflow", "BuiltStackingContextTree", "BuiltDisplayList"]
+            )
+        }, "Updating div's rotate property skips RanLayout");
+
+        done();
+    }
+</script>

@@ -7,7 +7,7 @@ use std::fmt;
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -44,7 +44,7 @@ impl TaffyContainer {
         let children = items
             .into_iter()
             .map(|item| {
-                let box_ = match item.kind {
+                let taffy_item_box = match item.kind {
                     ModernItemKind::InFlow(independent_formatting_context) => {
                         ArcRefCell::new(TaffyItemBox::new(TaffyItemBoxInner::InFlowBox(
                             independent_formatting_context,
@@ -64,11 +64,8 @@ impl TaffyContainer {
                     },
                 };
 
-                if let Some(box_slot) = item.box_slot {
-                    box_slot.set(LayoutBox::TaffyItemBox(box_.clone()));
-                }
-
-                box_
+                item.box_slot.set(LayoutBox::TaffyItemBox(taffy_item_box.clone()));
+                taffy_item_box
             })
             .collect();
 
@@ -153,7 +150,7 @@ impl TaffyItemBox {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.style = new_style.clone();

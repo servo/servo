@@ -6,16 +6,17 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
 
-use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::str::DOMString;
+use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 type GLenum = u32;
+
+use script_bindings::cell::DomRefCell;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
 use super::{WebGLExtension, WebGLExtensionSpec, ext};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
@@ -217,10 +218,10 @@ impl WebGLExtensions {
             .borrow()
             .iter()
             .filter(|v| {
-                if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
-                    if self.webgl_version != version {
-                        return false;
-                    }
+                if let WebGLExtensionSpec::Specific(version) = v.1.spec() &&
+                    self.webgl_version != version
+                {
+                    return false;
                 }
                 v.1.is_supported(self)
             })

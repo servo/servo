@@ -1,0 +1,48 @@
+// Copyright (C) 2025 Igalia, S.L. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+esid: sec-temporal.plainyearmonth.prototype.add
+description: Adding years works correctly across era boundaries in ethiopic calendar
+includes: [temporalHelpers.js]
+features: [Temporal, Intl.Era-monthcode]
+---*/
+
+const duration5 = new Temporal.Duration(5);
+const duration5n = new Temporal.Duration(-5);
+const calendar = "ethiopic";
+const options = { overflow: "reject" };
+
+const date1 = Temporal.PlainYearMonth.from({ era: "aa", eraYear: 5500, monthCode: "M01", calendar }, options);
+TemporalHelpers.assertPlainYearMonth(
+  date1.add(new Temporal.Duration(1)),
+  1, 1, "M01", "Adding 1 year to last year of Amete Alem era lands in year 1 of incarnation era",
+  "am", 1, null
+);
+
+const date2 = Temporal.PlainYearMonth.from({ era: "am", eraYear: 2000, monthCode: "M06", calendar }, options);
+TemporalHelpers.assertPlainYearMonth(
+  date2.add(duration5),
+  2005, 6, "M06", "Adding 5 years within incarnation era",
+  "am", 2005, null
+);
+
+const date3 = Temporal.PlainYearMonth.from({ era: "aa", eraYear: 5450, monthCode: "M07", calendar }, options);
+TemporalHelpers.assertPlainYearMonth(
+  date3.add(duration5),
+  -45, 7, "M07", "Adding 5 years within Amete Alem era",
+  "aa", 5455, null
+);
+
+TemporalHelpers.assertPlainYearMonth(
+  date2.add(duration5n),
+  1995, 6, "M06", "Subtracting 5 years within incarnation era",
+  "am", 1995, null
+);
+
+const date4 = Temporal.PlainYearMonth.from({ era: "am", eraYear: 5, monthCode: "M01", calendar }, options);
+TemporalHelpers.assertPlainYearMonth(
+  date4.add(duration5n),
+  0, 1, "M01", "Subtracting 5 years from year 5 lands in last year of Amete Alem era, arithmetic year 0",
+  "aa", 5500, null
+);

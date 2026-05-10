@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/487909746">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<button id="before">Before</button>
+<button id="invoker" popovertarget="popover">Invoker</button>
+<div id="popover" popover>
+  <button id="inside">Inside Popover</button>
+</div>
+<button id="after">After Popover</button>
+
+<script>
+promise_test(async () => {
+  const before = document.getElementById('before');
+  const invoker = document.getElementById('invoker');
+  const popover = document.getElementById('popover');
+  const inside = document.getElementById('inside');
+  const after = document.getElementById('after');
+
+  // Open the popover and make the invoker inert.
+  invoker.addEventListener('click', () => { invoker.inert = true; });
+  await test_driver.click(invoker);
+
+  assert_true(popover.matches(':popover-open'), 'Popover should be open');
+  assert_true(invoker.inert, 'Invoker should be inert');
+  assert_equals(document.activeElement, document.body, 'Focus should leave the invoker when it becomes inert');
+
+  // Put focus back on the "before" button.
+  before.focus();
+  assert_equals(document.activeElement, before, 'Focus should start on "before"');
+
+  // Tab should get us into the popover, which has an inert invoker, but is also
+  // located between "before" and "after" in the DOM.
+  await sendTab();
+  assert_equals(document.activeElement, inside, 'Focus should move into the popover');
+
+  // Another tab should get us to "after".
+  await sendTab();
+  assert_equals(document.activeElement, after, 'Focus should move out of the popover, to "after"');
+
+  // Shift+Tab should navigate from "after" back into the open popover's "inside" button.
+  await sendShiftTab();
+  assert_equals(document.activeElement, inside, 'Focus should navigate back into the popover');
+
+  // Another shift+Tab should navigate back to "before", skipping the inert "invoker".
+  await sendShiftTab();
+  assert_equals(document.activeElement, before, 'Focus should navigate back out of the popover, to "before"');
+}, "Popover focus navigation with an inert invoker");
+</script>

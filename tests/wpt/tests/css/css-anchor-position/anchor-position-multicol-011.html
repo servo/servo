@@ -7,11 +7,13 @@
 <style>
   #mc {
     columns: 2;
+    column-fill: auto;
     gap: 0;
     display: list-item;
     list-style-position: outside;
     margin-left: 40px;
     width: 60px;
+    height: 100px;
     color: red;
   }
   #mc::marker {
@@ -22,8 +24,8 @@
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div style="position:relative;">
   <div id="mc">
-    x
-    <div style="break-before:column; position:relative;">
+    <div style="height: 100px"></div>
+    <div style="position:relative;">
       <div style="anchor-name:--foo;">y</div>
       <div style="position:absolute; position-anchor:--foo; top:anchor(top); right:anchor(right); width:30px; height:100px; background:green;"></div>
     </div>

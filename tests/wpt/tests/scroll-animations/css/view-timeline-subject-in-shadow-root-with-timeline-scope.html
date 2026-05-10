@@ -68,6 +68,8 @@ promise_test(async t => {
 
   const animation = document.getAnimations()[0];
   await animation.ready;
+  const source = animation.timeline.source;
+  assert_equals(source.getAttribute('part'), 'scroller');
   assert_equals(getComputedStyle(target).width, '50px');
 }, 'A view timeline with its subject in a shadow root can be referenced outside of that shadow root using "timeline-scope"');
 

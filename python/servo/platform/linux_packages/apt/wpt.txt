@@ -1,0 +1,7 @@
+# The following packages are required by wpt:
+# TODO: What is this required for? `linux-wpt.yml` workflow installs it.
+mesa-vulkan-drivers
+# https://github.com/servo/servo/issues/41044
+fonts-noto-cjk
+# https://github.com/servo/servo/issues/41043
+fonts-dejavu-extra

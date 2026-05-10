@@ -79,16 +79,16 @@ body {
 <script>
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
-  assert_equals(target1.getBoundingClientRect().left, 50);
-  assert_equals(target1.getBoundingClientRect().top, 150);
+  assert_equals(target1.getBoundingClientRect().left, 50, "left initial");
+  assert_equals(target1.getBoundingClientRect().top, 150, "top initial");
 
   scroller1.scrollLeft = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target1.getBoundingClientRect().left, 0);
+  assert_equals(target1.getBoundingClientRect().left, 0, "left scroll");
 
   scroller1.scrollTop = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target1.getBoundingClientRect().top, 150);
+  assert_equals(target1.getBoundingClientRect().top, 150, "top scroll");
 }, '#target1 is scroll-adjusted in x axis only');
 </script>
 
@@ -101,16 +101,16 @@ promise_test(async () => {
 <script>
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
-  assert_equals(target2.getBoundingClientRect().left, 150);
-  assert_equals(target2.getBoundingClientRect().top, 250);
+  assert_equals(target2.getBoundingClientRect().left, 150, "left initial");
+  assert_equals(target2.getBoundingClientRect().top, 250, "top initial");
 
   scroller2.scrollLeft = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target2.getBoundingClientRect().left, 150);
+  assert_equals(target2.getBoundingClientRect().left, 150, "left scroll");
 
   scroller2.scrollTop = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target2.getBoundingClientRect().top, 200);
+  assert_equals(target2.getBoundingClientRect().top, 200, "top scroll");
 }, '#target2 is scroll-adjusted in y axis only');
 </script>
 
@@ -123,15 +123,15 @@ promise_test(async () => {
 <script>
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
-  assert_equals(target3.getBoundingClientRect().left, 150);
-  assert_equals(target3.getBoundingClientRect().top, 550);
+  assert_equals(target3.getBoundingClientRect().left, 150, "left initial");
+  assert_equals(target3.getBoundingClientRect().top, 550, "top initial");
 
   scroller3.scrollLeft = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target3.getBoundingClientRect().left, 150);
+  assert_equals(target3.getBoundingClientRect().left, 150, "left scroll");
 
   scroller3.scrollTop = 50;
   await waitUntilNextAnimationFrame();
-  assert_equals(target3.getBoundingClientRect().top, 550);
+  assert_equals(target3.getBoundingClientRect().top, 550, "top scroll");
 }, '#target3 is scroll-adjusted in neither axis');
 </script>

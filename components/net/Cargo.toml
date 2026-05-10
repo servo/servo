@@ -1,11 +1,13 @@
 [package]
-name = "net"
+name = "servo-net"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
 
 [lib]
@@ -15,17 +17,16 @@ test = false
 doctest = false
 
 [features]
-test-util = ["hyper-util/server-graceful"]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources"]
+tracing = ["dep:tracing"]
 
 [dependencies]
 async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = "1.1"
 async-tungstenite = { workspace = true }
-base = { workspace = true }
 base64 = { workspace = true }
 bytes = "1"
 chrono = { workspace = true }
-compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -33,9 +34,9 @@ data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 fst = "0.4"
-futures = { version = "0.3", package = "futures" }
-futures-core = { version = "0.3.30", default-features = false }
-futures-util = { version = "0.3.30", default-features = false }
+futures = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
 generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }
@@ -54,22 +55,28 @@ mime = { workspace = true }
 mime_guess = { workspace = true }
 net_traits = { workspace = true }
 nom = { workspace = true }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../pixels" }
+pixels = { workspace = true }
 profile_traits = { workspace = true }
 quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
+regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
-rustls = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
-sha2 = "0.10"
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-default-resources = { workspace = true, optional = true }
+servo-tracing = { workspace = true }
+servo-url = { workspace = true }
+sha2 = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tracing = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "fs"] }
 tokio-rustls = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true, features = ["codec", "io"] }
@@ -81,13 +88,14 @@ webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-embedder_traits = { workspace = true, features = ["baked-default-resources"] }
+servo-default-resources = { workspace = true }
 flate2 = { workspace = true }
 fst = "0.4"
-futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
-net = { path = "../net", features = ["test-util"] }
+# This must always be a path dependency, we don't want to add a dependency on a
+# crates.io version of ourselves - we want to enable a feature of ourselves.
+net = { package = "servo-net", path = ".", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]

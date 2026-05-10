@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Request URL Modifiers: integrity() negative test for @import</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-integrity-modifier">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="An @import with a non-matching integrity() modifier should not apply the imported styles.">
+<style>
+@import url("http://{{hosts[][]}}:{{ports[http][0]}}/css/css-values/urls/support/red-style.css?pipe=header(Access-Control-Allow-Origin,*)" cross-origin(anonymous) integrity("sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="));
+div {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div></div>
+<script>
+window.addEventListener("load", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>
+</html>

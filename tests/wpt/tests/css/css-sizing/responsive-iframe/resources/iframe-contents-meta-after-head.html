@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<head>
+<style>
+* { margin: 0 }
+</style>
+</head>
+<!--
+  `meta` elements in the "after head" insertion mode, which is  after `head` but
+  before `body`, should be inserted to the `head` element.
+  https://html.spec.whatwg.org/multipage/parsing.html#the-after-head-insertion-mode
+-->
+<meta name="responsive-embedded-sizing">
+<body>
+<div style="width: 100px; height: 400px"></div>
+</body>

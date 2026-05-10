@@ -4,16 +4,18 @@
 
 use std::io::{Read, Seek, Write};
 
-use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
+use js::context::JSContext;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    FetchMetadata, FilteredMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming,
 };
 use servo_arc::Arc;
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
@@ -45,7 +47,7 @@ use crate::dom::window::CSSErrorReporter;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
+use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task_source::TaskSourceName;
 use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
@@ -56,8 +58,11 @@ pub(crate) trait StylesheetOwner {
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
 
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool;
+
     /// Which referrer policy should loads triggered by this owner follow
-    fn referrer_policy(&self) -> ReferrerPolicy;
+    fn referrer_policy(&self, cx: &mut JSContext) -> ReferrerPolicy;
 
     /// Notes that a new load is pending to finish.
     fn increment_pending_loads_count(&self);
@@ -92,6 +97,10 @@ struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
+    /// <https://html.spec.whatwg.org/multipage/#contributes-a-script-blocking-style-sheet>
+    is_script_blocking: bool,
+    /// <https://html.spec.whatwg.org/multipage/#render-blocking>
+    is_render_blocking: bool,
 }
 
 impl StylesheetContext {
@@ -101,15 +110,15 @@ impl StylesheetContext {
         };
 
         let mut style_content = std::mem::take(&mut self.data);
-        if let Some((input, mut output)) = create_temp_files() {
-            if execute_js_beautify(
+        if let Some((input, mut output)) = create_temp_files() &&
+            execute_js_beautify(
                 input.path(),
                 output.try_clone().unwrap(),
                 BeautifyFileType::Css,
-            ) {
-                output.seek(std::io::SeekFrom::Start(0)).unwrap();
-                output.read_to_end(&mut style_content).unwrap();
-            }
+            )
+        {
+            output.seek(std::io::SeekFrom::Start(0)).unwrap();
+            output.read_to_end(&mut style_content).unwrap();
         }
         match create_output_file(unminified_dir, &file_url, None) {
             Ok(mut file) => {
@@ -121,6 +130,24 @@ impl StylesheetContext {
         }
 
         self.data = style_content;
+    }
+
+    fn empty_stylesheet(&self, document: &Document) -> Arc<Stylesheet> {
+        let shared_lock = document.style_shared_lock().clone();
+        let quirks_mode = document.quirks_mode();
+
+        Arc::new(Stylesheet::from_bytes(
+            &[],
+            UrlExtraData(self.url.get_arc()),
+            None,
+            None,
+            Origin::Author,
+            self.media.clone(),
+            shared_lock,
+            None,
+            None,
+            quirks_mode,
+        ))
     }
 
     fn parse(
@@ -140,7 +167,11 @@ impl StylesheetContext {
             &self.data,
             UrlExtraData(metadata.final_url.get_arc()),
             metadata.charset.as_deref(),
-            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+            // The CSS environment encoding is the result of running the following steps: [CSSSYNTAX]
+            // If el has a charset attribute, get an encoding from that attribute's value. If that succeeds, return the resulting encoding. [ENCODING]
+            // Otherwise, return the document's character encoding. [DOM]
+            //
+            // TODO: Need to implement encoding http://dev.w3.org/csswg/css-syntax/#environment-encoding
             Some(UTF_8),
             Origin::Author,
             self.media.clone(),
@@ -170,57 +201,54 @@ impl StylesheetContext {
             .is_none_or(|generation| generation == link.get_request_generation_id())
     }
 
-    fn decrement_load_and_render_blockers(&self, owner: &dyn StylesheetOwner, document: &Document) {
-        if !owner.parser_inserted() {
-            return;
+    /// <https://html.spec.whatwg.org/multipage/#contributes-a-script-blocking-style-sheet>
+    fn contributes_a_script_blocking_style_sheet(
+        &self,
+        element: &HTMLElement,
+        owner: &dyn StylesheetOwner,
+        document: &Document,
+    ) -> bool {
+        // el was created by that Document's parser.
+        owner.parser_inserted()
+        // el is either a style element or a link element that was an external resource link that
+        // contributes to the styling processing model when the el was created by the parser.
+        && element.downcast::<HTMLLinkElement>().is_none_or(|link|
+            self.contributes_to_the_styling_processing_model(element)
+            // el's style sheet was enabled when the element was created by the parser.
+            && !link.is_effectively_disabled()
+        )
+        // el's media attribute's value matches the environment.
+        && element.media_attribute_matches_media_environment()
+        // The last time the event loop reached step 1, el's root was that Document.
+        && *element.owner_document() == *document
+        // The user agent hasn't given up on loading that particular style sheet yet.
+        // A user agent may give up on loading a style sheet at any time.
+        //
+        // This might happen when we time out a resource, but that happens in `fetch` instead
+    }
+
+    fn decrement_blockers_and_finish_load(
+        self,
+        document: &Document,
+        cx: &mut js::context::JSContext,
+    ) {
+        if self.is_script_blocking {
+            document.decrement_script_blocking_stylesheet_count();
         }
 
-        document.decrement_script_blocking_stylesheet_count();
-
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > A link element of this type is implicitly potentially render-blocking if the element
-        // > was created by its node document's parser.
-        if matches!(self.source, StylesheetContextSource::LinkElement) {
+        if self.is_render_blocking {
             document.decrement_render_blocking_element_count();
         }
+
+        document.finish_load(LoadType::Stylesheet(self.url), cx);
     }
 
-    fn finish_load(
+    fn do_post_parse_tasks(
         self,
-        successful: bool,
-        owner: &dyn StylesheetOwner,
-        element: &HTMLElement,
-        document: &Document,
+        success: bool,
+        stylesheet: Arc<Stylesheet>,
+        cx: &mut js::context::JSContext,
     ) {
-        self.decrement_load_and_render_blockers(owner, document);
-        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
-
-        let Some(any_failed) = owner.load_finished(successful) else {
-            return;
-        };
-
-        // Do not fire any events on disconnected nodes.
-        if !element.upcast::<Element>().is_connected() {
-            return;
-        }
-
-        // We need to fire an event even if this load is for an ignored stylsheet (such as
-        // one from a previous generation). Events are delayed until all loads are complete,
-        // so we may need to fire the load event for the real load that happened earlier.
-        //
-        // TODO(mrobinson): This is a pretty confusing way of doing things and could potentially
-        // delay the "load" event. Loads from previous generations should likely not count for
-        // delaying the event.
-        let event = match any_failed {
-            true => atom!("error"),
-            false => atom!("load"),
-        };
-        element
-            .upcast::<EventTarget>()
-            .fire_event(event, CanGc::note());
-    }
-
-    fn do_post_parse_tasks(self, successful: bool, stylesheet: Option<Arc<Stylesheet>>) {
         let element = self.element.root();
         let document = self.document.root();
         let owner = element
@@ -228,41 +256,48 @@ impl StylesheetContext {
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
 
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > If `el` no longer creates an external resource link that contributes to the
-        // > styling processing model, or if, since the resource in question was fetched, it
-        // > has become appropriate to fetch it again, then:
-        // >   1. Remove el from el's node document's script-blocking style sheet set.
-        // >   2. Return.
-        if !self.contributes_to_the_styling_processing_model(&element) {
-            // Always consider ignored loads as successful, as they shouldn't cause any subsequent
-            // successful loads to fire an "error" event.
-            self.finish_load(true, owner, &element, &document);
-            return;
-        }
+        match &self.source {
+            // https://html.spec.whatwg.org/multipage/#link-type-stylesheet%3Aprocess-the-linked-resource
+            StylesheetContextSource::LinkElement => {
+                let link = element
+                    .downcast::<HTMLLinkElement>()
+                    .expect("Should be HTMLinkElement due to StylesheetContextSource");
+                // For failed requests, we should bail out if it is from a previous generation.
+                // Since we can reissue another failed request, which resets the pending load counter
+                // in a link element.
+                if self
+                    .request_generation_id
+                    .is_some_and(|generation| generation != link.get_request_generation_id())
+                {
+                    self.decrement_blockers_and_finish_load(&document, cx);
+                    return;
+                }
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // > When the disabled attribute of a link element with a stylesheet keyword is set,
+                // > disable the associated CSS style sheet.
+                if link.is_effectively_disabled() {
+                    stylesheet.set_disabled(true);
+                }
+                // Step 3. If el has an associated CSS style sheet, remove the CSS style sheet.
+                // Step 4. If success is true, then:
+                // Step 4.1. Create a CSS style sheet with the following properties:
+                //
+                // Note that even in the failure case, we should create an empty stylesheet.
+                // That's why `set_stylesheet` also removes the previous stylesheet
+                link.set_stylesheet(stylesheet);
+            },
+            StylesheetContextSource::Import(import_rule) => {
+                // Construct a new WebFontDocumentContext for the stylesheet
+                let window = element.owner_window();
+                let document_context = window.web_font_context();
 
-        if let Some(stylesheet) = stylesheet {
-            match &self.source {
-                StylesheetContextSource::LinkElement => {
-                    let link = element.downcast::<HTMLLinkElement>().unwrap();
-                    if link.is_effectively_disabled() {
-                        stylesheet.set_disabled(true);
-                    }
-                    link.set_stylesheet(stylesheet);
-                },
-                StylesheetContextSource::Import(import_rule) => {
-                    // Construct a new WebFontDocumentContext for the stylesheet
-                    let window = element.owner_window();
-                    let document_context = window.web_font_context();
+                // Layout knows about this stylesheet, because Stylo added it to the Stylist,
+                // but Layout doesn't know about any new web fonts that it contains.
+                document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
 
-                    // Layout knows about this stylesheet, because Stylo added it to the Stylist,
-                    // but Layout doesn't know about any new web fonts that it contains.
-                    document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
-
-                    let mut guard = document.style_shared_lock().write();
-                    import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
-                },
-            }
+                let mut guard = document.style_shared_lock().write();
+                import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
+            },
         }
 
         if let Some(ref shadow_root) = self.shadow_root {
@@ -272,16 +307,39 @@ impl StylesheetContext {
         }
         owner.set_origin_clean(self.origin_clean);
 
-        self.finish_load(successful, owner, &element, &document);
+        // Remaining steps are a combination of
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet%3Aprocess-the-linked-resource
+        // and https://html.spec.whatwg.org/multipage/#the-style-element%3Acritical-subresources
+
+        // Step 4.2. Fire an event named load at el.
+        // Step 5. Otherwise, fire an event named error at el.
+        if let Some(any_failed) = owner.load_finished(success) {
+            // Only fire an event if we have no more pending events
+            // (in which case `owner.load_finished` would return None)
+            let event = match any_failed {
+                true => atom!("error"),
+                false => atom!("load"),
+            };
+            element.upcast::<EventTarget>().fire_event(cx, event);
+        }
+        // Regardless if there are other pending events, we need to unblock
+        // rendering for this particular request and signal that the load has finished
+
+        // Step 6. If el contributes a script-blocking style sheet, then:
+        // Step 7. Unblock rendering on el.
+        self.decrement_blockers_and_finish_load(&document, cx);
     }
 }
 
 impl FetchResponseListener for StylesheetContext {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         if let Ok(FetchMetadata::Filtered {
             filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
             ..
@@ -296,42 +354,39 @@ impl FetchResponseListener for StylesheetContext {
         });
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, mut payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        mut payload: Vec<u8>,
+    ) {
         self.data.append(&mut payload);
     }
 
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        // FIXME: Revisit once consensus is reached at:
-        // https://github.com/whatwg/html/issues/1142
-        let successful = self
-            .metadata
-            .as_ref()
-            .map(|metadata| metadata.status == http::StatusCode::OK)
-            .unwrap_or(false);
+        network_listener::submit_timing(cx, &self, &status, &timing);
 
-        network_listener::submit_timing(&self, &status, &timing, CanGc::note());
-
-        let Ok(_response) = status else {
-            self.do_post_parse_tasks(successful, None);
-            return;
-        };
-
+        let document = self.document.root();
         let Some(metadata) = self.metadata.as_ref() else {
-            self.do_post_parse_tasks(successful, None);
+            let empty_stylesheet = self.empty_stylesheet(&document);
+            self.do_post_parse_tasks(false, empty_stylesheet, cx);
             return;
         };
 
         let element = self.element.root();
-        let document = self.document.root();
-        let is_css =
-            metadata.content_type.clone().is_some_and(|content_type| {
-                MimeClassifier::is_css(&content_type.into_inner().into())
-            }) || (
+
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:process-the-linked-resource
+        if element.downcast::<HTMLLinkElement>().is_some() {
+            // Step 1. If the resource's Content-Type metadata is not text/css, then set success to false.
+            let is_css = MimeClassifier::is_css(
+                &metadata.resource_content_type_metadata(LoadContext::Style, &self.data),
+            ) || (
                 // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
                 // > Quirk: If the document has been set to quirks mode, has the same origin as
                 // > the URL of the external resource, and the Content-Type metadata of the
@@ -341,28 +396,36 @@ impl FetchResponseListener for StylesheetContext {
                     document.origin().immutable().clone() == metadata.final_url.origin()
             );
 
-        self.unminify_css(metadata.final_url.clone());
-        if !is_css {
-            self.data.clear();
+            if !is_css {
+                let empty_stylesheet = self.empty_stylesheet(&document);
+                self.do_post_parse_tasks(false, empty_stylesheet, cx);
+                return;
+            }
+
+            // Step 2. If el no longer creates an external resource link that contributes to the styling processing model,
+            // or if, since the resource in question was fetched, it has become appropriate to fetch it again, then:
+            if !self.contributes_to_the_styling_processing_model(&element) {
+                // Step 2.1. Remove el from el's node document's script-blocking style sheet set.
+                self.decrement_blockers_and_finish_load(&document, cx);
+                // Step 2.2. Return.
+                return;
+            }
         }
 
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > If `el` no longer creates an external resource link that contributes to the
-        // > styling processing model, or if, since the resource in question was fetched, it
-        // > has become appropriate to fetch it again, then:
-        // >   1. Remove el from el's node document's script-blocking style sheet set.
-        // >   2. Return.
-        if !self.contributes_to_the_styling_processing_model(&element) {
-            self.do_post_parse_tasks(successful, None);
+        if metadata.status != http::StatusCode::OK {
+            let empty_stylesheet = self.empty_stylesheet(&document);
+            self.do_post_parse_tasks(false, empty_stylesheet, cx);
             return;
         }
+
+        self.unminify_css(metadata.final_url.clone());
 
         let loader = if pref!(dom_parallel_css_parsing_enabled) {
             ElementStylesheetLoader::Asynchronous(AsynchronousStylesheetLoader::new(&element))
         } else {
             ElementStylesheetLoader::Synchronous { element: &element }
         };
-        loader.parse(successful, self, &element, &document);
+        loader.parse(self, &element, &document, cx);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -400,30 +463,8 @@ impl<'a> ElementStylesheetLoader<'a> {
 }
 
 impl ElementStylesheetLoader<'_> {
-    pub(crate) fn load(
-        &self,
-        source: StylesheetContextSource,
-        media: Arc<Locked<MediaList>>,
-        url: ServoUrl,
-        cors_setting: Option<CorsSettings>,
-        integrity_metadata: String,
-    ) {
-        match self {
-            ElementStylesheetLoader::Synchronous { element } => Self::load_with_element(
-                element,
-                source,
-                media,
-                url,
-                cors_setting,
-                integrity_metadata,
-            ),
-            ElementStylesheetLoader::Asynchronous { .. } => unreachable!(
-                "Should never call load directly on an asynchronous ElementStylesheetLoader"
-            ),
-        }
-    }
-
-    fn load_with_element(
+    pub(crate) fn load_with_element(
+        cx: &mut JSContext,
         element: &HTMLElement,
         source: StylesheetContextSource,
         media: Arc<Locked<MediaList>>,
@@ -434,11 +475,11 @@ impl ElementStylesheetLoader<'_> {
         let document = element.owner_document();
         let shadow_root = element
             .containing_shadow_root()
-            .map(|sr| Trusted::new(&*sr));
+            .map(|shadow_root| Trusted::new(&*shadow_root));
         let generation = element
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
-        let context = StylesheetContext {
+        let mut context = StylesheetContext {
             element: Trusted::new(element),
             source,
             media,
@@ -449,24 +490,34 @@ impl ElementStylesheetLoader<'_> {
             shadow_root,
             origin_clean: true,
             request_generation_id: generation,
+            is_script_blocking: false,
+            is_render_blocking: false,
         };
 
         let owner = element
             .upcast::<Element>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
-        let referrer_policy = owner.referrer_policy();
+        let referrer_policy = owner.referrer_policy(cx);
         owner.increment_pending_loads_count();
 
-        if owner.parser_inserted() {
-            document.increment_script_blocking_stylesheet_count();
+        // Final steps of https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // and part of https://html.spec.whatwg.org/multipage/#link-type-stylesheet:linked-resource-fetch-setup-steps
 
-            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-            // > A link element of this type is implicitly potentially render-blocking if the element
-            // > was created by its node document's parser.
-            if matches!(context.source, StylesheetContextSource::LinkElement) {
-                document.increment_render_blocking_element_count();
-            }
+        // If element contributes a script-blocking style sheet, append element to its node document's script-blocking style sheet set.
+        context.is_script_blocking =
+            context.contributes_a_script_blocking_style_sheet(element, owner, &document);
+        if context.is_script_blocking {
+            document.increment_script_blocking_stylesheet_count();
+        }
+
+        // If element's media attribute's value matches the environment and
+        // element is potentially render-blocking, then block rendering on element.
+        context.is_render_blocking = element.media_attribute_matches_media_environment() &&
+            owner.potentially_render_blocking() &&
+            document.allows_adding_render_blocking_elements();
+        if context.is_render_blocking {
+            document.increment_render_blocking_element_count();
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
@@ -488,10 +539,10 @@ impl ElementStylesheetLoader<'_> {
 
     fn parse(
         self,
-        successful: bool,
         listener: StylesheetContext,
         element: &HTMLElement,
         document: &Document,
+        cx: &mut js::context::JSContext,
     ) {
         let shared_lock = document.style_shared_lock().clone();
         let quirks_mode = document.quirks_mode();
@@ -501,25 +552,21 @@ impl ElementStylesheetLoader<'_> {
             ElementStylesheetLoader::Synchronous { .. } => {
                 let stylesheet =
                     listener.parse(quirks_mode, shared_lock, window.css_error_reporter(), self);
-                listener.do_post_parse_tasks(successful, Some(stylesheet));
+                listener.do_post_parse_tasks(true, stylesheet, cx);
             },
             ElementStylesheetLoader::Asynchronous(asynchronous_loader) => {
                 let css_error_reporter = window.css_error_reporter().clone();
-                let thread_pool = STYLE_THREAD_POOL.pool();
-                let thread_pool = thread_pool.as_ref().unwrap();
 
-                thread_pool.spawn(move || {
+                let parse_stylesheet = move || {
                     let pipeline_id = asynchronous_loader.pipeline_id;
                     let main_thread_sender = asynchronous_loader.main_thread_sender.clone();
-
                     let loader = ElementStylesheetLoader::Asynchronous(asynchronous_loader);
                     let stylesheet =
                         listener.parse(quirks_mode, shared_lock, &css_error_reporter, loader);
 
-                    let task = task!(finish_parsing_of_stylesheet_on_main_thread: move || {
-                        listener.do_post_parse_tasks(successful, Some(stylesheet));
+                    let task = task!(finish_parsing_of_stylesheet_on_main_thread: move |cx| {
+                        listener.do_post_parse_tasks(true, stylesheet, cx);
                     });
-
                     let _ = main_thread_sender.send(MainThreadScriptMsg::Common(
                         CommonScriptMsg::Task(
                             ScriptThreadEventCategory::StylesheetLoad,
@@ -528,7 +575,14 @@ impl ElementStylesheetLoader<'_> {
                             TaskSourceName::Networking,
                         ),
                     ));
-                });
+                };
+
+                let thread_pool = STYLE_THREAD_POOL.pool();
+                if let Some(thread_pool) = thread_pool.as_ref() {
+                    thread_pool.spawn(parse_stylesheet);
+                } else {
+                    parse_stylesheet();
+                }
             },
         };
     }
@@ -584,7 +638,11 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
 
         match self {
             ElementStylesheetLoader::Synchronous { element } => {
+                // TODO: https://github.com/servo/servo/issues/44685
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
                 Self::load_with_element(
+                    &mut cx,
                     element,
                     source,
                     media,
@@ -600,7 +658,11 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
             }) => {
                 let element = element.clone();
                 let task = task!(load_import_stylesheet_on_main_thread: move || {
+                    // TODO: https://github.com/servo/servo/issues/44685
+                    #[expect(unsafe_code)]
+                    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
                     Self::load_with_element(
+                        &mut cx,
                         &element.root(),
                         source,
                         media,

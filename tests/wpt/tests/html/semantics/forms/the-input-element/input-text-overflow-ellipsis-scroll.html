@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Input with text-overflow: ellipsis should remove ellipsis when scrolled</title>
+<link rel="help" href="https://issues.chromium.org/issues/40340795">
+<link rel="match" href="input-text-overflow-ellipsis-scroll-ref.html">
+<style>
+  input {
+    width: 100px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: monospace;
+    font-size: 20px;
+  }
+</style>
+<input type="text" value="01234567890123456789">
+<script>
+  requestAnimationFrame(() => {
+    const input = document.querySelector('input');
+    // Scroll to end
+    input.scrollLeft = input.scrollWidth;
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</html>

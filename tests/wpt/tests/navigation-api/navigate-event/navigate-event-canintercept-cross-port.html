@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Navigation API: canIntercept should be false for cross-port navigations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+  const otherPort = currentPort === '8800' ? '8000' : '8800';
+  const targetURL = `${location.protocol}//${location.hostname}:${otherPort}/`;
+
+  const navigatePromise = new Promise((resolve) => {
+    navigation.addEventListener("navigate", t.step_func(event => {
+      // Cross-port navigation should have canIntercept === false
+      assert_equals(event.canIntercept, false,
+        `canIntercept should be false when navigating from port ${currentPort} to port ${otherPort}`);
+
+      // Prevent the actual navigation
+      event.preventDefault();
+      resolve();
+    }), { once: true });
+  });
+
+  // Trigger the cross-port navigation
+  const anchor = document.createElement('a');
+  anchor.href = targetURL;
+  document.body.appendChild(anchor);
+  anchor.click();
+
+  await navigatePromise;
+}, "canIntercept should be false for cross-port navigations");
+</script>
+</body>

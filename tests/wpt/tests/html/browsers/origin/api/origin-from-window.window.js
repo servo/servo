@@ -1,4 +1,4 @@
-// META: title=`Origin.from(Location)`
+// META: title=`Origin.from(Window)`
 // META: script=/common/get-host-info.sub.js
 
 test(t => {
@@ -62,3 +62,26 @@ async_test(t => {
     }
   }));
 }, `Origin.from(Window) throws for cross-origin windows.`);
+
+async_test(t => {
+  const html = `<script>
+  const originA = Origin.from(globalThis);
+  const originB = Origin.from(globalThis);
+  window.parent.postMessage({
+    "isOpaque": originA.opaque,
+    "sameOrigin": originA.isSameOrigin(originB),
+  }, "*");
+</script>
+`;
+
+  const el = document.createElement('iframe');
+  el.src = `data:text/html;base64,${btoa(html)}`;
+  window.addEventListener("message", t.step_func(e => {
+    if (e.source === el.contentWindow) {
+      assert_true(e.data.isOpaque, "Origin should be opaque.");
+      assert_true(e.data.sameOrigin, "Window's origin should be same-origin with itself.");
+      t.done();
+    }
+  }));
+  document.body.appendChild(el);
+}, `Origin.from(Window) returns an opaque origin for a data URL source.`);

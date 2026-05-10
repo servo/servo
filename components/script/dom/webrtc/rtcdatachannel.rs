@@ -5,28 +5,29 @@
 use std::cell::Cell;
 use std::ptr;
 
-use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::match_domstring_ascii;
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
+use servo_constellation_traits::BlobImpl;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
     RTCDataChannelInit, RTCDataChannelMethods, RTCDataChannelState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;

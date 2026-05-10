@@ -2,6 +2,7 @@
 <html>
 
 <head>
+<script src="/html/resources/common.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -95,6 +96,212 @@
   }
   testDeepImplicitLabelAssociation('x-outer2', 'Input 2');
   testDeepImplicitLabelAssociation('x-outer2-a', 'Input 2 via Options');
+</script>
+
+
+<div id="test-container4"></div>
+<script>
+// The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label
+for(let referenced_element_type of HTML5_LABELABLE_ELEMENTS) {
+  promise_test(async t => {
+    const test_container = document.querySelector("#test-container4");
+    test_container.setHTMLUnsafe(`
+      <label>
+      <fancy-element id="fancy">
+        <template shadowrootmode="open" shadowrootreferencetarget="target">
+          <${referenced_element_type} id="target"></${referenced_element_type}>
+        </template>
+      </fancy-element>
+      fancy custom element inside label
+      </label>`);
+
+    const fancy_element = document.getElementById('fancy');
+    const target_element = fancy_element.shadowRoot.getElementById('target');
+
+    assert_equals(await test_driver.get_computed_label(fancy_element), "");
+    assert_equals(await test_driver.get_computed_label(target_element), "fancy custom element inside label");
+  }, "Implicit <label> association should work with a custom element targeting '" + referenced_element_type + "' for computed name");
+
+  promise_test(async t => {
+    const test_container = document.querySelector("#test-container4");
+    test_container.setHTMLUnsafe(`
+      <label>
+      <fancy-element id="fancy">
+        <template shadowrootmode="open" shadowrootreferencetarget="target">
+          <${referenced_element_type} id="target"></${referenced_element_type}>
+        </template>
+      </fancy-element>
+      fancy custom element inside label
+      </label>`);
+
+    const fancy_element = document.getElementById('fancy');
+    const target_element = fancy_element.shadowRoot.getElementById('target');
+    const label = test_container.querySelector('label');
+
+    assert_array_equals(Array.from(target_element['labels']), [label]);
+  }, "Implicit <label> association should work with a custom element targeting '" + referenced_element_type + "' for .labels");
+}
+</script>
+
+
+<label id="label5">
+  <fancy-input id="fancy-input5-1">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-input5-1">
+      <input id="real-input5-1">
+    </template>
+  </fancy-input>
+  <fancy-input id="fancy-input5-2">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-input5-2">
+      <input id="real-input5-2">
+    </template>
+  </fancy-input>
+  fancy input inside label
+</label>
+<script>
+  promise_test(async t => {
+    const fancy_input1 = document.getElementById('fancy-input5-1');
+    const fancy_input2 = document.getElementById('fancy-input5-2');
+    const real_input1 = fancy_input1.shadowRoot.getElementById('real-input5-1');
+    const real_input2 = fancy_input2.shadowRoot.getElementById('real-input5-2');
+
+    assert_equals(await test_driver.get_computed_label(fancy_input1), "");
+    assert_equals(await test_driver.get_computed_label(fancy_input2), "");
+    assert_equals(await test_driver.get_computed_label(real_input1), "fancy input inside label");
+    assert_equals(await test_driver.get_computed_label(real_input2), "");
+
+    fancy_input2.after(fancy_input1);
+    assert_equals(await test_driver.get_computed_label(fancy_input1), "");
+    assert_equals(await test_driver.get_computed_label(fancy_input2), "");
+    assert_equals(await test_driver.get_computed_label(real_input1), "");
+    assert_equals(await test_driver.get_computed_label(real_input2), "fancy input inside label");
+  }, "Implicit <label> association should apply to only the first labelable custom element for computed name");
+</script>
+
+
+<label id="label6">
+  <fancy-input id="fancy-input6-1-outer">
+    <template shadowrootmode="open" >
+      <fancy-input id="fancy-input6-1-inner">
+        <template shadowrootmode="open">
+          <input id="real-input6-1">
+        </template>
+      </fancy-input>
+    </template>
+  </fancy-input>
+  <fancy-input id="fancy-input6-2">
+    <template shadowrootmode="open">
+      <input id="real-input6-2">
+    </template>
+  </fancy-input>
+  fancy input inside label
+</label>
+
+<script>
+  promise_test(async t => {
+    const fancy_input1_outer = document.getElementById('fancy-input6-1-outer');
+    fancy_input1_outer.shadowRoot.referenceTarget = 'fancy-input6-1-inner';
+    const fancy_input1_inner = fancy_input1_outer.shadowRoot.getElementById('fancy-input6-1-inner');
+    fancy_input1_inner.shadowRoot.referenceTarget = 'real-input6-1';
+    const fancy_input2 = document.getElementById('fancy-input6-2');
+    fancy_input2.shadowRoot.referenceTarget = 'real-input6-2';
+    const real_input1 = fancy_input1_inner.shadowRoot.getElementById('real-input6-1');
+    const real_input2 = fancy_input2.shadowRoot.getElementById('real-input6-2');
+    const label = document.getElementById('label6');
+
+    assert_array_equals(Array.from(real_input1['labels']), [label], "real_input1 initial");
+    assert_array_equals(Array.from(real_input2['labels']), [], "real_input2 initial");
+
+    fancy_input2.after(fancy_input1_outer);
+    assert_array_equals(Array.from(real_input1['labels']), [], "real_input1 after swap");
+    assert_array_equals(Array.from(real_input2['labels']), [label], "real_input2 after swap");
+
+    fancy_input2.shadowRoot.referenceTarget = null;
+    assert_array_equals(Array.from(real_input1['labels']), [label], "real_input1 after fancy_input2 referenceTarget change");
+    assert_array_equals(Array.from(real_input2['labels']), [], "real_input2 after fancy_input2 referenceTarget change");
+
+    fancy_input1_inner.shadowRoot.referenceTarget = null;
+    assert_array_equals(Array.from(real_input1['labels']), [], "real_input1 after fancy_input1_inner referenceTarget change");
+    assert_array_equals(Array.from(real_input2['labels']), [], "real_input2 after fancy_input1_inner referenceTarget change");
+
+    fancy_input1_inner.shadowRoot.referenceTarget = "real-input6-1";
+    assert_array_equals(Array.from(real_input1['labels']), [label], "real_input1 after second fancy_input1_inner referenceTarget change");
+    assert_array_equals(Array.from(real_input2['labels']), [], "real_input2 after second fancy_input1_inner referenceTarget change");
+  }, "Implicit <label> association should apply to only the first labelable custom element for .labels");
+</script>
+
+
+<label id="label-input7" for="fancy-input7-outer">Input 7
+  <fancy-input id="fancy-input7-outer">
+    <template shadowRootMode="open" shadowRootReferenceTarget="fancy-input7-inner">
+      <fancy-input id="fancy-input7-inner">
+        <template shadowrootmode="open" shadowrootreferencetarget="input7-1">
+          <input id="input7-1">
+          <input id="input7-2">
+        </template>
+      </fancy-input>
+    </template>
+  </fancy-input>
+</label>
+<script>
+  promise_test(async t => {
+    const outer_x_input = document.getElementById('fancy-input7-outer');
+    const outer_shadow = outer_x_input.shadowRoot;
+    const inner_x_input = outer_shadow.getElementById('fancy-input7-inner');
+    const inner_shadow = inner_x_input.shadowRoot;
+    const input1 = inner_shadow.getElementById('input7-1');
+    const input2 = inner_shadow.getElementById('input7-2');
+
+    assert_equals(await test_driver.get_computed_label(input1), "Input 7");
+    assert_equals(await test_driver.get_computed_label(input2), "");
+
+    inner_shadow.referenceTarget = "input7-2";
+
+    assert_equals(await test_driver.get_computed_label(input1), "");
+    assert_equals(await test_driver.get_computed_label(input2), "Input 7");
+
+    outer_shadow.referenceTarget = null;
+
+    assert_equals(await test_driver.get_computed_label(input1), "");
+    assert_equals(await test_driver.get_computed_label(input2), "");
+  }, "Changing the reference target causes label association to change for computed name");
+</script>
+
+<label id="label-input8" for="fancy-input8-outer">Input 8
+  <fancy-input id="fancy-input8-outer">
+    <template shadowRootMode="open" shadowRootReferenceTarget="fancy-input8-inner">
+      <fancy-input id="fancy-input8-inner">
+        <template shadowrootmode="open" shadowrootreferencetarget="input8-1">
+          <input id="input8-1">
+          <input id="input8-2">
+        </template>
+      </fancy-input>
+    </template>
+  </fancy-input>
+</label>
+<script>
+  promise_test(async t => {
+    const label = document.getElementById('label-input8');
+    const outer_x_input = document.getElementById('fancy-input8-outer');
+    const outer_shadow = outer_x_input.shadowRoot;
+    const inner_x_input = outer_shadow.getElementById('fancy-input8-inner');
+    const inner_shadow = inner_x_input.shadowRoot;
+    const input1 = inner_shadow.getElementById('input8-1');
+    const input2 = inner_shadow.getElementById('input8-2');
+
+    assert_array_equals(Array.from(input1['labels']), [label], 'input1 before change');
+    assert_array_equals(Array.from(input2['labels']), [], 'input2 before change');
+
+    inner_shadow.referenceTarget = "input8-2";
+
+    assert_array_equals(Array.from(input1['labels']), [], 'input1 after change');
+    assert_array_equals(Array.from(input2['labels']), [label], 'input2 after change');
+
+    outer_shadow.referenceTarget = null;
+
+    assert_array_equals(Array.from(input1['labels']), [], 'input1 after null');
+    assert_array_equals(Array.from(input2['labels']), [], 'input2 after null');
+  }, "Changing the reference target causes label association to change for .labels");
+
 </script>
 
 </body>

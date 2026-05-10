@@ -336,6 +336,7 @@ class MockRuntime {
     'secondary-views': xrSessionMojom.XRSessionFeature.SECONDARY_VIEWS,
     'camera-access': xrSessionMojom.XRSessionFeature.CAMERA_ACCESS,
     'layers': xrSessionMojom.XRSessionFeature.LAYERS,
+    'plane-detection': xrSessionMojom.XRSessionFeature.PLANE_DETECTION,
   };
 
   static _sessionModeToMojoMap = {
@@ -371,6 +372,19 @@ class MockRuntime {
     "unsigned-short": xrSessionMojom.XRDepthDataFormat.kUnsignedShort,
   };
 
+  static _semanticLabelToMojoMap = {
+    "other": vrMojom.XRSemanticLabel.kOther,
+    "floor": vrMojom.XRSemanticLabel.kFloor,
+    "wall": vrMojom.XRSemanticLabel.kWall,
+    "ceiling": vrMojom.XRSemanticLabel.kCeiling,
+    "table": vrMojom.XRSemanticLabel.kTable,
+  };
+
+  static _planeOrientationToMojoMap = {
+    "horizontal": vrMojom.XRPlaneOrientation.HORIZONTAL,
+    "vertical": vrMojom.XRPlaneOrientation.VERTICAL,
+  };
+
 
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = null;
@@ -397,6 +411,9 @@ class MockRuntime {
     this.transientHitTestSubscriptions_ = new Map();
     // ID of the next subscription to be assigned.
     this.next_hit_test_id_ = 1n;
+
+    this.world_ = null;
+    this.worldDirty_ = false;
 
     this.anchor_controllers_ = new Map();
     // ID of the next anchor to be assigned.
@@ -599,10 +616,12 @@ class MockRuntime {
   // WebXR Test API Hit Test extensions
   setWorld(world) {
     this.world_ = world;
+    this.worldDirty_ = true;
   }
 
   clearWorld() {
     this.world_ = null;
+    this.worldDirty_ = true;
   }
 
   // WebXR Test API Anchor extensions
@@ -1030,6 +1049,8 @@ class MockRuntime {
 
         this._calculateAnchorInformation(frameData);
 
+        this._calculatePlaneInformation(frameData);
+
         if (options.depthActive) {
           this._calculateDepthInformation(frameData);
         }
@@ -1219,7 +1240,7 @@ class MockRuntime {
       // The JavaScript bindings convert c_style_names to camelCase names.
       const options = {
         transportMethod:
-            vrMojom.XRPresentationTransportMethod.SUBMIT_AS_MAILBOX_HOLDER,
+            vrMojom.XRPresentationTransportMethod.SUBMIT_AS_TEST,
         waitForTransferNotification: true,
         waitForRenderNotification: true,
         waitForGpuFence: false,
@@ -1274,6 +1295,9 @@ class MockRuntime {
               // If depth was not enabled above, this should be null.
               depthConfiguration: this.depthConfiguration_,
               views: this._getDefaultViews(),
+              // Typical OpenXR maxLayerCount is 16. We may also show
+              // a base layer, and a layer can have 2 eyes.
+              maxRenderLayers: (16 - 1) / 2,
             },
             enviromentBlendMode: this.enviromentBlendMode_,
             interactionMode: this.interactionMode_
@@ -1408,6 +1432,65 @@ class MockRuntime {
         frameData.anchorsData.updatedAnchorsData.push(anchorData);
       }
     }
+  }
+
+  // Private functions - plane detection implementation:
+
+  // Modifies passed in frameData to add plane detection results.
+  _calculatePlaneInformation(frameData) {
+    if (!this.enabledFeatures_.includes(xrSessionMojom.XRSessionFeature.PLANE_DETECTION)) {
+      return;
+    }
+
+    frameData.detectedPlanesData = {
+      allPlanesIds: [],
+      updatedPlanesData: []
+    };
+
+    if (!this.world_) {
+      this.worldDirty_ = false;
+      return;
+    }
+
+    for (let i = 0; i < this.world_.hitTestRegions.length; i++) {
+      const region = this.world_.hitTestRegions[i];
+      if (region.type !== "plane") {
+        continue;
+      }
+
+      // PlaneId is just an idValue (uint64). We can use the index in the hitTestRegions.
+      // Though 0 is an invalid id, so increment by 1.
+      const planeId = { idValue: BigInt(i + 1) };
+      frameData.detectedPlanesData.allPlanesIds.push(planeId);
+
+      // Only treat planes as updated if the world state was changed since last frame.
+      if (this.worldDirty_) {
+        const planeInfo = region.planeInfo;
+        if (planeInfo) {
+          let semanticLabel = null;
+          if (planeInfo.semanticLabel && planeInfo.semanticLabel in MockRuntime._semanticLabelToMojoMap) {
+            semanticLabel = MockRuntime._semanticLabelToMojoMap[planeInfo.semanticLabel];
+          }
+          const planeData = {
+            id: planeId,
+            orientation: MockRuntime._planeOrientationToMojoMap[planeInfo.orientation],
+            mojoFromPlane: getPoseFromTransform(planeInfo.origin),
+            semanticLabel: semanticLabel,
+            polygon: []
+          };
+
+          if (planeInfo.polygon) {
+            for (const point of planeInfo.polygon) {
+              planeData.polygon.push({ x: point.x, z: point.z });
+            }
+          }
+
+          frameData.detectedPlanesData.updatedPlanesData.push(planeData);
+        }
+      }
+    }
+
+    this.worldDirty_ = false;
   }
 
   // Private functions - depth sensing implementation:
@@ -2399,11 +2482,11 @@ class MockXRPresentationProvider {
   // XRPresentationProvider mojo implementation
   updateLayerBounds(frameId, leftBounds, rightBounds, sourceSize) {}
 
-  submitFrameMissing(frameId, mailboxHolder, timeWaited) {
+  submitFrameMissing(frameId, timeWaited) {
     this.missing_frame_count_++;
   }
 
-  submitFrame(frameId, mailboxHolder, timeWaited) {
+  submitFrame(frameId, timeWaited) {
     this.submit_frame_count_++;
 
     // Trigger the submit completion callbacks here. WARNING: The
@@ -2411,7 +2494,7 @@ class MockXRPresentationProvider {
     // wait for these notifications on the next frame, but waiting
     // within the current frame would never finish since the incoming
     // calls would be queued until the current execution context finishes.
-    this.submitFrameClient_.onSubmitFrameTransferred(true);
+    this.submitFrameClient_.onSubmitFrameTransferred(true, []);
     this.submitFrameClient_.onSubmitFrameRendered();
   }
 

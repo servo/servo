@@ -1,3 +1,30 @@
 features:
+- name: link-rel-expect
+  files:
+  - element-render-blocking-001.html
+  - element-render-blocking-029.html
+  - element-render-blocking-031.html
+  - element-render-blocking-033.html
+  - element-render-blocking-034.html
+  - element-render-blocking-035.html
+  - element-render-blocking-036.html
+  - element-render-blocking-037.html
+  - element-render-blocking-038.html
+  - element-render-blocking-039.html
+  - element-render-blocking-040.html
+  - element-render-blocking-041.html
 - name: blocking-render
-  files: "**"
+  files:
+  - "*"
+  - "!element-render-blocking-001.html"
+  - "!element-render-blocking-029.html"
+  - "!element-render-blocking-031.html"
+  - "!element-render-blocking-033.html"
+  - "!element-render-blocking-034.html"
+  - "!element-render-blocking-035.html"
+  - "!element-render-blocking-036.html"
+  - "!element-render-blocking-037.html"
+  - "!element-render-blocking-038.html"
+  - "!element-render-blocking-039.html"
+  - "!element-render-blocking-040.html"
+  - "!element-render-blocking-041.html"

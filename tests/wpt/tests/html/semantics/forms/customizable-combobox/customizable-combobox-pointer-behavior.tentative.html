@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+input, datalist {
+  appearance: base;
+}
+</style>
+
+<input list=datalist>
+<datalist id=datalist>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</datalist>
+
+<script>
+const input = document.querySelector('input');
+const datalist = document.querySelector('datalist');
+const optionOne = document.querySelector('.one');
+const optionTwo = document.querySelector('.two');
+
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+function touch(element) {
+  return (new test_driver.Actions()
+    .addPointer('finger', 'touch')
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+[{activate: click, prefix: 'click'},
+ {activate: touch, prefix: 'touch'}].forEach(test => {
+  promise_test(async () => {
+    input.value = '';
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+    await test.activate(input);
+    assert_true(datalist.matches(':popover-open'),
+      'datalist should open after clicking the text input.');
+    let inputEvents = 0;
+    let changeEvents = 0;
+    input.addEventListener('input', () => inputEvents++);
+    input.addEventListener('change', () => changeEvents++);
+    await test.activate(optionOne);
+    assert_equals(input.value, 'one', 'Clicking first option should set inputs value.');
+    assert_equals(inputEvents, 1, 'input event should be fired once.');
+    assert_equals(changeEvents, 1, 'change event should be fired once.');
+    assert_false(datalist.matches(':popover-open'),
+      'datalist should close after clicking an option.');
+  }, `${test.prefix}: activating an option in a combobox should set the text of the input element.`);
+});
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div id="container"></div>
+  <div id="target" data-target></div>
+  <span id="target" data-span></span>
+</body>
+
+<script>
+  test(() => {
+      let shadowRoot = container.attachShadow({mode: "open"});
+      let div = document.createElement("div");
+      shadowRoot.appendChild(div);
+      let target = document.querySelector('[data-target]');
+
+      assert_equals(document.getElementById("target"), target);
+      assert_equals(shadowRoot.getElementById("target"), null);
+
+      div.moveBefore(target, null);
+
+      assert_equals(document.getElementById("target"), document.querySelector('[data-span]'));
+      assert_equals(shadowRoot.getElementById("target"), target);
+  }, 'moveBefore() correctly updates id map');
+</script>

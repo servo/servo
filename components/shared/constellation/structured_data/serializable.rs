@@ -10,16 +10,16 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    ImageDataId, QuotaExceededErrorId,
-};
 use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::SharedSnapshot;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId, FileListId,
+    ImageBitmapId, ImageDataId, QuotaExceededErrorId,
+};
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
 use uuid::Uuid;
@@ -47,6 +47,10 @@ where
 /// parents because serialization is attempted in order of the variants.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Serializable {
+    /// The `File` interface.
+    File,
+    /// The `FileList` interface.
+    FileList,
     /// The `Blob` interface.
     Blob,
     /// The `DOMPoint` interface.
@@ -78,6 +82,10 @@ impl Serializable {
         &self,
     ) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
         match self {
+            Serializable::File => StructuredSerializedData::clone_all_of_type::<SerializableFile>,
+            Serializable::FileList => {
+                StructuredSerializedData::clone_all_of_type::<SerializableFileList>
+            },
             Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
             Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
             Serializable::DomPointReadOnly => {
@@ -127,12 +135,64 @@ impl Clone for BroadcastChannelMsg {
     }
 }
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableFile {
+    pub blob_impl: BlobImpl,
+    pub name: String,
+    pub modified: i64,
+}
+
+impl BroadcastClone for SerializableFile {
+    type Id = FileId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.files
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.files
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        let blob_impl = self.blob_impl.clone_for_broadcast()?;
+        Some(SerializableFile {
+            blob_impl,
+            name: self.name.clone(),
+            modified: self.modified,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableFileList {
+    pub files: Vec<SerializableFile>,
+}
+
+impl BroadcastClone for SerializableFileList {
+    type Id = FileListId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.file_lists
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.file_lists
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        let files = self
+            .files
+            .iter()
+            .map(|file| file.clone_for_broadcast())
+            .collect::<Option<Vec<_>>>()?;
+        Some(SerializableFileList { files })
+    }
+}
+
 /// File-based blob
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct FileBlob {
-    #[ignore_malloc_size_of = "Uuid are hard(not really)"]
     id: Uuid,
-    #[ignore_malloc_size_of = "PathBuf are hard"]
     name: Option<PathBuf>,
     cache: RefCell<Option<Vec<u8>>>,
     size: u64,

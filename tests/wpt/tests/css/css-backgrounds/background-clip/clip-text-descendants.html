@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>background-clip:text with various descendant types</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-descendants-ref.html">
+<style>
+body {
+  font-size: 40px;
+}
+.transformed {
+  transform: translateX(0);
+}
+.clip-text {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts are purple. -->
+<div class="clip-text"><div>Block</div></div>
+<div class="clip-text transformed"><div>Block transformed</div></div>
+<div class="clip-text"><div style="float:left">Float</div><br></div>
+<div class="clip-text transformed"><div style="float:left">Float transformed</div><br></div>
+<table class="clip-text"><tr><td>Table</td></tr></table>
+<table class="clip-text transformed"><tr><td>Table transformed</td></tr></table>
+<div class="clip-text"><div style="display: inline-block">Inline block</div></div>
+<div class="clip-text transformed"><div style="display: inline-block">Inline block transformed</div></div>

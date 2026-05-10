@@ -7,26 +7,34 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use base::Epoch;
-use base::generic_channel::GenericSender;
-use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{PipelineId, WebViewId};
+use servo_url::ImmutableOrigin;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{InputMethodType, RgbColor};
+
+/// The id of a user interface control that the engine requests that the
+/// embedder show.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EmbedderControlId {
+    #[doc(hidden)]
     pub webview_id: WebViewId,
+    #[doc(hidden)]
     pub pipeline_id: PipelineId,
+    #[doc(hidden)]
     pub index: Epoch,
 }
 
+/// A request from the engine to the embedder to display a user interface control.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<select>` element.
-    SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
+    SelectElement(SelectElementRequest),
     /// Indicates that the user has activated a `<input type=color>` element.
     ColorPicker(RgbColor),
     /// Indicates that the user has activated a `<input type=file>` element.
@@ -135,6 +143,7 @@ pub struct InputMethodRequest {
     pub text: String,
     pub insertion_point: Option<u32>,
     pub multiline: bool,
+    pub allow_virtual_keyboard: bool,
 }
 
 /// Filter for file selection;
@@ -144,16 +153,24 @@ pub struct FilterPattern(pub String);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FilePickerRequest {
-    pub origin: String,
+    pub origin: ImmutableOrigin,
     pub current_paths: Vec<PathBuf>,
     pub filter_patterns: Vec<FilterPattern>,
     pub allow_select_multiple: bool,
     pub accept_current_paths_for_testing: bool,
 }
 
+/// Response from the embedder to an [`EmbedderControlRequest`].
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SelectElementRequest {
+    pub options: Vec<SelectElementOptionOrOptgroup>,
+    pub selected_options: Vec<usize>,
+    pub allow_select_multiple: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
-    SelectElement(Option<usize>),
+    SelectElement(Vec<usize>),
     ColorPicker(Option<RgbColor>),
     FilePicker(Option<Vec<SelectedFile>>),
     ContextMenu(Option<ContextMenuAction>),
@@ -170,6 +187,7 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
+/// Request from Servo to the embedder with the details of the simple dialog to be displayed.
 #[derive(Deserialize, Serialize)]
 pub enum SimpleDialogRequest {
     Alert {
@@ -190,17 +208,20 @@ pub enum SimpleDialogRequest {
     },
 }
 
+/// The action selected by the user in the alert dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum AlertResponse {
     Ok,
 }
 
+/// The action selected by the user in the confirm dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum ConfirmResponse {
     Ok,
     Cancel,
 }
 
+/// The action selected by the user in the prompt dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum PromptResponse {
     Ok(String),

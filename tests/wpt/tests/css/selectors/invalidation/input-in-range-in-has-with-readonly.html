@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :in-range/:out-of-range in :has() when readonly changes</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #subject_inrange:has(#numberinput:in-range) { color: green }
+  #subject_outofrange:has(#numberinput2:out-of-range) { color: blue }
+</style>
+<div id="subject_inrange">
+  <input id="numberinput" type="number" min="1" max="10" value="5">
+</div>
+<div id="subject_outofrange">
+  <input id="numberinput2" type="number" min="1" max="10" value="12">
+</div>
+<script>
+  test(function() {
+    this.add_cleanup(() => { numberinput.readOnly = false; });
+
+    // value=5 is within [1,10], willValidate()=true, so :in-range matches.
+    assert_equals(getComputedStyle(subject_inrange).color, "rgb(0, 128, 0)",
+                  "ancestor should be green (input is in-range)");
+
+    // Setting readonly makes willValidate() return false, so :in-range no longer matches.
+    numberinput.readOnly = true;
+    assert_equals(getComputedStyle(subject_inrange).color, "rgb(0, 0, 0)",
+                  "ancestor should be black (readonly input is not in-range)");
+  }, ":in-range in :has() invalidation when setting readonly");
+
+  test(function() {
+    numberinput.readOnly = true;
+    this.add_cleanup(() => { numberinput.readOnly = false; });
+
+    // readonly, so :in-range does not match.
+    assert_equals(getComputedStyle(subject_inrange).color, "rgb(0, 0, 0)",
+                  "ancestor should be black (readonly input is not in-range)");
+
+    // Removing readonly makes willValidate() return true, so :in-range matches again.
+    numberinput.readOnly = false;
+    assert_equals(getComputedStyle(subject_inrange).color, "rgb(0, 128, 0)",
+                  "ancestor should be green (input is in-range again)");
+  }, ":in-range in :has() invalidation when removing readonly");
+
+  test(function() {
+    this.add_cleanup(() => { numberinput2.readOnly = false; });
+
+    // value=12 is outside [1,10], willValidate()=true, so :out-of-range matches.
+    assert_equals(getComputedStyle(subject_outofrange).color, "rgb(0, 0, 255)",
+                  "ancestor should be blue (input is out-of-range)");
+
+    // Setting readonly makes willValidate() return false, so :out-of-range no longer matches.
+    numberinput2.readOnly = true;
+    assert_equals(getComputedStyle(subject_outofrange).color, "rgb(0, 0, 0)",
+                  "ancestor should be black (readonly input is not out-of-range)");
+  }, ":out-of-range in :has() invalidation when setting readonly");
+
+  test(function() {
+    numberinput2.readOnly = true;
+    this.add_cleanup(() => { numberinput2.readOnly = false; });
+
+    // readonly, so :out-of-range does not match.
+    assert_equals(getComputedStyle(subject_outofrange).color, "rgb(0, 0, 0)",
+                  "ancestor should be black (readonly input is not out-of-range)");
+
+    // Removing readonly makes willValidate() return true, so :out-of-range matches again.
+    numberinput2.readOnly = false;
+    assert_equals(getComputedStyle(subject_outofrange).color, "rgb(0, 0, 255)",
+                  "ancestor should be blue (input is out-of-range again)");
+  }, ":out-of-range in :has() invalidation when removing readonly");
+</script>

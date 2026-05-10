@@ -1,0 +1,133 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use quote::{TokenStreamExt, quote};
+
+/// First field of DomObject must be either reflector or another dom_struct,
+/// all other fields must not implement DomObject
+pub(crate) fn expand_dom_object(
+    input: syn::ItemStruct,
+    associated_memory: bool,
+) -> proc_macro2::TokenStream {
+    let fields = input.fields.iter().collect::<Vec<&syn::Field>>();
+    let (first_field, fields) = fields
+        .split_first()
+        .expect("#[dom_struct] should not be applied on empty structs");
+
+    let first_field_name = first_field.ident.as_ref().unwrap();
+    let reflector_type = if associated_memory {
+        quote! { crate::AssociatedMemory }
+    } else {
+        quote! { () }
+    };
+    let mut field_types_and_cfgs = vec![];
+    for field in fields {
+        if field_types_and_cfgs.contains(&(&field.ty, vec![])) {
+            continue;
+        }
+        let cfgs = field
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("cfg"))
+            .collect::<Vec<_>>();
+        field_types_and_cfgs.push((&field.ty, cfgs));
+    }
+
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let items = quote! {
+        impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
+            #[expect(unsafe_code)]
+            unsafe fn to_jsval(&self,
+                                cx: *mut js::jsapi::JSContext,
+                                rval: js::rust::MutableHandleValue) {
+                let object = crate::DomObject::reflector(self).get_jsobject();
+                object.to_jsval(cx, rval)
+            }
+        }
+
+        impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
+            type ReflectorType = #reflector_type;
+
+            #[inline]
+            fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
+                self.#first_field_name.reflector()
+            }
+        }
+
+        impl #impl_generics crate::MutDomObject for #name #ty_generics #where_clause {
+            unsafe fn init_reflector<Actual>(&self, obj: *mut js::jsapi::JSObject) {
+                self.#first_field_name.init_reflector::<Actual>(obj);
+            }
+            unsafe fn init_reflector_without_associated_memory(&self, obj: *mut js::jsapi::JSObject) {
+                self.#first_field_name.init_reflector_without_associated_memory(obj);
+            }
+        }
+
+        impl #impl_generics Eq for #name #ty_generics #where_clause {}
+
+        impl #impl_generics PartialEq for #name #ty_generics #where_clause {
+            fn eq(&self, other: &Self) -> bool {
+                crate::DomObject::reflector(self) == crate::DomObject::reflector(other)
+            }
+        }
+    };
+
+    let mut params = proc_macro2::TokenStream::new();
+    params.append_separated(
+        input.generics.type_params().map(|param| &param.ident),
+        quote! {,},
+    );
+
+    let mut dummy_items = quote! {
+        // Generic trait with a blanket impl over `()` for all types.
+        // becomes ambiguous if impl
+        trait NoDomObjectInDomObject<A> {
+            // Required for actually being able to reference the trait.
+            fn some_item() {}
+        }
+
+        impl<T: ?Sized> NoDomObjectInDomObject<()> for T {}
+
+        // Used for the specialized impl when DomObject is implemented.
+        #[expect(dead_code)]
+        struct Invalid;
+        // forbids DomObject
+        impl<T> NoDomObjectInDomObject<Invalid> for T where T: ?Sized + crate::DomObject {}
+    };
+
+    dummy_items.append_all(
+        field_types_and_cfgs
+            .iter()
+            .enumerate()
+            .map(|(i, (ty, cfgs))| {
+                let s = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
+                quote! {
+                    struct #s<#params>(#params);
+
+                    impl #impl_generics #s<#params> #where_clause {
+                        #(#cfgs)*
+                        fn f() {
+                            // If there is only one specialized trait impl, type inference with
+                            // `_` can be resolved and this can compile. Fails to compile if
+                            // ty implements `NoDomObjectInDomObject<Invalid>`.
+                            let _ = <#ty as NoDomObjectInDomObject<_>>::some_item;
+                        }
+                    }
+                }
+            }),
+    );
+
+    let dummy_const = syn::Ident::new(
+        &format!("_IMPL_DOMOBJECT_FOR_{}", name),
+        proc_macro2::Span::call_site(),
+    );
+    let tokens = quote! {
+        #[expect(non_upper_case_globals)]
+        const #dummy_const: () = { #dummy_items };
+        #items
+    };
+
+    tokens
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Clicking on a non-focusable node should move the sequential focus navigation starting point</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+    .text {
+        width: 100px;
+    }
+</style>
+
+<input class="text" id="input1" value="123456">
+<span id="span1">A string of text that is in the middle</span>
+<input class="text" id="input2" value="123456"><br/>
+<span id="span2">A string of text that is in the middle</span><br/>
+<input class="text" id="input3" value="123456">
+
+<script>
+promise_test(async test => {
+    let tabKey = "\uE004";
+    let shiftKey = "\uE008";
+
+    let span1Rect = span1.getBoundingClientRect();
+    let span2Rect = span2.getBoundingClientRect();
+
+    await new test_driver.Actions()
+      .pointerMove(span1Rect.left + 5, span1Rect.top + 5)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(document.activeElement, document.body);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input2);
+
+    await new test_driver.Actions()
+      .pointerMove(span1Rect.left + 5, span1Rect.top + 5)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(document.activeElement, document.body);
+
+    await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .keyUp(shiftKey)
+        .send();
+    assert_equals(document.activeElement, input1);
+
+    // Also test that this works properly across line breaks.
+    await new test_driver.Actions()
+      .pointerMove(span2Rect.left + 5, span2Rect.top + 5)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(document.activeElement, document.body);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input3);
+
+    await new test_driver.Actions()
+      .pointerMove(span2Rect.left + 5, span2Rect.top + 5)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(document.activeElement, document.body);
+
+    await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .keyUp(shiftKey)
+        .send();
+    assert_equals(document.activeElement, input2);
+});
+</script>

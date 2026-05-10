@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Historical Feature Policy features should not be present</title>
+<link rel="help" href="https://www.w3.org/TR/permissions-policy/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Test 1: document.featurePolicy API should not exist (replaced by document.permissionsPolicy)
+    test(() => {
+      assert_false(
+        "featurePolicy" in document,
+        "document.featurePolicy should not exist"
+      );
+    }, "document.featurePolicy should not be present (use document.permissionsPolicy instead)");
+
+    // Test 2: HTMLIFrameElement.featurePolicy API should not exist (replaced by permissionsPolicy)
+    test(() => {
+      assert_false(
+        "featurePolicy" in HTMLIFrameElement.prototype,
+        "HTMLIFrameElement.prototype.featurePolicy should not exist"
+      );
+    }, "HTMLIFrameElement.prototype.featurePolicy should not be present");
+
+    // Test 3: Permissions-Policy header takes precedence over Feature-Policy header
+    // The header file sets:
+    //   Permissions-Policy: sync-xhr=*  (allows sync-xhr)
+    //   Feature-Policy: sync-xhr 'none' (would block sync-xhr)
+    // If Permissions-Policy correctly takes precedence, sync XHR should work
+    test(() => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", document.location.href, false);
+      xhr.send();
+      assert_equals(
+        xhr.status,
+        200,
+        "Sync XHR should succeed because Permissions-Policy allows it"
+      );
+    }, "Permissions-Policy header takes precedence over Feature-Policy header");
+
+    // Test 4: iframe allow attribute should work with Permissions Policy
+    promise_test(async () => {
+      const iframe = document.createElement("iframe");
+      iframe.src = "resources/historical-iframe.html";
+      iframe.allow = "sync-xhr 'none'";
+
+      const result = await new Promise((resolve) => {
+        window.addEventListener("message", (e) => {
+          if (e.source === iframe.contentWindow) {
+            resolve(e.data);
+          }
+        });
+        document.body.appendChild(iframe);
+      });
+
+      assert_equals(
+        result.result,
+        "blocked",
+        "sync-xhr should be blocked in iframe when allow=\"sync-xhr 'none'\""
+      );
+    }, "iframe allow attribute blocks features using Permissions Policy syntax");
+  </script>
+</body>

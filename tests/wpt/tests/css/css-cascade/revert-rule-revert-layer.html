@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with revert-layer</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @layer {
+    #test1 {
+      color: green;
+    }
+  }
+  @layer {
+    #test1 {
+      color: red;
+    }
+    #test1 {
+      color: revert-layer;
+    }
+  }
+  @layer {
+    #test1 {
+      color: revert-rule;
+      background-color: green;
+    }
+  }
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)')
+    assert_equals(getComputedStyle(test1).backgroundColor, 'rgb(0, 128, 0)')
+  }, 'Combination of revert-rule and revert-layer');
+</script>
+
+<style>
+  @layer {
+    #test2 {
+      color: green;
+    }
+  }
+  @layer {
+    #test2 {
+      color: revert-rule;
+      background-color: green;
+    }
+  }
+  @layer {
+    #test2 {
+      color: red;
+    }
+    #test2 {
+      color: revert-layer;
+      background-color: revert-rule;
+    }
+  }
+</style>
+<div id=test2></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test2).color, 'rgb(0, 128, 0)')
+    assert_equals(getComputedStyle(test2).backgroundColor, 'rgb(0, 128, 0)')
+  }, 'Combination of revert-layer and revert-rule');
+</script>
+
+<style>
+  @layer {
+    #test3 {
+      color: green;
+    }
+  }
+  @layer {
+    #test3 {
+      color: red;
+    }
+    #test3 {
+      color: revert-layer;
+    }
+  }
+  @layer {
+    #test3 {
+      color: revert-rule;
+      background-color: green;
+    }
+  }
+  @layer {
+    #test3 {
+      color: revert-rule;
+      background-color: revert-rule;
+    }
+  }
+</style>
+<div id=test3></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test3).color, 'rgb(0, 128, 0)')
+    assert_equals(getComputedStyle(test3).backgroundColor, 'rgb(0, 128, 0)')
+  }, 'Combination revert-rule/revert-rule/revert-layer');
+</script>
+
+<style>
+  @layer {
+    #test4 {
+      color: green;
+    }
+  }
+  @layer {
+    #test4 {
+      color: red;
+    }
+    #test4 {
+      color: revert-layer;
+    }
+  }
+  @layer {
+    #test4 {
+      color: revert-rule;
+      background-color: green;
+    }
+  }
+  @layer {
+    #test4 {
+        color: red;
+        color: revert-layer;
+        background-color: revert-rule;
+    }
+  }
+</style>
+<div id=test4></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test4).color, 'rgb(0, 128, 0)')
+    assert_equals(getComputedStyle(test4).backgroundColor, 'rgb(0, 128, 0)')
+  }, 'Combination revert-layer/revert-rule/revert-layer');
+</script>
+
+<style>
+  @layer {
+    #test5 {
+      color: green;
+    }
+  }
+  @layer {
+    #test5 {
+      color: revert-rule;
+      background-color: green;
+    }
+  }
+  @layer {
+    #test5 {
+      color: red;
+    }
+    #test5 {
+      color: revert-layer;
+    }
+  }
+  @layer {
+    #test5 {
+      color: revert-rule;
+      background-color: revert-rule;
+    }
+  }
+</style>
+<div id=test5></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test5).color, 'rgb(0, 128, 0)')
+    assert_equals(getComputedStyle(test5).backgroundColor, 'rgb(0, 128, 0)')
+  }, 'Combination revert-rule/revert-layer/revert-rule');
+</script>

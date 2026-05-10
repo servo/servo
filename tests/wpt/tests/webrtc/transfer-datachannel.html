@@ -6,6 +6,7 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="RTCPeerConnection-helper.js"></script>
+        <script src="../webrtc/RTCDataChannel-helper.js"></script>
         <script src="RTCDataChannel-worker-shim.js"></script>
     </head>
     <body>
@@ -293,60 +294,6 @@ promise_test(async (test) => {
   assert_equals(dcShim.binaryType, 'blob');
 }, 'Check that transferred RTCDataChannel can set bufferedAmountLowThreshold/binaryType');
 
-async function negotiate(offerer, answerer) {
-  offerer.onicecandidate = (e) => answerer.addIceCandidate(e.candidate);
-  answerer.onicecandidate = (e) => offerer.addIceCandidate(e.candidate);
-
-  await offerer.setLocalDescription();
-  await answerer.setRemoteDescription(offerer.localDescription);
-  await answerer.setLocalDescription();
-  await offerer.setRemoteDescription(answerer.localDescription);
-}
-
-async function openChannelPairOffererShimmed() {
-  // Use worker shim in RTCDataChannel-worker-shim.js
-  const offerer = new RTCPeerConnection();
-  const answerer = new RTCPeerConnection();
-  const offererChannel = offerer.createDataChannel('foo');
-  const shimmedChannel = new WorkerBackedDataChannel();
-  await shimmedChannel.init(offererChannel);
-
-  await negotiate(offerer, answerer);
-
-  const answererChannelEvent = new Promise(r => answerer.ondatachannel = r);
-  const openEvent = new Promise(r => shimmedChannel.onopen = r);
-
-  const answererChannel = (await answererChannelEvent).channel;
-  await openEvent;
-  return {shimmedChannel, nonShimmedChannel: answererChannel, offerer, answerer};
-}
-
-async function openChannelPairAnswererShimmed() {
-  // Use worker shim in RTCDataChannel-worker-shim.js
-  const offerer = new RTCPeerConnection();
-  const answerer = new RTCPeerConnection();
-  const offererChannel = offerer.createDataChannel('foo');
-
-  await negotiate(offerer, answerer);
-
-  const answererChannelEvent = new Promise(r => answerer.ondatachannel = r);
-  const answererChannel = (await answererChannelEvent).channel;
-  const shimmedChannel = new WorkerBackedDataChannel();
-  await shimmedChannel.init(answererChannel);
-  await new Promise(r => shimmedChannel.onopen = r);
-
-  return {shimmedChannel, nonShimmedChannel: offererChannel, offerer, answerer};
-}
-
-async function openChannelPairWithShim(whichChannelShimmed) {
-  switch(whichChannelShimmed) {
-    case 'offerer':
-      return openChannelPairOffererShimmed();
-    case 'answerer':
-      return openChannelPairAnswererShimmed();
-  }
-}
-
 for (const whichChannelShimmed of ['offerer', 'answerer']) {
   promise_test(async (test) => {
     const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
@@ -470,43 +417,6 @@ for (const whichChannelShimmed of ['offerer', 'answerer']) {
   }, `Check that transferred ${whichChannelShimmed} RTCDataChannel onclosing fires`);
 }
 
-// Calling this will only work if the channel is brand new
-async function maybeWrapChannel(channel, shim) {
-  if (shim) {
-    assert_true(shim instanceof WorkerBackedDataChannel);
-    openEvent = new Promise(r => shim.onopen = r);
-    await shim.init(channel);
-    channel = shim;
-  } else {
-    openEvent = new Promise(r => channel.onopen = r);
-  }
-  await openEvent;
-  return channel;
-}
-
-async function openAnotherChannelPair(pc1, pc2, label, config, workerShim1, workerShim2) {
-  const channelEvent = new Promise(r => {
-    pc2.addEventListener('datachannel', async ({channel}) => {
-      if (channel.label == label) {
-        channel = await maybeWrapChannel(channel, workerShim2);
-        r(channel);
-      }
-    });
-  });
-
-  const [channel1, channel2] = await Promise.all([
-    maybeWrapChannel(pc1.createDataChannel(label, config), workerShim1),
-    channelEvent]);
-
-  for (const channel of [channel1, channel2]) {
-    if (channel instanceof WorkerBackedDataChannel) {
-      await channel.updateState();
-    }
-  }
-
-  return [channel1, channel2];
-}
-
 promise_test(async (test) => {
   const offerer = new RTCPeerConnection();
   const answerer = new RTCPeerConnection();
@@ -540,13 +450,13 @@ promise_test(async (test) => {
   // Make the rat's nest. There will be 18 channel pairs.
   for (const offererWorker of ["main", "dedicated", "shared"]) {
     for (const answererWorker of ["main", "dedicated", "shared"]) {
-      channelPairPromises.push(openAnotherChannelPair(
+      channelPairPromises.push(openChannelPair(
         offerer, answerer,
         `${offererWorker}, ${answererWorker}, offerer creates`, {},
         createShim(offererWorker, sharedOff),
         createShim(answererWorker, sharedAns)));
 
-      channelPairPromises.push(openAnotherChannelPair(
+      channelPairPromises.push(openChannelPair(
         answerer, offerer,
         `${offererWorker}, ${answererWorker}, answerer creates`, {},
         createShim(answererWorker, sharedAns),

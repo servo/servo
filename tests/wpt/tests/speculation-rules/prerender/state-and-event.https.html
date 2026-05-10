@@ -8,7 +8,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   // The key used for storing a test result in the server.

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+.picker-first-letter {
+  color: red;
+  font-size: 20px;
+}
+
+.picker-first-line {
+  color: navy;
+}
+</style>
+
+<button class="customizable-select-button" popovertarget="popover" id="button">
+  <span class="customizable-select-selectedcontent">one</span>
+</button>
+<div id="popover" popover="auto" class="customizable-select-popover">
+  <div><span class="picker-first-line"><span class="picker-first-letter">H</span>ello World</span></div>
+  <div class="customizable-select-option selected">one</div>
+  <div class="customizable-select-option">two</div>
+</div>
+
+<script>
+document.getElementById("popover").showPopover({ source: button });
+</script>

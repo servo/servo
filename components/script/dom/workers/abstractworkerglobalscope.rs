@@ -5,15 +5,14 @@
 use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
+use script_bindings::reflector::DomObject;
 
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_realm;
-use crate::script_runtime::CanGc;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 
 pub(crate) trait WorkerEventLoopMethods {
@@ -95,7 +94,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             Some(worker) => worker_scope.handle_worker_post_event(worker),
             None => None,
         };
-        scope.perform_a_microtask_checkpoint(CanGc::from_cx(cx));
+        scope.perform_a_microtask_checkpoint(cx);
     }
     worker_scope
         .upcast::<GlobalScope>()

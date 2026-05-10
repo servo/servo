@@ -1,0 +1,57 @@
+<!doctype HTML>
+<title>Responsive iframe should clear size during navigation to non-responsive page</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<meta name="variant" content="?origin=same">
+<meta name="variant" content="?origin=cross">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<style>
+iframe {
+  frame-sizing: content-height;
+}
+</style>
+<script>
+// Create an `<iframe>` element.
+// Make it cross-origin if `?origin=cross`.
+const iframe = document.createElement('iframe');
+iframe.frameBorder = '0';
+iframe.src = get_iframe_src();
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.appendChild(iframe);
+});
+
+function get_iframe_src() {
+  const src = 'resources/iframe-contents-navigation.html';
+  const params = new URLSearchParams(window.location.search);
+  const origin = params.get('origin');
+  if (origin === 'cross') {
+    const url = new URL(src, window.location.href);
+    return get_host_info().HTTP_REMOTE_ORIGIN + url.pathname;
+  }
+  return src;
+}
+
+async_test(t => {
+  let numIframeLoadEvents = 0;
+  iframe.addEventListener('load', t.step_func(() => {
+    ++numIframeLoadEvents;
+    switch (numIframeLoadEvents) {
+      case 1:
+        assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
+
+        // Navigate to non-responsive page.
+        iframe.contentWindow.postMessage('unsized', '*');
+        break;
+      case 2:
+        // The height should have reverted to default (150) because the new page
+        // is not responsive and cleared the sizing info.
+        // If it didn't clear, it would keep 200 or grow to 400.
+        assert_equals(iframe.offsetHeight, 150, "Height should revert to default 150px");
+        t.done();
+        break;
+    }
+  }));
+}, "Responsive iframe clears size during navigation to non-responsive page");
+</script>

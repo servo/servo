@@ -2,7 +2,7 @@ import pytest
 
 from webdriver.client import WebFrame, WebWindow
 
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 from . import execute_async_script
 
 

@@ -30,9 +30,9 @@ promise_test(async t => {
     /* event name, location.hash value, navigation.transition properties */
     ["navigate", "", null],
     ["currententrychange", "#1", null],
+    ["navigatesuccess", "#1", null],
     ["committed fulfilled", "#1", null],
     ["promise microtask", "#1", null],
-    ["navigatesuccess", "#1", null],
     ["finished fulfilled", "#1", null],
   ]);
 }, "event and promise ordering for same-document navigation.navigate()");

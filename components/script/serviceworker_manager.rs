@@ -12,18 +12,19 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
-use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
-use constellation_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
-    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-};
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use fonts::FontContext;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
+use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
+use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
+use servo_constellation_traits::{
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
+    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::abstractworker::{MessageData, WorkerScriptMsg};
@@ -276,15 +277,13 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
-        if serviceworker_enabled() {
-            if let Some(scope) = self.get_matching_scope(&mediator.load_url) {
-                if let Some(registration) = self.registrations.get(&scope) {
-                    if let Some(ref worker) = registration.active_worker {
-                        worker.send_message(ServiceWorkerScriptMsg::Response(mediator));
-                        return true;
-                    }
-                }
-            }
+        if serviceworker_enabled() &&
+            let Some(scope) = self.get_matching_scope(&mediator.load_url) &&
+            let Some(registration) = self.registrations.get(&scope) &&
+            let Some(ref worker) = registration.active_worker
+        {
+            worker.send_message(ServiceWorkerScriptMsg::Response(mediator));
+            return true;
         }
         let _ = mediator.response_chan.send(None);
         true
@@ -303,10 +302,10 @@ impl ServiceWorkerManager {
                 // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
             },
             ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
-                if let Some(registration) = self.registrations.get_mut(&scope_url) {
-                    if let Some(ref worker) = registration.active_worker {
-                        worker.forward_dom_message(msg);
-                    }
+                if let Some(registration) = self.registrations.get_mut(&scope_url) &&
+                    let Some(ref worker) = registration.active_worker
+                {
+                    worker.forward_dom_message(msg);
                 }
             },
             ServiceWorkerMsg::ScheduleJob(job) => match job.job_type {
@@ -396,13 +395,13 @@ impl ServiceWorkerManager {
             let newest_worker = registration.get_newest_worker();
 
             // Step 4.
-            if let Some(worker) = newest_worker {
-                if worker.script_url != job.script_url {
-                    let _ = job
-                        .client
-                        .send(JobResult::RejectPromise(JobError::TypeError));
-                    return;
-                }
+            if let Some(worker) = newest_worker &&
+                worker.script_url != job.script_url
+            {
+                let _ = job
+                    .client
+                    .send(JobResult::RejectPromise(JobError::TypeError));
+                return;
             }
 
             let scope_things = job
@@ -455,7 +454,7 @@ impl ServiceWorkerManager {
 fn update_serviceworker(
     own_sender: GenericSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
-    scope_things: ScopeThings,
+    mut scope_things: ScopeThings,
     font_context: Arc<FontContext>,
 ) -> (
     ServiceWorker,
@@ -465,7 +464,30 @@ fn update_serviceworker(
     Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();
-    let (_devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+    let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+    scope_things.init.from_devtools_sender = Some(devtools_sender);
+
+    if let Some(ref chan) = scope_things.devtools_chan &&
+        let Some(ref sender) = scope_things.init.from_devtools_sender
+    {
+        let page_info = DevtoolsPageInfo {
+            title: format!("Service Worker for {}", scope_things.script_url),
+            url: scope_things.script_url.clone(),
+            is_top_level_global: false,
+            is_service_worker: true,
+        };
+        let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+            (
+                scope_things.browsing_context_id,
+                scope_things.init.pipeline_id,
+                Some(scope_things.worker_id),
+                scope_things.webview_id,
+            ),
+            sender.clone(),
+            page_info,
+        ));
+    }
+
     let worker_id = ServiceWorkerId::new();
 
     let (control_sender, control_receiver) = unbounded();
@@ -478,7 +500,7 @@ fn update_serviceworker(
         receiver,
         devtools_receiver,
         own_sender,
-        scope_url.clone(),
+        scope_url,
         control_receiver,
         context_sender,
         closing.clone(),

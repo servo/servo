@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: sans-serif; font-size: 20px; fill: black; }
+  </style>
+
+  <path id="path1" d="M10 60 L210 60"/>
+  <text>
+    <textPath href="#path1" startOffset="100">X</textPath>
+  </text>
+</svg>
+

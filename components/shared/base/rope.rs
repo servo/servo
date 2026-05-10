@@ -11,38 +11,22 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 
-#[derive(Clone, Copy, MallocSizeOf)]
-pub enum Lines {
-    Single,
-    Multiple,
-}
-
-impl Lines {
-    fn contents_vec(&self, contents: impl Into<String>) -> Vec<String> {
-        match self {
-            Self::Multiple => {
-                // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
-                let mut contents: Vec<_> = contents
-                    .into()
-                    .replace("\r\n", "\n")
-                    .split(['\n', '\r'])
-                    .map(|line| format!("{line}\n"))
-                    .collect();
-                // The last line should not have a newline.
-                if let Some(last_line) = contents.last_mut() {
-                    last_line.truncate(last_line.len() - 1);
-                }
-                contents
-            },
-            Self::Single => {
-                vec![contents.into()]
-            },
-        }
+fn contents_vec(contents: impl Into<String>) -> Vec<String> {
+    let mut contents: Vec<_> = contents
+        .into()
+        .split('\n')
+        .map(|line| format!("{line}\n"))
+        .collect();
+    // The last line should not have a newline.
+    if let Some(last_line) = contents.last_mut() {
+        last_line.truncate(last_line.len() - 1);
     }
+    contents
 }
 
 /// Describes a unit of movement for [`Rope::move_by`].
 pub enum RopeMovement {
+    Character,
     Grapheme,
     Word,
     Line,
@@ -59,23 +43,13 @@ pub struct Rope {
     /// The lines of the rope. Each line is an owned string that ends with a newline
     /// (`\n`), apart from the last line which has no trailing newline.
     lines: Vec<String>,
-    /// The type of [`Rope`] this is. When in multi-line mode, the [`Rope`] will
-    /// automatically split all inserted text into lines and incorporate them into
-    /// the [`Rope`]. When in single line mode, the inserted text should not have any
-    /// newlines.
-    mode: Lines,
 }
 
 impl Rope {
-    pub fn new(contents: impl Into<String>, mode: Lines) -> Self {
+    pub fn new(contents: impl Into<String>) -> Self {
         Self {
-            lines: mode.contents_vec(contents),
-            mode,
+            lines: contents_vec(contents),
         }
-    }
-
-    pub fn mode(&self) -> Lines {
-        self.mode
     }
 
     pub fn contents(&self) -> String {
@@ -94,14 +68,14 @@ impl Rope {
         mut range: Range<RopeIndex>,
         string: impl Into<String>,
     ) -> RopeIndex {
-        range.start = self.clamp_index(range.start);
-        range.end = self.clamp_index(range.end);
+        range.start = self.normalize_index(range.start);
+        range.end = self.normalize_index(range.end);
         assert!(range.start <= range.end);
 
         let start_index = range.start;
         self.delete_range(range);
 
-        let mut new_contents = self.mode.contents_vec(string);
+        let mut new_contents = contents_vec(string);
         let Some(first_line_of_new_contents) = new_contents.first() else {
             return start_index;
         };
@@ -136,8 +110,8 @@ impl Rope {
     }
 
     fn delete_range(&mut self, mut range: Range<RopeIndex>) {
-        range.start = self.clamp_index(range.start);
-        range.end = self.clamp_index(range.end);
+        range.start = self.normalize_index(range.start);
+        range.end = self.normalize_index(range.end);
         assert!(range.start <= range.end);
 
         if range.start.line == range.end.line {
@@ -232,7 +206,7 @@ impl Rope {
         }
 
         match unit {
-            RopeMovement::Grapheme | RopeMovement::Word => {
+            RopeMovement::Character | RopeMovement::Grapheme | RopeMovement::Word => {
                 self.move_by_iterator(origin, unit, amount)
             },
             RopeMovement::Line => self.move_by_lines(origin, amount),
@@ -284,6 +258,7 @@ impl Rope {
         };
 
         let iterator = match unit {
+            RopeMovement::Character => slice.char_indices(),
             RopeMovement::Grapheme => slice.grapheme_indices(),
             RopeMovement::Word => slice.word_indices(),
             _ => unreachable!("Should not be called for other movement types"),
@@ -295,7 +270,7 @@ impl Rope {
         };
 
         let mut iterations = amount.unsigned_abs();
-        for (mut index, _) in iterator {
+        for mut index in iterator {
             iterations = iterations.saturating_sub(1);
             if iterations == 0 {
                 // Instead of returning offsets for the absolute end of a line, return the
@@ -310,9 +285,10 @@ impl Rope {
         boundary_value
     }
 
-    /// Given a [`RopeIndex`], clamp it, meaning that its indices are all bound by the
-    /// actual size of the line and the number of lines in this [`Rope`].
-    pub fn clamp_index(&self, rope_index: RopeIndex) -> RopeIndex {
+    /// Given a [`RopeIndex`], clamp it and ensure that it is on a character boundary,
+    /// meaning that its indices are all bound by the actual size of the line and the
+    /// number of lines in this [`Rope`].
+    pub fn normalize_index(&self, rope_index: RopeIndex) -> RopeIndex {
         let last_line = self.lines.len().saturating_sub(1);
         let line_index = rope_index.line.min(last_line);
 
@@ -323,18 +299,24 @@ impl Rope {
         //
         // Lines other than the last line have a trailing newline. We do not want to allow
         // an index past the trailing newline.
+        let line = self.line(line_index);
         let line_length_utf8 = if line_index == last_line {
-            self.lines[line_index].len()
+            line.len()
         } else {
-            self.lines[line_index].len() - 1
+            line.len() - 1
         };
 
-        RopeIndex::new(line_index, rope_index.code_point.min(line_length_utf8))
+        let mut code_point = rope_index.code_point.min(line_length_utf8);
+        while code_point < line.len() && !line.is_char_boundary(code_point) {
+            code_point += 1;
+        }
+
+        RopeIndex::new(line_index, code_point)
     }
 
     /// Convert a [`RopeIndex`] into a byte offset from the start of the content.
     pub fn index_to_utf8_offset(&self, rope_index: RopeIndex) -> Utf8CodeUnitLength {
-        let rope_index = self.clamp_index(rope_index);
+        let rope_index = self.normalize_index(rope_index);
         Utf8CodeUnitLength(
             self.lines
                 .iter()
@@ -346,7 +328,7 @@ impl Rope {
     }
 
     pub fn index_to_utf16_offset(&self, rope_index: RopeIndex) -> Utf16CodeUnitLength {
-        let rope_index = self.clamp_index(rope_index);
+        let rope_index = self.normalize_index(rope_index);
         let final_line = self.line(rope_index.line);
 
         // The offset might be past the end of the line due to being an exclusive offset.
@@ -362,6 +344,21 @@ impl Rope {
             .take(rope_index.line)
             .map(|line| Utf16CodeUnitLength(line.chars().map(char::len_utf16).sum()))
             .sum::<Utf16CodeUnitLength>() +
+            final_line_offset
+    }
+
+    /// Convert a [`RopeIndex`] into a character offset from the start of the content.
+    pub fn index_to_character_offset(&self, rope_index: RopeIndex) -> usize {
+        let rope_index = self.normalize_index(rope_index);
+
+        // The offset might be past the end of the line due to being an exclusive offset.
+        let final_line = self.line(rope_index.line);
+        let final_line_offset = final_line[0..rope_index.code_point].chars().count();
+        self.lines
+            .iter()
+            .take(rope_index.line)
+            .map(|line| line.chars().count())
+            .sum::<usize>() +
             final_line_offset
     }
 
@@ -393,6 +390,52 @@ impl Rope {
             current_utf16_offset += Utf16CodeUnitLength(utf16_length);
         }
         current_utf8_offset
+    }
+
+    /// Find the boundaries of the word most relevant to the given [`RopeIndex`]. Word
+    /// returned in order or precedence:
+    ///
+    /// - If the index intersects the word or is the index directly preceding a word,
+    ///   the boundaries of that word are returned.
+    /// - The word preceding the cursor.
+    /// - If there is no word preceding the cursor, the start of the line to the end
+    ///   of the next word.
+    pub fn relevant_word_boundaries<'a>(&'a self, index: RopeIndex) -> RopeSlice<'a> {
+        let line = self.line_for_index(index);
+        let mut result_start = 0;
+        let mut result_end = None;
+        for (word_start, word) in line.unicode_word_indices() {
+            if word_start > index.code_point {
+                result_end = result_end.or_else(|| Some(word_start + word.len()));
+                break;
+            }
+            result_start = word_start;
+            result_end = Some(word_start + word.len());
+        }
+
+        let result_end = result_end.unwrap_or(result_start);
+        self.slice(
+            Some(RopeIndex::new(index.line, result_start)),
+            Some(RopeIndex::new(index.line, result_end)),
+        )
+    }
+
+    /// Return the boundaries of the line that contains the given [`RopeIndex`].
+    pub fn line_boundaries<'a>(&'a self, index: RopeIndex) -> RopeSlice<'a> {
+        self.slice(
+            Some(RopeIndex::new(index.line, 0)),
+            Some(self.last_index_in_line(index.line)),
+        )
+    }
+
+    fn character_at(&self, index: RopeIndex) -> Option<char> {
+        let line = self.line_for_index(index);
+        line[index.code_point..].chars().next()
+    }
+
+    fn character_before(&self, index: RopeIndex) -> Option<char> {
+        let line = self.line_for_index(index);
+        line[..index.code_point].chars().next_back()
     }
 }
 
@@ -428,9 +471,9 @@ pub struct RopeSlice<'a> {
     /// The underlying [`Rope`] of this [`RopeSlice`]
     rope: &'a Rope,
     /// The inclusive `RopeIndex` of the start of this [`RopeSlice`].
-    start: RopeIndex,
+    pub start: RopeIndex,
     /// The exclusive end `RopeIndex` of this [`RopeSlice`].
-    end: RopeIndex,
+    pub end: RopeIndex,
 }
 
 impl From<RopeSlice<'_>> for String {
@@ -459,32 +502,49 @@ impl<'a> RopeSlice<'a> {
                 slice: self,
                 end_of_forward_motion: |_, string| {
                     let (offset, character) = string.char_indices().next()?;
-                    Some((offset + character.len_utf8(), character))
+                    Some(offset + character.len_utf8())
                 },
-                start_of_backward_motion: |_, string: &str| string.char_indices().next_back(),
+                start_of_backward_motion: |_, string: &str| {
+                    Some(string.char_indices().next_back()?.0)
+                },
             },
         }
     }
 
-    fn grapheme_indices(self) -> RopeMovementIterator<'a, &'a str> {
+    fn char_indices(self) -> RopeMovementIterator<'a> {
+        RopeMovementIterator {
+            slice: self,
+            end_of_forward_motion: |_, string| {
+                let (offset, character) = string.char_indices().next()?;
+                Some(offset + character.len_utf8())
+            },
+            start_of_backward_motion: |_, string: &str| Some(string.char_indices().next_back()?.0),
+        }
+    }
+
+    fn grapheme_indices(self) -> RopeMovementIterator<'a> {
         RopeMovementIterator {
             slice: self,
             end_of_forward_motion: |_, string| {
                 let (offset, grapheme) = string.grapheme_indices(true).next()?;
-                Some((offset + grapheme.len(), grapheme))
+                Some(offset + grapheme.len())
             },
-            start_of_backward_motion: |_, string| string.grapheme_indices(true).next_back(),
+            start_of_backward_motion: |_, string| {
+                Some(string.grapheme_indices(true).next_back()?.0)
+            },
         }
     }
 
-    fn word_indices(self) -> RopeMovementIterator<'a, &'a str> {
+    fn word_indices(self) -> RopeMovementIterator<'a> {
         RopeMovementIterator {
             slice: self,
             end_of_forward_motion: |_, string| {
                 let (offset, word) = string.unicode_word_indices().next()?;
-                Some((offset + word.len(), word))
+                Some(offset + word.len())
             },
-            start_of_backward_motion: |_, string| string.unicode_word_indices().next_back(),
+            start_of_backward_motion: |_, string| {
+                Some(string.unicode_word_indices().next_back()?.0)
+            },
         }
     }
 }
@@ -494,14 +554,14 @@ impl<'a> RopeSlice<'a> {
 /// different. When moving forward, the end of the unit of movement is returned and when
 /// moving backward the start of the unit of movement is returned. This matches the
 /// expected behavior when interactively moving through editable text.
-struct RopeMovementIterator<'a, T> {
+struct RopeMovementIterator<'a> {
     slice: RopeSlice<'a>,
-    end_of_forward_motion: fn(&RopeSlice, &'a str) -> Option<(usize, T)>,
-    start_of_backward_motion: fn(&RopeSlice, &'a str) -> Option<(usize, T)>,
+    end_of_forward_motion: fn(&RopeSlice, &'a str) -> Option<usize>,
+    start_of_backward_motion: fn(&RopeSlice, &'a str) -> Option<usize>,
 }
 
-impl<T> Iterator for RopeMovementIterator<'_, T> {
-    type Item = (RopeIndex, T);
+impl Iterator for RopeMovementIterator<'_> {
+    type Item = RopeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
         // If the two indices have crossed over, iteration is done.
@@ -512,13 +572,12 @@ impl<T> Iterator for RopeMovementIterator<'_, T> {
         assert!(self.slice.start.line < self.slice.rope.lines.len());
         let line = self.slice.rope.line_for_index(self.slice.start);
 
-        if self.slice.start.code_point < line.len() + 1 {
-            if let Some((end_offset, value)) =
+        if self.slice.start.code_point < line.len() + 1 &&
+            let Some(end_offset) =
                 (self.end_of_forward_motion)(&self.slice, &line[self.slice.start.code_point..])
-            {
-                self.slice.start.code_point += end_offset;
-                return Some((self.slice.start, value));
-            }
+        {
+            self.slice.start.code_point += end_offset;
+            return Some(self.slice.start);
         }
 
         // Advance the line as we are at the end of the line.
@@ -527,7 +586,7 @@ impl<T> Iterator for RopeMovementIterator<'_, T> {
     }
 }
 
-impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
+impl DoubleEndedIterator for RopeMovementIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         // If the two indices have crossed over, iteration is done.
         if self.slice.end <= self.slice.start {
@@ -535,13 +594,12 @@ impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
         }
 
         let line = self.slice.rope.line_for_index(self.slice.end);
-        if self.slice.end.code_point > 0 {
-            if let Some((new_start_index, value)) =
+        if self.slice.end.code_point > 0 &&
+            let Some(new_start_index) =
                 (self.start_of_backward_motion)(&self.slice, &line[..self.slice.end.code_point])
-            {
-                self.slice.end.code_point = new_start_index;
-                return Some((self.slice.end, value));
-            }
+        {
+            self.slice.end.code_point = new_start_index;
+            return Some(self.slice.end);
         }
 
         // Decrease the line index as we are at the start of the line.
@@ -552,25 +610,29 @@ impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
 
 /// A `Chars`-like iterator for [`Rope`].
 pub struct RopeChars<'a> {
-    movement_iterator: RopeMovementIterator<'a, char>,
+    movement_iterator: RopeMovementIterator<'a>,
 }
 
 impl Iterator for RopeChars<'_> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.movement_iterator.next()?.1)
+        self.movement_iterator
+            .next()
+            .and_then(|index| self.movement_iterator.slice.rope.character_before(index))
     }
 }
 
 impl DoubleEndedIterator for RopeChars<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        Some(self.movement_iterator.next_back()?.1)
+        self.movement_iterator
+            .next_back()
+            .and_then(|index| self.movement_iterator.slice.rope.character_at(index))
     }
 }
 
 #[test]
 fn test_rope_index_conversion_to_utf8_offset() {
-    let rope = Rope::new("A\nBB\nCCC\nDDDD", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\nDDDD");
     assert_eq!(
         rope.index_to_utf8_offset(RopeIndex::new(0, 0)),
         Utf8CodeUnitLength(0),
@@ -615,7 +677,7 @@ fn test_rope_index_conversion_to_utf8_offset() {
 
 #[test]
 fn test_rope_index_conversion_to_utf16_offset() {
-    let rope = Rope::new("A\nBB\nCCC\n家家", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\n家家");
     assert_eq!(
         rope.index_to_utf16_offset(RopeIndex::new(0, 0)),
         Utf16CodeUnitLength(0),
@@ -651,7 +713,7 @@ fn test_rope_index_conversion_to_utf16_offset() {
 
 #[test]
 fn test_utf16_offset_to_utf8_offset() {
-    let rope = Rope::new("A\nBB\nCCC\n家家", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\n家家");
     assert_eq!(
         rope.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(0)),
         Utf8CodeUnitLength(0),
@@ -687,36 +749,95 @@ fn test_utf16_offset_to_utf8_offset() {
 
 #[test]
 fn test_rope_delete_slice() {
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 1)..RopeIndex::new(0, 2));
     assert_eq!(rope.contents(), "AC\nDEF\n");
 
     // Trying to delete beyond the last index of the line should note remove any trailing
     // newlines from the rope.
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 3)..RopeIndex::new(0, 4));
     assert_eq!(rope.lines, ["ABC\n", "DEF\n", ""]);
 
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 0)..RopeIndex::new(0, 4));
     assert_eq!(rope.lines, ["\n", "DEF\n", ""]);
 
-    let mut rope = Rope::new("A\nBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("A\nBB\nCCC");
     rope.delete_range(RopeIndex::new(0, 2)..RopeIndex::new(1, 0));
     assert_eq!(rope.lines, ["ABB\n", "CCC"]);
 }
 
 #[test]
 fn test_rope_replace_slice() {
-    let mut rope = Rope::new("AAA\nBBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("AAA\nBBB\nCCC");
     rope.replace_range(RopeIndex::new(0, 1)..RopeIndex::new(0, 2), "x");
     assert_eq!(rope.contents(), "AxA\nBBB\nCCC",);
 
-    let mut rope = Rope::new("A\nBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("A\nBB\nCCC");
     rope.replace_range(RopeIndex::new(0, 2)..RopeIndex::new(1, 0), "D");
     assert_eq!(rope.lines, ["ADBB\n", "CCC"]);
 
-    let mut rope = Rope::new("AAA\nBBB\nCCC\nDDD", Lines::Multiple);
+    let mut rope = Rope::new("AAA\nBBB\nCCC\nDDD");
     rope.replace_range(RopeIndex::new(0, 2)..RopeIndex::new(2, 1), "x");
     assert_eq!(rope.lines, ["AAxCC\n", "DDD"]);
+}
+
+#[test]
+fn test_rope_relevant_word() {
+    let rope = Rope::new("AAA    BBB   CCC");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 0));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 3));
+
+    // Choose previous word if starting on whitespace.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 4));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 3));
+
+    // Choose next word if starting at word start.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 7));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 7));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 10));
+
+    // Choose word if starting at in middle.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 8));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 7));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 10));
+
+    // Choose start of line to end of first word if in whitespace at start of line.
+    let rope = Rope::new("         AAA    BBB   CCC");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 3));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 12));
+
+    // Works properly if line is empty.
+    let rope = Rope::new("");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 0));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 0));
+}
+
+#[test]
+fn test_rope_index_intersects_character() {
+    let rope = Rope::new("񉡚");
+    let rope_index = RopeIndex::new(0, 1);
+    assert_eq!(rope.normalize_index(rope_index), RopeIndex::new(0, 4));
+    assert_eq!(
+        rope.index_to_utf16_offset(rope_index),
+        Utf16CodeUnitLength(2)
+    );
+    assert_eq!(rope.index_to_utf8_offset(rope_index), Utf8CodeUnitLength(4));
+
+    let rope = Rope::new("abc\ndef");
+    assert_eq!(
+        rope.normalize_index(RopeIndex::new(0, 100)),
+        RopeIndex::new(0, 3),
+        "Normalizing index past end of line should just clamp to line length."
+    );
+    assert_eq!(
+        rope.normalize_index(RopeIndex::new(1, 100)),
+        RopeIndex::new(1, 3),
+        "Normalizing index past end of line should just clamp to line length."
+    );
 }

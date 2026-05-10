@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Miyoung Shin" href="myid.shin@igalia.com">
+<link rel="author" title="Hyowon Kim" href="hyowon@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#extensions-to-the-document-interface">
+
+<div id="container" style="width:200px; height:200px;">
+  <span id="innerSpan2">
+    <span id="innerSpan3">
+      <span id="innerSpan4">This is in nested inline elements</span>
+    </span>
+  </span>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const span = document.getElementById("innerSpan4");
+  const rect = span.getBoundingClientRect();
+  const x = rect.left + 8;
+  const y = rect.top + 8;
+
+  const elements = document.elementsFromPoint(x, y);
+  assert_equals(elements.length, 6);
+  assert_equals(elements[0].id, "innerSpan4");
+  assert_equals(elements[1].id, "innerSpan3");
+  assert_equals(elements[2].id, "innerSpan2");
+  assert_equals(elements[3].id, "container");
+  assert_equals(elements[4].nodeName, "BODY");
+  assert_equals(elements[5].nodeName, "HTML");
+}, "elementsFromPoint should return all elements under a point, including nested inline elements");
+</script>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: @import parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#request-url-modifiers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function test_import_valid(description, src, expected) {
+  test(t => {
+    const style = document.createElement("style");
+    style.textContent = `@import ${src};`;
+    document.head.appendChild(style);
+    t.add_cleanup(() => style.remove());
+    assert_equals(style.sheet.cssRules.length, 1, "should have one rule");
+    const rule = style.sheet.cssRules[0];
+    assert_equals(rule.type, CSSRule.IMPORT_RULE, "should be an @import rule");
+    if (expected !== undefined) {
+      assert_true(rule.cssText.includes(expected),
+          `cssText should contain "${expected}", got: ${rule.cssText}`);
+    }
+  }, description);
+}
+
+function test_import_invalid(description, src) {
+  test(t => {
+    const style = document.createElement("style");
+    style.textContent = `@import ${src};`;
+    document.head.appendChild(style);
+    t.add_cleanup(() => style.remove());
+    assert_equals(style.sheet.cssRules.length, 0, "should have no rules");
+  }, description);
+}
+
+test_import_valid(
+  "cross-origin(anonymous) in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous))');
+
+test_import_valid(
+  "referrer-policy(no-referrer) in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" referrer-policy(no-referrer))');
+
+test_import_valid(
+  "integrity() in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" integrity("sha384-foobar"))');
+
+test_import_valid(
+  "multiple modifiers in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous) referrer-policy(no-referrer))');
+
+test_import_valid(
+  "all three modifiers in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous) integrity("sha384-foobar") referrer-policy(no-referrer))');
+
+// Serialization round-trip
+test_import_valid(
+  "cross-origin(anonymous) serialized in @import cssText",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous))',
+  'cross-origin(anonymous)');
+
+test_import_valid(
+  "multiple modifiers serialized in canonical order in @import cssText",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" referrer-policy(no-referrer) cross-origin(anonymous))',
+  'cross-origin(anonymous) referrer-policy(no-referrer)');
+
+// Invalid cases
+test_import_invalid(
+  "duplicate cross-origin in @import",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous) cross-origin(anonymous))');
+
+test_import_invalid(
+  "duplicate cross-origin in @import between referrer-policy",
+  'url("http://{{hosts[][]}}:{{ports[http][0]}}/test.css" cross-origin(anonymous) referrer-policy(no-referrer) cross-origin(anonymous))');
+
+test_import_invalid(
+  "unquoted url() with cross-origin in @import",
+  'url(http://{{hosts[][]}}:{{ports[http][0]}}/test.css cross-origin(anonymous))');
+</script>

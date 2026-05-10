@@ -1,4 +1,7 @@
 features:
+- name: text-shadow
+  files:
+  - text-shadow-*
 - name: transitions
   files:
   - change-duration-during-transition.html

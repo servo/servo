@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Multiple spanners in multicol with trimmed margins</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .spanner {
+    column-span: all;
+    margin: 20px 0;
+    height: 20px;
+    background: green;
+  }
+  .filler {
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="filler" style="margin-top:20px;"></div>
+<div class="filler" style="margin-top:60px;"></div>
+<div style="columns:2; width:100px; margin-trim:block; background:red;">
+  <div class="spanner"></div>
+  <div class="spanner"></div>
+  <div class="spanner"></div>
+</div>

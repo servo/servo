@@ -1,22 +1,24 @@
 [package]
-name = "metrics"
+name = "servo-metrics"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "metrics"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 malloc_size_of = { workspace = true }
-compositing_traits = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+paint_api = { workspace = true }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-url = { workspace = true }

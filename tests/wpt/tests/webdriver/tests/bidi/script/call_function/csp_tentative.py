@@ -5,8 +5,9 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from .. import CSP_EXPRESSIONS
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "expression",
     CSP_EXPRESSIONS.values(),

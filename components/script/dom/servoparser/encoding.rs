@@ -139,14 +139,15 @@ impl DetectingState {
             // Step 6.2 If parentDocument's origin is same origin with d's origin and parentDocument's character encoding
             // is not UTF-16BE/LE, then return parentDocument's character encoding, with the confidence tentative.
             // NOTE: This should not happen for XML documents
-            if let Some(encoding) = self.encoding_of_container_document {
-                if encoding != UTF_16LE && encoding != UTF_16BE {
-                    log::debug!(
-                        "Inferred encoding to be that of the container document, which is {}",
-                        encoding.name()
-                    );
-                    return Some(encoding);
-                }
+            if let Some(encoding) = self.encoding_of_container_document &&
+                encoding != UTF_16LE &&
+                encoding != UTF_16BE
+            {
+                log::debug!(
+                    "Inferred encoding to be that of the container document, which is {}",
+                    encoding.name()
+                );
+                return Some(encoding);
             }
 
             // Step 7. Otherwise, if the user agent has information on the likely encoding for this page, e.g.
@@ -217,8 +218,8 @@ impl NetworkDecoderState {
                     document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                     *self = Self::Decoding(DecodingState {
-                        decoder: Some(LossyDecoder::new_encoding_rs(
-                            encoding,
+                        decoder: Some(LossyDecoder::new_from_encoding_rs_decoder(
+                            encoding.new_decoder_without_bom_handling(),
                             NetworkSink::default(),
                         )),
                         encoding,
@@ -245,7 +246,10 @@ impl NetworkDecoderState {
                 let encoding = encoding_detector.finish(document);
                 document.set_encoding(encoding);
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
-                let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
+                let mut decoder = LossyDecoder::new_from_encoding_rs_decoder(
+                    encoding.new_decoder_without_bom_handling(),
+                    NetworkSink::default(),
+                );
                 decoder.process(ByteTendril::from(&*buffered_bytes));
                 *self = Self::Decoding(DecodingState {
                     // Important to set `None` here to indicate that we're done decoding
@@ -409,13 +413,14 @@ pub fn prescan_the_byte_stream_to_determine_the_encoding(
                         // giving the attribute's value as the string to parse. If a character encoding
                         // is returned, and if charset is still set to null, let charset be the encoding
                         // returned, and set need pragma to true.
-                        if charset.is_none() {
-                            if let Some(extracted_charset) =
-                                extract_a_character_encoding_from_a_meta_element(&attribute.value)
-                            {
-                                need_pragma = Some(true);
-                                charset = Some(extracted_charset);
-                            }
+                        if charset.is_none() &&
+                            let Some(extracted_charset) =
+                                extract_a_character_encoding_from_a_meta_element(
+                                    &attribute.value,
+                                )
+                        {
+                            need_pragma = Some(true);
+                            charset = Some(extracted_charset);
                         }
                     },
                     // If the attribute's name is "charset"

@@ -19,11 +19,11 @@
       row-gap: 10px;
       row-rule-width: 10px;
       row-rule-style: solid;
-      row-rule-color: black black black;
+      row-rule-color: black, black, black;
       flex-wrap: wrap;
       column-rule-color: 10px;
       column-rule-style: solid;
-      column-rule-color: black red blue;
+      column-rule-color: black, red, blue;
     }
   </style>
 </head>
@@ -32,27 +32,27 @@
     test_interpolation({
       property: 'row-rule-color',
       from: neutralKeyframe,
-      to: 'red red red',
+      to: 'red, red, red',
     }, [
-      { at: -0.3, expect: 'black black black' },
-      { at: 0, expect: 'black black black' },
-      { at: 0.3, expect: 'rgb(77, 0, 0) rgb(77, 0, 0) rgb(77, 0, 0)' },
-      { at: 0.6, expect: 'rgb(153, 0, 0) rgb(153, 0, 0) rgb(153, 0, 0)' },
-      { at: 1, expect: 'red red red' },
-      { at: 1.5, expect: 'red red red' },
+      { at: -0.3, expect: 'black, black, black' },
+      { at: 0, expect: 'black, black, black' },
+      { at: 0.3, expect: 'rgb(77, 0, 0), rgb(77, 0, 0), rgb(77, 0, 0)' },
+      { at: 0.6, expect: 'rgb(153, 0, 0), rgb(153, 0, 0), rgb(153, 0, 0)' },
+      { at: 1, expect: 'red, red, red' },
+      { at: 1.5, expect: 'red, red, red' },
     ]);
 
     test_interpolation({
       property: 'column-rule-color',
       from: neutralKeyframe,
-      to: 'red blue red',
+      to: 'red, blue, red',
     }, [
-      { at: -0.3, expect: 'black red blue' },
-      { at: 0, expect: 'black red blue' },
-      { at: 0.3, expect: 'rgb(77, 0, 0) rgb(179, 0, 77) rgb(77, 0, 179)' },
-      { at: 0.6, expect: 'rgb(153, 0, 0) rgb(102, 0, 153) rgb(153, 0, 102)' },
-      { at: 1, expect: 'red blue red' },
-      { at: 1.5, expect: 'red blue red' },
+      { at: -0.3, expect: 'black, red, blue' },
+      { at: 0, expect: 'black, red, blue' },
+      { at: 0.3, expect: 'rgb(77, 0, 0), rgb(179, 0, 77), rgb(77, 0, 179)' },
+      { at: 0.6, expect: 'rgb(153, 0, 0), rgb(102, 0, 153), rgb(153, 0, 102)' },
+      { at: 1, expect: 'red, blue, red' },
+      { at: 1.5, expect: 'red, blue, red' },
     ]);
   </script>
 </body>

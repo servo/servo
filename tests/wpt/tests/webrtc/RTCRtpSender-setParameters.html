@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpSender.prototype.setParameters</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -15,6 +19,7 @@
         6.  If transceiver.stopped is true, abort these steps and return a promise
             rejected with a newly created InvalidStateError.
    */
+if (rest) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -35,7 +40,9 @@
     sender.setParameters(param);
     await sender.setParameters(param);
   }, `setParameters() with already used parameters should work if the event loop has not been relinquished`);
+}
 
+if (interop2026) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -47,5 +54,6 @@
     await promise_rejects_dom(t, 'InvalidStateError',
       sender.setParameters(param));
   }, `setParameters() with already used parameters should reject with InvalidStateError if the event loop has been relinquished`);
+}
 
 </script>

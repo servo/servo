@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test invalidation of the `hanging` keyword</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-hanging-001-ref.html">
+<style>
+.target {
+  border: 1px solid;
+  width: 8ch;
+  text-indent: 4ch;
+}
+.after {
+  text-indent: 4ch hanging;
+}
+</style>
+<div id="target" class="target">
+  0000 0000
+</div>
+<script>
+document.body.offsetTop;
+target.classList.add('after');
+</script>

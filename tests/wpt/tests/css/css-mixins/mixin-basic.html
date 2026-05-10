@@ -7,31 +7,51 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
       @mixin --m1() {  /* Will be overwritten. */
-        .cls {
-          color: red;
+        @result {
+          .cls {
+            color: red;
+          }
         }
       }
       @mixin --m1() {
-        .cls {
-          color: green;
+        @result {
+          .cls {
+            color: green;
+          }
         }
       }
       @mixin invalid-name() {
-        .cls {
+        @result {
+          .cls {
+            color: red;
+          }
+        }
+      }
+      @mixin --missing-argument-list {
+        @result {
+          .cls {
+            color: red;
+          }
+        }
+      }
+      @mixin --missing-result1() {
+       .cls {
           color: red;
         }
       }
-      @mixin missing-argument-list {
-        .cls {
-          color: red;
-        }
+      @mixin --missing-result2() {
+        color: red;
       }
-      @mixin --empty() {}
+      @mixin --empty1() {}
+      @mixin --empty2() { @result {} }
       div {
         @apply --m1;
         @apply invalid-name;
-        @apply missing-argument-list;
-        @apply --empty;
+        @apply --missing-argument-list;
+        @apply --missing-result1;
+        @apply --missing-result2;
+        @apply --empty1;
+        @apply --empty2;
       }
     </style>
   </head>

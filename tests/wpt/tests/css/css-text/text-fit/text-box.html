@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="match" href="text-box-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  width: 120px;
+  border: 2px solid blue;
+  margin-bottom: 10px;
+  font: 20px/2 Ahem;
+  white-space: pre;
+  text-box: trim-both cap text;
+}
+</style>
+
+<div class="target" style="text-fit:grow consistent;"
+>a b
+bc
+def
+</div>
+
+<div class="target" style="text-fit:shrink consistent;"
+>abc abc abcd
+bc m
+def
+</div>

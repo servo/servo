@@ -6,7 +6,7 @@
 
 idl_test(
   ["html"],
-  ["wai-aria", "dom", "cssom", "touch-events", "uievents", "performance-timeline"],
+  ["wai-aria", "dom", "cssom", "touch-events", "pointerevents", "uievents", "performance-timeline"],
   idlArray => {
     if (self.GLOBAL.isShadowRealm()) {
       return;

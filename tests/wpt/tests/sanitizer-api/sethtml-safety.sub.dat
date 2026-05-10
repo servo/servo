@@ -14,8 +14,7 @@ script
 <div>Hello<script>World</script>xxx
 #document
 | <div>
-|   "Hello"
-|   "xxx"
+|   "Helloxxx"
 
 #data
 <div>Hello<script>World</script>xxx
@@ -23,15 +22,13 @@ script
 { "elements": ["div", "script"] }
 #document
 | <div>
-|   "Hello"
-|   "xxx"
+|   "Helloxxx"
 
 #data
 <svg>Hello<script>World</script>xxx
 #document
 | <svg svg>
-|   "Hello"
-|   "xxx"
+|   "Helloxxx"
 
 #data
 <a href="https://{{host}}/" onclick="2+2" one="two">

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible with dynamic anchor toggle</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-dynamic-anchor-toggle-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#anchor {
+  anchor-name: --a1;
+  position: fixed;
+  left: 50px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  visibility: hidden;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: fixed;
+  left: anchor(left, 100px);
+  top: anchor(bottom, 100px);
+}
+</style>
+<div id="anchor"></div>
+<div id="target"></div>
+<script>
+const observer = new ResizeObserver(() => {
+  observer.disconnect();
+  requestAnimationFrame(() => takeScreenshot());
+});
+observer.observe(target);
+
+function setPositionAnchor(name) {
+  target.style.positionAnchor = name;
+  target.offsetWidth;
+}
+
+target.offsetWidth;
+// 1. Anchor to the hidden element.
+setPositionAnchor('--a1');
+// 2. Remove the anchor (old scroll data becomes inactive).
+setPositionAnchor('');
+// 3. Anchor to the hidden element again.
+setPositionAnchor('--a1');
+</script>
+</html>

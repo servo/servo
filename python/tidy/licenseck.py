@@ -37,4 +37,5 @@ licenses_toml = [
     'license = "MPL-2.0"',
     'license = "MIT/Apache-2.0"',
     'license = "MIT OR Apache-2.0"',
+    'license = "MPL-2.0 AND BSD-3-Clause"',
 ]

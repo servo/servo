@@ -11,7 +11,7 @@ objects</title>
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   const {exec} = await create_prerendered_page(t);

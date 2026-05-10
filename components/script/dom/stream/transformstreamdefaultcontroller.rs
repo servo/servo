@@ -1,0 +1,736 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::jsapi::{
+    ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
+};
+use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
+use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
+    Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
+};
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::compressionstream::{
+    CompressionStream, compress_and_enqueue_a_chunk, compress_flush_and_enqueue,
+};
+use crate::dom::decompressionstream::{
+    decompress_and_enqueue_a_chunk, decompress_flush_and_enqueue,
+};
+use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
+use crate::dom::encoding::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
+use crate::dom::encoding::textencoderstream::{
+    Encoder, encode_and_enqueue_a_chunk, encode_and_flush,
+};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::types::{DecompressionStream, TransformStream};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::CanGc;
+
+impl js::gc::Rootable for TransformTransformPromiseRejection {}
+
+/// Reacting to transformPromise as part of
+/// <https://streams.spec.whatwg.org/#transform-stream-default-controller-perform-transform>
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct TransformTransformPromiseRejection {
+    controller: Dom<TransformStreamDefaultController>,
+}
+
+impl Callback for TransformTransformPromiseRejection {
+    /// Reacting to transformPromise with the following fulfillment steps:
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        // Perform ! TransformStreamError(controller.[[stream]], r).
+        self.controller.error(cx, &self.controller.global(), v);
+
+        // Throw r.
+        // Note: this is done part of perform_transform().
+    }
+}
+
+/// The type of transformer algorithms we are using
+#[derive(JSTraceable)]
+pub(crate) enum TransformerType {
+    /// Algorithms provided by Js callbacks
+    Js {
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
+        cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
+        flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
+        transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
+
+        /// The JS object used as `this` when invoking sink algorithms.
+        transform_obj: Heap<*mut JSObject>,
+    },
+    /// Algorithms supporting `TextDecoderStream` are implemented in Rust
+    ///
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon>
+    Decoder(Rc<TextDecoderCommon>),
+    /// Algorithms supporting `TextEncoderStream` are implemented in Rust
+    ///
+    /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
+    Encoder(Encoder),
+    /// Algorithms supporting `CompressionStream` are implemented in Rust
+    ///
+    /// <https://compression.spec.whatwg.org/#compressionstream>
+    Compressor(DomRoot<CompressionStream>),
+    /// Algorithms supporting `DecompressionStream` are implemented in Rust
+    ///
+    /// <https://compression.spec.whatwg.org/#decompressionstream>
+    Decompressor(DomRoot<DecompressionStream>),
+}
+
+impl TransformerType {
+    pub(crate) fn new_from_js_transformer(transformer: &Transformer) -> TransformerType {
+        TransformerType::Js {
+            cancel: RefCell::new(transformer.cancel.clone()),
+            flush: RefCell::new(transformer.flush.clone()),
+            transform: RefCell::new(transformer.transform.clone()),
+            transform_obj: Default::default(),
+        }
+    }
+}
+
+/// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller>
+#[dom_struct]
+pub struct TransformStreamDefaultController {
+    reflector_: Reflector,
+
+    /// The type of the underlying transformer used. Besides the JS variant,
+    /// there will be other variant(s) for `TextDecoderStream`
+    #[ignore_malloc_size_of = "transformer_type"]
+    transformer_type: TransformerType,
+
+    /// <https://streams.spec.whatwg.org/#TransformStreamDefaultController-stream>
+    stream: MutNullableDom<TransformStream>,
+
+    /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-finishpromise>
+    #[conditional_malloc_size_of]
+    finish_promise: DomRefCell<Option<Rc<Promise>>>,
+}
+
+impl TransformStreamDefaultController {
+    fn new_inherited(transformer_type: TransformerType) -> TransformStreamDefaultController {
+        TransformStreamDefaultController {
+            reflector_: Reflector::new(),
+            transformer_type,
+            stream: MutNullableDom::new(None),
+            finish_promise: DomRefCell::new(None),
+        }
+    }
+
+    pub(crate) fn new(
+        global: &GlobalScope,
+        transformer_type: TransformerType,
+        can_gc: CanGc,
+    ) -> DomRoot<TransformStreamDefaultController> {
+        reflect_dom_object(
+            Box::new(TransformStreamDefaultController::new_inherited(
+                transformer_type,
+            )),
+            global,
+            can_gc,
+        )
+    }
+
+    /// Setting the JS object after the heap has settled down.
+    ///
+    /// Note that this has no effect if the transformer type is not `TransformerType::Js`
+    pub(crate) fn set_transform_obj(&self, this_object: SafeHandleObject) {
+        if let TransformerType::Js { transform_obj, .. } = &self.transformer_type {
+            transform_obj.set(*this_object)
+        } else {
+            unreachable!("Non-Js transformer type should not set transform_obj")
+        }
+    }
+
+    pub(crate) fn set_stream(&self, stream: &TransformStream) {
+        self.stream.set(Some(stream));
+    }
+
+    pub(crate) fn get_finish_promise(&self) -> Option<Rc<Promise>> {
+        self.finish_promise.borrow().clone()
+    }
+
+    pub(crate) fn set_finish_promise(&self, promise: Rc<Promise>) {
+        *self.finish_promise.borrow_mut() = Some(promise);
+    }
+
+    /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-perform-transform>
+    pub(crate) fn transform_stream_default_controller_perform_transform(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+    ) -> Fallible<Rc<Promise>> {
+        // Let transformPromise be the result of performing controller.[[transformAlgorithm]], passing chunk.
+        let transform_promise = self.perform_transform(cx, global, chunk)?;
+
+        // Return the result of reacting to transformPromise with the following rejection steps given the argument r:
+        rooted!(&in(cx) let mut reject_handler = Some(TransformTransformPromiseRejection {
+            controller: Dom::from_ref(self),
+        }));
+
+        let handler = PromiseNativeHandler::new(
+            global,
+            None,
+            reject_handler.take().map(|h| Box::new(h) as Box<_>),
+            CanGc::from_cx(cx),
+        );
+        let mut realm = enter_auto_realm(cx, global);
+        let realm = &mut realm.current_realm();
+        transform_promise.append_native_handler(realm, &handler);
+
+        Ok(transform_promise)
+    }
+
+    pub(crate) fn perform_transform(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+    ) -> Fallible<Rc<Promise>> {
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                transform,
+                transform_obj,
+                ..
+            } => {
+                // Step 5. If transformerDict["transform"] exists, set
+                // transformAlgorithm to an algorithm which takes an argument
+                // chunk and returns the result of invoking
+                // transformerDict["transform"] with argument list « chunk,
+                // controller » and callback this value transformer.
+                let algo = transform.borrow().clone();
+                if let Some(transform) = algo {
+                    rooted!(&in(cx) let this_object = transform_obj.get());
+                    transform
+                        .Call_(
+                            cx,
+                            &this_object.handle(),
+                            chunk,
+                            self,
+                            ExceptionHandling::Rethrow,
+                        )
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new2(cx, global);
+                            p.reject_error(e, CanGc::from_cx(cx));
+                            p
+                        })
+                } else {
+                    // Step 2. Let transformAlgorithm be the following steps, taking a chunk argument:
+                    // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
+                    // If result is an abrupt completion, return a promise rejected with result.[[Value]].
+                    if let Err(error) = self.enqueue(cx, global, chunk) {
+                        rooted!(&in(cx) let mut error_val = UndefinedValue());
+                        error.to_jsval(
+                            cx.into(),
+                            global,
+                            error_val.handle_mut(),
+                            CanGc::from_cx(cx),
+                        );
+                        Promise::new_rejected(
+                            global,
+                            cx.into(),
+                            error_val.handle(),
+                            CanGc::from_cx(cx),
+                        )
+                    } else {
+                        // Otherwise, return a promise resolved with undefined.
+                        Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+                    }
+                }
+            },
+            TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
+                // Step 7. Let transformAlgorithm be an algorithm which takes a
+                // chunk argument and runs the decode and enqueue a chunk
+                // algorithm with this and chunk.
+                decode_and_enqueue_a_chunk(cx, global, chunk, decoder, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require deode_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Encoder(encoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textencoderstream>
+                // Step 2. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the encode
+                //      and enqueue a chunk algorithm with this and chunk.
+                encode_and_enqueue_a_chunk(cx, global, chunk, encoder, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require encode_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Compressor(cs) => {
+                // <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
+                // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and
+                // runs the compress and enqueue a chunk algorithm with this and chunk.
+                compress_and_enqueue_a_chunk(cx, global, cs, chunk, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require
+                    // compress_and_enqueue_a_chunk() to return a Promise.
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Decompressor(ds) => {
+                // <https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream>
+                // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and
+                // runs the decompress and enqueue a chunk algorithm with this and chunk.
+                decompress_and_enqueue_a_chunk(cx, global, ds, chunk, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require
+                    // decompress_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+        };
+
+        Ok(result)
+    }
+
+    pub(crate) fn perform_cancel(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+    ) -> Fallible<Rc<Promise>> {
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                cancel,
+                transform_obj,
+                ..
+            } => {
+                // Step 7. If transformerDict["cancel"] exists, set
+                // cancelAlgorithm to an algorithm which takes an argument
+                // reason and returns the result of invoking
+                // transformerDict["cancel"] with argument list « reason » and
+                // callback this value transformer.
+                let algo = cancel.borrow().clone();
+                if let Some(cancel) = algo {
+                    rooted!(&in(cx) let this_object = transform_obj.get());
+                    cancel
+                        .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new2(cx, global);
+                            p.reject_error(e, CanGc::from_cx(cx));
+                            p
+                        })
+                } else {
+                    // Step 4. Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
+                    Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+                }
+            },
+            TransformerType::Decoder(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+            },
+            TransformerType::Encoder(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+            },
+            TransformerType::Compressor(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `CompressionStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+            },
+            TransformerType::Decompressor(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `DecompressionStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+            },
+        };
+
+        Ok(result)
+    }
+
+    pub(crate) fn perform_flush(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> Fallible<Rc<Promise>> {
+        let result = match &self.transformer_type {
+            // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
+            TransformerType::Js {
+                flush,
+                transform_obj,
+                ..
+            } => {
+                // Step 6. If transformerDict["flush"] exists, set flushAlgorithm to an
+                // algorithm which returns the result of invoking
+                // transformerDict["flush"] with argument list « controller »
+                // and callback this value transformer.
+                let algo = flush.borrow().clone();
+                if let Some(flush) = algo {
+                    rooted!(&in(cx) let this_object = transform_obj.get());
+                    flush
+                        .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)
+                        .unwrap_or_else(|e| {
+                            let p = Promise::new2(cx, global);
+                            p.reject_error(e, CanGc::from_cx(cx));
+                            p
+                        })
+                } else {
+                    // Step 3. Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.
+                    Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+                }
+            },
+            TransformerType::Decoder(decoder) => {
+                // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
+                // Step 8. Let flushAlgorithm be an algorithm which takes no
+                // arguments and runs the flush and enqueue algorithm with this.
+                flush_and_enqueue(cx, global, decoder, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require flush_and_enqueue algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Encoder(encoder) => {
+                // <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
+                // Step 3. Let flushAlgorithm be an algorithm which runs the encode and flush algorithm with this.
+                encode_and_flush(cx, global, encoder, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require encode_and_flush algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Compressor(cs) => {
+                // <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
+                // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
+                // compress flush and enqueue algorithm with this.
+                compress_flush_and_enqueue(cx, global, cs, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require compress_flush_and_enqueue
+                    // algo to return a Promise.
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+            TransformerType::Decompressor(ds) => {
+                // <https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream>
+                // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
+                // decompress flush and enqueue algorithm with this.
+                decompress_flush_and_enqueue(cx, global, ds, self)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require decompress_flush_and_enqueue
+                    // algo to return a Promise.
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx)))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let mut realm = enter_auto_realm(cx, self);
+                        let realm = &mut realm.current_realm();
+                        let p = Promise::new_in_realm(realm);
+                        // return a promise rejected with e.
+                        p.reject_error(e, CanGc::from_cx(realm));
+                        p
+                    })
+            },
+        };
+
+        Ok(result)
+    }
+
+    /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-enqueue>
+    #[expect(unsafe_code)]
+    pub(crate) fn enqueue(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+    ) -> Fallible<()> {
+        // Let stream be controller.[[stream]].
+        let stream = self.stream.get().expect("stream is null");
+
+        // Let readableController be stream.[[readable]].[[controller]].
+        let readable = stream.get_readable();
+        let readable_controller = readable.get_default_controller();
+
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController)
+        // is false, throw a TypeError exception.
+        if !readable_controller.can_close_or_enqueue() {
+            return Err(Error::Type(
+                c"ReadableStreamDefaultControllerCanCloseOrEnqueue is false".to_owned(),
+            ));
+        }
+
+        // Let enqueueResult be ReadableStreamDefaultControllerEnqueue(readableController, chunk).
+        // If enqueueResult is an abrupt completion,
+        if let Err(error) = readable_controller.enqueue(cx, chunk) {
+            // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, enqueueResult.[[Value]]).
+            rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+            error.clone().to_jsval(
+                cx.into(),
+                global,
+                rooted_error.handle_mut(),
+                CanGc::from_cx(cx),
+            );
+            stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
+
+            // Throw stream.[[readable]].[[storedError]].
+            unsafe {
+                if !JS_IsExceptionPending(cx.raw_cx()) {
+                    rooted!(&in(cx) let mut stored_error = UndefinedValue());
+                    readable.get_stored_error(stored_error.handle_mut());
+
+                    JS_SetPendingException(
+                        cx.raw_cx(),
+                        stored_error.handle().into(),
+                        ExceptionStackBehavior::Capture,
+                    );
+                }
+            }
+            return Err(error);
+        }
+
+        // Let backpressure be ! ReadableStreamDefaultControllerHasBackpressure(readableController).
+        let backpressure = readable_controller.has_backpressure();
+
+        // If backpressure is not stream.[[backpressure]],
+        if backpressure != stream.get_backpressure() {
+            // Assert: backpressure is true.
+            assert!(backpressure);
+
+            // Perform ! TransformStreamSetBackpressure(stream, true).
+            stream.set_backpressure(global, true, CanGc::from_cx(cx));
+        }
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-error>
+    pub(crate) fn error(&self, cx: &mut JSContext, global: &GlobalScope, reason: SafeHandleValue) {
+        // Perform ! TransformStreamError(controller.[[stream]], e).
+        self.stream
+            .get()
+            .expect("stream is undefined")
+            .error(cx, global, reason);
+    }
+
+    /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-clear-algorithms>
+    pub(crate) fn clear_algorithms(&self) {
+        if let TransformerType::Js {
+            cancel,
+            flush,
+            transform,
+            ..
+        } = &self.transformer_type
+        {
+            // Set controller.[[transformAlgorithm]] to undefined.
+            transform.replace(None);
+
+            // Set controller.[[flushAlgorithm]] to undefined.
+            flush.replace(None);
+
+            // Set controller.[[cancelAlgorithm]] to undefined.
+            cancel.replace(None);
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-terminate>
+    fn terminate(&self, cx: &mut JSContext, global: &GlobalScope) {
+        // Let stream be controller.[[stream]].
+        let stream = self.stream.get().expect("stream is null");
+
+        // Let readableController be stream.[[readable]].[[controller]].
+        let readable = stream.get_readable();
+        let readable_controller = readable.get_default_controller();
+
+        // Perform ! ReadableStreamDefaultControllerClose(readableController).
+        readable_controller.close(cx);
+
+        // Let error be a TypeError exception indicating that the stream has been terminated.
+        let error = Error::Type(c"stream has been terminated".to_owned());
+
+        // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
+        rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+        error.to_jsval(
+            cx.into(),
+            global,
+            rooted_error.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
+    }
+}
+
+impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
+    for TransformStreamDefaultController
+{
+    /// <https://streams.spec.whatwg.org/#ts-default-controller-desired-size>
+    fn GetDesiredSize(&self) -> Option<f64> {
+        // Let readableController be this.[[stream]].[[readable]].[[controller]].
+        let readable_controller = self
+            .stream
+            .get()
+            .expect("stream is null")
+            .get_readable()
+            .get_default_controller();
+
+        // Return ! ReadableStreamDefaultControllerGetDesiredSize(readableController).
+        readable_controller.get_desired_size()
+    }
+
+    /// <https://streams.spec.whatwg.org/#ts-default-controller-enqueue>
+    fn Enqueue(&self, cx: &mut JSContext, chunk: SafeHandleValue) -> Fallible<()> {
+        // Perform ? TransformStreamDefaultControllerEnqueue(this, chunk).
+        self.enqueue(cx, &self.global(), chunk)
+    }
+
+    /// <https://streams.spec.whatwg.org/#ts-default-controller-error>
+    fn Error(&self, cx: &mut JSContext, reason: SafeHandleValue) -> Fallible<()> {
+        // Perform ? TransformStreamDefaultControllerError(this, e).
+        self.error(cx, &self.global(), reason);
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#ts-default-controller-terminate>
+    fn Terminate(&self, cx: &mut JSContext) -> Fallible<()> {
+        // Perform ? TransformStreamDefaultControllerTerminate(this).
+        self.terminate(cx, &self.global());
+        Ok(())
+    }
+}

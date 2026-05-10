@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webrender_api::ImageKey;
+use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::LayoutDom;
 
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {

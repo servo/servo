@@ -9,3 +9,7 @@ features:
 - name: lang
   files:
   - lang-selector-*
+- name: link-selectors
+  files:
+  - "link-visited-selector*"
+  - pseudo-009.xht

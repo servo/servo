@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().setBaseAndExtent(
+    document.querySelector("audio"), 1,
+    document.querySelector("label"), 1
+  );
+  document.querySelector("audio").controls = false;
+});
+</script>
+<label>
+<audio controls>
+</audio></body></html>

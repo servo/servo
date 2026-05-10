@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: multicol gap decorations extend to meet cross-direction
+    decoration width at far edge with rule-inset: overlap-join and column-wrap.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-033-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+        column-count: 3;
+        column-width: 60px;
+        column-height: 60px;
+        column-gap: 10px;
+        row-gap: 10px;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-color: rgba(0,0,255, 0.5);
+        column-rule-break: intersection;
+        column-rule-inset: overlap-join;
+
+        row-rule-width: 10px;
+        row-rule-style: solid;
+        row-rule-color: rgba(255, 0, 0, 0.5);
+        row-rule-break: intersection;
+        column-wrap: wrap;
+
+        row-rule-inset: overlap-join;
+    }
+
+    p {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+    }
+</style>
+
+<div class="container">
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+</div>

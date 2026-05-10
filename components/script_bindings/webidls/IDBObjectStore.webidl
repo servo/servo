@@ -33,12 +33,12 @@ interface IDBObjectStore {
   [NewObject, Throws] IDBRequest openKeyCursor(optional any query,
                                        optional IDBCursorDirection direction = "next");
 
-  // IDBIndex index(DOMString name);
+  [Throws] IDBIndex index(DOMString name);
 
-  // [NewObject] IDBIndex createIndex(DOMString name,
-  //                                  (DOMString or sequence<DOMString>) keyPath,
-  //                                  optional IDBIndexParameters options = {});
-  // void deleteIndex(DOMString name);
+  [NewObject, Throws] IDBIndex createIndex(DOMString name,
+                                   (DOMString or sequence<DOMString>) keyPath,
+                                   optional IDBIndexParameters options = {});
+  [Throws] undefined deleteIndex(DOMString name);
 };
 
 // https://w3c.github.io/IndexedDB/#dictdef-idbindexparameters

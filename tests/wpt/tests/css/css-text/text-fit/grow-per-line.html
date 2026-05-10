@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="grow-per-line-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  text-fit: grow per-line;
+  width: 120px;
+  border: 2px solid blue;
+  margin-bottom: 10px;
+  font: 20px/normal Ahem;
+}
+
+.target:first-line {
+  color: lime;
+}
+</style>
+<body>
+
+<div class="target">ABCD EFGHIJ</div>
+</body>

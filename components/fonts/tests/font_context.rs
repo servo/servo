@@ -14,8 +14,6 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
-    use base::generic_channel::{self, GenericReceiver};
-    use compositing_traits::CrossProcessPaintApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
@@ -23,9 +21,12 @@ mod font_context {
         PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
         SystemFontServiceProxySender, fallback_font_families,
     };
+    use icu_locid::subtags::Language;
     use net_traits::{ResourceThreads, start_fetch_thread};
+    use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
+    use servo_base::generic_channel::{self, GenericReceiver};
     use style::ArcSlice;
     use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -263,7 +264,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -276,7 +277,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -289,7 +290,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, Language::UND)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
         assert_eq!(
@@ -312,7 +313,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),
@@ -321,7 +322,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, Language::UND)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),

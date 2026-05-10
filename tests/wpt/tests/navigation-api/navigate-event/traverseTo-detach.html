@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async () => {
+  let event = null;
+  await new Promise(r => window.onload = r);
+  const key = i.contentWindow.navigation.currentEntry.key;
+  i.contentWindow.history.pushState({}, null, "#1");
+  let { resolve, promise } = Promise.withResolvers();
+  i.contentWindow.navigation.onnavigate = e => {
+    event = e;
+    e.intercept();
+    i.remove();
+    resolve();
+  };
+
+  i.contentWindow.navigation.traverseTo(key);
+  await promise;
+
+  assert_true(event.defaultPrevented);
+}, "event is canceled when an iframe is detached");
+</script>

@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Nested table-row-group anonymous table fixup</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#fixup-algorithm">
+<link rel="help" href="https://github.com/servo/servo/issues/43660">
+<link rel="match" href="table-row-group-nested-anonymous-001-ref.html">
+<style>
+  .cell { display: table-cell; border: 1px solid gray; padding: 4px; font: 16px serif; }
+</style>
+
+<div style="display: table-row-group">
+  <div style="display: table-row-group">
+    <div class="cell">a</div>
+    <div class="cell">b</div>
+  </div>
+  <div class="cell">cccc</div>
+  <div class="cell">dddd</div>
+</div>

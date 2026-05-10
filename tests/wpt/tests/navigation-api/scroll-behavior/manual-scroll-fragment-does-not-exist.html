@@ -24,10 +24,10 @@ promise_test(async t => {
   await promises.committed;
   assert_not_equals(window.scrollY, 0);
   navigate_event.scroll();
-  assert_not_equals(window.scrollY, 0);
+  assert_equals(window.scrollY, 0);
   intercept_resolve();
   await promises.finished;
-  assert_not_equals(window.scrollY, 0);
-}, "scroll: scroll() should do nothing when the fragment does not exist");
+  assert_equals(window.scrollY, 0);
+}, "scroll: scroll() should scroll to beginning of document when the fragment does not exist");
 </script>
 </body>

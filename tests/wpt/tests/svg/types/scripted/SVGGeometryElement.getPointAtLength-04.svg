@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>SVGGeometryElement.getPointAtLength: 'display' and a valid path</title>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <path id='pathElement1' d='M0,0L100,0L100,100' description='path with display: default'/>

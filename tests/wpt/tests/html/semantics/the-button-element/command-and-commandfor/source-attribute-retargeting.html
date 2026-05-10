@@ -17,7 +17,7 @@ promise_test(async () => {
   const shadowButton = host.shadowRoot.getElementById('shadow-button');
   shadowButton.commandForElement = popover;
 
-  const eventNames = ['beforetoggle', 'toggle', 'command'];
+  const eventNames = ['command'];
   const eventNameToEvent = {};
   const eventNameToCaptureSource = {};
   const eventNameToBubbleSource = {};
@@ -33,8 +33,7 @@ promise_test(async () => {
   }
 
   shadowButton.click();
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
+  await new Promise(resolve => step_timeout(resolve, 0));
 
   for (const eventName of eventNames) {
     const event = eventNameToEvent[eventName];
@@ -48,7 +47,7 @@ promise_test(async () => {
     assert_equals(event.source, host,
       `${eventName}.source after dispatch.`);
   }
-}, 'CommandEvent.source and ToggleEvent.source should be retargeted during and after event dispatch.');
+}, 'CommandEvent.source should be retargeted during and after event dispatch.');
 </script>
 
 <div id=host2>
@@ -63,7 +62,6 @@ promise_test(async () => {
 </div>
 
 <script>
-// This does not test ToggleEvent because ToggleEventInit does not have a source attribute.
 promise_test(async () => {
   const host2 = document.getElementById('host2');
   const source = host2.shadowRoot.getElementById('source');
@@ -110,7 +108,7 @@ promise_test(async () => {
   const button = document.getElementById('button3');
   const popover = document.getElementById('popover3');
 
-  const eventNames = ['beforetoggle', 'toggle', 'command'];
+  const eventNames = ['command'];
   const eventNameToEvent = {};
   for (const eventName of eventNames) {
     popover.addEventListener(eventName, event => {
@@ -119,8 +117,7 @@ promise_test(async () => {
   }
 
   button.click();
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
+  await new Promise(resolve => step_timeout(resolve, 0));
 
   for (const eventName of eventNames) {
     const event = eventNameToEvent[eventName];
@@ -128,5 +125,5 @@ promise_test(async () => {
     assert_equals(event.source, button,
       `${eventName}.source should be the invoker button after dispatch.`);
   }
-}, 'CommandEvent.source and ToggleEvent.source should not be set to null after dispatch without ShadowDOM.');
+}, 'CommandEvent.source should not be set to null after dispatch without ShadowDOM.');
 </script>

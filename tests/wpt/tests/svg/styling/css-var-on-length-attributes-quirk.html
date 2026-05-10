@@ -1,0 +1,11 @@
+<title>Usage of css var() on circle radius attribute, units not specified and document in quirks mode</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="match" href="css-linked-parameters/circle-green-ref.html">
+<style>
+  circle {
+    --radii: 48
+  }
+</style>
+<svg width="100px" height="100px">
+  <circle cx="50px" cy="50px" r="var(--radii)" fill="green" stroke-width="2px"/>
+</svg>

@@ -18,3 +18,10 @@ features:
   - unset-value-storage.html
   - all-prop-unset-color.html
   - all-prop-unset-visited.html
+- name: inherit-value
+  files:
+  - inherit-initial.html
+- name: initial-value
+  files:
+  - initial-background-color.html
+  - initial-color-background-001.html

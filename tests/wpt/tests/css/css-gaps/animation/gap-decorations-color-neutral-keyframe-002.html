@@ -14,11 +14,11 @@
     <script>
       test(() => {
         target.style.columnRuleStyle = 'solid';
-        target.style.columnRuleColor = 'black black black';
-        var animation = target.animate([{}, {columnRuleColor: 'red blue rgb(255, 0, 0)'}], 1000);
+        target.style.columnRuleColor = 'black, black, black';
+        var animation = target.animate([{}, {columnRuleColor: 'red, blue, rgb(255, 0, 0)'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleColor, 'rgb(128, 0, 0) rgb(0, 0, 128) rgb(128, 0, 0)');
+        assert_equals(getComputedStyle(target).columnRuleColor, 'rgb(128, 0, 0), rgb(0, 0, 128), rgb(128, 0, 0)');
       }, 'gap decorations column-rule-color value list supports neutral keyframe.');
     </script>
   </body>

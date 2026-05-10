@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Implicit anchoring to a fieldset anchors to outer, not inner box</title>
+<link rel="help" href="http://drafts.csswg.org/css-anchor-position-1/#implicit">
+<link rel="help" href="https://bugzil.la/2013896">
+<link rel="match" href="anchor-fieldset-001-ref.html">
+<style>
+fieldset::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: purple;
+  position: absolute;
+  position-anchor: auto;
+  position-area: bottom right;
+}
+
+fieldset {
+  width: 200px;
+  border: 10px solid blue;
+}
+</style>
+<form>
+  <fieldset>
+    <legend>Legend</legend>
+  </fieldset>
+</form>

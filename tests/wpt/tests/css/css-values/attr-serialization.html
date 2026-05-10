@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10503">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div>
+  <div id="target" data-foo="10.000px">
+</div>
+<script>
+  test_computed_serialization("width", "attr(data-foo type(<length>))", "10px");
+</script>

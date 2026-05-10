@@ -1,0 +1,161 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Single-axis scroll containers with programmatic scroll APIs</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollto">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollby">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5572">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .scroller {
+    width: 100px;
+    height: 100px;
+    scrollbar-width: none;
+  }
+  .clip-x {
+    overflow-x: clip;
+    overflow-y: scroll;
+  }
+  .clip-y {
+    overflow-x: scroll;
+    overflow-y: clip;
+  }
+  .rtl {
+    direction: rtl;
+  }
+  .content {
+    width: 300px;
+    height: 300px;
+  }
+</style>
+
+<!-- LTR scroller with clipped X -->
+<div class="scroller clip-x">
+  <div class="content"></div>
+</div>
+
+<!-- RTL scroller with clipped X -->
+<div class="scroller clip-x rtl">
+  <div class="content"></div>
+</div>
+
+<!-- LTR scroller with clipped Y -->
+<div class="scroller clip-y">
+  <div class="content"></div>
+</div>
+
+<!-- RTL scroller with clipped Y -->
+<div class="scroller clip-y rtl">
+  <div class="content"></div>
+</div>
+
+<script>
+function assertOverflowDimensions(scroller, label) {
+  assert_equals(scroller.scrollWidth, 300,
+      `${label}: scrollWidth retains overflowing content size`);
+  assert_equals(scroller.scrollHeight, 300,
+      `${label}: scrollHeight retains overflowing content size`);
+}
+
+test(() => {
+  const scroller = document.querySelector('.scroller.clip-x');
+
+  assert_equals(scroller.scrollLeft, 0,
+      'LTR clipped X: scrollLeft is set to default value of 0');
+
+  scroller.scrollTo(40, 50);
+  assert_equals(scroller.scrollLeft, 0,
+      'LTR clipped X: scrollTo ignores the clipped X-axis');
+  assert_equals(scroller.scrollTop, 50,
+      'LTR clipped X: scrollTo updates the unclipped Y-axis');
+
+  scroller.scrollBy(20, 20);
+  assert_equals(scroller.scrollLeft, 0,
+      'LTR clipped X: scrollBy ignores the clipped X-axis');
+  assert_equals(scroller.scrollTop, 70,
+      'LTR clipped X: scrollBy incrementally updates the unclipped Y-axis (50 + 20 = 70)');
+
+  scroller.scrollLeft = 70;
+  assert_equals(scroller.scrollLeft, 0,
+      'LTR clipped X: setting scrollLeft ignores the clipped X-axis');
+  assert_equals(scroller.scrollTop, 70,
+      'LTR clipped X: setting scrollLeft leaves the unclipped Y-axis unchanged');
+
+  assertOverflowDimensions(scroller, 'LTR clipped X');
+}, 'LTR clipped X');
+
+test(() => {
+  const scroller = document.querySelector('.scroller.clip-x.rtl');
+
+  scroller.scrollTo(-40, 50);
+  assert_equals(scroller.scrollLeft, 0,
+      'RTL clipped X: scrollTo ignores the clipped X-axis (negative in RTL)');
+  assert_equals(scroller.scrollTop, 50,
+      'RTL clipped X: scrollTo updates the unclipped Y-axis');
+
+  scroller.scrollBy(-20, 20);
+  assert_equals(scroller.scrollLeft, 0,
+      'RTL clipped X: scrollBy ignores the clipped X-axis');
+  assert_equals(scroller.scrollTop, 70,
+      'RTL clipped X: scrollBy incrementally updates the unclipped Y-axis (50 + 20 = 70)');
+
+  scroller.scrollLeft = -70;
+  assert_equals(scroller.scrollLeft, 0,
+      'RTL clipped X: setting scrollLeft ignores the clipped X-axis');
+  assert_equals(scroller.scrollTop, 70,
+      'RTL clipped X: setting scrollLeft leaves the unclipped Y-axis unchanged');
+
+  assertOverflowDimensions(scroller, 'RTL clipped X');
+}, 'RTL clipped X');
+
+test(() => {
+  const scroller = document.querySelector('.scroller.clip-y');
+
+  scroller.scrollTo(40, 50);
+  assert_equals(scroller.scrollLeft, 40,
+      'LTR clipped Y: scrollTo updates the unclipped X-axis');
+  assert_equals(scroller.scrollTop, 0,
+      'LTR clipped Y: scrollTo ignores the clipped Y-axis');
+
+  scroller.scrollBy(20, 20);
+  assert_equals(scroller.scrollLeft, 60,
+      'LTR clipped Y: scrollBy incrementally updates the unclipped X-axis (40 + 20 = 60)');
+  assert_equals(scroller.scrollTop, 0,
+      'LTR clipped Y: scrollBy ignores the clipped Y-axis');
+
+  scroller.scrollTop = 70;
+  assert_equals(scroller.scrollLeft, 60,
+      'LTR clipped Y: setting scrollTop leaves the unclipped X-axis unchanged');
+  assert_equals(scroller.scrollTop, 0,
+      'LTR clipped Y: setting scrollTop ignores the clipped Y-axis');
+
+  assertOverflowDimensions(scroller, 'LTR clipped Y');
+}, 'LTR clipped Y');
+
+test(() => {
+  const scroller = document.querySelector('.scroller.clip-y.rtl');
+
+  scroller.scrollTo(-40, 50);
+  assert_equals(scroller.scrollLeft, -40,
+      'RTL clipped Y: scrollTo updates the unclipped X-axis (negative in RTL)');
+  assert_equals(scroller.scrollTop, 0,
+      'RTL clipped Y: scrollTo ignores the clipped Y-axis');
+
+  scroller.scrollBy(-20, 20);
+  assert_equals(scroller.scrollLeft, -60,
+      'RTL clipped Y: scrollBy incrementally updates the unclipped X-axis (-40 + -20 = -60)');
+  assert_equals(scroller.scrollTop, 0,
+      'RTL clipped Y: scrollBy ignores the clipped Y-axis');
+
+  scroller.scrollTop = 70;
+  assert_equals(scroller.scrollLeft, -60,
+      'RTL clipped Y: setting scrollTop leaves the unclipped X-axis unchanged');
+  assert_equals(scroller.scrollTop, 0,
+      'RTL clipped Y: setting scrollTop ignores the clipped Y-axis');
+
+  assertOverflowDimensions(scroller, 'RTL clipped Y');
+}, 'RTL clipped Y');
+</script>

@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.iceGatheringState</title>
 <script src="/resources/testharness.js"></script>
@@ -7,7 +9,10 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
@@ -228,7 +233,8 @@
     await pc2.setRemoteDescription({type: 'rollback'});
     await pc2.setRemoteDescription(offer);
   }, 'sRD does not cause ICE gathering state changes');
-
+}
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -321,6 +327,7 @@
 
     await exchangeAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have connected connection state');
+}
 
   /*
     TODO

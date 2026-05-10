@@ -1,0 +1,5 @@
+features:
+- name: masonry
+  files:
+  - grid-template-*-repeat-intrinsic-valid.tentative.html
+  - grid-template-*-intrinsic-auto-repeat-computed*.tentative.html

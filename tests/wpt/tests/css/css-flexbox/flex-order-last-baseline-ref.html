@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test Reference: flex last baseline with order property</title>
+  <style>
+    .outer {
+        display: flex;
+        align-items: last baseline;
+        height: 100px;
+        border: 1px solid black;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        width: 60px;
+    }
+    .flex > div {
+        width: 60px;
+    }
+    /* Reference: items in DOM order matching visual order, no order property needed. */
+    .a { font-size: 10px; background: lightblue; }
+    .b { font-size: 30px; background: lightgreen; }
+  </style>
+</head>
+<body>
+  <p>Test passes if "Ref" is aligned to the baseline of "B" (the large green text).</p>
+  <div class="outer">
+      <div class="flex">
+          <div class="a">A</div>
+          <div class="b">B</div>
+      </div>
+      <div>Ref</div>
+  </div>
+</body>
+</html>

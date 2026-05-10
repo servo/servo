@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection H.264 profile levels</title>
 <meta name="timeout" content="long">
 <script src="../third_party/sdp/sdp.js"></script>
@@ -8,6 +10,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 function mungeLevel(sdp, level) {
   level_hex = Math.round(level * 10).toString(16).padStart(2, '0');
@@ -55,6 +59,9 @@ function sizeFitsLevel(width, height, fps, level) {
 const framesPerSecond = 30;
 
 for (let level of Object.keys(levelTable)) {
+  const numLevel = parseFloat(level);
+  // some levels are part of interop2026, others are not
+  if ((numLevel >= 3.1 && numLevel <= 5.2) ? rest : interop2026) continue;
   promise_test(async t => {
     assert_implements('getCapabilities' in RTCRtpSender, 'RTCRtpSender.getCapabilities not supported');
     assert_implements(RTCRtpSender.getCapabilities('video').codecs.find(c => c.mimeType === 'video/H264'), 'H264 not supported');

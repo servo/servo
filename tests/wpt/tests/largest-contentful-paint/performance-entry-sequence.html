@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: performance entries are emitted in the expected sequence</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"></div>
+
+<script>
+  function createDivWithText(id, text) {
+    const div = document.createElement('div');
+    div.innerHTML = `<div id="${id}">${text}</div>`;
+    return div;
+  }
+
+  function createDivWithImage(id, src) {
+    const div = document.createElement('div');
+    div.innerHTML = `<img src="${src}" id="${id}"></img>`;
+    return div;
+  }
+
+  promise_test(async t => {
+    assert_implements(
+      window.PerformancePaintTiming, "PerformancePaintTiming is not implemented");
+    assert_implements(
+      window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+
+    requestAnimationFrame(() => {
+      // Frame 1: paint three divs, with one being the largest. This should produce
+      // a LargestContentfulPaint entry for text2.
+      container.appendChild(createDivWithText('text1', 'AB'));
+      container.appendChild(createDivWithText('text2', 'ABC'));
+      container.appendChild(createDivWithText('text3', 'A'));
+
+      requestAnimationFrame(() => {
+        // Frame 2: paint two more divs, one larger than the other and both
+        // larger than the previous painted divs. This should produce
+        // a LargestContentfulPaint entry for text5.
+        container.appendChild(createDivWithText('text4', 'ABCD'));
+        container.appendChild(createDivWithText('text5', 'ABCDE'));
+
+        // Frame 3: While this image is appended in frame 2, it needs to be
+        // loaded, so it should not be rendered in this frame. This is larger
+        // than all of the text elements painted so far, so this should produce
+        // a LargestContentfulPaint entry for image1.
+        container.appendChild(
+          createDivWithImage('image1', '/images/lcp-100x50-alt.png?' + Math.random()));
+      });
+    });
+
+    const lcpEntries = await new Promise(resolve => {
+      const entries = [];
+      const observer = new PerformanceObserver(entryList => {
+        entries.push(...entryList.getEntries());
+        if (entries.length == 3) {
+          observer.disconnect();
+          resolve(entries);
+        }
+      });
+      observer.observe({type: 'largest-contentful-paint', buffered: true});
+    });
+
+    assert_equals(lcpEntries.length, 3);
+    assert_equals(lcpEntries[0].id, 'text2');
+    assert_equals(lcpEntries[1].id, 'text5');
+    assert_equals(lcpEntries[2].id, 'image1');
+  }, 'Exactly one LargestContentfulPaint entry is emitted per frame when a new candidate is rendered');
+</script>

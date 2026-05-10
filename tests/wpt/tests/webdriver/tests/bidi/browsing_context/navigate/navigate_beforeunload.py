@@ -46,8 +46,8 @@ async def test_navigate_with_beforeunload_prompt(bidi_session, new_tab,
 @pytest.mark.parametrize("accept", [True, False])
 async def test_navigate_with_beforeunload_prompt_in_iframe(bidi_session,
         new_tab, setup_beforeunload_page, inline, subscribe_events,
-        wait_for_event, wait_for_future_safe, value, accept):
-    page = inline(f"""<iframe src={inline("foo")}></iframe>""")
+        wait_for_event, wait_for_future_safe, value, accept, iframe):
+    page = inline(iframe("foo"))
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page, wait="complete"
     )
@@ -87,8 +87,8 @@ async def test_navigate_with_beforeunload_prompt_in_iframe(bidi_session,
 @pytest.mark.parametrize("accept", [True, False])
 async def test_navigate_with_beforeunload_prompt_in_iframe_navigate_in_top_context(
         bidi_session, new_tab, setup_beforeunload_page, inline,
-        subscribe_events, wait_for_event, wait_for_future_safe, value, accept):
-    page = inline(f"""<iframe src={inline("foo")}></iframe>""")
+        subscribe_events, wait_for_event, wait_for_future_safe, value, accept, iframe):
+    page = inline(iframe("foo"))
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page, wait="complete"
     )

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/40848191">
+<link rel=mismatch href="anchor-element-focus-ring-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!--
+  This test verifies that focusing via script after using the keyboard shows a
+  focus ring on the <a> element. Since using testdriver doesn't seem to be
+  working in the ref file, we mismatch with a ref which doesn't have a focus
+  ring.
+-->
+
+<div tabindex=0>button</div>
+<a href="#">anchor</a>
+
+<script>
+const anchor = document.querySelector('a');
+const button = document.querySelector('div');
+const tabKey = '\uE004';
+document.body.addEventListener('keydown', event => {
+  if (event.key == 'Tab') {
+    event.preventDefault();
+    anchor.focus();
+  }
+});
+(async () => {
+  await test_driver.click(button);
+  await test_driver.send_keys(document.body, tabKey);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

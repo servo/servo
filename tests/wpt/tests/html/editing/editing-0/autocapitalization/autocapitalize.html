@@ -26,9 +26,11 @@ test(function() {
   elements.forEach(function(e) {
     e.autocapitalize = 'on';
     assert_equals(e.autocapitalize, 'sentences');
+    assert_equals(e.getAttribute('autocapitalize'), 'on');
 
     e.autocapitalize = 'off';
     assert_equals(e.autocapitalize, 'none');
+    assert_equals(e.getAttribute('autocapitalize'), 'off');
   });
 }, "Test deprecated values of autocapitalize.");
 

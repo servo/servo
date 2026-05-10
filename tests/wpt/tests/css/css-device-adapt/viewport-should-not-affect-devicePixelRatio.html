@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=2.0, maximum-scale=10.0">
+<link rel="author" title="Shubham Gupta" href="mailto:shubham.gupta@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio ">
+<link rel="help" href="https://drafts.csswg.org/css-device-adapt/">
+<link rel="help" href="https://webcompat.com/issues/52856">
+<style>
+body {
+  margin: 0;
+}
+</style>
+
+<div id="content">Content</div>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+test(() => {
+  // We currently assume the devicePixelRatio is 1; however,
+  // this assumption may change in the future: see
+  // <https://github.com/web-platform-tests/rfcs/issues/220>
+  assert_equals(window.devicePixelRatio, 1.0,
+    'devicePixelRatio should be 1.0');
+
+}, 'devicePixelRatio is unaffected by viewport\'s initial-scale');
+</script>

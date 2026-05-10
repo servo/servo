@@ -21,6 +21,9 @@ html, body { display: block; }
 
 body { margin: 8px; }
 
+/*
+https://html.spec.whatwg.org/multipage/#flow-content-3
+*/
 
 address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
 legend, listing, main, p, plaintext, pre, summary, xmp {
@@ -41,33 +44,26 @@ listing, plaintext, pre, xmp {
 dialog:not([open]) { display: none; }
 dialog {
   position: absolute;
-  left: 0; right: 0;
-  /* FIXME: support fit-content */
+  inset-inline-start: 0; inset-inline-end: 0;
   width: fit-content;
   height: fit-content;
   margin: auto;
   border: solid;
   padding: 1em;
-  background: white;
-  color: black;
+  background-color: white; /* FIXME: should be Canvas */
+  color: black; /* FIXME: should be CanvasText */
+}
+dialog:modal {
+  position: fixed;
+  overflow: auto;
+  inset-block: 0;
+  max-width: calc(100% - 6px - 2em);
+  max-height: calc(100% - 6px - 2em);
 }
 /* FIXME: support ::backdrop */
 dialog::backdrop {
-  position: fixed;
-  top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(0,0,0,0.1);
 }
-
-/* for small devices, modal dialogs go full-screen */
-@media screen and (max-width: 540px) {
-  /* FIXME: support :modal */
-  dialog:modal {
-    top: 0;
-    width: auto;
-    margin: 1em;
-  }
-}
-
 
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }
@@ -107,7 +103,7 @@ input:focus, textarea:focus, button:focus {
   outline: thin solid black;
 }
 
-mark { background: yellow; color: black; }
+mark { background: Mark; color: MarkText; }
 
 abbr[title], acronym[title] { text-decoration: dotted underline; }
 ins, u { text-decoration: underline; }
@@ -242,7 +238,7 @@ h6 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; font-weight: 
 
 
 dir, dd, dl, dt, menu, ol, ul { display: block; }
-li { display: list-item; }
+li { display: list-item; text-align: match-parent; }
 
 dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
 
@@ -323,16 +319,6 @@ table:matches(
 
 :matches(table, thead, tbody, tfoot, tr) > form {
   display: none !important;
-}
-
-input, select, button, textarea {
-  letter-spacing: initial;
-  word-spacing: initial;
-  line-height: initial;
-  text-transform: initial;
-  text-indent: initial;
-  text-shadow: initial;
-  appearance: auto;
 }
 
 input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {
@@ -430,8 +416,20 @@ iframe:fullscreen {
 /* https://drafts.csswg.org/css-lists-3/#ua-stylesheet */
 *::marker {
   text-align: end;
+  text-align-last: end;
+  text-indent: 0;
   text-transform: none;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
   white-space: pre;
+}
+
+/* https://html.spec.whatwg.org/multipage/#the-marquee-element-2 */
+marquee {
+  display: inline-block;
+  text-align: initial;
+  overflow: hidden !important;
+  inline-size: stretch;
+  vertical-align: text-bottom;
+  white-space: nowrap;
 }

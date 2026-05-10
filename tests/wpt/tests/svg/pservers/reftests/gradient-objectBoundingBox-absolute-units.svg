@@ -1,0 +1,25 @@
+<svg width="200" height="200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Gradient with objectBoundingBox and absolute length units</title>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#LinearGradientElementX2Attribute"/>
+    <html:link rel="match" href="reference/gradient-objectBoundingBox-absolute-units-ref.svg" />
+  </g>
+
+  <!-- Test: In objectBoundingBox mode, absolute units like "in" should be
+       resolved to their CSS pixel equivalent (1in = 96px) and used as the
+       coordinate in the objectBoundingBox space. So x2="1in" should behave
+       like x2="96" (unitless), NOT like x2="1". -->
+
+  <defs>
+    <linearGradient id="grad" gradientUnits="objectBoundingBox"
+                    x1="0" y1="0" x2="1in" y2="0">
+      <stop offset="0" stop-color="blue"/>
+      <stop offset="1" stop-color="lime"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="200" fill="url(#grad)"/>
+</svg>

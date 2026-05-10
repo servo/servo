@@ -208,8 +208,21 @@ async function getContext() {
   try {
     context = await navigator.ml.createContext(contextOptions);
   } catch (e) {
-    throw new AssertionError(
-        `Unable to create context for ${variant} variant. ${e}`);
+    // A previous test case may kill the GPU process on which the WebNN service
+    // runs. If you call `createContext` again immediately before the GPU
+    // process restarts, it will fail again. So wait a moment and retry.
+    if (e.message.includes('WebNN service connection error.')) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      try {
+        context = await navigator.ml.createContext(contextOptions);
+      } catch (retryError) {
+        throw new AssertionError(
+            `Unable to create context for ${variant} variant on retry. ${retryError}`);
+      }
+    } else {
+      throw new AssertionError(
+          `Unable to create context for ${variant} variant. ${e}`);
+    }
   }
   return context;
 }

@@ -2,25 +2,30 @@
 <meta charset="utf-8">
 <title>CSS Reference</title>
 <style>
-.clamp {
-  display: flow-root;
-  font: 16px / 32px serif;
-  padding: 0 4px;
-  white-space: pre;
+.parent {
+  padding: 4px;
   background-color: yellow;
+}
+.clamp {
+  font: 16px / 32px serif;
+  white-space: pre;
+  overflow: clip;
 }
 .float {
   float: left;
   margin: 4px;
   white-space: pre;
   background-color: skyblue;
+  line-height: 1em;
 }
 </style>
+<div class="parent">
 <div class="clamp">Line 1
 Line 2
-Line 3
-Line 4…<div class="float">Line A
+Line 3<div class="float">Line A
 Line B
 Line C
 Line D
-Line E</div></div>
+Line E</div>
+Line 4…</div>
+</div>

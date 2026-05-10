@@ -7,17 +7,16 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLTableColElementBinding::HTMLTableColElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTableColElement {
@@ -36,19 +35,19 @@ impl HTMLTableColElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTableColElement> {
         let n = Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLTableColElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -71,19 +70,14 @@ impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     make_dimension_setter!(SetWidth, "width");
 }
 
-pub(crate) trait HTMLTableColElementLayoutHelpers<'dom> {
-    fn get_span(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-}
-
-impl<'dom> HTMLTableColElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableColElement> {
-    fn get_span(self) -> Option<u32> {
+impl<'dom> LayoutDom<'dom, HTMLTableColElement> {
+    pub(crate) fn get_span(self) -> Option<u32> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("span"))
             .map(AttrValue::as_uint)
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -97,9 +91,14 @@ impl VirtualMethods for HTMLTableColElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         if let Some(super_type) = self.super_type() {
-            super_type.attribute_mutated(attr, mutation, can_gc);
+            super_type.attribute_mutated(cx, attr, mutation);
         }
 
         if matches!(*attr.local_name(), local_name!("span")) {
@@ -107,7 +106,7 @@ impl VirtualMethods for HTMLTableColElement {
         }
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") => true,
             _ => self

@@ -139,6 +139,48 @@ test((test) => {
     assert_false(container_element instanceof WrongNewElement);
 }, 'insertAdjacentHTML should use the element\'s registry even when the registry is null');
 
+test((test) => {
+    const registry = new CustomElementRegistry;
+    class ScopedNewElement extends HTMLElement { };
+    registry.define('new-element', ScopedNewElement);
+
+    const template = document.createElement('template', {customElementRegistry: registry});
+    assert_equals(template.customElementRegistry, registry);
+
+    const range = document.createRange();
+    range.selectNodeContents(template);
+    const fragment = range.createContextualFragment('<new-element><new-element></new-element></new-element>');
+    const outer_element = fragment.querySelector('new-element');
+    const inner_element = outer_element.querySelector('new-element');
+    assert_equals(outer_element.customElementRegistry, null);
+    assert_false(outer_element instanceof ScopedNewElement);
+    assert_false(outer_element instanceof WrongNewElement);
+    assert_equals(inner_element.customElementRegistry, null);
+    assert_false(inner_element instanceof ScopedNewElement);
+    assert_false(inner_element instanceof WrongNewElement);
+}, 'createContextualFragment on a range inside a template should use null registry even when the template has a scoped registry');
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+    class ScopedNewElement extends HTMLElement { };
+    registry.define('new-element', ScopedNewElement);
+
+    const div = document.createElement('div', {customElementRegistry: registry});
+    assert_equals(div.customElementRegistry, registry);
+
+    const range = document.createRange();
+    range.selectNodeContents(div);
+    const fragment = range.createContextualFragment('<new-element><new-element></new-element></new-element>');
+    const outer_element = fragment.querySelector('new-element');
+    const inner_element = outer_element.querySelector('new-element');
+    assert_equals(outer_element.customElementRegistry, registry);
+    assert_true(outer_element instanceof ScopedNewElement);
+    assert_false(outer_element instanceof WrongNewElement);
+    assert_equals(inner_element.customElementRegistry, registry);
+    assert_true(inner_element instanceof ScopedNewElement);
+    assert_false(inner_element instanceof WrongNewElement);
+}, 'createContextualFragment on a range inside an element with scoped registry should use the scoped registry of the element');
+
 </script>
 </body>
 </html>

@@ -5,6 +5,8 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::CssRuleType;
@@ -15,7 +17,7 @@ use super::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSS
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
@@ -23,11 +25,11 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSKeyframeRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    keyframerule: RefCell<Arc<Locked<Keyframe>>>,
-    style_decl: MutNullableDom<CSSStyleDeclaration>,
+    keyframe_rule: RefCell<Arc<Locked<Keyframe>>>,
+    style_declaration: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSKeyframeRule {
@@ -36,25 +38,25 @@ impl CSSKeyframeRule {
         keyframerule: Arc<Locked<Keyframe>>,
     ) -> CSSKeyframeRule {
         CSSKeyframeRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframerule: RefCell::new(keyframerule),
-            style_decl: Default::default(),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            keyframe_rule: RefCell::new(keyframerule),
+            style_declaration: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         keyframerule: Arc<Locked<Keyframe>>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSKeyframeRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSKeyframeRule::new_inherited(
                 parent_stylesheet,
                 keyframerule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -63,27 +65,27 @@ impl CSSKeyframeRule {
         keyframerule: Arc<Locked<Keyframe>>,
         guard: &SharedRwLockReadGuard,
     ) {
-        if let Some(ref style_decl) = self.style_decl.get() {
+        if let Some(ref style_decl) = self.style_declaration.get() {
             style_decl.update_property_declaration_block(&keyframerule.read_with(guard).block);
         }
-        *self.keyframerule.borrow_mut() = keyframerule;
+        *self.keyframe_rule.borrow_mut() = keyframerule;
     }
 }
 
 impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframerule-style>
-    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
-        self.style_decl.or_init(|| {
-            let guard = self.cssrule.shared_lock().read();
+    fn Style(&self, cx: &mut JSContext) -> DomRoot<CSSStyleDeclaration> {
+        self.style_declaration.or_init(|| {
+            let guard = self.css_rule.shared_lock().read();
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    RefCell::new(self.keyframerule.borrow().read_with(&guard).block.clone()),
+                    RefCell::new(self.keyframe_rule.borrow().read_with(&guard).block.clone()),
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }
@@ -95,8 +97,8 @@ impl SpecificCSSRule for CSSKeyframeRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        self.keyframerule
+        let guard = self.css_rule.shared_lock().read();
+        self.keyframe_rule
             .borrow()
             .read_with(&guard)
             .to_css_string(&guard)

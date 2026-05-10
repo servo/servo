@@ -18,7 +18,7 @@
 
     <script>
         let imageElement1 = document.getElementById('img1');
-        let highlight1 = new Highlight(new StaticRange({startContainer: imageElement1.childNodes[0], startOffset: 0, endContainer: imageElement1.childNodes[0], endOffset: 1}));
+        let highlight1 = new Highlight(new StaticRange({startContainer: imageElement1, startOffset: 0, endContainer: imageElement1, endOffset: 1}));
 
 
         CSS.highlights.set("example-highlight1", highlight1);

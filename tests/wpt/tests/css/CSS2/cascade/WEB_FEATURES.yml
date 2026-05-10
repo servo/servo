@@ -2,3 +2,8 @@ features:
 - name: inherit-value
   files:
   - inherit-*
+- name: import
+  files:
+  - at-import-*
+  - cascade-007.xht
+  - cascade-012.xht

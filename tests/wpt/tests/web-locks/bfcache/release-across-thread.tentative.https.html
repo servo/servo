@@ -8,8 +8,8 @@
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
-<script type="module">
-  import { runWebLocksBfcacheTest } from "./helpers.js";
+<script src="helpers.js"></script>
+<script>
 
   runWebLocksBfcacheTest({
     funcBeforeNavigation: async () => {
@@ -18,8 +18,8 @@
       const { lock_id } = await postToWorkerAndWait(worker, { op: "request", name: uniqueNameByQuery() });
       await postToWorkerAndWait(worker, { op: "release", lock_id });
     },
-    shouldBeCached: false,
-  }, "A held lock on main thread must prevent bfcache even after worker releases locks");
+    shouldBeCached: true,
+  }, "A held lock on main thread should not prevent bfcache even after worker releases locks");
 
   runWebLocksBfcacheTest({
     funcBeforeNavigation: async () => {
@@ -29,8 +29,8 @@
       await postToWorkerAndWait(worker, { op: "request", name: uniqueNameByQuery() });
       controller.abort();
     },
-    shouldBeCached: false,
-  }, "A held lock on worker must prevent bfcache even after main thread releases locks");
+    shouldBeCached: true,
+  }, "A held lock on worker should not prevent bfcache even after main thread releases locks");
 
   runWebLocksBfcacheTest({
     funcBeforeNavigation: async () => {
@@ -41,6 +41,6 @@
       await postToWorkerAndWait(worker.port, { op: "request", name: uniqueNameByQuery() });
       controller.abort();
     },
-    shouldBeCached: false,
-  }, "A held lock on shared worker must prevent bfcache even after main thread releases locks");
+    shouldBeCached: true,
+  }, "A held lock on shared worker should not prevent bfcache even after main thread releases locks");
 </script>

@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{
     WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
     WebGPURenderPass, WebGPURequest,
@@ -10,14 +12,13 @@ use webgpu_traits::{
 use wgpu_core::command as wgpu_com;
 
 use crate::conversions::{Convert, TryConvert};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
     GPUComputePassDescriptor, GPUExtent3D, GPUImageCopyBuffer, GPUImageCopyTexture,
     GPURenderPassDescriptor, GPUSize64,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -32,7 +33,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUCommandEncoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
@@ -107,7 +107,7 @@ impl GPUCommandEncoder {
 
         GPUCommandEncoder::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             device,
             encoder,
             descriptor.parent.label.clone(),
@@ -149,7 +149,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self,
             WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -220,7 +220,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -325,7 +325,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 }

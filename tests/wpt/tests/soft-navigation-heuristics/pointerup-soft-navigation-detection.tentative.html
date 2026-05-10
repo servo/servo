@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect soft navigation initiated from pointerup.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <button id="target">Trigger soft navigation on pointerup</button>
+  <main id="main"></main>
+  <script>
+    testSoftNavigation({
+      testName: "Test that a soft navigation is detected from pointerup",
+      clickTarget: document.getElementById("target"),
+      registerInteractionEvent: (cb) => {
+        document.getElementById("target").addEventListener("pointerup", cb);
+      },
+    });
+  </script>
+</body>
+</html>

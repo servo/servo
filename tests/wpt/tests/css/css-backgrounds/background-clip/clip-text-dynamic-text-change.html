@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>background-clip:text paint invalidation on text change</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-dynamic-text-change-ref.html">
+<script>
+onload = () => {
+  requestAnimationFrame(() => {
+    document.getElementById('target').textContent = 'New text';
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+};
+</script>
+<div style="background: linear-gradient(blue, green);
+            background-clip: text;
+            color: transparent;
+            font-size: 100px;">
+  <div>
+    <div>
+      <div id="target">Old text</div>
+    </div>
+  </div>
+</div>
+</html>

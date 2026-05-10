@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+
+<video class="below-viewport" src="/media/A4.webm" loading="lazy"></video>
+
+<script>
+  const t = async_test(
+    "Video with loading=lazy that is not visible in viewport does not load video data"
+  );
+
+  const video = document.querySelector("video");
+
+  t.step_timeout(() => {
+    assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING);
+    t.done();
+  }, 1000);
+</script>
+</body>
+</html>

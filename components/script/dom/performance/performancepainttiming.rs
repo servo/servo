@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use script_traits::ProgressiveWebMetricType;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::codegen::Bindings::PerformancePaintTimingBinding::PerformancePaintTimingMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -52,3 +53,5 @@ impl PerformancePaintTiming {
         reflect_dom_object(Box::new(entry), global, can_gc)
     }
 }
+
+impl PerformancePaintTimingMethods<crate::DomTypeHolder> for PerformancePaintTiming {}

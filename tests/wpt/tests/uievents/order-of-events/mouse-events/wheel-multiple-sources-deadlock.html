@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Wheel Event Coalescing Deadlock Test</title>
+<link rel=help href="https://github.com/servo/servo/pull/43202">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<meta name="assert" content="The page should not deadlock when multiple wheel sources are active simultaneously.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async () => {
+  let totalDeltaX = 0;
+  let totalDeltaY = 0;
+
+  document.addEventListener('wheel', (e) => {
+    totalDeltaX += e.deltaX;
+    totalDeltaY += e.deltaY;
+  });
+
+  await new test_driver.Actions()
+    .addWheel("wheel1")
+    .addWheel("wheel2")
+    .scroll(0, 0, 0, 50, { origin: "viewport", sourceName: "wheel1", duration: 250 })
+    .scroll(0, 0, 50, 0, { origin: "viewport", sourceName: "wheel2", duration: 250 })
+    .send();
+
+  assert_approx_equals(totalDeltaY, 50, 0.1, "Vertical delta from wheel1 must be processed.");
+  assert_approx_equals(totalDeltaX, 50, 0.1, "Horizontal delta from wheel2 must be processed.");
+}, "Simultaneous wheel events in different directions should not deadlock.");
+</script>

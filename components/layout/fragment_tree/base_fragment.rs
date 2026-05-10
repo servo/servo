@@ -7,18 +7,15 @@ use std::ops::Deref;
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
-use html5ever::local_name;
-use layout_api::combine_id_with_fragment_type;
-use layout_api::wrapper_traits::{
-    PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
+use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use web_atoms::local_name;
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
@@ -67,6 +64,20 @@ impl std::fmt::Debug for BaseFragmentStyle {
     }
 }
 
+#[derive(Clone, Debug, Default, MallocSizeOf)]
+pub(crate) enum FragmentStatus {
+    /// This is a brand new fragment.
+    #[default]
+    New,
+    /// The style of the fragment has changed.
+    StyleChanged,
+    /// The fragment was reused between layouts, but its final layout
+    /// position may have changed.
+    PositionMaybeChanged,
+    /// The fragment hasn't changed.
+    Clean,
+}
+
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
@@ -89,6 +100,9 @@ pub(crate) struct BaseFragment {
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
     pub rect: PhysicalRect<Au>,
+
+    /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
+    pub status: FragmentStatus,
 }
 
 impl BaseFragment {
@@ -102,6 +116,7 @@ impl BaseFragment {
             flags: base_fragment_info.flags,
             style,
             rect,
+            status: Default::default(),
         }
     }
 
@@ -111,6 +126,7 @@ impl BaseFragment {
 
     pub(crate) fn repair_style(&mut self, style: &ServoArc<ComputedValues>) {
         self.style = style.clone().into();
+        self.status = FragmentStatus::StyleChanged;
     }
 
     pub(crate) fn style<'a>(&'a self) -> BaseFragmentStyleRef<'a> {
@@ -164,8 +180,8 @@ impl From<&NodeAndStyleInfo<'_>> for BaseFragmentInfo {
     }
 }
 
-impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
-    fn from(node: ServoThreadSafeLayoutNode) -> Self {
+impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
+    fn from(node: ServoLayoutNode) -> Self {
         let pseudo_element_chain = node.pseudo_element_chain();
         let mut flags = FragmentFlags::empty();
 
@@ -189,7 +205,7 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
                 flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
             }
 
-            match element.get_local_name() {
+            match element.local_name() {
                 &local_name!("br") => {
                     flags.insert(FragmentFlags::IS_BR_ELEMENT);
                 },
@@ -199,7 +215,7 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
                 _ => {},
             }
 
-            if ThreadSafeLayoutElement::is_root(&element) {
+            if element.is_root() {
                 flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
         };
@@ -271,8 +287,8 @@ impl Tag {
     }
 }
 
-impl From<ServoThreadSafeLayoutNode<'_>> for Tag {
-    fn from(node: ServoThreadSafeLayoutNode<'_>) -> Self {
+impl From<ServoLayoutNode<'_>> for Tag {
+    fn from(node: ServoLayoutNode<'_>) -> Self {
         Self {
             node: node.opaque(),
             pseudo_element_chain: node.pseudo_element_chain(),

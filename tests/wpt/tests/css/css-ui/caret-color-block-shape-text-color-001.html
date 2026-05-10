@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Paint the character overlapping a block caret with the second value of caret-color when it's non-auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-block-shape-text-color-001-ref.html">
+<meta name="assert" content="When caret-color has a second <color> value and caret-shape is block, the character overlapping the caret is painted with that second color">
+<style>
+  div {
+    font-size: 5em;
+  }
+  #target {
+    caret-color: black white;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+</script>

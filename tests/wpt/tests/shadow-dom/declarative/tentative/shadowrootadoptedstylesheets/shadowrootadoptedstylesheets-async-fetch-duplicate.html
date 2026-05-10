@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets: duplicate specifiers are deduplicated</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // The attribute value is parsed as an ordered set of unique space-separated
+    // tokens, so duplicate specifiers should result in only one entry.
+    const cssUrl = "./support/styles.css?dup";
+    const { shadowRoot, testElement } = createStylesheetHost(`${cssUrl} ${cssUrl}`);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Duplicate specifiers should be deduplicated by ordered set parsing.");
+
+    await fetchAndWait(cssUrl);
+
+    assertSheetRule(shadowRoot, 0, "span { color: blue; }", "After fetch");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
+      "Styles should be applied from the deduplicated specifier.");
+  }, "Duplicate specifiers in the attribute are deduplicated.");
+</script>
+</body>

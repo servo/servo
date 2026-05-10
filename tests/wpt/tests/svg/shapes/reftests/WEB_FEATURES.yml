@@ -2,3 +2,7 @@ features:
 - name: svg-filters
   files:
   - polygon-with-filtered-marker.html
+- name: svg
+  files:
+  - "*"
+  - "!polygon-with-filtered-marker.html"

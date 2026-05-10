@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target" style="zoom: 1.5"></div>
+<script>
+
+animation_test({
+  syntax: "<length>",
+  inherits: false,
+  initialValue: "0px"
+}, {
+  keyframes: ["100px", "200px"],
+  expected: "150px"
+}, 'Animating a custom property of type <length> on a zoomed element');
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(0px)"
+}, {
+  keyframes: ["translateX(100px)", "translateX(200px)"],
+  expected: "translateX(150px)"
+}, 'Animating a custom property of type <transform-function> on a zoomed element');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(0px)"
+}, {
+  keyframes: ["translateY(100px) scale(2)", "translateY(200px) scale(4)"],
+  expected: "translateY(150px) scale(3)"
+}, 'Animating a custom property of type <transform-list> on a zoomed element');
+
+</script>

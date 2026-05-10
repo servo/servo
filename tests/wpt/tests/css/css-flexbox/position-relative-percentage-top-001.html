@@ -2,6 +2,7 @@
 <title>CSS Flexbox: Relative position with a percentage top</title>
 <link rel="help" href="https://drafts.csswg.org/css-flexbox/#valdef-align-items-stretch">
 <meta name="assert" content="This test ensures that a flexbox with 'flex-flow: row wrap' properly centers a grandchild with 'position: relative' and 'top: 50%'.">
+<link rel="stylesheet" href="/fonts/ahem.css">
 <style>
 html, body {
   margin: 0;
@@ -16,6 +17,7 @@ html, body {
 .flex {
   display: flex;
   flex-flow: row wrap;
+  font-family: Ahem;
 }
 .tall {
   height: 300px;

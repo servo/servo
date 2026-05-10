@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>background-clip:text with text-align</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-text-align-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.clip {
+  font: 50px/1 Ahem;
+  width: 250px;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+</style>
+<!-- Test passes if there are three 5-character green texts with left, center, and right alignment. -->
+<div class="clip" style="text-align: left">XXXXX</div>
+<div class="clip" style="text-align: center">XXXXX</div>
+<div class="clip" style="text-align: right">XXXXX</div>

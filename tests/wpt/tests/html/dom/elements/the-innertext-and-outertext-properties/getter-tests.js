@@ -115,7 +115,9 @@ testText("<div style='display:none'>abc", "abc", "display:none container");
 testText("<div style='display:none'>abc  def", "abc  def", "No whitespace compression in display:none container");
 testText("<div style='display:none'> abc def ", " abc def ", "No removal of leading/trailing whitespace in display:none container");
 testText("<div>123<span style='display:none'>abc", "123", "display:none child not rendered");
+testText("<div>123<p style='display:none'>abc", "123", "display:none p child not rendered");
 testText("<div style='display:none'><span id='target'>abc", "abc", "display:none container with non-display-none target child");
+testText("<div style='display:none'><p id='target'>abc", "abc", "display:none container with non-display-none p target child");
 testTextInSVG("<div id='target'>abc", "abc", "non-display-none child of svg");
 testTextInSVG("<div style='display:none' id='target'>abc", "abc", "display:none child of svg");
 testTextInSVG("<div style='display:none'><div id='target'>abc", "abc", "child of display:none child of svg");
@@ -242,6 +244,7 @@ testText("<div><p>abc</p>def", "abc\n\ndef", "Blank line after <p>");
 testText("<div><p>abc<p></p><p></p><p>def", "abc\n\ndef", "One blank line between <p>s, ignoring empty <p>s");
 testText("<div style='visibility:hidden'><p><span style='visibility:visible'>abc</span></p>\n<div style='visibility:visible'>def</div>",
      "abc\ndef", "Invisible <p> doesn't induce extra line breaks");
+testText("<div><pre>abc\n\n</pre><p>def", "abc\n\n\n\ndef", "<pre> trailing newlines don't suppress <p> blank line");
 testText("<div>abc<div style='margin:2em'>def", "abc\ndef", "No blank lines around <div> with margin");
 testText("<div>123<span style='display:inline-block'>abc</span>def", "123abcdef", "No newlines at display:inline-block boundary");
 testText("<div>123<span style='display:inline-block'> abc </span>def", "123abcdef", "Leading/trailing space removal at display:inline-block boundary");

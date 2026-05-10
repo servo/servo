@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::audio::audiotrack::AudioTrack;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AudioTrackListBinding::AudioTrackListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -91,9 +92,9 @@ impl AudioTrackList {
         let global = &self.global();
         let this = Trusted::new(self);
         let task_source = global.task_manager().media_element_task_source();
-        task_source.queue(task!(media_track_change: move || {
+        task_source.queue(task!(media_track_change: move |cx| {
             let this = this.root();
-            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+            this.upcast::<EventTarget>().fire_event(cx, atom!("change"));
         }));
     }
 

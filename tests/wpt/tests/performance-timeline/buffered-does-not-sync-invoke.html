@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+async_test(function(test) {
+    let first_callback_called = false
+    let callback_can_run_now = false
+
+    new Promise( (resolve) => {
+        new PerformanceObserver( (entries, observer) => {
+            first_callback_called = true
+            observer.disconnect()
+            resolve()
+        }).observe({ type: "mark", buffered: true })
+    })
+    .then( () => {
+        new PerformanceObserver ( (entries) => {
+            assert_true(callback_can_run_now, "Callback shouldn't be invoked inside the .observe() call")
+            test.done()
+        }).observe({ type: "mark", buffered: true })
+        callback_can_run_now = true
+    })
+    assert_false(first_callback_called)
+    performance.mark('mark')
+}, "Buffered PerformanceObservers should not invoke callbacks synchronously.");
+
+</script>
+</body>
+</html>

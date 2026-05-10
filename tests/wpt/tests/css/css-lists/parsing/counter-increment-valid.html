@@ -18,6 +18,8 @@ test_valid_value('counter-increment', 'first -1 second third 99', 'first -1 seco
 test_valid_value('counter-increment', 'section calc(1)');
 test_valid_value('counter-increment', 'section calc(-2.5)');
 test_valid_value('counter-increment', 'section calc(10 + (5 * sign(2cqw - 10px)))');
+test_valid_value('counter-increment', 'a 1 b 2 c 3 d 4 e 5');
+test_valid_value('counter-increment', 'a 1 b 2 c 3 a 4 b 5');
 </script>
 </body>
 </html>

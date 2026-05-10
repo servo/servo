@@ -18,20 +18,36 @@
 <body>
 <div id="target"></div>
 <script>
-test_computed_value("vertical-align", "baseline");
-test_computed_value("vertical-align", "sub");
-test_computed_value("vertical-align", "super");
-test_computed_value("vertical-align", "top");
-test_computed_value("vertical-align", "text-top");
-test_computed_value("vertical-align", "middle");
-test_computed_value("vertical-align", "bottom");
+// Test shorthand values equivalent to the initial `baseline` value
+test_computed_value("vertical-align", "baseline", "baseline");
+test_computed_value("vertical-align", "0", "baseline");
+test_computed_value("vertical-align", "0px", "baseline");
+test_computed_value("vertical-align", "baseline 0", "baseline");
+test_computed_value("vertical-align", "0px baseline", "baseline");
+
+// Test individual non-initial values for `baseline-source`
+test_computed_value("vertical-align", "first");
+test_computed_value("vertical-align", "last");
+
+// Test individual non-initial values for `alignment-baseline`
 test_computed_value("vertical-align", "text-bottom");
+test_computed_value("vertical-align", "alphabetic");
+test_computed_value("vertical-align", "ideographic");
+test_computed_value("vertical-align", "middle");
+test_computed_value("vertical-align", "central");
+test_computed_value("vertical-align", "mathematical");
+test_computed_value("vertical-align", "text-top");
+
+// Test individual non-initial values for `baseline-shift`
 test_computed_value("vertical-align", "-10px");
 test_computed_value("vertical-align", "20%");
 test_computed_value("vertical-align", "calc(20% + 10px)");
 test_computed_value("vertical-align", "calc(10px - 0.5em)", "-10px");
-
-// TODO: Test against the CSS Inline Layout grammar when browsers support it.
+test_computed_value("vertical-align", "sub");
+test_computed_value("vertical-align", "super");
+test_computed_value("vertical-align", "top");
+test_computed_value("vertical-align", "center");
+test_computed_value("vertical-align", "bottom");
 </script>
 </body>
 </html>

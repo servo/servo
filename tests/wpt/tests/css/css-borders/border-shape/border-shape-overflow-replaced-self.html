@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders Test: border-shape clips replaced content when applied directly with overflow hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-overflow-replaced-self-ref.html">
+<meta name="assert" content="When border-shape is applied directly to a replaced element with overflow:hidden, the content should be clipped to the border-shape.">
+<meta name="fuzzy" content="maxDifference=0-70;totalPixels=0-400">
+<style>
+body {
+  margin: 0;
+  padding: 20px;
+}
+img {
+  display: block;
+  width: 100px;
+  height: 100px;
+  border: 10px solid black;
+  border-shape: circle(50%);
+  overflow: hidden;
+}
+</style>
+<img src="/images/green-256x256.png" alt="">

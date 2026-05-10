@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: ImageDecoder API</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async () => {
+  assert_true('ImageDecoder' in self, 'ImageDecoder should exist');
+  const supported = await ImageDecoder.isTypeSupported('image/jxl');
+  assert_true(supported, 'image/jxl should be supported');
+
+  const response = await fetch('resources/3x3_srgb_lossless.jxl');
+  const decoder = new ImageDecoder({data: response.body, type: 'image/jxl'});
+  await decoder.tracks.ready;
+  const result = await decoder.decode();
+
+  assert_equals(result.image.displayWidth, 3);
+  assert_equals(result.image.displayHeight, 3);
+
+  result.image.close();
+  decoder.close();
+}, 'ImageDecoder decodes JPEG XL image stream.');
+</script>

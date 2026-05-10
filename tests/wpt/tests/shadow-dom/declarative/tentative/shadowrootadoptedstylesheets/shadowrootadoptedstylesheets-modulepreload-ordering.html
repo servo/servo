@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets modulepreload ordering</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Modulepreload several CSS files, wait for all, then create a shadow
+    // root referencing them in a specific attribute order. The sheets should
+    // appear in adoptedStyleSheets in attribute order (not preload order),
+    // and the last one should win the cascade.
+    const redUrl = "./support/styles-red.css?modulepreload-ordering";
+    const blueUrl = "./support/styles.css?modulepreload-ordering";
+    const greenUrl = "./support/styles-green.css?modulepreload-ordering";
+
+    function preload(url) {
+      const link = document.createElement("link");
+      link.rel = "modulepreload";
+      link.as = "style";
+      link.href = url;
+      const p = new Promise((resolve, reject) => {
+        link.onload = resolve;
+        link.onerror = reject;
+      });
+      document.head.appendChild(link);
+      return p;
+    }
+
+    await Promise.all([preload(redUrl), preload(blueUrl), preload(greenUrl)]);
+
+    const { shadowRoot, testElement } = createStylesheetHost(
+      [redUrl, blueUrl, greenUrl]);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "adoptedStyleSheets should have three entries.");
+
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "Index 0");
+    assertSheetRule(shadowRoot, 1, "span { color: blue; }", "Index 1");
+    assertSheetRule(shadowRoot, 2, "span { color: green; }", "Index 2");
+
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 128, 0)",
+      "Green (last in attribute order) should win the cascade.");
+  }, "Modulepreloaded CSS modules maintain attribute order in adoptedStyleSheets.");
+</script>
+</body>

@@ -169,10 +169,10 @@ test(() => {
 test(() => {
   let s = new Sanitizer({
     attributes: ["id", "title"],
-    elements: [{ name: "div", attributes: ["class"], removeAttributes: ["title"] }],
+    elements: [{ name: "div", attributes: ["class", "dir"], removeAttributes: ["title"] }],
   });
 
-  assert_false(s.removeAttribute("class"));
+  assert_true(s.removeAttribute("dir"));
   assert_config(s.get(), {
     attributes: ["id", "title"],
     elements: [{ name: "div", attributes: ["class"], removeAttributes: ["title"] }],
@@ -194,6 +194,12 @@ test(() => {
   assert_config(s.get(), {
     attributes: [],
     elements: [{ name: "div", attributes: ["class"], removeAttributes: [] }],
+  });
+
+  assert_true(s.removeAttribute("class"));
+  assert_config(s.get(), {
+    attributes: [],
+    elements: [{ name: "div", attributes: [], removeAttributes: [] }],
   });
 }, "sanitizer.removeAttribute() with global attributes and elements");
 
@@ -546,6 +552,14 @@ test(() => {
     elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 }, "sanitizer.allowElement() with global elements and removeAttributes");
+
+test(() => {
+  for (let element of NON_REPLACEABLE_ELEMENTS) {
+    let s = new Sanitizer();
+    assert_false(s.replaceElementWithChildren(element));
+    assert_config(s.get(), { replaceWithChildrenElements: undefined });
+  }
+}, "sanitizer.replaceElementWithChildren() does not allow non-replaceable elements.");
 </script>
 </body>
 </html>

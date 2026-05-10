@@ -8,3 +8,19 @@ features:
 - name: input-password
   files:
   - input-password-*
+- name: input-checkbox
+  files:
+  - input-checkbox-*
+- name: input-radio
+  files:
+  - input-radio-*
+- name: input-number
+  files:
+  - input-number-*
+- name: input-date-time
+  files:
+  - input-date-*
+  - input-time-*
+- name: input
+  files:
+  - input-text-size.html

@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing marker-mid with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#MarkerMidProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty"/>
     <h:meta name="assert" content="marker-mid supports only the paint grammar 'none | marker-ref'."/>
   </metadata>
   <g id="target"></g>

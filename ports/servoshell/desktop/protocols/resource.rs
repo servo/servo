@@ -43,9 +43,7 @@ impl ResourceProtocolHandler {
             )));
         };
 
-        let file_path = crate::resources::resources_dir_path()
-            .join("resource_protocol")
-            .join(path);
+        let file_path = crate::resources::resource_protocol_dir_path().join(path);
 
         if !file_path.exists() || file_path.is_dir() {
             return Box::pin(std::future::ready(Response::network_error(
@@ -71,7 +69,7 @@ impl ResourceProtocolHandler {
 
             *response.body.lock() = ResponseBody::Receiving(vec![]);
 
-            context.filemanager.lock().fetch_file_in_chunks(
+            context.filemanager.fetch_file_in_chunks(
                 &mut done_sender,
                 reader,
                 response.body.clone(),

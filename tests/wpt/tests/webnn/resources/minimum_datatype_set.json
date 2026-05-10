@@ -812,15 +812,15 @@
   "prelu": {
     "input": {
       "dataTypes": ["float32", "float16"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "slope": {
       "dataTypes": ["float32", "float16"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["float32", "float16"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "quantizeLinear": {

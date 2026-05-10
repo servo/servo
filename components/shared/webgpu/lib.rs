@@ -9,9 +9,9 @@ pub mod render_commands;
 
 use std::ops::Range;
 
-use base::generic_channel::GenericSharedMemory;
-use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{GenericOneshotSender, GenericSender, GenericSharedMemory};
 use webrender_api::euclid::default::Size2D;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 use wgpu_core::device::HostMap;
@@ -38,11 +38,11 @@ pub type WebGPUComputePipelineResponse = Result<Pipeline<ComputePipelineId>, Err
 pub type WebGPUPoppedErrorScopeResponse = Result<Option<Error>, PopError>;
 pub type WebGPURenderPipelineResponse = Result<Pipeline<RenderPipelineId>, Error>;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGPU(pub IpcSender<WebGPURequest>);
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
+pub struct WebGPU(pub GenericSender<WebGPURequest>);
 
 impl WebGPU {
-    pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {
+    pub fn exit(&self, sender: GenericOneshotSender<()>) -> Result<(), &'static str> {
         self.0
             .send(WebGPURequest::Exit(sender))
             .map_err(|_| "Failed to send Exit message")

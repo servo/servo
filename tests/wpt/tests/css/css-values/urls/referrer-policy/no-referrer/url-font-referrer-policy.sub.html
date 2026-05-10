@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: referrer-policy(no-referrer) for @font-face</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrer-policy-modifier">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: "TestFont";
+  src: url("http://{{hosts[][]}}:{{ports[http][1]}}/css/css-values/urls/support/font-referrer-policy.py?expected_referrer=none" cross-origin(anonymous) referrer-policy(no-referrer)) format("truetype");
+}
+.test { font-family: "TestFont"; }
+</style>
+<div class="test">X</div>
+<script>
+promise_test(async t => {
+  await document.fonts.ready;
+  assert_true(document.fonts.check("16px TestFont"),
+              "Font with referrer-policy(no-referrer) should load when server expects no referrer");
+}, "referrer-policy(no-referrer) sends no referrer for @font-face");
+</script>

@@ -12,12 +12,12 @@ import json
 import logging
 import os
 import os.path as path
-import re
 import shutil
 import subprocess
 import sys
 import textwrap
 from argparse import ArgumentParser
+from contextlib import chdir
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -63,9 +63,15 @@ TOML_GLOBS = [
     "*.toml",
     ".cargo/*.toml",
     "components/*/*.toml",
-    "components/shared/*/*.toml",
+    "components/*/*/*.toml",
+    "components/media/backends/*/*.toml",
+    "components/media/*/*/*/*.toml",
+    "etc/ci/scenario/*.toml",
     "ports/*/*.toml",
     "support/*/*.toml",
+    "python/tidy/tests/*.toml",
+    "python/tidy/tests/*/*.toml",
+    "tests/unit/*/*.toml",
 ]
 
 
@@ -154,7 +160,6 @@ class MachCommands(CommandBase):
         return call(cmd, env=env, cwd=path.join("etc", "ci", "performance"))
 
     @Command("test-unit", description="Run unit tests", category="testing")
-    @CommandArgument("test_name", nargs=argparse.REMAINDER, help="Only run tests that match this pattern or file path")
     @CommandArgument("--package", "-p", default=None, help="Specific package to test")
     @CommandArgument("--bench", default=False, action="store_true", help="Run in bench mode")
     @CommandArgument(
@@ -168,7 +173,6 @@ class MachCommands(CommandBase):
     def test_unit(
         self,
         build_type: BuildType,
-        test_name: list[str] | None = None,
         params: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
@@ -178,9 +182,6 @@ class MachCommands(CommandBase):
         nextest_profile: str | None = None,
         **kwargs: Any,
     ) -> int:
-        if test_name is None:
-            test_name = []
-
         self.ensure_bootstrapped()
 
         if package:
@@ -188,50 +189,32 @@ class MachCommands(CommandBase):
         else:
             packages = set()
 
-        test_patterns = []
-        for test in test_name:
-            # add package if 'tests/unit/<package>'
-            match = re.search("tests/unit/(\\w+)/?$", test)
-            if match:
-                packages.add(match.group(1))
-            # add package & test if '<package>/<test>', 'tests/unit/<package>/<test>.rs', or similar
-            elif re.search("\\w/\\w", test):
-                tokens = test.split("/")
-                packages.add(tokens[-2])
-                test_prefix = tokens[-1]
-                if test_prefix.endswith(".rs"):
-                    test_prefix = test_prefix[:-3]
-                test_prefix += "::"
-                test_patterns.append(test_prefix)
-            # add test as-is otherwise
-            else:
-                test_patterns.append(test)
-
         self_contained_tests = [
-            "background_hang_monitor",
-            "base",
-            "compositing",
-            "compositing_traits",
-            "constellation",
-            "devtools",
-            "fonts",
-            "hyper_serde",
-            "layout",
-            "layout_api",
-            "libservo",
-            "metrics",
-            "net",
-            "net_traits",
-            "pixels",
-            "script_traits",
-            "script_bindings",
+            "servo-background-hang-monitor",
+            "servo-base",
+            "servo-constellation",
+            "servo-devtools",
+            "servo-fonts",
+            "servo-hyper-serde",
+            "servo-layout",
+            "servo-layout-api",
+            "servo",
+            "servo-metrics",
+            "servo-net",
+            "servo-net-traits",
+            "servo-paint",
+            "servo-paint-api",
+            "servo-pixels",
+            "servo-script-traits",
+            "servo-script-bindings",
             "selectors",
-            "servo_config",
+            "servo-config",
             "servoshell",
-            "servo_url",
-            "storage",
-            "storage_traits",
-            "xpath",
+            "servo-url",
+            "servo-storage",
+            "servo-storage-traits",
+            "servo-xpath",
+            "servo-deny-public-fields",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -265,7 +248,6 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         for crate in in_crate_packages:
             args += ["-p", crate]
-        args += test_patterns
 
         if nocapture:
             args += ["--nocapture"]
@@ -427,14 +409,15 @@ class MachCommands(CommandBase):
     @Command(
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
+    @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
-        return self._test_wpt(servo_binary, **kwargs)
+    def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
+        return self._test_wpt(servo_binary, multiprocess, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
+    def _test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
-        return_value = wpt.run.run_tests(servo_binary, **kwargs)
+        return_value = wpt.run.run_tests(servo_binary, multiprocess, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
     @Command(
@@ -448,15 +431,16 @@ class MachCommands(CommandBase):
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
     def format_code(self) -> int:
-        result = format_python_files_with_ruff(check_only=False)
-        if result != 0:
-            return result
+        with chdir(self.context.topdir):
+            result = format_python_files_with_ruff(check_only=False)
+            if result != 0:
+                return result
 
-        result = format_toml_files_with_taplo(check_only=False)
-        if result != 0:
-            return result
+            result = format_toml_files_with_taplo(check_only=False)
+            if result != 0:
+                return result
 
-        return format_with_rustfmt(check_only=False)
+            return format_with_rustfmt(check_only=False)
 
     @Command(
         "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser
@@ -808,12 +792,16 @@ class MachCommands(CommandBase):
         "smoketest", description="Load a simple page in Servo and ensure that it closes properly", category="testing"
     )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
+    @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, params: list[str], **kwargs: Any) -> int | None:
+    def smoketest(self, servo_binary: str, multiprocess: bool, params: list[str], **kwargs: Any) -> int | None:
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        return PostBuildCommands(self.context)._run(servo_binary, params + ["-f", "tests/html/close-on-load.html"])
+        args = ["-f", "tests/html/close-on-load.html"]
+        if multiprocess:
+            args.append("-M")
+        return PostBuildCommands(self.context)._run(servo_binary, params + args)
 
     @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
     @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")
@@ -864,7 +852,7 @@ class MachCommands(CommandBase):
 
         # From here on out, we need to always clean up the commit we added to the branch.
         try:
-            result = call(["git", "push", "--quiet", remote, "--force", "HEAD:try"])
+            result = call(["git", "push", "--no-verify", "--quiet", remote, "--force", "HEAD:try"])
             if result != 0:
                 return result
 

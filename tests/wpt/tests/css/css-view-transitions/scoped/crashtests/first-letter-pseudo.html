@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="crbug.com/493082131">
+  <title>Test name capture when DOM order does not match layout order</title>
+  <style>
+    #scope::first-letter {
+      opacity: 0;
+    }
+    .item {
+      view-transition-name: a1;
+    }
+  </style>
+</head>
+<body>
+  <!--
+  #scope::first-letter has parent #scope, but it's layout is a descendant of
+  .item.
+  -->
+  <div id="scope">
+    <div class="item">A</div>
+  </div>
+</body>
+<script>
+onload = async () => {
+  await scope.startViewTransition().ready;
+  document.documentElement.classList.remove('test-wait');
+}
+</script>
+</html>

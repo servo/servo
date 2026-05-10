@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -18,6 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -44,19 +44,19 @@ impl HTMLLabelElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLLabelElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLLabelElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -75,9 +75,14 @@ impl Activatable for HTMLLabelElement {
     // at all, we are free to do an implementation-dependent thing;
     // firing a click event is an example, and the precise details of that
     // click event (e.g. isTrusted) are not specified.
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
         if let Some(e) = self.GetControl() {
-            e.Click(can_gc);
+            e.Click(cx);
         }
     }
 }
@@ -96,10 +101,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-label-control>
     fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
-        let for_attr = match self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("for"))
-        {
+        let for_attr = match self.upcast::<Element>().get_attribute(&local_name!("for")) {
             Some(for_attr) => for_attr,
             None => return self.first_labelable_descendant(),
         };
@@ -132,10 +134,10 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
             });
         // We now have the element that we would return, but only return it
         // if it's labelable.
-        if let Some(ref maybe_labelable) = maybe_found {
-            if maybe_labelable.is_labelable_element() {
-                return maybe_found;
-            }
+        if let Some(ref maybe_labelable) = maybe_found &&
+            maybe_labelable.is_labelable_element()
+        {
+            return maybe_found;
         }
         None
     }
@@ -156,12 +158,17 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation, can_gc);
+            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
         }
     }
 }

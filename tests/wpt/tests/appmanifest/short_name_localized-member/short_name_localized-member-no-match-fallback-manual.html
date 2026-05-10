@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test that short_name_localized falls back to the non-localized short_name</title>
+<link rel="help" href="https://w3c.github.io/manifest/#short_name-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/short_name_localized-member-no-match-fallback.webmanifest" />
+<script src="resources/short_name_localized-member-manual.js"></script>
+<h1>Testing non-localized fallback for <code>short_name_localized</code></h1>
+<p>
+    Set your browser locale to one that is not in the manifest (e.g.,
+    <code>de</code>, <code>zh</code>, or <code>ko</code>). Install this page as
+    a web application. To pass, the browser must fall back to the non-localized
+    <code>short_name</code> field and the installed app short name must be
+    "fallback-short".
+</p>

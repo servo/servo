@@ -12,14 +12,14 @@ logger = logging.getLogger("wave-api-handler")
 class HttpHandler:
     def __init__(
         self,
-        static_handler,
-        sessions_api_handler,
-        tests_api_handler,
-        results_api_handler,
-        devices_api_handler,
-        general_api_handler,
-        http_port,
-        web_root
+        static_handler=None,
+        sessions_api_handler=None,
+        tests_api_handler=None,
+        results_api_handler=None,
+        devices_api_handler=None,
+        general_api_handler=None,
+        http_port=None,
+        web_root=None
     ):
         self.static_handler = static_handler
         self.sessions_api_handler = sessions_api_handler
@@ -89,10 +89,9 @@ class HttpHandler:
             path = path[len(self._web_root):]
         return path
 
-
     def _proxy(self, request, response):
         host = 'localhost'
-        port = int(self._http_port)
+        port = str(self._http_port)
         uri = request.url_parts.path
         uri = uri + "?" + request.url_parts.query
         content_length = request.headers.get('Content-Length')
@@ -100,11 +99,10 @@ class HttpHandler:
         if content_length is not None:
             data = request.raw_input.read(int(content_length))
         method = request.method
-
         headers = {}
-        for key in request.headers:
-            value = request.headers[key]
-            headers[key.decode("utf-8")] = value.decode("utf-8")
+
+        for header in request.headers:
+            headers[header] = request.headers[header]
 
         try:
             proxy_connection = httplib.HTTPConnection(host, port)
@@ -114,7 +112,7 @@ class HttpHandler:
             response.headers = proxy_response.getheaders()
             response.status = proxy_response.status
 
-        except OSError:
+        except IOError:
             message = "Failed to perform proxy request"
             info = sys.exc_info()
             traceback.print_tb(info[2])

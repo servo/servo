@@ -22,8 +22,8 @@ async def test_phases(
 
     fetch_error_event = await on_fetch_error
     expected_request = {"method": "GET", "url": url(PAGE_EMPTY_TEXT)}
+
     assert_fetch_error_event(
         fetch_error_event,
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )

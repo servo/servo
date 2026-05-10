@@ -16,3 +16,7 @@ features:
   - border-conflict-*
   - border-style-*
   - column-border-*
+- name: margin
+  files:
+  - table-margin-*
+  - tables-101.xht

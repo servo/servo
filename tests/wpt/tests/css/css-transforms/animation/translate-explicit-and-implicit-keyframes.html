@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Animating the "translate" property with explicit and implicit keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/">
+<link rel="match" href="translate-explicit-and-implicit-keyframes-ref.html">
+<script src="../../../common/reftest-wait.js"></script>
+<style>
+
+div {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    background-color: black;
+    animation: none 100000s -25000s linear forwards;
+}
+
+@keyframes explicit-from-and-to {
+    from { translate: 100px }
+    to   { translate: 200px }
+}
+
+@keyframes implicit-from {
+    to { translate: 200px }
+}
+
+@keyframes implicit-to {
+    from { translate: 200px }
+}
+
+#explicit-from-and-to {
+    animation-name: explicit-from-and-to;
+}
+
+#unspecifed-from {
+    animation-name: implicit-from;
+}
+
+#base-value-from {
+    translate: 100px;
+    animation-name: implicit-from;
+}
+
+#unspecifed-to {
+    animation-name: implicit-to;
+}
+
+#base-value-to {
+    translate: 100px;
+    animation-name: implicit-to;
+}
+
+</style>
+</head>
+<body>
+
+<div id="explicit-from-and-to"></div>
+<div id="unspecifed-from"></div>
+<div id="base-value-from"></div>
+<div id="unspecifed-to"></div>
+<div id="base-value-to"></div>
+
+<script>
+(async function() {
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    takeScreenshot();
+})();
+</script>
+</body>
+</html>

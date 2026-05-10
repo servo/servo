@@ -23,7 +23,7 @@ class DevicesManager:
 
     def create_device(self, user_agent):
         browser = parse_user_agent(user_agent)
-        name = "{} {}".format(browser["name"], browser["version"])
+        name = f"{browser['name']} {browser['version']}"
         token = str(uuid.uuid1())
         last_active = int(time.time() * 1000)
 

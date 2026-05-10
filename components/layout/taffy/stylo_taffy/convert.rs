@@ -110,6 +110,14 @@ pub fn box_sizing(input: stylo::BoxSizing) -> taffy::BoxSizing {
 }
 
 #[inline]
+pub fn direction(input: stylo::Direction) -> taffy::Direction {
+    match input {
+        stylo::Direction::Ltr => taffy::Direction::Ltr,
+        stylo::Direction::Rtl => taffy::Direction::Rtl,
+    }
+}
+
+#[inline]
 pub fn position(input: stylo::Position) -> taffy::Position {
     match input {
         // TODO: support position:static

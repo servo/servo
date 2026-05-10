@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel;
-use base::id::BrowsingContextId;
 use embedder_traits::WebDriverScriptCommand;
 use serde_json::Value;
+use servo_base::generic_channel;
+use servo_base::id::BrowsingContextId;
 use webdriver::command::JavascriptCommandParameters;
 use webdriver::common::{ELEMENT_KEY, FRAME_KEY, SHADOW_KEY, WINDOW_KEY};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};

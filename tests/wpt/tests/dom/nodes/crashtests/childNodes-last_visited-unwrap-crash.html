@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/36764">
+<script>
+  let div1 = document.createElement("div");
+  let div2 = document.createElement("div");
+  div1.appendChild(div2);
+  div1.childNodes;
+  div1.insertBefore(div2, div2);
+  div2.after("");
+  div2.remove();
+</script>

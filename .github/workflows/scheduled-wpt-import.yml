@@ -29,15 +29,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: wpt-full-logs-linux
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Prep environment
         run: |
           sudo apt update
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Add upstream remote
         run: |
           git config --local user.email "ghbot+wpt-sync@servo.org"
@@ -54,6 +56,7 @@ jobs:
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
           ./mach update-wpt linux/raw/*.log
           git add tests/wpt/meta
+          uv lock
           git commit -a --amend -s --no-edit
       - name: Push changes
         uses: ad-m/github-push-action@master

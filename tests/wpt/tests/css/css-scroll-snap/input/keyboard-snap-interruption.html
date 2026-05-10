@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<title>Keyboard scroll snap interruption</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="../support/common.js"></script>
+
+<style>
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow-x: scroll;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    display: flex;
+    border: 1px solid black;
+  }
+  .snap {
+    width: 600px;
+    height: 100%;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  #snap-left {
+    background-color: red;
+  }
+  #snap-right {
+    background-color: blue;
+  }
+</style>
+
+<div id="scroller" tabindex="0">
+  <div class="snap" id="snap-left"></div>
+  <div class="snap" id="snap-right"></div>
+</div>
+
+<script>
+const scroller = document.getElementById("scroller");
+
+promise_test(async t => {
+  scroller.focus();
+  assert_equals(scroller.scrollLeft, 0, "verify test pre-condition");
+
+  const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+
+  // Send first key press to start smooth snap animation to 600.
+  await keyPress(scroller, "ArrowRight");
+
+  // Wait for animation to start progressing.
+  await waitFor(() => scroller.scrollLeft > 0, "Timeout waiting for scroll to start");
+  assert_less_than(scroller.scrollLeft, 600, "Scroll should not have finished yet");
+
+  // Send second key press to interrupt the ongoing snap animation.
+  await keyPress(scroller, "ArrowRight");
+
+  // Wait for the scroll to fully settle.
+  await scrollEndPromise;
+
+  // Assert that it successfully reached the mandatory snap target.
+  assert_equals(scroller.scrollLeft, 600, "Should successfully snap to the target despite interruption");
+}, "Interrupting a snap animation with another key press targeting the same node preserves snapping destination");
+</script>

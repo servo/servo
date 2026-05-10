@@ -5,8 +5,13 @@ features:
   - document_location.html
   - location-*
   - location_*
+  - "!location_hashchange_infinite_loop.html"
   - no-browsing-context.window.js
   - reload_*
   - replace-with-nested-iframe.html
   - same-hash.html
   - scripted_*
+- name: hashchange
+  files:
+  - location_hashchange_infinite_loop.html
+

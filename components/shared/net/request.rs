@@ -4,27 +4,30 @@
 
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
-use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
+use crate::ReferrerPolicy;
+use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
+use crate::resource_fetch_timing::ResourceTimingType;
 use crate::response::{HttpsState, RedirectTaint, Response};
-use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one network request from another.
@@ -148,7 +151,7 @@ pub struct PreloadKey {
 impl PreloadKey {
     pub fn new(request: &RequestBuilder) -> Self {
         Self {
-            url: request.url.clone(),
+            url: request.url.url(),
             destination: request.destination,
             mode: request.mode.clone(),
             credentials_mode: request.credentials_mode,
@@ -173,7 +176,6 @@ pub struct PreloadEntry {
     /// <https://html.spec.whatwg.org/multipage/#preload-response>
     pub response: Option<Response>,
     /// <https://html.spec.whatwg.org/multipage/#preload-on-response-available>
-    #[ignore_malloc_size_of = "channels are hard"]
     pub on_response_available: Option<TokioSender<Response>>,
 }
 
@@ -309,12 +311,16 @@ pub enum BodyChunkRequest {
     Error,
 }
 
-/// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
+/// A process local view into <https://fetch.spec.whatwg.org/#bodies>.
+/// After IPC serialization, each process gets its own shared sender state for the same body
+/// stream. the net side fetch entry points own clearing their local copy once that fetch invocation
+/// reaches its terminal state. Redirect replay can later deserialize a fresh "RequestBody", so
+/// lower level fetch steps cannot always clean up immediately.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
-    #[ignore_malloc_size_of = "Channels are hard"]
-    chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
+    #[conditional_malloc_size_of]
+    body_chunk_request_channel: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -323,12 +329,12 @@ pub struct RequestBody {
 
 impl RequestBody {
     pub fn new(
-        chan: IpcSender<BodyChunkRequest>,
+        body_chunk_request_channel: IpcSender<BodyChunkRequest>,
         source: BodySource,
         total_bytes: Option<usize>,
     ) -> Self {
         RequestBody {
-            chan: Arc::new(Mutex::new(chan)),
+            body_chunk_request_channel: Arc::new(Mutex::new(Some(body_chunk_request_channel))),
             source,
             total_bytes,
         }
@@ -340,15 +346,35 @@ impl RequestBody {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
                 let (chan, port) = ipc::channel().unwrap();
-                let mut selfchan = self.chan.lock();
-                let _ = selfchan.send(BodyChunkRequest::Extract(port));
+                let mut lock = self.body_chunk_request_channel.lock();
+                let Some(selfchan) = lock.as_mut() else {
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed."
+                    );
+                    return;
+                };
+                if let Err(error) = selfchan.send(BodyChunkRequest::Extract(port)) {
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed: {error}"
+                    );
+                    return;
+                }
                 *selfchan = chan;
             },
         }
     }
 
-    pub fn take_stream(&self) -> Arc<Mutex<IpcSender<BodyChunkRequest>>> {
-        self.chan.clone()
+    /// This is the current process shared optional sender for requesting body chunks.
+    pub fn clone_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
+        self.body_chunk_request_channel.clone()
+    }
+
+    /// Clears the current process shared sender state for this "RequestBody" copy.
+    ///
+    /// This does not notify or mutate other deserialized "RequestBody" values in other processes.
+    /// Can be called multiple times.
+    pub fn close_stream(&self) {
+        self.body_chunk_request_channel.lock().take();
     }
 
     pub fn source_is_null(&self) -> bool {
@@ -402,18 +428,16 @@ pub struct RequestBuilder {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
-    pub url: ServoUrl,
+    pub url: UrlWithBlobClaim,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
 
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
@@ -468,7 +492,7 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
     pub cryptographic_nonce_metadata: String,
 
-    // to keep track of redirects
+    /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
     pub url_list: Vec<ServoUrl>,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
@@ -483,7 +507,11 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(
+        webview_id: Option<WebViewId>,
+        url: UrlWithBlobClaim,
+        referrer: Referrer,
+    ) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
             preload_id: None,
@@ -608,6 +636,12 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
+    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestBuilder {
+        self.url_list = url_list;
+        self
+    }
+
     pub fn pipeline_id(mut self, pipeline_id: Option<PipelineId>) -> RequestBuilder {
         self.pipeline_id = pipeline_id;
         self
@@ -722,7 +756,11 @@ impl RequestBuilder {
         request.cache_mode = self.cache_mode;
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
-        let mut url_list = self.url_list;
+        let mut url_list: Vec<_> = self
+            .url_list
+            .into_iter()
+            .map(UrlWithBlobClaim::from_url_without_having_claimed_blob)
+            .collect();
         if url_list.is_empty() {
             url_list.push(self.url);
         }
@@ -757,12 +795,10 @@ pub struct Request {
     pub id: RequestId,
     pub preload_id: Option<PreloadId>,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     /// <https://fetch.spec.whatwg.org/#local-urls-only-flag>
     pub local_urls_only: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,
@@ -807,10 +843,8 @@ pub struct Request {
     pub integrity_metadata: String,
     /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
     pub cryptographic_nonce_metadata: String,
-    // Use the last method on url_list to act as spec current url field, and
-    // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub url_list: Vec<ServoUrl>,
+    pub url_list: Vec<UrlWithBlobClaim>,
     /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
     pub redirect_count: u32,
     /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
@@ -830,7 +864,7 @@ pub struct Request {
 impl Request {
     pub fn new(
         id: RequestId,
-        url: ServoUrl,
+        url: UrlWithBlobClaim,
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
@@ -879,6 +913,10 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub fn url(&self) -> ServoUrl {
+        self.url_list.first().unwrap().url()
+    }
+
+    pub fn url_with_blob_claim(&self) -> UrlWithBlobClaim {
         self.url_list.first().unwrap().clone()
     }
 
@@ -894,6 +932,11 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
     pub fn current_url(&self) -> ServoUrl {
+        self.current_url_with_blob_claim().url()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
+    pub fn current_url_with_blob_claim(&self) -> UrlWithBlobClaim {
         self.url_list.last().unwrap().clone()
     }
 
@@ -1170,15 +1213,15 @@ fn validate_range_header(value: &str) -> bool {
         let start = parts.next();
         let end = parts.next();
 
-        if let Some(start) = start {
-            if let Ok(start_num) = start.parse::<u64>() {
-                return match end {
-                    Some(e) if !e.is_empty() => {
-                        e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
-                    },
-                    _ => true,
-                };
-            }
+        if let Some(start) = start &&
+            let Ok(start_num) = start.parse::<u64>()
+        {
+            return match end {
+                Some(e) if !e.is_empty() => {
+                    e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
+                },
+                _ => true,
+            };
         }
     }
     false

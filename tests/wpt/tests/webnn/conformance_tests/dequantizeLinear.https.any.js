@@ -674,7 +674,6 @@ const dequantizeLinearTests = [
       }
     }
   },
-  ,
   {
     'name':
         'quantizeLinear then dequantizeLinear with different float32 scale and int8 zeroPoint',

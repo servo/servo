@@ -4,20 +4,22 @@
 
 use std::cell::Cell;
 
-use constellation_traits::BroadcastChannelMsg;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
+use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_constellation_traits::BroadcastChannelMsg;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct BroadcastChannel {
@@ -78,14 +80,14 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
-    fn PostMessage(&self, cx: SafeJSContext, message: HandleValue) -> ErrorResult {
+    fn PostMessage(&self, cx: &mut JSContext, message: HandleValue) -> ErrorResult {
         // Step 3, if closed.
         if self.closed.get() {
             return Err(Error::InvalidState(None));
         }
 
         // Step 6, StructuredSerialize(message).
-        let data = structuredclone::write(cx, message, None)?;
+        let data = structuredclone::write(cx.into(), message, None)?;
 
         let global = self.global();
 

@@ -46,6 +46,7 @@ if (!self.GLOBAL.isWorker()) {
         assert_equals(xhr.getResponseHeader("x-request-val" + i), val)
       })
     })
+    xhr.onerror = t.unreached_func("XHR should not fail")
     xhr.send()
   }, "XMLHttpRequest with all valid values")
 }

@@ -8,15 +8,18 @@ use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use script_bindings::cell::DomRefCell;
+use script_bindings::cformat;
+use servo_base::id::PipelineId;
 use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
     RealTimeAudioContextOptions,
 };
-use servo_media::audio::decoder::AudioDecoderCallbacks;
+use servo_media::audio::decoder::AudioDecoderCallbacksBuilder;
 use servo_media::audio::graph::NodeId;
 use servo_media::{ClientContextId, ServoMedia};
 use uuid::Uuid;
@@ -38,7 +41,6 @@ use crate::dom::audio::oscillatornode::OscillatorNode;
 use crate::dom::audio::pannernode::PannerNode;
 use crate::dom::audio::stereopannernode::StereoPannerNode;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -210,8 +212,8 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
-                Err(ref error) => promise.reject_error(error.clone(), CanGc::note()),
+                Ok(ref value) => promise.resolve_native(value, CanGc::deprecated_note()),
+                Err(ref error) => promise.reject_error(error.clone(), CanGc::deprecated_note()),
             }
         }
     }
@@ -231,7 +233,7 @@ impl BaseAudioContext {
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
         match self.audio_context_impl.lock().unwrap().resume() {
-            Ok(()) => {
+            Some(()) => {
                 self.take_pending_resume_promises(Ok(()));
                 self.global().task_manager().dom_manipulation_task_source().queue(
                     task!(resume_success: move || {
@@ -248,9 +250,9 @@ impl BaseAudioContext {
                     })
                 );
             },
-            Err(()) => {
+            None => {
                 self.take_pending_resume_promises(Err(Error::Type(
-                    "Something went wrong".to_owned(),
+                    c"Something went wrong".to_owned(),
                 )));
                 self.global()
                     .task_manager()
@@ -433,10 +435,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
     fn CreateBuffer(
         &self,
+        cx: &mut JSContext,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if number_of_channels == 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
@@ -446,12 +448,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             return Err(Error::NotSupported(None));
         }
         Ok(AudioBuffer::new(
+            cx,
             self.global().as_window(),
             number_of_channels,
             length,
             *sample_rate,
             None,
-            can_gc,
         ))
     }
 
@@ -507,7 +509,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .dom_manipulation_task_source()
                 .to_sendable();
             let task_source_clone = task_source.clone();
-            let callbacks = AudioDecoderCallbacks::new()
+            let callbacks = AudioDecoderCallbacksBuilder::default()
                 .ready(move |channel_count| {
                     decoded_audio
                         .lock()
@@ -527,7 +529,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
-                    task_source.queue(task!(audio_decode_eos: move || {
+                    task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
                         let decoded_audio = decoded_audio__.lock().unwrap();
                         let length = if !decoded_audio.is_empty() {
@@ -536,34 +538,38 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             0
                         };
                         let buffer = AudioBuffer::new(
+                            cx,
                             this.global().as_window(),
                             decoded_audio.len() as u32 /* number of channels */,
                             length as u32,
                             this.sample_rate,
                             Some(decoded_audio.as_slice()),
-                            CanGc::note());
+                        );
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid_));
                         let resolver = resolvers.remove(&uuid_).unwrap();
                         if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::note());
+                            let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
                         }
-                        resolver.promise.resolve_native(&buffer, CanGc::note());
+                        resolver.promise.resolve_native(&buffer, CanGc::from_cx(cx));
                     }));
                 })
                 .error(move |error| {
-                    task_source_clone.queue(task!(audio_decode_eos: move || {
+                    task_source_clone.queue(task!(audio_decode_eos: move |cx| {
                         let this = this_.root();
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid));
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
-                            let _ = callback.Call__(
-                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
-                                ExceptionHandling::Report, CanGc::note());
+                            let exception = DOMException::new(
+                                &this.global(),
+                                DOMErrorName::DataCloneError,
+                                CanGc::from_cx(cx)
+                            );
+                            let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
                         }
-                        let error = format!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error), CanGc::note());
+                        let error = cformat!("Audio decode error {:?}", error);
+                        resolver.promise.reject_error(Error::Type(error), CanGc::from_cx(cx));
                     }));
                 })
                 .build();

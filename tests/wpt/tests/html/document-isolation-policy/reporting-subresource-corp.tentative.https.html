@@ -133,6 +133,16 @@ const CASES = [
     }
   },
   {
+    name: 'blocked due to DIP (with fragment)',
+    url: `${REMOTE_ORIGIN}/common/square.png#fragment`,
+    expected_count: 2,
+    check: (reports, contextUrl, url) => {
+      const strippedUrl = url.split('#')[0];
+      checkReport(reports[0], contextUrl, strippedUrl, 'reporting', '');
+      checkReport(reports[1], contextUrl, strippedUrl, 'enforce', '');
+    }
+  },
+  {
     name: 'blocked during redirect',
     url: `${ORIGIN}/common/redirect.py?location=` +
       encodeURIComponent(`${REMOTE_ORIGIN}/common/square.png`),

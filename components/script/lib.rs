@@ -20,7 +20,6 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate stylo_atoms;
 
-mod animation_timeline;
 mod animations;
 mod css;
 mod script_window_proxies;
@@ -38,6 +37,7 @@ pub(crate) mod fetch;
 pub(crate) mod indexeddb;
 mod init;
 mod layout_image;
+mod url;
 
 pub(crate) mod document_collection;
 pub(crate) mod iframe_collection;
@@ -46,17 +46,16 @@ pub mod layout_dom;
 pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
+mod module_loading;
 mod navigation;
 mod network_listener;
 mod realms;
 mod routed_promise;
-#[expect(dead_code)]
 mod script_module;
 mod script_mutation_observers;
 pub(crate) mod script_runtime;
 #[expect(unsafe_code)]
 pub(crate) mod script_thread;
-pub(crate) mod security_manager;
 pub(crate) mod serviceworker_manager;
 mod stylesheet_loader;
 mod stylesheet_set;
@@ -77,6 +76,7 @@ mod links;
 
 pub use init::init;
 pub(crate) use script_bindings::DomTypes;
+pub(crate) use script_bindings::reflector::{AssociatedMemory, DomObject, MutDomObject, Reflector};
 pub use script_runtime::JSEngineSetup;
 pub use script_thread::ScriptThread;
 pub use serviceworker_manager::ServiceWorkerManager;
@@ -86,5 +86,4 @@ pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
-pub(crate) use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

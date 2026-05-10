@@ -6,18 +6,19 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
-use canvas_traits::webgl::{
+use dom_struct::dom_struct;
+use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::reflector::reflect_dom_object;
+use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
     WebGLProgramId, WebGLResult, webgl_channel,
 };
-use dom_struct::dom_struct;
-use script_bindings::weakref::WeakRef;
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
@@ -171,7 +172,7 @@ impl Drop for DroppableWebGLProgram {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLProgram {
     webgl_object: WebGLObject,
     link_called: Cell<bool>,

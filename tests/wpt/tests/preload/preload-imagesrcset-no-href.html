@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Preload with imagesrcset but no href should trigger a preload</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var inlineImageLoaded = false;
+</script>
+<link rel=preload as=image imagesrcset="resources/square.png?inline-no-href-1x 1x, resources/square.png?inline-no-href-2x 2x" onload="inlineImageLoaded = true;">
+<body>
+<script>
+    promise_test(async function(t) {
+        verifyPreloadAndRTSupport();
+
+        var link = document.createElement("link");
+        link.as = "image";
+        link.rel = "preload";
+        link.imageSrcset = "resources/square.png?dynamic-w-200 200w, resources/square.png?dynamic-w-400 400w, resources/square.png?dynamic-w-800 800w";
+        link.imageSizes = "400px";
+
+        await new Promise((resolve, reject) => {
+            link.onload = resolve;
+            link.onerror = reject;
+            document.body.appendChild(link);
+        });
+
+        // Only ONE of the srcset URLs should have been fetched.
+        var total = numberOfResourceTimingEntries("resources/square.png?dynamic-w-200") +
+                    numberOfResourceTimingEntries("resources/square.png?dynamic-w-400") +
+                    numberOfResourceTimingEntries("resources/square.png?dynamic-w-800");
+        assert_equals(total, 1, "only one w-descriptor image should be preloaded");
+    }, "Dynamically added preload with imagesrcset (w descriptors) and no href");
+
+    promise_test(async function(t) {
+        verifyPreloadAndRTSupport();
+
+        var link = document.createElement("link");
+        link.as = "image";
+        link.rel = "preload";
+        link.imageSrcset = "resources/square.png?dynamic-x-1x 1x, resources/square.png?dynamic-x-2x 2x";
+
+        await new Promise((resolve, reject) => {
+            link.onload = resolve;
+            link.onerror = reject;
+            document.body.appendChild(link);
+        });
+
+        var total = numberOfResourceTimingEntries("resources/square.png?dynamic-x-1x") +
+                    numberOfResourceTimingEntries("resources/square.png?dynamic-x-2x");
+        assert_equals(total, 1, "only one x-descriptor image should be preloaded");
+    }, "Dynamically added preload with imagesrcset (x descriptors) and no href");
+
+    promise_test(async function(t) {
+        verifyPreloadAndRTSupport();
+
+        // Wait for the inline link to have a chance to load.
+        if (!inlineImageLoaded) {
+            await new Promise(resolve => {
+                var check = () => {
+                    if (inlineImageLoaded) {
+                        resolve();
+                    } else {
+                        step_timeout(check, 100);
+                    }
+                };
+                step_timeout(check, 100);
+            });
+        }
+
+        assert_true(inlineImageLoaded, "inline preload with imagesrcset and no href should fire load event");
+
+        var total = numberOfResourceTimingEntries("resources/square.png?inline-no-href-1x") +
+                    numberOfResourceTimingEntries("resources/square.png?inline-no-href-2x");
+        assert_equals(total, 1, "only one inline imagesrcset image should be preloaded");
+    }, "Inline preload link with imagesrcset and no href fires load event");
+</script>
+</body>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool on unauthorized origin</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const hostInfo = get_host_info();
+
+async function setupCrossOriginIframe(t) {
+  const iframe = document.createElement('iframe');
+  // Load helper iframe from cross-origin remote host.
+  iframe.src = `${hostInfo.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+  return iframe;
+}
+
+promise_test(async t => {
+  const iframe = await setupCrossOriginIframe(t);
+
+  // Tell the cross-origin iframe to register a tool with no `exposedTo` array (only visible to itself).
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_secure_tool',
+      description: 'Iframe secure tool description'
+    }
+  }, '*');
+
+  // Wait briefly to ensure registration has completed in the target frame.
+  // Since it's cross-origin, we can't listen to its `toolchange` event directly, so we wait.
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Verify that the parent (unexposed origin) cannot see the tool via getTools().
+  const tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], 'Parent frame should see no tools');
+
+  // Manually construct a fake RegisteredTool pointing to the cross-origin iframe window.
+  const fake_tool = {
+    name: 'iframe_secure_tool',
+    description: 'Iframe secure tool description',
+    window: iframe.contentWindow,
+    origin: hostInfo.HTTPS_REMOTE_ORIGIN
+  };
+
+  // Parent attempts to execute the unexposed tool directly. This should reject with UnknownError.
+  const promise = navigator.modelContext.executeTool(fake_tool, '{}');
+  await promise_rejects_dom(t, 'UnknownError', promise, 'executeTool should reject with UnknownError when parent is not authorized to execute the iframe tool');
+}, 'executeTool() rejects when parent frame attempts unauthorized execution of cross-origin iframe tool');
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets: bare specifier + URL are not deduplicated</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+
+<!-- Bare specifier + its resolved URL both in the attribute.
+     Ordered set parsing sees them as different tokens, so they should NOT be
+     deduplicated — two entries should be created, both resolving to the
+     same CSS module. -->
+<script type="importmap">
+{
+  "imports": {
+    "mapped-styles": "./support/styles.css"
+  }
+}
+</script>
+
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    const resolvedUrl = "./support/styles.css";
+    const { shadowRoot } = createStylesheetHost(
+      `mapped-styles ${resolvedUrl}`);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "Bare specifier and its resolved URL are distinct tokens — " +
+        "ordered set parsing should not deduplicate them.");
+
+    await fetchAndWait("./support/styles.css");
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "Still two entries after fetch completes.");
+    assertSheetRule(shadowRoot, 0, "span { color: blue; }", "First entry");
+    assertSheetRule(shadowRoot, 1, "span { color: blue; }", "Second entry");
+    assert_equals(shadowRoot.adoptedStyleSheets[0],
+      shadowRoot.adoptedStyleSheets[1],
+      "Both entries should be the same CSSStyleSheet instance from the module map.");
+  }, "Bare specifier and resolved URL are not deduplicated but share the same CSSStyleSheet.");
+</script>
+</body>

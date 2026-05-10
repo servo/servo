@@ -7,8 +7,10 @@
 struct Foo(i32);
 
 fn foo2() -> Foo {
-    //~^ ERROR: Type must be rooted
     unimplemented!()
 }
 
-fn main() {}
+fn main() {
+    let foo = foo2();
+    //~^ ERROR: Expression of type Foo must be rooted
+}

@@ -32,7 +32,7 @@ class Base:
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         raise NotImplementedError("GStreamer bootstrap support is not yet available for your OS.")
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
@@ -62,7 +62,6 @@ class Base:
         if not skip_nextest:
             installed_something |= self.install_cargo_nextest(force)
         if not skip_lints:
-            installed_something |= self.install_cargo_about(force)
             installed_something |= self.install_taplo(force)
             installed_something |= self.install_cargo_deny(force)
             installed_something |= self.install_crown(force)
@@ -71,6 +70,13 @@ class Base:
             print("Dependencies were already installed!")
 
     def install_rust_toolchain(self) -> None:
+        if shutil.which("rustup") is None:
+            if shutil.which("rustc") is None or shutil.which("cargo") is None:
+                print(" * Warning: rustup, rustc, or cargo not found.")
+                print("   Please install rustup or make sure rustc and cargo are in PATH.")
+            else:
+                print(" * rustup not found. Skipping Rust toolchain installation.")
+            return
         # rustup 1.28.0, and rustup 1.28.1+ with RUSTUP_AUTO_INSTALL=0, require us to explicitly
         # install the Rust toolchain before trying to use it.
         print(" * Installing Rust toolchain...")
@@ -105,14 +111,6 @@ class Base:
             raise EnvironmentError("Installation of cargo-deny failed.")
         return True
 
-    def install_cargo_about(self, force: bool) -> bool:
-        if not force and shutil.which("cargo-about") is not None:
-            return False
-        print(" * Installing cargo-about...")
-        if subprocess.call(["cargo", "install", "cargo-about", "--locked"]) != 0:
-            raise EnvironmentError("Installation of cargo-about failed.")
-        return True
-
     def install_cargo_nextest(self, force: bool) -> bool:
         if not force and shutil.which("cargo-nextest") is not None:
             return False
@@ -134,9 +132,9 @@ class Base:
         as fast as possible."""
         return False
 
-    def bootstrap_gstreamer(self, force: bool) -> None:
+    def bootstrap_gstreamer(self, force: bool, yes: bool) -> None:
         target = BuildTarget.from_triple(self.triple)
-        if not self._platform_bootstrap_gstreamer(target, force):
+        if not self._platform_bootstrap_gstreamer(target, force, yes):
             root = self.gstreamer_root(target)
             if root:
                 print(f"GStreamer found at: {root}")

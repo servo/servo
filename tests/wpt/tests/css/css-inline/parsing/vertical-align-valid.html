@@ -5,27 +5,54 @@
 <title>CSS Inline Layout: parsing vertical-align with valid values</title>
 <link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
 <link rel="help" href="https://drafts.csswg.org/css-inline/#propdef-vertical-align">
-<meta name="assert" content="vertical-align supports the CSS 2 grammar 'baseline | sub | super | top | text-top | middle | bottom | text-bottom | <percentage> | <length>'.">
+<meta name="assert" content="vertical-align supports the CSS Inline Layout Module Level 3 shorthand syntax.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 </head>
 <body>
 <script>
-test_valid_value("vertical-align", "baseline");
+// Test shorthand values equivalent to the initial `baseline` value
+test_valid_value("vertical-align", "baseline", "baseline");
+test_valid_value("vertical-align", "0", "baseline");
+test_valid_value("vertical-align", "0px", "baseline");
+test_valid_value("vertical-align", "baseline 0", "baseline");
+test_valid_value("vertical-align", "0px baseline", "baseline");
+
+// Test individual non-initial values for `baseline-source`
+test_valid_value("vertical-align", "first");
+test_valid_value("vertical-align", "last");
+
+// Test individual non-initial values for `alignment-baseline`
+test_valid_value("vertical-align", "text-bottom");
+test_valid_value("vertical-align", "alphabetic");
+test_valid_value("vertical-align", "ideographic");
+test_valid_value("vertical-align", "middle");
+test_valid_value("vertical-align", "central");
+test_valid_value("vertical-align", "mathematical");
+test_valid_value("vertical-align", "text-top");
+
+// Test individual non-initial values for `baseline-shift`
+test_valid_value("vertical-align", "-10px");
+test_valid_value("vertical-align", "0.5em");
+test_valid_value("vertical-align", "20%");
+test_valid_value("vertical-align", "calc(20% - 10px)");
 test_valid_value("vertical-align", "sub");
 test_valid_value("vertical-align", "super");
 test_valid_value("vertical-align", "top");
-test_valid_value("vertical-align", "text-top");
-test_valid_value("vertical-align", "middle");
+test_valid_value("vertical-align", "center");
 test_valid_value("vertical-align", "bottom");
-test_valid_value("vertical-align", "text-bottom");
-test_valid_value("vertical-align", "-10px");
-test_valid_value("vertical-align", "20%");
-test_valid_value("vertical-align", "0", "0px");
-test_valid_value("vertical-align", "calc(20% - 10px)");
 
-// TODO: Test against the CSS Inline Layout grammar when browsers support it.
+// Test omissions of initial values for subproperties
+test_valid_value("vertical-align", "first baseline", "first");
+test_valid_value("vertical-align", "middle 0", "middle");
+test_valid_value("vertical-align", "baseline super", "super");
+test_valid_value("vertical-align", "last baseline sub", "last sub");
+
+// Test canonical ordering for subproperties
+test_valid_value("vertical-align", "super middle first", "first middle super");
+test_valid_value("vertical-align", "1em last", "last 1em");
+test_valid_value("vertical-align", "text-top first 10%", "first text-top 10%");
 </script>
 </body>
 </html>

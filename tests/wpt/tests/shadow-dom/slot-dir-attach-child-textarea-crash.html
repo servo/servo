@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<datalist id="move">
+  <option dir="rtl">
+    <textarea id="textarea"></textarea>
+  </option>
+</datalist>
+<svg>
+  <tspan id="tspan"/><use href="#tspan"/>
+</svg>
+<script>
+  onload = () => {
+    document.getElementById("textarea").appendChild(document.createElement("div"));
+    document.getElementById("tspan").appendChild(move);
+  }
+</script>

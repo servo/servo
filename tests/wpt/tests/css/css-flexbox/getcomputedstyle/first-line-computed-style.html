@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta name="assert" content="::first-line style cannot be applied to a flexbox since it does not contribute a first formatted line. Checks via getComputedStyle">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-containers">
+<style>
+  div { display: flex; }
+  div::first-line { vertical-align: top; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>Triceratops</div>
+
+<script>
+  test(function() {
+    let verticalAlign = getComputedStyle(document.querySelector('div'), '::first-line').verticalAlign;
+    assert_not_equals(verticalAlign, "top");
+  });
+</script>

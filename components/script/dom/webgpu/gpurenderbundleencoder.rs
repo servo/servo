@@ -5,19 +5,20 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
 use wgpu_core::command::{
     RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
     GPURenderBundleEncoderMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -31,7 +32,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPURenderBundleEncoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     device: Dom<GPUDevice>,
@@ -123,7 +123,7 @@ impl GPURenderBundleEncoder {
             &device.global(),
             render_bundle_encoder,
             device,
-            device.channel().clone(),
+            device.channel(),
             descriptor.parent.parent.label.clone(),
             can_gc,
         ))
@@ -280,7 +280,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
             self.device.id(),
             self.channel.clone(),
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 }

@@ -1,4 +1,18 @@
 features:
+- name: shapes
+  files:
+  - '*'
+  - '!path-function-*'
+  - '!shape-function-*'
+  - '!rect-function-*'
+  - '!xywh-function-*'
 - name: path-shape
   files:
-  - 'path-function*'
+  - 'path-function-*'
+- name: shape-function
+  files:
+  - shape-function-*
+- name: rect-xywh
+  files:
+  - rect-function-*
+  - xywh-function-*

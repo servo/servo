@@ -4,17 +4,20 @@
 
 use std::cell::Cell;
 
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::{Rect, Scale, Size2D};
+use paint_api::PinchZoomInfos;
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
 
@@ -34,6 +37,17 @@ pub(crate) struct VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#scale-factor>
     #[no_trace]
     scale: Cell<Scale<f32, DevicePixel, DevicePixel>>,
+}
+
+bitflags! {
+    /// The changes of the [`VisualViewport`] after an update to determine events that might need to be fired.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct VisualViewportChanges: u8 {
+        /// Size or the scale factor of the [`VisualViewport`] has changed.
+        const DimensionChanged = 1 << 0;
+        /// The offset or the origin of the [`VisualViewport`] has changed.
+        const OffsetChanged = 1 << 1;
+    }
 }
 
 impl VisualViewport {
@@ -66,6 +80,46 @@ impl VisualViewport {
             window,
             can_gc,
         )
+    }
+
+    fn check_for_update(
+        &self,
+        old_rect: Rect<f32, CSSPixel>,
+        old_scale: Scale<f32, DevicePixel, DevicePixel>,
+    ) -> VisualViewportChanges {
+        let mut state = VisualViewportChanges::empty();
+        if old_rect.origin != self.viewport_rect.get().origin {
+            state |= VisualViewportChanges::OffsetChanged;
+        }
+        if old_rect.size != self.viewport_rect.get().size || old_scale != self.scale.get() {
+            state |= VisualViewportChanges::DimensionChanged;
+        }
+        state
+    }
+
+    /// Update the [`VisualViewport`] state based on a new [`PinchZoomInfos`].
+    pub(crate) fn update_from_pinch_zoom_infos(
+        &self,
+        pinch_zoom_infos: PinchZoomInfos,
+    ) -> VisualViewportChanges {
+        let old_rect = self.viewport_rect.replace(pinch_zoom_infos.rect);
+        let old_scale = self.scale.replace(pinch_zoom_infos.zoom_factor);
+
+        self.check_for_update(old_rect, old_scale)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    ///
+    /// > Whenever a visual viewport gets scrolled (whether in response to user
+    /// > interaction or by an API), the user agent must run these steps:
+    pub(crate) fn handle_scroll_event(&self) {
+        // Step 1:  Let vv be the VisualViewport object that was scrolled.
+        // Note: This is self.
+        // Step 2: Let doc be vv’s associated document.
+        // Steps 3 and 4 are shared with other scroll targets.
+        self.window
+            .Document()
+            .finish_handle_scroll_event(self.upcast());
     }
 }
 

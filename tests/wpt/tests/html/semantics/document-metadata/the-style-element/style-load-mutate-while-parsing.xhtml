@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>The 'load' event on the style element should not fire for mutations while it's on the stack of open elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+   body { background-color: transparent; }
+
+   <script>
+   window.t = async_test((t) => {
+     window.style = document.querySelector('style');
+     style.onload = t.unreached_func('load event fired for mutation');
+     style.append('body { color: inherit; }');
+   });
+   </script>
+
+   <script>
+   style.onload = t.step_func(() => {
+     t.done();
+   });
+   </script>
+  </style>
+ </head>
+ <body/>
+</html>

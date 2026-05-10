@@ -2,8 +2,9 @@ import pytest
 
 from . import assert_base_entry, create_log
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_console_log_cached_messages(
     bidi_session, wait_for_event, wait_for_future_safe, log_type, new_tab
@@ -60,7 +61,6 @@ async def test_console_log_cached_messages(
     remove_listener()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_console_log_cached_message_after_refresh(
     bidi_session, subscribe_events, new_tab, log_type

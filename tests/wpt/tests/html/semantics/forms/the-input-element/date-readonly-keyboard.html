@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/478905605">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<input type="date" readonly value="1970-01-01">
+
+<script>
+promise_test(async t => {
+  const input = document.querySelector('input');
+  input.focus();
+
+  // Press Space to open picker (if bug exists)
+  await test_driver.send_keys(input, " ");
+
+  // Press Down Arrow
+  await test_driver.send_keys(input, "\uE015"); // ArrowDown
+
+  // Press Enter
+  await test_driver.send_keys(input, "\uE007"); // Enter
+
+  assert_equals(input.value, "1970-01-01", "Readonly input value should not change");
+}, "Readonly date input should not change value via keyboard interaction");
+</script>

@@ -10,7 +10,6 @@ body {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
-<script src="/element-timing/resources/element-timing-helpers.js"></script>
 <script>
   async_test(function (t) {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
@@ -20,8 +19,6 @@ body {
       }
     );
     observer.observe({entryTypes: ['container']});
-
-    finishOnElementTiming(t);
 
     // Add a div that is the container timing root
     const div = document.createElement('div');
@@ -34,7 +31,7 @@ body {
     img.setAttribute('id', 'img_id');
     document.body.appendChild(img);
 
-    addPaintingElementTimingAfterDoubleRAF(document.body);
+    waitAfterTest(t, document.body, () => { t.done(); });
   }, 'Containertiming observed without paintable contents and an image outside does not report observations.');
 </script>
 

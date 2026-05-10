@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, Ray};
 
@@ -13,7 +14,7 @@ use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
@@ -23,7 +24,6 @@ use crate::script_runtime::{CanGc, JSContext};
 #[dom_struct]
 pub(crate) struct XRRay {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]
@@ -63,14 +63,14 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         direction: &XRRayDirectionInit,
     ) -> Fallible<DomRoot<Self>> {
         if origin.w != 1.0 {
-            return Err(Error::Type("Origin w coordinate must be 1".into()));
+            return Err(Error::Type(c"Origin w coordinate must be 1".into()));
         }
         if *direction.w != 0.0 {
-            return Err(Error::Type("Direction w coordinate must be 0".into()));
+            return Err(Error::Type(c"Direction w coordinate must be 0".into()));
         }
         if *direction.x == 0.0 && *direction.y == 0.0 && *direction.z == 0.0 {
             return Err(Error::Type(
-                "Direction vector cannot have zero length".into(),
+                c"Direction vector cannot have zero length".into(),
             ));
         }
 
@@ -102,26 +102,26 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
-    fn Origin(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Origin(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
+            cx,
             &self.global(),
             self.ray.origin.x as f64,
             self.ray.origin.y as f64,
             self.ray.origin.z as f64,
             1.,
-            can_gc,
         )
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-direction>
-    fn Direction(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Direction(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
+            cx,
             &self.global(),
             self.ray.direction.x as f64,
             self.ray.direction.y as f64,
             self.ray.direction.z as f64,
             0.,
-            can_gc,
         )
     }
 

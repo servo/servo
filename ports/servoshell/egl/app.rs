@@ -4,7 +4,6 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
@@ -45,6 +44,8 @@ pub(crate) struct EmbeddedPlatformWindow {
     current_can_go_forward: Cell<bool>,
     /// The current load status of the active WebView.
     current_load_status: Cell<Option<LoadStatus>>,
+
+    id: ServoShellWindowId,
 }
 
 impl PlatformWindow for EmbeddedPlatformWindow {
@@ -53,7 +54,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 
     fn id(&self) -> ServoShellWindowId {
-        0.into()
+        self.id
     }
 
     fn screen_geometry(&self) -> ScreenGeometry {
@@ -79,7 +80,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
 
     fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
 
-    #[cfg_attr(target_os = "android", expect(unused_variables))]
+    #[cfg_attr(
+        not(all(feature = "tracing", feature = "tracing-hitrace")),
+        expect(unused_variables)
+    )]
     fn update_user_interface_state(
         &self,
         state: &RunningAppState,
@@ -101,7 +105,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         if url_changed {
             let new_url_string = new_url.as_ref().map(Url::to_string).unwrap_or_default();
             *self.current_url.borrow_mut() = new_url;
-            self.host.on_url_changed(new_url_string);
+            if self.has_platform_focus() {
+                self.host.on_url_changed(new_url_string);
+            }
         }
 
         let new_back_forward = (
@@ -128,7 +134,8 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
             if new_load_status == LoadStatus::Complete {
                 let (callback, receiver) =
-                    GenericCallback::new_blocking().expect("Could not create channel");
+                    servo_base::generic_channel::GenericCallback::new_blocking()
+                        .expect("Could not create channel");
                 state.servo().create_memory_report(callback);
                 std::thread::spawn(move || {
                     let result = receiver.recv().expect("Could not get memory report");
@@ -136,10 +143,17 @@ impl PlatformWindow for EmbeddedPlatformWindow {
                         .results
                         .first()
                         .expect("We should have some memory report");
-                    for report in &reports.reports {
-                        let path = String::from("servo_memory_profiling:") + &report.path.join("/");
-                        hitrace::trace_metric_str(&path, report.size as i64);
-                    }
+                    let search_string = String::from("resident-according-to-smaps");
+                    let sum = reports
+                        .reports
+                        .iter()
+                        .filter(|report| report.path.contains(&search_string))
+                        .map(|report| report.size)
+                        .sum::<usize>();
+                    hitrace::trace_metric_str(
+                        "servo_memory_profiling:resident-according-to-smaps/sum",
+                        sum as i64,
+                    );
                 });
             }
         }
@@ -170,8 +184,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::InputMethod(input_method_control) => {
-                self.visible_input_methods.borrow_mut().push(control_id);
-                self.host.on_ime_show(input_method_control);
+                if input_method_control.allow_virtual_keyboard() {
+                    self.visible_input_methods.borrow_mut().push(control_id);
+                    self.host.on_ime_show(input_method_control);
+                }
             },
             EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
                 SimpleDialog::Alert(alert_dialog) => {
@@ -258,7 +274,7 @@ pub(crate) struct AppInitOptions {
 }
 
 pub struct App {
-    state: Rc<RunningAppState>,
+    pub(crate) state: Rc<RunningAppState>,
     // TODO: multi-window support, like desktop version.
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
@@ -268,10 +284,11 @@ pub struct App {
 
 #[expect(unused)]
 impl App {
+    #[servo::servo_tracing::instrument(skip_all, name = "App::new", level = "info")]
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()
             .opts(init.opts)
-            .preferences(init.preferences)
+            .preferences(init.preferences.clone())
             .event_loop_waker(init.event_loop_waker.clone());
         #[cfg(feature = "webxr")]
         let servo_builder = servo_builder
@@ -290,6 +307,7 @@ impl App {
             init.servoshell_preferences,
             init.event_loop_waker,
             user_content_manager,
+            init.preferences,
         ));
 
         Rc::new(Self {
@@ -305,6 +323,7 @@ impl App {
         window_handle: WindowHandle,
         viewport_rect: Rect<i32, DevicePixel>,
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+        window_id: Option<ServoShellWindowId>,
     ) {
         let viewport_size = viewport_rect.size;
         let refresh_driver = Rc::new(VsyncRefreshDriver::default());
@@ -317,7 +336,9 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
+        let id = window_id.unwrap_or(ServoShellWindowId::next());
         let platform_window = Rc::new(EmbeddedPlatformWindow {
+            id,
             host: self.host.clone(),
             rendering_context,
             refresh_driver,
@@ -344,10 +365,8 @@ impl App {
 
     pub(crate) fn window(&self) -> Rc<ServoShellWindow> {
         self.state
-            .windows()
-            .values()
-            .nth(0)
-            .expect("Should always have one open window")
+            .focused_window()
+            .expect("There is always an active window")
             .clone()
     }
 
@@ -526,7 +545,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -535,7 +554,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -544,7 +563,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -654,6 +673,7 @@ impl App {
         {
             warn!("Binding native surface to context failed ({error:?})");
         }
+        embedded_platform_window.request_repaint(&self.window());
         self.spin_event_loop();
     }
 }

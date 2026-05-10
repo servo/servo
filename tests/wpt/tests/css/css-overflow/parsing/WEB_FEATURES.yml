@@ -1,10 +1,16 @@
 features:
+- name: overflow-clip-margin
+  files:
+  - overflow-clip-margin*
 - name: scroll-markers
   files:
   - scroll-markers*
-- name: scrollbar-buttons
+- name: scroll-buttons
   files:
   - scroll-button*
+- name: scroll-target-group
+  files:
+  - scroll-target-group*
 - name: scrollbar-gutter
   files:
   - scrollbar-gutter-*

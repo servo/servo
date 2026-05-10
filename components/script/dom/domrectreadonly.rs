@@ -4,19 +4,20 @@
 
 use std::cell::Cell;
 
-use base::id::{DomRectId, DomRectIndex};
-use constellation_traits::DomRect;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
+use servo_base::id::{DomRectId, DomRectIndex};
+use servo_constellation_traits::DomRect;
 
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
     DOMRectInit, DOMRectReadOnlyMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{
-    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
-};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -44,33 +45,33 @@ impl DOMRectReadOnly {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new_from_dictionary(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         dictionary: &DOMRectInit,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(create_a_domrectreadonly_from_the_dictionary(dictionary)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -94,29 +95,27 @@ impl DOMRectReadOnly {
 impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrectreadonly>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(
-            global, proto, x, y, width, height, can_gc,
-        ))
+        Ok(DOMRectReadOnly::new(cx, global, proto, x, y, width, height))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn FromRect(
+        cx: &mut JSContext,
         global: &GlobalScope,
         other: &DOMRectInit,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
         let dom_rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(dom_rect), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(dom_rect), global, cx)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x>
@@ -181,7 +180,6 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
 }
 
 /// <https://drafts.fxtf.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) -> DOMRectReadOnly {
     // NOTE: We trivially combine all three steps into one
 
@@ -218,22 +216,25 @@ impl Serializable for DOMRectReadOnly {
         Ok((DomRectId::new(), serialized))
     }
 
+    #[expect(unsafe_code)]
     fn deserialize(
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
     {
+        // TODO: https://github.com/servo/servo/issues/44588
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Ok(Self::new(
+            &mut cx,
             owner,
             None,
             serialized.x,
             serialized.y,
             serialized.width,
             serialized.height,
-            can_gc,
         ))
     }
 

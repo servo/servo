@@ -4,7 +4,7 @@
 <script>
 async function test() {
   // Step 3 (client-hints/inner-delegation/accept_ch_delegation_to_src.sub.https.html)
-  const policy = JSON.stringify(document.featurePolicy.getAllowlistForFeature("ch-device-memory"));
+  const policy = JSON.stringify(document.permissionsPolicy.getAllowlistForFeature("ch-device-memory"));
   let r = await fetch("https://{{host}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
   if (r.status == 200) {
     return "Site 2 fetching Site 1 did recieve sec-ch-device-memory";

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click me!</button>
+<div id="target"></id>
+
+<script>
+  promise_test(async t => {
+    // Create an initial history stack.
+    history.pushState({}, '', '/url1');
+    history.pushState({}, '', '/url2');
+
+    const testCases = [
+      {
+        expectedNavigationType: 'push',
+        expectedUrl: 'url3',
+        navigate: () => history.pushState({}, '', '/url3'),
+      },
+      {
+        expectedNavigationType: 'traverse',
+        expectedUrl: 'url2',
+        navigate: () => history.back(),
+      },
+      {
+        expectedNavigationType: 'traverse',
+        expectedUrl: 'url3',
+        navigate: () => history.forward(),
+      },
+      {
+        expectedNavigationType: 'replace',
+        expectedUrl: 'url4',
+        navigate: () => history.replaceState({}, '', '/url4'),
+      },
+      {
+        expectedNavigationType: 'push',
+        expectedUrl: 'url5',
+        // Only the initial URL and type should be captured.
+        navigate: () => {
+          history.pushState({}, '', '/url5');
+          history.replaceState({}, '', '/url6');
+        },
+      },
+    ];
+
+    const helper = new SoftNavigationTestHelper(t);
+
+    for (let test of testCases) {
+      const modifyDOM = () => {
+        const id = 'icpElement';
+        target.innerHTML = `<h1 id="${id}">${test.type} Navigation</h1>`;
+        return id;
+      };
+      let result = await helper.clickAndExpectSoftNavigation(
+          navigateButton, test.expectedUrl, modifyDOM, test.navigate);
+      assert_equals(result.softNav.navigationType, test.expectedNavigationType);
+    }
+  }, 'SoftNavigation.navigationType is set as expected ');
+</script>

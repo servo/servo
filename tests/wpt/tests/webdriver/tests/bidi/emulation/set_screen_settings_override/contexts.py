@@ -154,7 +154,7 @@ async def test_iframe(
         screen_area_override["height"],
     )
 
-    page_url = inline(f"""{iframe("<div id='in-iframe'>foo</div>", domain=domain)}""")
+    page_url = inline(iframe("<div id='in-iframe'>foo</div>", domain=domain))
 
     # Load the page with iframes.
     await bidi_session.browsing_context.navigate(

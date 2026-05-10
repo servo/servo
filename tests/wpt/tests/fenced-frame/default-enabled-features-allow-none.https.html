@@ -26,16 +26,16 @@ promise_test(async(t) => {
 
   await fencedframe.execute(async () => {
     assert_false(
-        document.featurePolicy.allowsFeature('shared-storage'),
+        document.permissionsPolicy.allowsFeature('shared-storage'),
         "Shared storage should be disallowed in the fenced frame.");
     assert_false(
-        document.featurePolicy.allowsFeature('private-aggregation'),
+        document.permissionsPolicy.allowsFeature('private-aggregation'),
         "Private aggregation should be disallowed in the fenced frame.");
     assert_false(
-        document.featurePolicy.allowsFeature('attribution-reporting'),
+        document.permissionsPolicy.allowsFeature('attribution-reporting'),
         "Attribution reporting should be disallowed in the fenced frame.");
     assert_false(
-        document.featurePolicy.allowsFeature('sync-xhr'),
+        document.permissionsPolicy.allowsFeature('sync-xhr'),
         "USB access should be disallowed in the fenced frame.");
   }, []);
 }, 'Flexible permissions fenced frames can have permissions restricted from ' +

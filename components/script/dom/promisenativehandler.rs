@@ -6,8 +6,8 @@ use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use malloc_size_of::MallocSizeOf;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;

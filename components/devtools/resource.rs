@@ -39,10 +39,6 @@ pub(crate) trait ResourceAvailable {
         array_type: ResourceArrayType,
         stream: &mut S,
     ) {
-        if resources.is_empty() {
-            return;
-        }
-
         let msg = ResourceAvailableReply::<T> {
             from: self.actor_name(),
             type_: match array_type {

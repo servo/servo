@@ -291,3 +291,45 @@ async_test(t => {
     }
   }), t.unreached_func('Promise.all should not reject for valid types'));
 }, "Test that encodingInfo rejects if the MediaConfiguration does not have a valid type");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      scalabilityMode: 'L1T2',
+    }
+  }));
+}, "Test that encodingInfo rejects if scalabilityMode is specified for type record");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      colorGamut: 'srgb',
+    }
+  }));
+}, "Test that encodingInfo rejects if colorGamut is specified for type record");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      transferFunction: 'srgb',
+    }
+  }));
+}, "Test that encodingInfo rejects if transferFunction is specified for type record");

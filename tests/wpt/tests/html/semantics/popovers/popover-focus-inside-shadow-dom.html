@@ -26,13 +26,27 @@
     </button>
   </template>
 </my-element>
+<my-element id="host2">
+  <template shadowrootmode="open">
+    <button id="before">
+      This button is where focus should land before traversing this popover
+    </button>
+    <div popover id="popover">
+      <input type="checkbox" id="target1" />
+      <input type="checkbox" id="target2" />
+    </div>
+    <button id="after">
+      This button is where focus should land after traversing this popover
+    </button>
+  </template>
+</my-element>
 
 <script>
 promise_test(async () => {
   const shadowRoot = host.shadowRoot;
   const invoker = shadowRoot.getElementById('invoker');
   const popover = shadowRoot.getElementById('popover');
-  // Open popover
+  // Open popover with invoker
   invoker.focus();
   invoker.click();
   assert_true(popover.matches(":popover-open"));
@@ -45,6 +59,24 @@ promise_test(async () => {
     'host/target2',
     'host/close',
     'host/after',
+    'host2/before',
+    'host2/after',
+  ]);
+  popover.hidePopover();
+  assert_false(popover.matches(":popover-open"));
+
+  const shadowRoot2 = host2.shadowRoot;
+  // Open popover without invoker
+  const popover2 = shadowRoot2.getElementById('popover');
+  popover2.showPopover();
+  invoker.focus();
+  await assert_focus_navigation_bidirectional([
+    'host/invoker',
+    'host/after',
+    'host2/before',
+    'host2/target1',
+    'host2/target2',
+    'host2/after',
   ]);
 }, 'Focus behavior of popover elements inside shadow DOM');
 </script>

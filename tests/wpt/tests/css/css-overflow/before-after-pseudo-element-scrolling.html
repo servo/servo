@@ -1,0 +1,59 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <title>Scrolls of `::before` and `::after` pseudo element should persist after a reflow.</title>
+    <link rel="help" href="https://github.com/servo/servo/pull/42005">
+    <link rel="author" title="Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+    <link rel="match" href="reference/before-after-pseudo-element-scrolling-ref.html">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <style>
+    #target::before, #target::after {
+      display: block;
+      content: url("/images/red.png") url("/images/green.png");
+      height: 50px;
+      width: 100px;
+      overflow: scroll;
+      scrollbar-width: none;
+      background: url("/images/green.png");
+    }
+    </style>
+  </head>
+  <body>
+    <div id="dummy">dummy</div>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="target">
+    </div>
+
+    <script>
+      window.onload = async () => {
+        await waitForCompositorCommit();
+        let rect = target.getBoundingClientRect();
+        let middle_point = (rect.top + rect.bottom) / 2;
+
+        // Scrolls the `::before` pseudo element and wait for the event.
+        let promise_scroll_before = waitForScrollEndOrTimeout(target, MAX_FRAME);
+        new test_driver
+          .Actions()
+          .scroll(rect.left + 10, Math.round(middle_point - rect.height / 4), 0, 1000)
+          .send();
+        await promise_scroll_before;
+
+        // Scrolls the `::after` pseudo element and wait for the event.
+        let promise_scroll_after = waitForScrollEndOrTimeout(target, MAX_FRAME);
+        new test_driver
+          .Actions()
+          .scroll(rect.left + 10, Math.round(middle_point + rect.height / 4), 0, 1000)
+          .send();
+        await promise_scroll_after;
+
+        // This should force a relayout.
+        dummy.style.display = "none";
+        await waitForNextFrame();
+        document.documentElement.classList.remove("reftest-wait");
+      }
+    </script>
+  </body>
+</html>

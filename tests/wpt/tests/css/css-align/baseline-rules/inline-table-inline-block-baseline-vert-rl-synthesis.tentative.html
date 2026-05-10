@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<title>CSS Box Alignment Test: inline-block and inline-table baseline synthesis</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#baseline-export">
+<link rel="match" href="inline-table-inline-block-baseline-vert-rl-synthesis-ref.tentative.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<style>
+body {
+    font: 20px/1 Ahem;
+}
+.container {
+    display: flex;
+    outline: solid 1px black;
+    writing-mode: vertical-rl;
+}
+.baseline-first {
+    align-items: first baseline;
+}
+.baseline-last {
+    align-items: last baseline;
+}
+.block {
+    display: inline-block;
+    color: black;
+}
+.table {
+    display: inline-table;
+    font-size: 40px;
+    margin-block: 40px;
+}
+
+/**
+ * Table cells with a vertical-align/alignment-baseline other than `baseline`
+ * removes the cell from baseline content-alignment participation. The row's
+ * baseline is then synthesized from the content boxes of its cells. See:
+ *  - https://www.w3.org/TR/css-align-3/#baseline-align-content
+ *  - https://www.w3.org/TR/CSS2/tables.html#height-layout (CSS2)
+ */
+.first td {
+    vertical-align: top;
+    width: 80px;
+    background: deepskyblue;
+    color: yellowgreen;
+}
+.last td {
+    vertical-align: bottom;
+    width: 80px;
+    background: deeppink;
+    color: darkviolet;
+}
+</style>
+<body>
+<div class="container baseline-first">
+    <div class="block">A</div><table class="table" cellspacing="0" cellpadding="0"><tr class="first"><td>B<tr class="last"><td>C</table>
+</div>
+<div class="container baseline-last">
+    <table class="table" cellspacing="0" cellpadding="0"><tr class="first"><td>B<tr class="last"><td>C</table><div class="block">A</div>
+</div>
+</body>
+</html>

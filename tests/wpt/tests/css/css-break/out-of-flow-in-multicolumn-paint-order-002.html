@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test that fragmented absolutely positioned element inside multicol paints over its absolute containing block's child's content.">
+<style>
+.multicol {
+  columns: 2;
+  column-gap: 0;
+  column-fill: auto;
+  width: 100px;
+  height: 100px;
+}
+
+.abs-cb {
+  display: flex;
+  position: relative;
+  width: 50px;
+  height: 200px;
+}
+
+.abs {
+  position: absolute;
+  width: 50px;
+  height: 200px;
+  left: 0;
+  top: 0;
+}
+
+.outer {
+  background: green;
+}
+
+.inner {
+  background: red;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=multicol>
+  <div class=abs-cb>
+    <div class="abs-cb inner"></div>
+    <div class="abs outer"></div>
+  </div>
+</div>
+

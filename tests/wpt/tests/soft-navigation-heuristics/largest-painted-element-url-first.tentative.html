@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>SoftNavigationEntry largestInteractionContentfulPaint attribute: URL first, then paint.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<main id=main>
+  <a id=link>Click me!</a>
+</main>
+<script>
+  promise_test(async t => {
+    const clickTarget = document.getElementById("link");
+    const soft_nav_promise = getNextEntry('soft-navigation');
+    let largeId;
+
+    clickTarget.addEventListener('click', async () => {
+      // Yield to ensure task tracking is working and we mark a timeOrigin.
+      await new Promise(r => t.step_timeout(r, 0));
+
+      // URL change first.
+      history.pushState({}, '', `foobar.html?${counter++}`);
+
+      // Add a large paragraph.
+      const large = await addTextParagraphToMain("Much larger element that should be the largest interaction contentful paint in this interaction context");
+      largeId = large.id;
+      large.style = "font-size: 5em";
+    });
+
+    await test_driver.click(clickTarget);
+    const entry = await soft_nav_promise;
+
+    assert_true("largestInteractionContentfulPaint" in entry, "largestInteractionContentfulPaint attribute exists");
+    assert_true("paintTime" in entry, "paintTime attribute should exist on soft nav entry");
+    assert_greater_than(entry.paintTime, 0, "soft nav entry paintTime should be greater than 0");
+
+    const largest = entry.largestInteractionContentfulPaint;
+
+    assert_not_equals(largest, null, "largestInteractionContentfulPaint is not null");
+
+    assert_equals(largest.id, largeId, "largestInteractionContentfulPaint has the correct ID");
+    assert_true("paintTime" in largest, "paintTime attribute should exist on ICP entry");
+    assert_greater_than(largest.paintTime, 0, "ICP entry paintTime should be greater than 0");
+    assert_equals(largest.paintTime, entry.paintTime, "paintTime should match as it is the only/first large paint");
+  }, "Test that the largestInteractionContentfulPaint attribute of a soft navigation entry is correctly set when URL change happens before paint");
+</script>

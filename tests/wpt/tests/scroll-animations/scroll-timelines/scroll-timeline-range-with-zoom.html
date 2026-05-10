@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" href="https://issues.chromium.org/issues/40929569">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  document.body.style.zoom = '2';
+  const [ start, end ] = [ CSS.px(50), CSS.px(100) ];
+  const sda = document.body.animate(
+    { background: ['green', 'red'] },
+    {
+      timeline: new ScrollTimeline({
+        source: document.body,
+        axis: 'block'
+      }),
+      rangeStart: {
+        offset: start,
+        rangeName: 'none'
+      },
+      rangeEnd: {
+        offset: end,
+        rangeName: 'none'
+      }
+    }
+  );
+
+  const assertValues = (prefix) => {
+    assert_equals(
+      sda.rangeStart.offset.value, start.value,
+      `zoom@${prefix}x: Read back range-start should match input`
+    );
+    assert_equals(
+      sda.rangeEnd.offset.value, end.value,
+      `zoom@${prefix}x: Read back range-end should match input`
+    );
+
+    const anim = document.body.getAnimations()[0];
+    assert_equals(
+      anim.rangeStart.offset.value, start.value,
+      `zoom@${prefix}x: Read back range-start via getAnimations should match input`
+    );
+    assert_equals(
+      anim.rangeEnd.offset.value, end.value,
+      `zoom@${prefix}x: Read back range-end via getAnimations should match input`
+    );
+  }
+
+  getComputedStyle(document.body).zoom;
+  assertValues(2);
+
+  document.body.style.zoom = '4';
+  getComputedStyle(document.body).zoom;
+  assertValues(4);
+});
+</script>

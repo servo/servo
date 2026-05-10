@@ -9,3 +9,6 @@ features:
   - cascade-import-010.xht
   - cascade-import-011.xht
   - cascade-import-012.xht
+- name: import
+  files:
+  - cascade-import-002.xht

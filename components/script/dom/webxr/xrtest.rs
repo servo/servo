@@ -8,20 +8,22 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsval::JSVal;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 use crate::ScriptThread;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::fakexrdevice::{FakeXRDevice, get_origin, get_views, get_world};
 use crate::dom::globalscope::GlobalScope;
@@ -54,7 +56,7 @@ impl XRTest {
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender, CanGc::note());
+            let device = FakeXRDevice::new(&self.global(), sender, CanGc::deprecated_note());
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
@@ -164,7 +166,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
                 task_source.queue(task!(request_session: move || {
-                    this.root().device_obtained(message, trusted, CanGc::note());
+                    this.root().device_obtained(message, trusted, CanGc::deprecated_note());
                 }));
             })
             .expect("Could not create callback");
@@ -176,15 +178,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
+    fn SimulateUserActivation(&self, cx: &mut JSContext, f: Rc<Function>) {
         let _guard = ScriptThread::user_interacting_guard();
-        rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-        let _ = f.Call__(
-            vec![],
-            value.handle_mut(),
-            ExceptionHandling::Rethrow,
-            can_gc,
-        );
+        rooted!(&in(cx) let mut value: JSVal);
+        let _ = f.Call__(cx, vec![], value.handle_mut(), ExceptionHandling::Rethrow);
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
@@ -198,8 +195,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         } else {
             let mut len = devices.len();
 
-            let mut rooted_devices: Vec<_> =
-                devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
+            let rooted_devices: Vec<_> = devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
@@ -220,7 +216,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 })
                 .expect("Could not create callback");
 
-            for device in rooted_devices.drain(..) {
+            for device in rooted_devices {
                 device.disconnect(callback.clone());
             }
         };

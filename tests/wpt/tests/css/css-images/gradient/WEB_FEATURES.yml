@@ -1,0 +1,10 @@
+features:
+- name: gradients
+  files:
+  - color-scheme-dependent-color-stops.html
+  - color-stops-parsing.html
+  - gradient-infinity-*
+  - gradient-single-stop-0*
+  - gradient-to-transparent.html
+  - legacy-color-gradient.html
+  - linear-gradient-relative-currentcolor-stop.html

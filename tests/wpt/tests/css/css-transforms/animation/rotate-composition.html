@@ -10,6 +10,26 @@
 
 <body>
 <script>
+// Normalizes negative axis-aligned rotations to positive axis with negated
+// angle. Needed because rounding may produce negative single-axis results
+// (e.g. [1e-6, -1, 0] rounds to [0, -1, 0]).
+function normalizeRotation(args) {
+  const parts = args.split(' ');
+  if (parts.length != 4)
+    return args;
+  let x = parseFloat(parts[0]);
+  let y = parseFloat(parts[1]);
+  let z = parseFloat(parts[2]);
+  const angle = parts[3];
+  const nonZeroCount = (x !== 0) + (y !== 0) + (z !== 0);
+  if (nonZeroCount == 1 && (x || y || z) < 0) {
+    const unit = angle.replace(/[-\d.]+/, '');
+    const negatedAngle = -parseFloat(angle);
+    return `${-x} ${-y} ${-z} ${negatedAngle}${unit}`;
+  }
+  return args;
+}
+
 // Numerical precision may cause an axis aligned rotation to appear slightly
 // misaligned. Convert to (x, y, z, angle) form with rounding for comparison.
 function parseRotation(args) {
@@ -48,7 +68,7 @@ function parseRotation(args) {
       y /= length;
       z /= length;
     }
-    return roundNumbers(`${x} ${y} ${z} ${angle}`);
+    return normalizeRotation(roundNumbers(`${x} ${y} ${z} ${angle}`));
   }
   return args;
 }

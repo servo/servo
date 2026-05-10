@@ -11,7 +11,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 // This delay is to prevent a race condition which can cause false passes -
 // a service worker might take some time to install, and if activation is too quick it might

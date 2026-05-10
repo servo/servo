@@ -3,6 +3,9 @@ on:
   schedule:
     - cron: 0 0 * * *
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/**'
 jobs:
   update:
     runs-on: ubuntu-24.04
@@ -25,9 +28,15 @@ jobs:
       run: |
         cd wpt
         ./wpt update-codeowners ../wpt-metadata
+    - name: Show diff
+      run: |
+        cd wpt
+        git diff
     - name: Commit and create pull request
-      uses: peter-evans/create-pull-request@v6
+      if: github.ref == 'refs/heads/master'
+      uses: peter-evans/create-pull-request@v8
       with:
+        path: wpt
         token: ${{ secrets.GITHUB_TOKEN }}
         author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>
         commit-message: Automated update of CODEOWNERS

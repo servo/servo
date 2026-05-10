@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse with justify-content: baseline</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-content-002-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: 80px;
+      gap: 4px;
+      width: 200px;
+      height: 180px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container alignment -->
+  <p>justify-content: baseline</p>
+  <div class="grid-lanes" style="justify-content: baseline;">
+    <item>start</item>
+    <item>center</item>
+    <item>end</item>
+  </div>
+
+  <!-- Self alignment -->
+  <p>justify-self</p>
+  <div class="grid-lanes">
+    <item style="justify-self: start;">start</item>
+    <item style="justify-self: end;">end</item>
+    <item style="justify-self: center;">center</item>
+    <item style="justify-self: baseline;">baseline</item>
+  </div>
+</body>
+</html>

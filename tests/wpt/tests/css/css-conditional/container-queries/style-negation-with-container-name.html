@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Firefox bug 1999555</title>
+<meta name="assert" content="Negated style query with container name matches correctly">
+<link rel="match" href="style-negation-with-container-name-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1999555">
+
+<style>
+.foo {
+  container-name: --foo;
+}
+
+.bar {
+  container-name: --bar;
+  --bar: baz;
+}
+
+.test {
+  background: lightgreen;
+  @container --foo not style(--bar: baz) {
+    background: pink;
+  }
+  @container --bar not style(--bar: baz) {
+    background: yellow;
+  }
+}
+</style>
+
+<div class="test">
+  Background should be light green
+</div>
+
+<div class="foo">
+  <div class="test">
+    Background should be pink
+  </div>
+</div>
+
+<div class="bar">
+  <div class="test">
+    Background should be light green
+  </div>
+</div>

@@ -8,11 +8,16 @@
 :root {
   font-size: 10px;
 }
+#wrapper {
+  width: 100px;
+}
 #target {
   font-size: 10px;
 }
 </style>
-<div id="target"></div>
+<div id="wrapper">
+  <div id="target"></div>
+</div>
 <script>
 
 // Identity tests
@@ -46,4 +51,6 @@ test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) 
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 4)', '4', {prop:'column-count', type:'number'});
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 2)', '2', {prop:'scale'});
 test_math_used('rotate3d(progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), calc(progress(11em, 1rem, 11em) * 2deg))', 'rotate3d(2, 2, 2, 2deg)', {prop:'transform'});
+
+test_math_used('calc(50% - 0px * clamp(0, progress(0cqw, 0px, 0px), 1))', '50px', {type:'length', prop:'width'});
 </script>

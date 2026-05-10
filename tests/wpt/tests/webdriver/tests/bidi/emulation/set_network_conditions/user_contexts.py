@@ -118,3 +118,7 @@ async def test_restores_to_global_when_removed(bidi_session,
         user_contexts=[affected_user_context])
 
     assert not await get_navigator_online(affected_context)
+
+    await bidi_session.emulation.set_network_conditions(network_conditions=None)
+
+    assert await get_navigator_online(affected_context)

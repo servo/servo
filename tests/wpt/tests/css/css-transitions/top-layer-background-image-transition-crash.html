@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/496524440">
+
+<dialog></dialog>
+
+<style>
+dialog {
+  background-image: paint(source-out);
+}
+dialog.animate {
+  transition: overlay 2s allow-discrete, display 2s allow-discrete;
+}
+</style>
+
+<script>
+(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+  dialog.classList.add('animate');
+  dialog.close();
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('test-wait');
+})();
+</script>

@@ -5,8 +5,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
-use compositing_traits::CrossProcessPaintApi;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
@@ -18,6 +16,8 @@ use net_traits::{
     DebugVec, FetchMetadata, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError,
     ResourceFetchTiming, ResourceTimingType,
 };
+use paint_api::{CrossProcessPaintApi, PaintMessage};
+use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 use webrender_api::ImageKey;
@@ -27,8 +27,7 @@ use crate::mock_origin;
 fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     let (sender, receiver) = unbounded();
     let paint_api = CrossProcessPaintApi::dummy_with_callback(Some(Box::new(move |msg| {
-        if let compositing_traits::PaintMessage::GenerateImageKeysForPipeline(_, pipeline_id) = msg
-        {
+        if let PaintMessage::GenerateImageKeysForPipeline(_, pipeline_id) = msg {
             let _ = sender.send(pipeline_id);
         }
     })));
@@ -560,7 +559,7 @@ fn test_svg_rasterization() {
     };
 
     let size = webrender_api::units::DeviceIntSize::new(100, 100);
-    cache.rasterize_vector_image(vec_img.id, size);
+    cache.rasterize_vector_image(vec_img.id, size, None);
 }
 
 #[test]
@@ -621,7 +620,7 @@ fn test_rasterization_listener() {
         }
     });
 
-    cache.rasterize_vector_image(vec_img.id, size);
+    cache.rasterize_vector_image(vec_img.id, size, None);
 
     cache.add_rasterization_complete_listener(TEST_PIPELINE_ID, vec_img.id, size, callback);
 

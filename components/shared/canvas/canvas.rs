@@ -5,17 +5,17 @@
 use std::default::Default;
 use std::str::FromStr;
 
-use base::Epoch;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts_traits::{FontDataAndIndex, FontIdentifier};
-use ipc_channel::ipc::IpcSender;
 use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use webrender_api::ImageKey;
@@ -509,7 +509,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
-    GetImageData(Option<Rect<u32>>, IpcSender<SharedSnapshot>),
+    GetImageData(Option<Rect<u32>>, GenericSender<SharedSnapshot>),
     PutImageData(Rect<u32>, SharedSnapshot),
     StrokeRect(
         Rect<f32>,
@@ -795,7 +795,7 @@ impl CanvasFont {
             FontIdentifier::Local(local_font_identifier) => {
                 local_font_identifier.font_data_and_index()
             },
-            FontIdentifier::Web(_) => None,
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => None,
         })
     }
 }

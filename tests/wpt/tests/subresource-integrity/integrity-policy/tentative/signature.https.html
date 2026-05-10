@@ -8,11 +8,19 @@
 <body>
 <script>
   promise_test(async () => {
-    // Generated using https://sha2.it/ed25519.html in a browser that supports Signature-Based SRI (e.g. Chrome 136+, with Experimental Web Platform Features enabled)
+    // Generated using https://sha2.it/ed25519.html in a browser that supports Signature-Based SRI
+    //
+    // The response over which the digest is generated is `window.ran = true;\n`, and the "signature
+    // base" is:
+    //
+    // ```
+    // "unencoded-digest";sf: sha-256=:JWql9hchAH1Rc/vo5mdgD2Tw1oSH1HlByNgKGDxSh9Y=:
+    // "@signature-params": ("unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
+    // ```
     const signature = encodeURIComponent(
-      'header(Unencoded-Digest, sha-384=:tqyFpeo21WFM8HDeUtLqH20GUq\/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak:)' +
-      '|header(Signature-Input, signature=\\("unencoded-digest";sf\\); keyid="JrQLj5P\/89iXES9+vFgrIy29clF9CC\/oPPsw3c5D0bs="; tag="sri")' +
-      '|header(Signature, signature=:qM19uLskHm2TQG5LJcH/hY0n0BWWzYOJztVWYlwk0cZb3u0JdgUMre1J4Jn8Tma0x2u5/kPBfbXRMbB+X+vTBw==:)');
+      'header(Unencoded-Digest, sha-256=:JWql9hchAH1Rc/vo5mdgD2Tw1oSH1HlByNgKGDxSh9Y=:)' +
+      '|header(Signature-Input, signature=\\("unencoded-digest";sf\\); keyid="JrQLj5P\/89iXES9+vFgrIy29clF9CC\/oPPsw3c5D0bs="; tag="ed25519-integrity")' +
+      '|header(Signature, signature=:wst4wjY8b6fzAKf0bnxEHjbZnUnOB9v9DqXLZBFKiogHlLzEe2mELvhFAzCZrtKSy3gO5jRv6NzaLTUcYQWXAA==:)');
 
     const REMOTE_EXECUTOR =
       `/common/dispatcher/remote-executor.html`;

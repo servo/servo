@@ -2,14 +2,6 @@
 <head>
 <title>Performance Paint Timing Test: Whitespace should not count as contentful</title>
 <style>
-    #main {
-        position: relative;
-        width: 100px;
-        height: 100px;
-        background-image: url(../resources/circles.png);
-        background-size: 0 0;
-    }
-
     #text {
         display: none;
     }
@@ -29,17 +21,7 @@
     <div id="text">TEXT</div>
 </div>
 <script>
-    // Load the image into memory first to make sure it's decoded.
-    function load_image() {
-      const img = document.createElement("img");
-      img.src = "../resources/circles.png";
-
-      return new Promise(resolve => {
-        img.onload = async () => resolve();
-      });
-    }
-
-    test_fcp("Whitespace should not count as contentful.", load_image)
+    test_fcp("Whitespace should not count as contentful.")
 </script>
 </body>
 </html>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/470462685">
+<div id="target" style="float: left;">
+  <select></select>
+</div>
+<script>
+document.body.offsetTop;
+target.style.float = 'initial';
+target.style.overflow = 'hidden';
+</script>

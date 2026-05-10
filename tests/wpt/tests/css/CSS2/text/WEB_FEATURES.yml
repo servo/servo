@@ -1,4 +1,89 @@
 features:
+- name: letter-spacing
+  files:
+  - letter-spacing-*
+- name: text-align
+  files:
+  - text-align-*
+- name: text-transform
+  files:
+  - text-transform-*
+- name: text-decoration
+  files:
+  - bidi-text-decoration-underline-001.xht
+  - painting-order-underline-001.xht
+  - text-decoration-001.xht
+  - text-decoration-002.xht
+  - text-decoration-003.xht
+  - text-decoration-005.xht
+  - text-decoration-006.xht
+  - text-decoration-008.xht
+  - text-decoration-009.xht
+  - text-decoration-011.xht
+  - text-decoration-012.xht
+  - text-decoration-017.xht
+  - text-decoration-019.xht
+  - text-decoration-023.xht
+  - text-decoration-025.xht
+  - text-decoration-029.xht
+  - text-decoration-031.xht
+  - text-decoration-066.xht
+  - text-decoration-067.xht
+  - text-decoration-068.xht
+  - text-decoration-069.xht
+  - text-decoration-applies-to-*
+- name: text-decoration-line-blink
+  files:
+  - text-decoration-004.xht
+  - text-decoration-007.xht
+  - text-decoration-010.xht
+  - text-decoration-013.xht
+  - text-decoration-014.xht
+  - text-decoration-015.xht
+  - text-decoration-016.xht
+  - text-decoration-018.xht
+  - text-decoration-020.xht
+  - text-decoration-021.xht
+  - text-decoration-022.xht
+  - text-decoration-024.xht
+  - text-decoration-026.xht
+  - text-decoration-027.xht
+  - text-decoration-028.xht
+  - text-decoration-030.xht
+  - text-decoration-032.xht
+  - text-decoration-033.xht
+  - text-decoration-034.xht
+  - text-decoration-035.xht
+  - text-decoration-036.xht
+  - text-decoration-037.xht
+  - text-decoration-038.xht
+  - text-decoration-039.xht
+  - text-decoration-040.xht
+  - text-decoration-041.xht
+  - text-decoration-042.xht
+  - text-decoration-043.xht
+  - text-decoration-044.xht
+  - text-decoration-045.xht
+  - text-decoration-046.xht
+  - text-decoration-047.xht
+  - text-decoration-048.xht
+  - text-decoration-049.xht
+  - text-decoration-050.xht
+  - text-decoration-051.xht
+  - text-decoration-052.xht
+  - text-decoration-053.xht
+  - text-decoration-054.xht
+  - text-decoration-055.xht
+  - text-decoration-056.xht
+  - text-decoration-057.xht
+  - text-decoration-058.xht
+  - text-decoration-059.xht
+  - text-decoration-060.xht
+  - text-decoration-061.xht
+  - text-decoration-062.xht
+  - text-decoration-063.xht
+  - text-decoration-064.xht
+  - text-decoration-065.xht
 - name: white-space
   files:
   - text-align-white-space-*
@@ -6,9 +91,3 @@ features:
 - name: word-spacing
   files:
   - word-spacing-*
-- name: text-align
-  files:
-  - text-align-*
-- name: letter-spacing
-  files:
-  - letter-spacing-*

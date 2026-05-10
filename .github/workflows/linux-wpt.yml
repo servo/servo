@@ -32,25 +32,45 @@ env:
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
-  chunks:
-    name: Generate chunks array
-    runs-on: ubuntu-22.04
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    runs-on: ubuntu-24.04
     outputs:
-      chunks-array: ${{ steps.generate-chunks-array.outputs.result }}
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      selected-runner-count: ${{ steps.select.outputs.selected-runner-count }}
+      selected-runner-indices: ${{ steps.select.outputs.selected-runner-indices }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
     steps:
-      - uses: actions/github-script@v7
-        id: generate-chunks-array
+      - name: Runner select
+        id: select
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
-          script: |
-            return Array.from({length: ${{ inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
+          GITHUB_TOKEN: ${{ github.token }}
+          # Before updating the GH action runner image for the nightly job, ensure
+          # that the system has a glibc version that is compatible with the one
+          # used by the wpt.fyi runners.
+          github-hosted-runner-label: ubuntu-22.04
+          github-hosted-runner-count: ${{ inputs.number-of-wpt-chunks }}
+          self-hosted-image-name: servo-ubuntu2204-wpt
+          self-hosted-runner-count: 3
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: true
   linux-wpt:
-    name: WPT
-    runs-on: ubuntu-22.04
-    needs: chunks
+    needs:
+      - runner-select
+    name: WPT [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     strategy:
       fail-fast: false
       matrix:
-        chunk_id: ${{ fromJson(needs.chunks.outputs.chunks-array) }}
+        chunk_id: ${{ fromJSON(needs.runner-select.outputs.selected-runner-indices) }}
     steps:
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
@@ -60,21 +80,27 @@ jobs:
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: ${{ inputs.profile }}-binary-linux
       - name: unPackage binary
         run: tar -xzf ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
       - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
+        timeout-minutes: 30
         run: |
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
+          # FIXME #41043, #41044
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk fonts-dejavu-extra
+          # FIXME #35029
+          sudo apt purge -y fonts-droid-fallback
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
@@ -83,11 +109,12 @@ jobs:
         run: |
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
+          nproc=$(nproc)
           ./mach test-wpt \
             --bin ${{ inputs.binary-path }} \
             $WPT_ALWAYS_SUCCEED_ARG \
-            --profile ${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
+            --profile ${{ inputs.profile }} --processes $((nproc * ${{ runner.environment == 'self-hosted' && 2 || 1 }})) --timeout-multiplier 2 \
+            --total-chunks ${{ needs.runner-select.outputs.selected-runner-count }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-stable-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
@@ -96,17 +123,19 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-filtered-logs-linux-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
+          if-no-files-found: error
       - name: Archive results (full)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-full-logs-linux-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
+          if-no-files-found: error
 
   report-test-results:
     name: Process WPT Results
@@ -115,14 +144,14 @@ jobs:
     needs: linux-wpt
     steps:
       - name: Merge logs (full)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-full-logs-linux
           pattern: wpt-full-logs-linux-*
           delete-merged: true
       # This job needs to be last. If no filtered results were uploaded, it will fail, but we want to merge other archives in that case.
       - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-filtered-logs-linux
           pattern: wpt-filtered-logs-linux-*
@@ -135,7 +164,7 @@ jobs:
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name == 'pull_request_target' }}
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
           name: wpt-filtered-logs-linux
@@ -147,10 +176,11 @@ jobs:
           cat results/linux/*.log > stable-unexpected-results.log || true
       - name: Upload aggregated results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stable-unexpected-results-linux
           path: stable-unexpected-results.log
+          if-no-files-found: error
       - name: Report results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         run: |

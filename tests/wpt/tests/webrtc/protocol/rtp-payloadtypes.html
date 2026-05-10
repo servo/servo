@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>payload type handling (assuming rtcp-mux)</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 // Tests behaviour from https://tools.ietf.org/html/rfc5761#section-4
 
 function createOfferSdp(opusPayloadType) {
@@ -26,6 +30,7 @@ a=setup:actpass
 `;
 }
 
+if (rest) {
 promise_test(async t => {
   for (let payloadType = 96; payloadType <= 127; payloadType++) {
     const pc = new RTCPeerConnection();
@@ -46,7 +51,9 @@ promise_test(async t => {
     pc.close();
   }
 }, 'setRemoteDescription with a codec in the range 35-63 works');
+}
 
+if (interop2026) {
 promise_test(async t => {
   for (let payloadType = 64; payloadType <= 95; payloadType++) {
     const pc = new RTCPeerConnection();
@@ -58,4 +65,5 @@ promise_test(async t => {
     pc.close();
   }
 }, 'setRemoteDescription with a codec in the range 64-95 throws an InvalidAccessError');
+}
 </script>

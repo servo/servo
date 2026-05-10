@@ -5,8 +5,9 @@ from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultExc
 from ... import any_int, any_string, recursive_compare
 from .. import any_stack_trace, PRIMITIVE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_await_promise_delayed(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="""
@@ -21,7 +22,6 @@ async def test_await_promise_delayed(bidi_session, top_context):
     assert result == {"type": "string", "value": "SOME_DELAYED_RESULT"}
 
 
-@pytest.mark.asyncio
 async def test_await_promise_rejected(bidi_session, top_context):
     with pytest.raises(ScriptEvaluateResultException) as exception:
         await bidi_session.script.evaluate(
@@ -45,7 +45,6 @@ async def test_await_promise_rejected(bidi_session, top_context):
     )
 
 
-@pytest.mark.asyncio
 async def test_await_promise_resolved(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.resolve('SOME_RESOLVED_RESULT')",
@@ -56,7 +55,6 @@ async def test_await_promise_resolved(bidi_session, top_context):
     assert result == {"type": "string", "value": "SOME_RESOLVED_RESULT"}
 
 
-@pytest.mark.asyncio
 async def test_await_resolve_array(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.resolve([1, 'text', true, ['will be serialized']])",
@@ -75,7 +73,6 @@ async def test_await_resolve_array(bidi_session, top_context):
     }
 
 
-@pytest.mark.asyncio
 async def test_await_resolve_date(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.resolve(new Date(0))",
@@ -89,7 +86,6 @@ async def test_await_resolve_date(bidi_session, top_context):
     }
 
 
-@pytest.mark.asyncio
 async def test_await_resolve_map(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="""
@@ -121,7 +117,6 @@ async def test_await_resolve_map(bidi_session, top_context):
 
 
 @pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES)
-@pytest.mark.asyncio
 async def test_await_resolve_primitive(
     bidi_session, top_context, expression, expected
 ):
@@ -134,7 +129,6 @@ async def test_await_resolve_primitive(
     assert result == expected
 
 
-@pytest.mark.asyncio
 async def test_await_resolve_regexp(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.resolve(/test/i)",
@@ -151,7 +145,6 @@ async def test_await_resolve_regexp(bidi_session, top_context):
     }
 
 
-@pytest.mark.asyncio
 async def test_await_resolve_set(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="""
@@ -180,7 +173,6 @@ async def test_await_resolve_set(bidi_session, top_context):
     }
 
 
-@pytest.mark.asyncio
 async def test_no_await_promise_rejected(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.reject('SOME_REJECTED_RESULT')",
@@ -191,7 +183,6 @@ async def test_no_await_promise_rejected(bidi_session, top_context):
     recursive_compare({"type": "promise"}, result)
 
 
-@pytest.mark.asyncio
 async def test_no_await_promise_resolved(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="Promise.resolve('SOME_RESOLVED_RESULT')",

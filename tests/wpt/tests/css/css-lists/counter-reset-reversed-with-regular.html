@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: counter-reset reversed and regular counter</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#nested-counters">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counter-reset-reversed-with-regular-ref.html">
+<style>
+  .reversed-reset {
+    counter-reset: reversed(foo);
+  }
+  .item {
+    counter-increment: foo -1;
+  }
+  .regular-reset {
+    counter-reset: foo 2;
+  }
+  .output::before {
+    content: counters(foo, ".");
+  }
+</style>
+<p>You should see the 2.2 below.</p>
+<div class="reversed-reset">
+  <div class="item">
+    <div class="regular-reset">
+      <div class="output"></div>
+    </div>
+  </div>
+  <div class="item"></div>
+</div>

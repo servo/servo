@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest">
+<meta charset="utf-8">
+<title>overflow-clip-margin: keyword + positive length</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Tab Atkins-Bittner" href="mailto:jackalmage@gmail.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  .clip {
+    width: 80px;
+    height: 80px;
+    border: 10px solid transparent;
+    overflow: clip;
+    overflow-clip-margin: padding-box 10px;
+    background: red;
+  }
+  .big {
+    width: 100px;
+    height: 100px;
+    border: 50px solid red;
+    position: relative;
+    top: -60px;
+    left: -60px;
+    z-index: 1;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class=clip>
+  <div class=big></div>
+</div>

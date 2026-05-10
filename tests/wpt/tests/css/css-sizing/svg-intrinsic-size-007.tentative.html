@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Natural aspect ratio of SVG</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="author" title="Ian Kilpatrick" href="ikilpatrick@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="The SVG has width and height attributes,
+  so they would normally set the natural aspect ratio. However, here
+  the height attribute is zero, which would produce a degenerate ratio.
+  Therefore, the natural aspect ratio is instead determined from viewBox.
+">
+<style>
+svg {
+  background: green;
+  width: auto;
+  height: auto;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<svg viewBox="0 0 1 1" width="100" height="0"></svg>

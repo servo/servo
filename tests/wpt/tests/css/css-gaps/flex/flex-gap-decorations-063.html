@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex gap decorations extend to meet cross-direction
+    decoration width at far edge with rule-inset: overlap-join.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-063-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .flex-container {
+        height: 110px;
+        width: 340px;
+        border: solid 2px;
+        display: flex;
+        gap: 10px;
+        row-rule-color: rgba(255, 0, 0, 0.5);
+        rule-style: solid;
+        rule-width: 5px;
+        column-rule-color: rgba(0, 0, 255, 0.5);
+        flex-wrap: wrap;
+        rule-break: intersection;
+        rule-inset: overlap-join;
+    }
+
+    .flex-item {
+        background: skyblue;
+        width: 50px;
+    }
+</style>
+<div class="flex-container" id="container">
+    <div class="flex-item" style="width: 50px;"></div>
+    <div class="flex-item" style="width: 90px;"></div>
+    <div class="flex-item" style="width: 120px;"></div>
+    <div class="flex-item" style="width: 50px;"></div>
+    <div class="flex-item" style="width: 80px;"></div>
+    <div class="flex-item" style="width: 30px;"></div>
+    <div class="flex-item" style="width: 70px;"></div>
+    <div class="flex-item" style="width: 130px;"></div>
+</div>

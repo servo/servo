@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.support.asserts import assert_error, assert_dialog_handled, assert_success
+from tests.support.classic.asserts import assert_error, assert_dialog_handled, assert_success
 
 
 def is_element_selected(session, element_id):

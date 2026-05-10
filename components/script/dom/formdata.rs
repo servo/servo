@@ -2,19 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use servo_constellation_traits::BlobImpl;
 
 use super::bindings::trace::NoTrace;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -25,7 +26,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
-use crate::dom::html::htmlinputelement::HTMLInputElement;
+use crate::dom::html::input_element::HTMLInputElement;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -96,12 +97,12 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                         .map(FormSubmitterElement::Input)
                 })
                 .ok_or(Error::Type(
-                    "submitter is not a form submitter element".to_string(),
+                    c"submitter is not a form submitter element".to_owned(),
                 ))?;
 
             // Step 1.1.1. If submitter is not a submit button, then throw a TypeError.
             if !submit_button.is_submit_button() {
-                return Err(Error::Type("submitter is not a submit button".to_string()));
+                return Err(Error::Type(c"submitter is not a submit button".to_owned()));
             }
 
             // Step 1.1.2. If submitter’s form owner is not form, then throw a "NotFoundError"
@@ -157,7 +158,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(
                 blob,
                 filename,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             ))),
         };
 
@@ -232,7 +233,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        let file = self.create_an_entry(blob, filename, CanGc::note());
+        let file = self.create_an_entry(blob, filename, CanGc::deprecated_note());
 
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());

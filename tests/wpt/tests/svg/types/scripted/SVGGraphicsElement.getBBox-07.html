@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<title>SVGGraphicsElement.prototype.getBBox for zero/missing dimensions and non-rendered contexts</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGraphicsElement__getBBox">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#BoundingBoxes">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#Sizing">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1018">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="0" height="0" style="position:absolute">
+
+  <!-- A. rect: zero and missing dimensions -->
+  <rect id="rect_zero_w" x="10" y="20" width="0" height="50"/>
+  <rect id="rect_zero_h" x="10" y="20" width="50" height="0"/>
+  <rect id="rect_zero_wh" x="10" y="20" width="0" height="0"/>
+  <rect id="rect_no_wh" x="10" y="20"/>
+  <rect id="rect_no_attrs"/>
+
+  <!-- A. circle: zero and missing radius -->
+  <circle id="circle_zero_r" cx="10" cy="20" r="0"/>
+  <circle id="circle_no_r" cx="10" cy="20"/>
+  <circle id="circle_no_attrs"/>
+
+  <!-- A. ellipse: zero and missing radii -->
+  <ellipse id="ellipse_zero_rx" cx="10" cy="20" rx="0" ry="30"/>
+  <ellipse id="ellipse_zero_ry" cx="10" cy="20" rx="30" ry="0"/>
+  <ellipse id="ellipse_zero_both" cx="10" cy="20" rx="0" ry="0"/>
+  <ellipse id="ellipse_no_attrs"/>
+
+  <!-- A. line: zero-length, horizontal, vertical, no attributes -->
+  <line id="line_zero" x1="10" y1="20" x2="10" y2="20"/>
+  <line id="line_horiz" x1="10" y1="20" x2="50" y2="20"/>
+  <line id="line_vert" x1="10" y1="20" x2="10" y2="60"/>
+  <line id="line_no_attrs"/>
+
+  <!-- B. rect/ellipse: both dimensions negative -->
+  <rect id="rect_neg_both" x="10" y="20" width="-5" height="-5"/>
+  <ellipse id="ellipse_neg_both" cx="10" cy="20" rx="-5" ry="-5"/>
+
+  <!-- C. path: MoveTo-only and degenerate segments -->
+  <path id="path_moveto" d="M 10 20"/>
+  <path id="path_multi_moveto" d="M 10 20 M 30 40"/>
+  <path id="path_lineto_same" d="M 10 20 L 10 20"/>
+  <path id="path_zero_v" d="M 10 20 v 0"/>
+  <path id="path_moveto_close" d="M 10 20 Z"/>
+  <path id="path_horiz_line" d="M 10 20 L 50 20"/>
+  <path id="path_vert_line" d="M 10 20 L 10 60"/>
+  <path id="path_degen_cubic" d="M 10 20 C 10 20 10 20 10 20"/>
+  <path id="path_degen_quad" d="M 10 20 Q 10 20 10 20"/>
+  <path id="path_degen_arc_zero_r" d="M 10 20 A 0 0 0 0 1 30 40"/>
+  <path id="path_arc_same_point" d="M 10 20 A 5 5 0 0 1 10 20"/>
+
+  <!-- D. polygon/polyline: single point, repeated, empty -->
+  <polygon id="polygon_single" points="10,20"/>
+  <polyline id="polyline_single" points="10,20"/>
+  <polygon id="polygon_repeated" points="10,20 10,20 10,20"/>
+  <polyline id="polyline_horiz" points="10,20 50,20"/>
+  <polygon id="polygon_vert" points="10,20 10,60"/>
+  <polygon id="polygon_empty" points=""/>
+  <polyline id="polyline_empty" points=""/>
+
+  <!-- E. containers: empty group, unresolved use -->
+  <g id="g_empty"/>
+  <rect id="zero_dim_rect" x="5" y="5" width="0" height="0"/>
+  <g id="g_zero_children">
+    <rect x="5" y="5" width="0" height="0"/>
+    <circle cx="10" cy="10" r="0"/>
+  </g>
+  <g id="g_mixed_children">
+    <rect x="5" y="5" width="0" height="0"/>
+    <rect id="g_mixed_normal" x="20" y="30" width="40" height="50"/>
+  </g>
+  <use id="use_unresolved" href="#nonexistent" x="10" y="20"/>
+  <use id="use_zero_ref" href="#zero_dim_rect" x="15" y="25"/>
+
+  <!-- F. non-rendered contexts: getBBox should NOT throw -->
+  <defs>
+    <rect id="defs_rect" x="10" y="20" width="100" height="50"/>
+    <circle id="defs_circle" cx="50" cy="50" r="25"/>
+    <g id="defs_g">
+      <rect id="defs_g_rect" x="0" y="0" width="30" height="30"/>
+    </g>
+  </defs>
+  <clipPath id="cp1">
+    <rect id="clip_rect" x="0" y="0" width="80" height="80"/>
+  </clipPath>
+  <mask id="mask1">
+    <rect id="mask_rect" x="0" y="0" width="60" height="60"/>
+  </mask>
+
+  <!-- F. non-rendered with invalid dimensions: should not throw -->
+  <rect id="none_neg_w" x="10" y="20" width="-5" height="30" display="none"/>
+  <rect id="hidden_rect" x="10" y="20" width="40" height="50" visibility="hidden"/>
+  <rect id="transparent_rect" x="10" y="20" width="40" height="50" opacity="0"/>
+
+</svg>
+<script>
+function assert_bbox(id, expected_x, expected_y, expected_w, expected_h) {
+  var el = document.getElementById(id);
+  var bbox = el.getBBox();
+  assert_equals(bbox.x, expected_x, "x");
+  assert_equals(bbox.y, expected_y, "y");
+  assert_equals(bbox.width, expected_w, "width");
+  assert_equals(bbox.height, expected_h, "height");
+}
+
+function test_bbox(id, expected_x, expected_y, expected_w, expected_h, desc) {
+  test(() => { assert_bbox(id, expected_x, expected_y, expected_w, expected_h); }, desc);
+}
+
+// ========================================================================
+// A. Basic shapes — zero and missing dimensions
+// Per resolution (issue #1018): if the shape is not rendered (zero,
+// negative, or missing dimension), getBBox returns (0, 0, 0, 0).
+// ========================================================================
+
+// rect: zero or missing width/height disables rendering → all zeros
+test_bbox("rect_zero_w", 0, 0, 0, 0,
+  "rect with zero width");
+test_bbox("rect_zero_h", 0, 0, 0, 0,
+  "rect with zero height");
+test_bbox("rect_zero_wh", 0, 0, 0, 0,
+  "rect with zero width and height");
+test_bbox("rect_no_wh", 0, 0, 0, 0,
+  "rect with no width/height attributes (default auto resolves to 0)");
+test_bbox("rect_no_attrs", 0, 0, 0, 0,
+  "rect with no attributes at all");
+
+// circle: zero or missing radius disables rendering → all zeros
+test_bbox("circle_zero_r", 0, 0, 0, 0,
+  "circle with zero radius");
+test_bbox("circle_no_r", 0, 0, 0, 0,
+  "circle with no r attribute (default 0)");
+test_bbox("circle_no_attrs", 0, 0, 0, 0,
+  "circle with no attributes at all");
+
+// ellipse: zero rx or ry disables rendering → all zeros
+test_bbox("ellipse_zero_rx", 0, 0, 0, 0,
+  "ellipse with zero rx (not rendered)");
+test_bbox("ellipse_zero_ry", 0, 0, 0, 0,
+  "ellipse with zero ry (not rendered)");
+test_bbox("ellipse_zero_both", 0, 0, 0, 0,
+  "ellipse with zero rx and ry");
+test_bbox("ellipse_no_attrs", 0, 0, 0, 0,
+  "ellipse with no attributes (rx/ry auto both → 0)");
+
+// line: always has zero-area bounding box
+test_bbox("line_zero", 10, 20, 0, 0,
+  "line with identical start and end points (zero-length)");
+test_bbox("line_horiz", 10, 20, 40, 0,
+  "horizontal line (zero height)");
+test_bbox("line_vert", 10, 20, 0, 40,
+  "vertical line (zero width)");
+test_bbox("line_no_attrs", 0, 0, 0, 0,
+  "line with no attributes (all default to 0)");
+
+// ========================================================================
+// B. Both dimensions negative (invalid, ignored → fall back to initial)
+// ========================================================================
+
+// rect: negative width/height → not rendered → all zeros
+test_bbox("rect_neg_both", 0, 0, 0, 0,
+  "rect with both width and height negative");
+
+// ellipse: negative rx AND negative ry → not rendered → all zeros
+test_bbox("ellipse_neg_both", 0, 0, 0, 0,
+  "ellipse with both rx and ry negative");
+
+// ========================================================================
+// C. Path edge cases — MoveTo-only and degenerate segments
+// ========================================================================
+
+// A single MoveTo establishes position but draws nothing.
+// Per spec: "subpath segments of a path element with zero width and height must
+// be included in that element's geometry for the sake of the bounding box."
+test_bbox("path_moveto", 10, 20, 0, 0,
+  "path with only a MoveTo command");
+test_bbox("path_multi_moveto", 30, 40, 0, 0,
+  "path with multiple MoveTo commands (last moveto position)");
+test_bbox("path_lineto_same", 10, 20, 0, 0,
+  "path with LineTo to the same point as MoveTo");
+test_bbox("path_zero_v", 10, 20, 0, 0,
+  "path with zero-length vertical line");
+test_bbox("path_moveto_close", 10, 20, 0, 0,
+  "path with MoveTo then close (no drawing)");
+test_bbox("path_horiz_line", 10, 20, 40, 0,
+  "path drawing a horizontal line (zero height)");
+test_bbox("path_vert_line", 10, 20, 0, 40,
+  "path drawing a vertical line (zero width)");
+test_bbox("path_degen_cubic", 10, 20, 0, 0,
+  "path with degenerate cubic bezier (all points identical)");
+test_bbox("path_degen_quad", 10, 20, 0, 0,
+  "path with degenerate quadratic bezier (all points identical)");
+
+// Arc with zero radii: per spec, treated as a straight line to the endpoint.
+test_bbox("path_degen_arc_zero_r", 10, 20, 20, 20,
+  "path with arc with zero radii (treated as line to endpoint)");
+test_bbox("path_arc_same_point", 10, 20, 0, 0,
+  "path with arc to same point (zero-length arc)");
+
+// ========================================================================
+// D. Polygon/polyline edge cases
+// ========================================================================
+
+test_bbox("polygon_single", 10, 20, 0, 0,
+  "polygon with a single point");
+test_bbox("polyline_single", 10, 20, 0, 0,
+  "polyline with a single point");
+test_bbox("polygon_repeated", 10, 20, 0, 0,
+  "polygon with repeated identical points");
+test_bbox("polyline_horiz", 10, 20, 40, 0,
+  "polyline with horizontal segment (zero height)");
+test_bbox("polygon_vert", 10, 20, 0, 40,
+  "polygon with vertical segment (zero width)");
+test_bbox("polygon_empty", 0, 0, 0, 0,
+  "polygon with empty points attribute");
+test_bbox("polyline_empty", 0, 0, 0, 0,
+  "polyline with empty points attribute");
+
+// ========================================================================
+// E. Containers and structural elements
+// ========================================================================
+
+test_bbox("g_empty", 0, 0, 0, 0,
+  "empty group element");
+
+test(function() {
+  var g = document.getElementById("g_zero_children");
+  var bbox = g.getBBox();
+  // Group with only non-rendered children: all children return (0,0,0,0),
+  // so group bbox is (0,0,0,0).
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "group with only zero-dimension children has zero bbox");
+
+test(function() {
+  var g = document.getElementById("g_mixed_children");
+  var normal = document.getElementById("g_mixed_normal");
+  var g_bbox = g.getBBox();
+  var n_bbox = normal.getBBox();
+  // The zero-dim child returns (0,0,0,0) so group bbox equals normal child's bbox.
+  assert_equals(g_bbox.x, n_bbox.x, "x equals normal child x");
+  assert_equals(g_bbox.y, n_bbox.y, "y equals normal child y");
+  assert_equals(g_bbox.width, n_bbox.width, "width equals normal child width");
+  assert_equals(g_bbox.height, n_bbox.height, "height equals normal child height");
+}, "group with zero-dim and normal children: zero-dim child does not affect bbox");
+
+// use with unresolved reference: per resolution (issue #1018), returns zero bbox.
+test_bbox("use_unresolved", 0, 0, 0, 0,
+  "use element with unresolved href returns zero bbox");
+
+test_bbox("use_zero_ref", 0, 0, 0, 0,
+  "use element referencing zero-dimension rect returns zero bbox");
+
+// ========================================================================
+// F. Non-rendered elements — getBBox must NOT throw (issue #1018)
+// Per resolution: remove throwing for invalid getBBox(), return 0 values
+// for x, y, width, height instead of throwing InvalidStateError.
+// ========================================================================
+
+test(function() {
+  var el = document.getElementById("defs_rect");
+  var bbox;
+  // Must not throw an InvalidStateError.
+  assert_not_equals(el, null, "element exists");
+  bbox = el.getBBox();
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "getBBox on rect inside defs does not throw and returns zero bbox");
+
+test(function() {
+  var el = document.getElementById("defs_circle");
+  var bbox = el.getBBox();
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "getBBox on circle inside defs does not throw and returns zero bbox");
+
+test(function() {
+  var el = document.getElementById("defs_g_rect");
+  var bbox = el.getBBox();
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "getBBox on rect inside group inside defs does not throw and returns zero bbox");
+
+test(function() {
+  var el = document.getElementById("clip_rect");
+  var bbox = el.getBBox();
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "getBBox on rect inside clipPath does not throw and returns zero bbox");
+
+test(function() {
+  var el = document.getElementById("mask_rect");
+  var bbox = el.getBBox();
+  assert_equals(bbox.x, 0, "x");
+  assert_equals(bbox.y, 0, "y");
+  assert_equals(bbox.width, 0, "width");
+  assert_equals(bbox.height, 0, "height");
+}, "getBBox on rect inside mask does not throw and returns zero bbox");
+
+// Non-rendered element with invalid dimensions: should not throw,
+// should return zero bbox per resolution.
+test_bbox("none_neg_w", 0, 0, 0, 0,
+  "display:none rect with negative width does not throw and returns zero bbox");
+
+// visibility:hidden and opacity:0 are rendered (they have bounding boxes).
+test_bbox("hidden_rect", 10, 20, 40, 50,
+  "visibility:hidden rect has normal bbox");
+test_bbox("transparent_rect", 10, 20, 40, 50,
+  "opacity:0 rect has normal bbox");
+</script>

@@ -16,8 +16,14 @@
   <script>
     test_computed_value("grid-lanes-direction", "row");
     test_computed_value("grid-lanes-direction", "column");
-    test_computed_value("grid-lanes-direction", "row-reverse");
-    test_computed_value("grid-lanes-direction", "column-reverse");
+    test_computed_value("grid-lanes-direction", "row track-reverse");
+    test_computed_value("grid-lanes-direction", "row fill-reverse");
+    test_computed_value("grid-lanes-direction", "row track-reverse fill-reverse", "row fill-reverse track-reverse");
+    test_computed_value("grid-lanes-direction", "row fill-reverse track-reverse");
+    test_computed_value("grid-lanes-direction", "column track-reverse");
+    test_computed_value("grid-lanes-direction", "column fill-reverse");
+    test_computed_value("grid-lanes-direction", "column track-reverse fill-reverse", "column fill-reverse track-reverse");
+    test_computed_value("grid-lanes-direction", "column fill-reverse track-reverse");
     test_computed_value("grid-lanes-direction", "normal");
   </script>
 </body>

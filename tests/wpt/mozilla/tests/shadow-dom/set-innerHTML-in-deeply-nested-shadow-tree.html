@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Set innerHTML in deeply nested shadow tree</title>
+<link rel="help" href="https://github.com/servo/servo/issues/43845">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="X"></div>
+
+<script>
+    test(() => {
+        let p = X;
+        for (let i = 0; i < 1549; i++) {
+            let x = document.createElement('div');
+            let r = x.attachShadow({
+                mode: 'open',
+                clonable: true
+            });
+            p.appendChild(x);
+            p = r;
+        }
+        p.innerHTML = "Hello!";
+        assert_equals(p.innerHTML, "Hello!",
+            "innerHTML should be set correctly on deeply nested shadow root without crashing");
+    }, "Setting innerHTML on a deeply nested shadow root works");
+</script>

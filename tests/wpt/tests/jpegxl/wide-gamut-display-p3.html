@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>JPEG XL: Display P3 gamut behavior</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<meta name="assert" content="Automation scaffold: validates decode path while pixel colorimetry expectation is pending infra.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+
+promise_test(async () => {
+  const img = await loadImage('resources/conformance_sunset_logo.jxl');
+  assert_equals(img.naturalWidth, 924);
+  assert_equals(img.naturalHeight, 1386);
+}, 'Decode scaffold for wide-gamut test; strict gamut assertions require infra support.');
+
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#local-date-and-time-state-(type=datetime-local)">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1933351">
+<title>valueAsDate does not apply to datetime-local inputs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="i" type="datetime-local" value="2026-01-01T00:00:00">
+<script>
+test(() => {
+  assert_equals(i.valueAsDate, null, "valueAsDate must return null for <input type=datetime-local>");
+  assert_throws_dom("InvalidStateError", () => {
+    i.valueAsDate = new Date("2026-01-01T00:00:00");
+  }, "valueAsDate setter must throw InvalidStateError");
+});
+</script>

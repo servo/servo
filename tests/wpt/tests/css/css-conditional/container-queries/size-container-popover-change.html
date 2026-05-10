@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: inline-size container popover change</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="/css/reference/pass_if_pass_below.html">
+<style>
+  #container {
+    display: block;
+    container-type: inline-size;
+    height: 100px;
+    width: 100px;
+    margin: 0;
+    padding: 0;
+    inset: auto;
+    border: none;
+  }
+</style>
+<p>Test passes if there is the word "PASS" below.</p>
+<div id="container" popover>PASS</div>
+<script>
+  container.showPopover();
+  container.hidePopover();
+</script>

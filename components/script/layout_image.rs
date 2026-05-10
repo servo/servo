@@ -8,6 +8,7 @@
 
 use std::sync::Arc;
 
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
@@ -23,7 +24,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::CanGc;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -34,9 +34,9 @@ struct LayoutImageContext {
 
 impl FetchResponseListener for LayoutImageContext {
     fn process_request_body(&mut self, _: RequestId) {}
-    fn process_request_eof(&mut self, _: RequestId) {}
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -46,7 +46,12 @@ impl FetchResponseListener for LayoutImageContext {
         );
     }
 
-    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        request_id: RequestId,
+        payload: Vec<u8>,
+    ) {
         self.cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
@@ -55,6 +60,7 @@ impl FetchResponseListener for LayoutImageContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -63,7 +69,7 @@ impl FetchResponseListener for LayoutImageContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -97,9 +103,13 @@ pub(crate) fn fetch_image_for_layout(
     };
 
     let global = node.owner_global();
-    let request = RequestBuilder::new(Some(document.webview_id()), url, global.get_referrer())
-        .destination(Destination::Image)
-        .with_global_scope(&global);
+    let request = RequestBuilder::new(
+        Some(document.webview_id()),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        global.get_referrer(),
+    )
+    .destination(Destination::Image)
+    .with_global_scope(&global);
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);

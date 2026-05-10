@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test: textarea should default to zero margins</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-textarea-element-2">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1875156">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <textarea id="myTextarea"></textarea>
+  <script>
+test(function() {
+  const marginProps = ["margin-top", "margin-right",
+                       "margin-bottom", "margin-left"];
+
+  const cs = window.getComputedStyle(myTextarea, "");
+  marginProps.forEach((prop)=> {
+    assert_equals(cs[prop], "0px",
+                  `computed value of '${prop}' should default to "0px"`);
+  });
+}, "HTML textarea should default to having 0px as computed value for all margin properties")
+</script>

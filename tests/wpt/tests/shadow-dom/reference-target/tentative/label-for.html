@@ -13,7 +13,7 @@
 
 <body>
 
-<label for="x-input1">Input 1</label>
+<label id="label1" for="x-input1">Input 1</label>
 <x-input1 id="x-input1">
   <template shadowrootmode="open" shadowrootreferencetarget="input1">
     <input id="input1">
@@ -27,10 +27,18 @@
     // The label should apply to the input element and not the host.
     assert_equals(await test_driver.get_computed_label(x_input), "");
     assert_equals(await test_driver.get_computed_label(input), "Input 1");
-  }, "Label for attribute targets a custom element using shadowrootreferencetarget");
+  }, "Label for attribute targeting a custom element using shadowrootreferencetarget works for computed name");
+
+  promise_test(async t => {
+    const x_input = document.getElementById('x-input1');
+    const input = x_input.shadowRoot.getElementById('input1');
+    const label = document.getElementById('label1');
+
+    assert_array_equals(Array.from(input['labels']), [label]);
+}, "Label for attribute targeting a custom element using shadowrootreferencetarget works for .labels property");
 </script>
 
-<label for="x-outer2">Input 2</label>
+<label id="label2" for="x-outer2">Input 2</label>
 <x-outer2 id="x-outer2">
   <template shadowrootmode="open" shadowrootreferencetarget="x-inner2">
     <x-inner2 id="x-inner2">
@@ -50,40 +58,65 @@
     assert_equals(await test_driver.get_computed_label(outer), "");
     assert_equals(await test_driver.get_computed_label(inner), "");
     assert_equals(await test_driver.get_computed_label(input), "Input 2");
-  }, "Label for attribute targets a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
+  }, "Label for attribute targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for computed name");
+
+  promise_test(async t => {
+    const outer = document.getElementById('x-outer2');
+    const inner = outer.shadowRoot.getElementById('x-inner2');
+    const input = inner.shadowRoot.getElementById('input2');
+    const label = document.getElementById('label2');
+
+    assert_array_equals(Array.from(input['labels']), [label]);
+  }, "Label for attribute targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for .labels property");
+
 </script>
 
-<label for="x-outer3">A</label>
+<label id="label3-A" for="x-outer3">A</label>
 <x-outer3 id="x-outer3">
   <template shadowrootmode="open" shadowrootreferencetarget="x-inner3">
-    <label for="x-inner3">B</label>
+    <label id="label3-B" for="x-inner3">B</label>
     <x-inner3 id="x-inner3">
       <template shadowrootmode="open" shadowrootreferencetarget="input3">
-        <label for="input3">C</label>
+        <label id="label3-C" for="input3">C</label>
         <input id="input3">
-        <label for="input3">D</label>
+        <label id="label3-D" for="input3">D</label>
       </template>
     </x-inner3>
-    <label for="x-inner3">E</label>
+    <label id="label3-E" for="x-inner3">E</label>
   </template>
 </x-outer3>
-<label for="x-outer3">F</label>
+<label id="label3-F" for="x-outer3">F</label>
 <script>
     promise_test(async t => {
       const outer = document.getElementById('x-outer3');
       const inner = outer.shadowRoot.getElementById('x-inner3');
       const input = inner.shadowRoot.getElementById('input3');
       const computed_label = await test_driver.get_computed_label(input);
+
       assert_equals(computed_label, "A B C D E F");
-    }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
+    }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for computed name");
+
+    promise_test(async t => {
+      const outer = document.getElementById('x-outer3');
+      const inner = outer.shadowRoot.getElementById('x-inner3');
+      const input = inner.shadowRoot.getElementById('input3');
+      const A = document.getElementById('label3-A');
+      const B = outer.shadowRoot.getElementById('label3-B');
+      const C = inner.shadowRoot.getElementById('label3-C');
+      const D = inner.shadowRoot.getElementById('label3-D');
+      const E = outer.shadowRoot.getElementById('label3-E');
+      const F = document.getElementById('label3-F');
+
+      assert_array_equals(Array.from(input['labels']), [A, B, C, D, E, F]);
+    }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for .labels property");
 </script>
 
 <label id="label-input4">Input 4</label>
-<x-input1 id="x-input4">
+<x-input4 id="x-input4">
   <template shadowrootmode="open" shadowrootreferencetarget="input4">
     <input id="input4">
   </template>
-</x-input1>
+</x-input4>
 <script>
   promise_test(async t => {
     const label = document.getElementById('label-input4');
@@ -94,61 +127,200 @@
     // The label should apply to the input element and not the host.
     assert_equals(await test_driver.get_computed_label(x_input), "");
     assert_equals(await test_driver.get_computed_label(input), "Input 4");
-  }, "Setting .htmlFor property to target a custom element using shadowrootreferencetarget");
-</script>
+  }, "Setting .htmlFor property to target a custom element using shadowrootreferencetarget works for computed name");
 
-<div id="test-container"></div>
-<script>
-// The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label
-for(let referenced_element_type of HTML5_LABELABLE_ELEMENTS) {
   promise_test(async t => {
-    const test_container = document.querySelector("#test-container");
-    test_container.setHTMLUnsafe(`
-      <label>
-      <fancy-element id="fancy">
-        <template shadowrootmode="open" shadowrootreferencetarget="target">
-          <${referenced_element_type} id="target"></${referenced_element_type}>
-        </template>
-      </fancy-element>
-      fancy custom element inside label
-      </label>`);
+    const label = document.getElementById('label-input4');
+    label.htmlFor = "x-input4";
+    const x_input = document.getElementById('x-input4');
+    const input = x_input.shadowRoot.getElementById('input4');
 
-    const fancy_element = document.getElementById('fancy');
-    const target_element = fancy_element.shadowRoot.getElementById('target');
+    assert_array_equals(Array.from(input['labels']), [label]);
+  }, "Setting .htmlFor property to target a custom element using shadowrootreferencetarget works for .labels");
 
-    assert_equals(await test_driver.get_computed_label(fancy_element), "");
-    assert_equals(await test_driver.get_computed_label(target_element), "fancy custom element inside label");
-  }, "Implicit <label> association should work with a custom element targeting '" + referenced_element_type + "'");
-}
 </script>
 
-<label>
-<fancy-input id="fancy-input1">
-  <template shadowrootmode="open" shadowrootreferencetarget="real-input">
-    <input id="real-input">
+
+<label id="label-input5" for="x-input5-outer">Input 5</label>
+<x-input5 id="x-input5-outer">
+  <template shadowRootMode="open" shadowRootReferenceTarget="x-input5-inner">
+    <x-input5 id="x-input5-inner">
+      <template shadowrootmode="open" shadowrootreferencetarget="input5-1">
+        <input id="input5-1">
+        <input id="input5-2">
+      </template>
+    </x-input5>
   </template>
-</fancy-input>
-<fancy-input id="fancy-input2">
-  <template shadowrootmode="open" shadowrootreferencetarget="real-input">
-    <input id="real-input">
-  </template>
-</fancy-input>
-fancy input inside label
-</label>
+</x-input5>
 <script>
   promise_test(async t => {
-    const fancy_input1 = document.getElementById('fancy-input1');
-    const fancy_input2 = document.getElementById('fancy-input2');
-    const real_input1 = fancy_input1.shadowRoot.getElementById('real-input');
-    const real_input2 = fancy_input2.shadowRoot.getElementById('real-input');
+    const outer_x_input = document.getElementById('x-input5-outer');
+    const outer_shadow_root = outer_x_input.shadowRoot;
+    const inner_x_input = outer_shadow_root.getElementById('x-input5-inner')
+    const inner_shadow_root = inner_x_input.shadowRoot;
+    const input1 = inner_shadow_root.getElementById('input5-1');
+    const input2 = inner_shadow_root.getElementById('input5-2');
 
-    assert_equals(await test_driver.get_computed_label(fancy_input1), "");
-    assert_equals(await test_driver.get_computed_label(fancy_input2), "");
-    assert_equals(await test_driver.get_computed_label(real_input1), "fancy input inside label");
-    assert_equals(await test_driver.get_computed_label(real_input2), "");
-  }, "Implicit <label> association should apply to only the first labelable custom element");
+    assert_equals(await test_driver.get_computed_label(input1), "Input 5");
+    assert_equals(await test_driver.get_computed_label(input2), "");
+
+    inner_shadow_root.referenceTarget = 'input5-2';
+
+    assert_equals(await test_driver.get_computed_label(input1), "");
+    assert_equals(await test_driver.get_computed_label(input2), "Input 5");
+
+    outer_shadow_root.referenceTarget = null;
+
+    assert_equals(await test_driver.get_computed_label(input1), "");
+    assert_equals(await test_driver.get_computed_label(input2), "");
+  }, "Modifying the reference target changes the computed label when using label/for");
 </script>
 
+<label id="label-input6" for="x-input6-outer">Input 6</label>
+<x-input6 id="x-input6-outer">
+  <template shadowRootMode="open" shadowRootReferenceTarget="x-input6-inner">
+    <x-input6 id="x-input6-inner">
+      <template shadowrootmode="open" shadowrootreferencetarget="input6-1">
+        <input id="input6-1">
+        <input id="input6-2">
+      </template>
+    </x-input6>
+  </template>
+</x-input6>
+<script>
+  promise_test(async t => {
+    const label = document.getElementById('label-input6')
+    const outer_x_input = document.getElementById('x-input6-outer');
+    const outer_shadow_root = outer_x_input.shadowRoot;
+    const inner_x_input = outer_shadow_root.getElementById('x-input6-inner')
+    const inner_shadow_root = inner_x_input.shadowRoot;
+    const input1 = inner_shadow_root.getElementById('input6-1');
+    const input2 = inner_shadow_root.getElementById('input6-2');
+
+    assert_array_equals(Array.from(input1['labels']), [label], 'input1 before changing reference target');
+    assert_array_equals(Array.from(input2['labels']), [], 'input2 before changing reference target');
+
+    inner_shadow_root.referenceTarget = 'input6-2';
+
+    assert_array_equals(Array.from(input1['labels']), [], 'input1 after changing reference target');
+    assert_array_equals(Array.from(input2['labels']), [label], 'input2 after changing reference target');
+
+    outer_shadow_root.referenceTarget = null;
+
+    assert_array_equals(Array.from(input1['labels']), []);
+    assert_array_equals(Array.from(input2['labels']), []);
+  }, "Modifying the reference target changes .labels when using label/for");
+
+</script>
+
+<label id="label-input7-1" for="x-input7-1">Input 7 - 1</label>
+<x-input7 id="x-input7-1">
+  <template shadowRootMode="open" shadowRootReferenceTarget="input7">
+    <input id="input7">
+  </template>
+</x-input7>
+
+<label id="label-input7-2" for="x-input7-2">Input 7 - 2</label>
+<x-input7 id="x-input7-2">
+  <template shadowRootMode="open" shadowRootReferenceTarget="input7">
+  </template>
+</x-input7>
+<script>
+  promise_test(async t => {
+    const label_1 = document.getElementById('label-input7-1')
+    const x_input_1 = document.getElementById('x-input7-1');
+    const shadow_root_1 = x_input_1.shadowRoot;
+    const input = shadow_root_1.getElementById('input7');
+
+    assert_array_equals(Array.from(input['labels']), [label_1], 'input before changing shadow root');
+
+    const label_2 = document.getElementById('label-input7-2')
+    const x_input_2 = document.getElementById('x-input7-2');
+    const shadow_root_2 = x_input_2.shadowRoot;
+    shadow_root_2.append(input);
+
+    assert_array_equals(Array.from(input['labels']), [label_2], 'input after changing shadow root');
+  }, "Moving an input from one shadow root to another causes its .labels to be updated");
+
+</script>
+
+
+<script>
+  promise_test(async t => {
+    const container = document.createElement('div');
+    container.id = 'container8';
+    const outer_label = document.createElement('label');
+    outer_label.id = 'outer-label8';
+    outer_label.htmlFor = 'outer-input8';
+    const light_input = document.createElement('input');
+    light_input.id = 'outer-input8'
+    assert_array_equals(Array.from(light_input.labels), [], 'before inserting light input');
+
+    container.append(outer_label, light_input);
+    assert_array_equals(Array.from(light_input.labels), [outer_label], 'after inserting light input in container');
+
+    document.body.append(container);
+    assert_array_equals(Array.from(light_input.labels), [outer_label], 'after inserting container in document');
+
+    light_input.remove();
+    assert_array_equals(Array.from(light_input.labels), [], 'after removing light input from document');
+
+    const inner_x_input = document.createElement('x-input8');
+    inner_x_input.id = 'inner-x-input8';
+    const inner_shadow_root = inner_x_input.attachShadow({mode: 'open'});
+    const inner_label = document.createElement('label');
+    inner_label.id = 'inner-label8';
+    inner_label.htmlFor = 'inner-input8';
+    inner_shadow_root.appendChild(inner_label);
+
+    const inner_input = document.createElement('input');
+    inner_input.id = 'inner-input8';
+    inner_shadow_root.appendChild(inner_input);
+
+    const outer_x_input = document.createElement('x-input8');
+    outer_x_input.id = 'outer-x-input8';
+    const outer_shadow_root = outer_x_input.attachShadow({mode: 'open'});
+    outer_shadow_root.referenceTarget = 'inner-x-input8';
+    const intermediate_label = document.createElement('label');
+    intermediate_label.id = 'intermediate-label8';
+    intermediate_label.htmlFor = 'inner-x-input8';
+    outer_shadow_root.appendChild(intermediate_label);
+    outer_shadow_root.appendChild(inner_x_input);
+
+    assert_array_equals(Array.from(inner_input['labels']), [inner_label], 'After inner shadow host is attached, before reference target is set');
+
+    inner_shadow_root.referenceTarget = 'inner-input8';
+    assert_array_equals(Array.from(inner_input['labels']), [intermediate_label, inner_label], 'After inner shadow reference target is set');
+
+    outer_label.htmlFor = 'outer-x-input8';
+    outer_label.after(outer_x_input);
+    assert_array_equals(Array.from(inner_input['labels']), [outer_label, intermediate_label, inner_label], 'After outer shadow host is inserted in the document');
+
+    outer_x_input.remove();
+    assert_array_equals(Array.from(inner_input['labels']), [intermediate_label, inner_label], 'After outer shadow host is removed from the document');
+
+    outer_label.after(outer_x_input);
+    assert_array_equals(Array.from(inner_input['labels']), [outer_label, intermediate_label, inner_label], 'After outer shadow host is re-inserted');
+
+    inner_x_input.remove();
+    assert_array_equals(Array.from(inner_input['labels']), [inner_label], 'After inner shadow host is removed from the document');
+
+    intermediate_label.after(inner_x_input);
+    assert_array_equals(Array.from(inner_input['labels']), [outer_label, intermediate_label, inner_label], 'After inner shadow host is re-inserted');
+
+    outer_shadow_root.referenceTarget = null;
+    assert_array_equals(Array.from(inner_input['labels']), [intermediate_label, inner_label], 'After outer shadow root reference target is set to null');
+
+    inner_shadow_root.referenceTarget = null;
+    assert_array_equals(Array.from(inner_input['labels']), [inner_label], 'After inner shadow root reference target is set to null');
+
+    inner_shadow_root.referenceTarget = 'inner-input8';
+    assert_array_equals(Array.from(inner_input['labels']), [intermediate_label, inner_label], 'After inner shadow root reference target is re-set');
+
+    outer_shadow_root.referenceTarget =  'inner-x-input8';
+    assert_array_equals(Array.from(inner_input['labels']), [outer_label, intermediate_label, inner_label], 'After outer shadow root reference target is re-set');
+  }, 'Attaching a shadow root, inserting and removing a shadow host, and changing reference targets all cause label association to be updated');
+
+</script>
 </body>
-
 </html>

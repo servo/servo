@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 
 use crate::WebView;
 
@@ -122,10 +122,10 @@ mod clipboard {
     use super::StringRequest;
     use crate::clipboard_delegate::fallback_clipboard;
 
-    /// A shared clipboard for use by the [`DefaultClipboardDelegate`]. This is protected by
-    /// a mutex so that it can only be used by one thread at a time. The `arboard` documentation
-    /// suggests that more than one thread shouldn't try to access the Windows clipboard at a
-    /// time. See <https://docs.rs/arboard/latest/arboard/struct.Clipboard.html>.
+    /// A shared clipboard for use by the [`DefaultClipboardDelegate`](super::DefaultClipboardDelegate).
+    /// This is protected by a mutex so that it can only be used by one thread at a time.
+    /// The `arboard` documentation suggests that more than one thread shouldn't try to access
+    /// the Windows clipboard at a time. See <https://docs.rs/arboard/latest/arboard/struct.Clipboard.html>.
     static SHARED_CLIPBOARD: OnceLock<Option<Mutex<Clipboard>>> = OnceLock::new();
 
     fn with_shared_clipboard<ResultType>(

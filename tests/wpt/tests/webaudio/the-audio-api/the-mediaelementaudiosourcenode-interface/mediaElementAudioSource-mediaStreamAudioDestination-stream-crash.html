@@ -1,0 +1,8 @@
+<!doctype html>
+<link rel="help" href="https://github.com/servo/servo/issues/36844">
+<script>
+var context = new AudioContext();
+var stream = (new MediaStreamAudioDestinationNode(context)).stream;
+new MediaStreamAudioSourceNode(context,{mediaStream:stream}) ;
+new MediaStreamAudioSourceNode(context,{mediaStream:stream});
+</script>

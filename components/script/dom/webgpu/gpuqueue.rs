@@ -4,18 +4,19 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUExtent3D, GPUImageCopyTexture, GPUImageDataLayout, GPUQueueMethods, GPUSize64,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -129,7 +130,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
 
         // Step 4
         let valid = data_offset + content_size <= data_size as u64 &&
-            content_size * sizeof_element as u64 % wgpu_types::COPY_BUFFER_ALIGNMENT == 0;
+            (content_size * sizeof_element as u64)
+                .is_multiple_of(wgpu_types::COPY_BUFFER_ALIGNMENT);
         if !valid {
             return Err(Error::Operation(None));
         }
@@ -217,7 +219,12 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
 }
 
 impl RoutedPromiseListener<()> for GPUQueue {
-    fn handle_response(&self, _response: (), promise: &Rc<Promise>, can_gc: CanGc) {
-        promise.resolve_native(&(), can_gc);
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        _response: (),
+        promise: &Rc<Promise>,
+    ) {
+        promise.resolve_native(&(), CanGc::from_cx(cx));
     }
 }

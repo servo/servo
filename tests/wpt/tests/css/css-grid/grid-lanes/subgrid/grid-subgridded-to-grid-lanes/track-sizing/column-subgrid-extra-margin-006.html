@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="../../../../../reference/ref-filled-green-100px-square.xht">
+<style>
+.wrapper {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(4, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-template: auto / subgrid;
+  background: green;
+  padding: 11px 3px 9px 7px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="grid-lanes">
+    <div class="subgrid" style="grid-column: span 4; gap: 20px 10px">
+      <div class="subgrid" style="grid-column: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+      <div class="subgrid" style="grid-column: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

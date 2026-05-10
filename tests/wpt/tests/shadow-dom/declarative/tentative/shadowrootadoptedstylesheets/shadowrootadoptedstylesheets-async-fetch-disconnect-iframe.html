@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets async fetch with iframe destruction</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Host is inside an iframe that is destroyed during the fetch. Destroying
+    // the iframe invalidates its browsing context. The completion callback for
+    // the pending module fetch should detect that the context is gone and bail
+    // out without crashing.
+    const cssUrl = new URL("./support/styles-red.css?iframe", location.href).href;
+
+    const iframe = document.createElement("iframe");
+    const iframeLoaded = new Promise(
+      resolve => iframe.addEventListener("load", resolve)
+    );
+    document.body.appendChild(iframe);
+    await iframeLoaded;
+
+    iframe.contentDocument.body.setHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' " +
+          `shadowrootadoptedstylesheets='${cssUrl}'>` +
+          "<span>Test content</span>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const iframeHost = iframe.contentDocument.getElementById("host");
+    const shadowRoot = iframeHost.shadowRoot;
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before iframe destruction: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before iframe destruction: placeholder at index 0 should be empty.");
+
+    iframe.remove();
+
+    await new Promise(resolve => step_timeout(resolve, 500));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Orphaned shadow root should still have one entry after iframe destruction.");
+
+    // The browsing context was invalidated, so the placeholder should remain empty.
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "After iframe destruction: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "After iframe destruction: placeholder at index 0 should be empty.");
+
+    // Re-inserting the iframe creates a new browsing context with a fresh document.
+    const iframeReloaded = new Promise(
+      resolve => iframe.addEventListener("load", resolve)
+    );
+    document.body.appendChild(iframe);
+    await iframeReloaded;
+
+    assert_equals(iframe.contentDocument.getElementById("host"), null,
+      "The new iframe document should not contain the original host element.");
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "After iframe re-insertion: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "After iframe re-insertion: placeholder at index 0 should be empty.");
+  }, "Destroying iframe during async adoptedStyleSheets fetch does not crash.");
+</script>
+</body>

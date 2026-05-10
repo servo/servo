@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>
+  navigateEvent.deferPageSwap: rejecting a single handler resumes navigation and ignores
+  other handlers
+</title>
+
+<script>
+  switch (new URLSearchParams(location.search).get("phase") || "test") {
+    case "test":
+      promise_test(async (t) => {
+        window.step_timeout = t.step_timeout;
+        const done = Promise.withResolvers();
+        window.did_load = done.resolve;
+        const popup = window.open("?phase=initial");
+        const events = await done.promise;
+        assert_array_equals(events, [
+          "navigate",
+          "handler1",
+          "handler2",
+          "reject1",
+          "pagehide",
+        ]);
+      });
+      break;
+    case "initial":
+      const events = [];
+      navigation.addEventListener("navigate", (navigate_event) => {
+        events.push("navigate");
+        navigate_event.deferPageSwap({
+          handler: () =>
+            new Promise((resolve, reject) => {
+              events.push("handler1");
+              window.step_timeout(() => {
+                events.push("reject1");
+                reject();
+              }, 100);
+            }),
+        });
+        navigate_event.deferPageSwap({
+          handler: () =>
+            new Promise((resolve) => {
+              events.push("handler2");
+              window.step_timeout(() => {
+                events.push("preview2");
+                resolve();
+              }, 1000);
+            }),
+        });
+      });
+      window.addEventListener("pagehide", () => {
+        events.push("pagehide");
+        window.opener.did_load(events);
+      });
+      window.navigation.navigate("?phase=done");
+      break;
+    case "done":
+      break;
+  }
+</script>

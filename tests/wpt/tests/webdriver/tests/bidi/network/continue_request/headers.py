@@ -15,6 +15,8 @@ pytestmark = pytest.mark.asyncio
         [{}, {"b": "2"}],
         [{"a": "1", "b": "2"}, {"c": "3", "d": "4"}],
         [{"a": "1"}, {"a": "not-1"}],
+        [{}, {"x-diacritics": "ä"}],
+        [{}, {"x-unicode": "你好世界"}],
     ],
 )
 async def test_modify_headers(
@@ -35,7 +37,9 @@ async def test_modify_headers(
     on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await bidi_session.network.continue_request(request=request, headers=headers)
     response_event = await on_response_completed
-    assert_response_event(response_event, expected_request={"headers": headers})
+    assert_response_event(
+        response_event, expected_event={"request": {"headers": headers}}
+    )
 
 
 async def test_multiple_headers(
@@ -56,7 +60,8 @@ async def test_multiple_headers(
     on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await bidi_session.network.continue_request(request=request, headers=headers)
     response_event = await on_response_completed
-    assert_response_event(response_event)
+    expected_event = {}
+    assert_response_event(response_event, expected_event)
 
     event_headers = response_event["request"]["headers"]
     a_header = next(h for h in event_headers if h["name"] == header_name)

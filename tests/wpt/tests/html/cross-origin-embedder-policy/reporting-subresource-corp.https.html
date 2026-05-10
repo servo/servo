@@ -162,6 +162,15 @@ const CASES = [{
   check: (reports, contextUrl, url) => {
     checkReport(reports[0], contextUrl, url, 'reporting', '');
     checkReport(reports[1], contextUrl, url, 'enforce', '');
+  },
+}, {
+  name: 'blocked due to COEP (with fragment)',
+  url: `${REMOTE_ORIGIN}/common/text-plain.txt#fragment`,
+  expected_count: 2,
+  check: (reports, contextUrl, url) => {
+    const strippedUrl = url.split('#')[0];
+    checkReport(reports[0], contextUrl, strippedUrl, 'reporting', '');
+    checkReport(reports[1], contextUrl, strippedUrl, 'enforce', '');
   }
 }, {
   name: 'blocked during redirect',

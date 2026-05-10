@@ -12,6 +12,13 @@ features:
   files:
   - color-mix-*
   - nested-color-mix-with-currentcolor.html
+- name: currentcolor
+  files:
+  - currentcolor-*
+  - t44-currentcolor-*
+  - color-003.html
+  - currentcolor-visited-fallback.html
+  - t31-color-currentColor-b.xht
 - name: lab
   files:
   - lab-*
@@ -40,7 +47,7 @@ features:
   - "system-color-*"
 - name: contrast-color
   files:
-  - contrast-color-001.html
+  - contrast-color-*.html
 - name: hsl
   files:
   - background-color-hsl-*
@@ -56,3 +63,9 @@ features:
 - name: named-color
   files:
   - named-001.html
+- name: color
+  files:
+  - color-001.html
+  - color-002.html
+  - t31-color-text-a.xht
+  - t423-transparent-*

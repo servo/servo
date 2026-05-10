@@ -8,14 +8,11 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::GenericSharedMemory;
-use base::id::PipelineId;
-use compositing_traits::{
-    CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
-};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{info, warn};
+use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::{
     Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
@@ -29,13 +26,14 @@ use wgc::id;
 use wgc::id::DeviceId;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::BufferMapOperation;
+pub use wgpu_core as wgc;
 use wgpu_core::command::RenderPassDescriptor;
 use wgpu_core::device::DeviceError;
 use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
 use wgpu_core::resource::BufferAccessResult;
+pub use wgpu_types as wgt;
 use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
-pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::canvas_context::WebGpuExternalImageMap;
 use crate::poll_thread::Poller;
@@ -95,9 +93,9 @@ impl<P> Pass<P> {
 
 #[expect(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
-    receiver: IpcReceiver<WebGPURequest>,
-    sender: IpcSender<WebGPURequest>,
-    pub(crate) script_sender: IpcSender<WebGPUMsg>,
+    receiver: GenericReceiver<WebGPURequest>,
+    sender: GenericSender<WebGPURequest>,
+    pub(crate) script_sender: GenericSender<WebGPUMsg>,
     pub(crate) global: Arc<wgc::global::Global>,
     devices: Arc<Mutex<FxHashMap<DeviceId, DeviceScope>>>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
@@ -118,9 +116,9 @@ pub(crate) struct WGPU {
 
 impl WGPU {
     pub(crate) fn new(
-        receiver: IpcReceiver<WebGPURequest>,
-        sender: IpcSender<WebGPURequest>,
-        script_sender: IpcSender<WebGPUMsg>,
+        receiver: GenericReceiver<WebGPURequest>,
+        sender: GenericSender<WebGPURequest>,
+        script_sender: GenericSender<WebGPUMsg>,
         paint_api: CrossProcessPaintApi,
         webrender_external_image_id_manager: WebRenderExternalImageIdManager,
         wgpu_image_map: WebGpuExternalImageMap,
@@ -973,20 +971,20 @@ impl WGPU {
                     },
                     WebGPURequest::UnmapBuffer { buffer_id, mapping } => {
                         let global = &self.global;
-                        if let Some(mapping) = mapping {
-                            if let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
+                        if let Some(mapping) = mapping &&
+                            let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
                                 buffer_id,
                                 mapping.range.start,
                                 Some(mapping.range.end - mapping.range.start),
-                            ) {
-                                unsafe {
-                                    slice::from_raw_parts_mut(
-                                        slice_pointer.as_ptr(),
-                                        range_size as usize,
-                                    )
-                                }
-                                .copy_from_slice(&mapping.data);
+                            )
+                        {
+                            unsafe {
+                                slice::from_raw_parts_mut(
+                                    slice_pointer.as_ptr(),
+                                    range_size as usize,
+                                )
                             }
+                            .copy_from_slice(&mapping.data);
                         }
                         // Ignore result because this operation always succeed from user perspective
                         let _result = global.buffer_unmap(buffer_id);

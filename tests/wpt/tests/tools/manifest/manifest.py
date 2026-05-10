@@ -8,7 +8,8 @@ from typing import (Any, Callable, Container, Dict, IO, Iterator, Iterable, List
 
 from . import jsonlib
 from . import vcs
-from .item import (ConformanceCheckerTest,
+from .item import (AccessibilityAPIMappingTest,
+                   ConformanceCheckerTest,
                    CrashTest,
                    ManifestItem,
                    ManualTest,
@@ -17,6 +18,7 @@ from .item import (ConformanceCheckerTest,
                    SpecItem,
                    SupportFile,
                    TestharnessTest,
+                   Test262Test,
                    VisualTest,
                    WebDriverSpecTest)
 from .log import get_logger
@@ -46,10 +48,12 @@ item_classes: Dict[Text, Type[ManifestItem]] = {"testharness": TestharnessTest,
                                                 "crashtest": CrashTest,
                                                 "manual": ManualTest,
                                                 "wdspec": WebDriverSpecTest,
+                                                "aamtest": AccessibilityAPIMappingTest,
                                                 "conformancechecker": ConformanceCheckerTest,
                                                 "visual": VisualTest,
                                                 "spec": SpecItem,
-                                                "support": SupportFile}
+                                                "support": SupportFile,
+                                                "test262": Test262Test}
 
 
 def compute_manifest_items(source_file: SourceFile) -> Optional[Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]]:

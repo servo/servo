@@ -3,3 +3,12 @@ features:
   files:
   - sandbox-inherited-from-required-csp.html
   - window-open-blank-from-different-initiator.html
+- name: iframe-sandbox
+  files:
+  - popup-from-initial-empty-sandboxed-document.window.js
+  - sandbox-*
+  - "!sandbox-inherited-from-initiator-response.html"
+  - "!sandbox-inherited-from-required-csp.html"
+  - "!sandbox-navigation-timing-iframe.tentative.html"
+  - "!sandbox-navigation-timing.tentative.html"
+  - "!sandbox-new-execution-context-iframe.html"

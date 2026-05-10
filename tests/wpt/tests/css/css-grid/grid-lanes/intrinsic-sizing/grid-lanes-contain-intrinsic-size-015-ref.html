@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf8">
+<style type="text/css">
+.panel {
+  display: grid;
+  background: red;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: visible;
+  position: relative;
+  width: min-content;
+}
+.box {
+  background: green;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+.panel.size {
+  contain: size;
+}
+.panel.size .box.large {
+  width: 600px;
+}
+</style>
+</head>
+<body>
+<div class="panel size">
+  <div class="box large">
+    The masonry container does not stretch to fit this content.
+  </div>
+</div>
+</body>

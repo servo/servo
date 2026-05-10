@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: img and picture/source</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id="plain" src="resources/3x3_srgb_lossless.jxl" alt="plain img">
+<picture id="pic">
+  <source srcset="resources/3x3_srgb_lossless.jxl" type="image/jxl">
+  <img id="picture-img" src="resources/3x3_srgb_lossless.png" alt="picture fallback">
+</picture>
+
+<script>
+promise_test(async () => {
+  const plain = document.getElementById('plain');
+  if (!plain.complete) {
+    await new Promise((resolve, reject) => {
+      plain.onload = resolve;
+      plain.onerror = () => reject(new Error('plain img failed'));
+    });
+  }
+  assert_true(plain.currentSrc.endsWith('.jxl'));
+  assert_greater_than(plain.naturalWidth, 0);
+}, '<img> decodes JPEG XL');
+
+promise_test(async () => {
+  const img = document.getElementById('picture-img');
+  if (!img.complete) {
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('picture img failed'));
+    });
+  }
+  assert_true(img.currentSrc.endsWith('.jxl'));
+  assert_greater_than(img.naturalWidth, 0);
+}, '<picture>/<source> selects and decodes JPEG XL source');
+</script>

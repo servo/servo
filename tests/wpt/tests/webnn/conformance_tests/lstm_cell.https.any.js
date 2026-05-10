@@ -411,6 +411,82 @@ const lstmCellTests = [
       }
     }
   },
+  {
+    'name':
+        "lstmCell float32 tensors with options.peepholeWeight and options.layout='ifgo'",
+    'graph': {
+      'inputs': {
+        'lstmCellInput': {
+          'data': [1, 2, 2, 1],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        },
+        'lstmCellWeight': {
+          'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmCellRecurrentWeight': {
+          'data': [
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1
+          ],
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmCellHiddenState': {
+          'data': [0, 0, 0, 0],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        },
+        'lstmCellCellState': {
+          'data': [1, 1, 1, 1],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        },
+        'lstmCellBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmCellRecurrentBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmCellPeepholeWeight': {
+          'data': [0, 0, 0, 0, 1, 1],
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'lstmCell',
+        'arguments': [
+          {'input': 'lstmCellInput'}, {'weight': 'lstmCellWeight'},
+          {'recurrentWeight': 'lstmCellRecurrentWeight'},
+          {'hiddenState': 'lstmCellHiddenState'},
+          {'cellState': 'lstmCellCellState'}, {'hiddenSize': 2}, {
+            'options': {
+              'bias': 'lstmCellBias',
+              'recurrentBias': 'lstmCellRecurrentBias',
+              'peepholeWeight': 'lstmCellPeepholeWeight',
+              'layout': 'ifgo',
+              'activations': ['relu', 'relu', 'relu']
+            }
+          }
+        ],
+        'outputs': ['lstmCellOutput1', 'lstmCellOutput2']
+      }],
+      'expectedOutputs': {
+        'lstmCellOutput1': {
+          'data': [3, 14, 39, 258],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        },
+        'lstmCellOutput2': {
+          'data': [3, 7, 13, 43],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
 
   // float16 tests
   {
@@ -777,6 +853,84 @@ const lstmCellTests = [
         },
         'lstmCellOutput2': {
           'data': [1, 4, 9, 36],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        "lstmCell float16 tensors with options.peepholeWeight and options.layout='ifgo'",
+    'graph': {
+      'inputs': {
+        'lstmCellInput': {
+          'data': [1, 2, 2, 1],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        },
+        'lstmCellWeight': {
+          'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
+          'descriptor': {shape: [8, 2], dataType: 'float16'},
+          'constant': true
+        },
+        'lstmCellRecurrentWeight': {
+          'data': [
+            0.0999755859375, 0.0999755859375, 0.0999755859375, 0.0999755859375,
+            0.0999755859375, 0.0999755859375, 0.0999755859375, 0.0999755859375,
+            0.0999755859375, 0.0999755859375, 0.0999755859375, 0.0999755859375,
+            0.0999755859375, 0.0999755859375, 0.0999755859375, 0.0999755859375
+          ],
+          'descriptor': {shape: [8, 2], dataType: 'float16'},
+          'constant': true
+        },
+        'lstmCellHiddenState': {
+          'data': [0, 0, 0, 0],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        },
+        'lstmCellCellState': {
+          'data': [1, 1, 1, 1],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        },
+        'lstmCellBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [8], dataType: 'float16'},
+          'constant': true
+        },
+        'lstmCellRecurrentBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [8], dataType: 'float16'},
+          'constant': true
+        },
+        'lstmCellPeepholeWeight': {
+          'data': [0, 0, 0, 0, 1, 1],
+          'descriptor': {shape: [6], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'lstmCell',
+        'arguments': [
+          {'input': 'lstmCellInput'}, {'weight': 'lstmCellWeight'},
+          {'recurrentWeight': 'lstmCellRecurrentWeight'},
+          {'hiddenState': 'lstmCellHiddenState'},
+          {'cellState': 'lstmCellCellState'}, {'hiddenSize': 2}, {
+            'options': {
+              'bias': 'lstmCellBias',
+              'recurrentBias': 'lstmCellRecurrentBias',
+              'peepholeWeight': 'lstmCellPeepholeWeight',
+              'layout': 'ifgo',
+              'activations': ['relu', 'relu', 'relu']
+            }
+          }
+        ],
+        'outputs': ['lstmCellOutput1', 'lstmCellOutput2']
+      }],
+      'expectedOutputs': {
+        'lstmCellOutput1': {
+          'data': [3, 14, 39, 258],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        },
+        'lstmCellOutput2': {
+          'data': [3, 7, 13, 43],
           'descriptor': {shape: [2, 2], dataType: 'float16'}
         }
       }

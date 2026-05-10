@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cross-fade() respects orientation for cross-origin images even with image-orientation: none</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-function">
+<link rel="match" href="cross-fade-cross-origin-orientation-ref.html">
+<style>
+  .test {
+    width: 50px;
+    height: 100px;
+    image-orientation: none; /* Should be ignored for cross-origin images */
+    background-image: cross-fade(100% url("http://{{host}}:{{ports[http][1]}}/css/css-images/image-orientation/support/exif-orientation-6-ru.jpg"), 0% #fff);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+</style>
+<p>The image below should be rotated (50x100) because it is cross-origin, despite image-orientation: none.</p>
+<div class="test"></div>

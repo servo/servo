@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>An element's null customElementRegistry should not mutate after removal</title>
+<meta name="author" title="Jayson Chen" href="mailto:jaysonchen@microsoft.com">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<div id="host">
+    <template shadowrootmode="open" shadowrootcustomelementregistry>
+        <x-el></x-el>
+    </template>
+</div>
+
+<script>
+
+test(() => {
+    const sr = host.shadowRoot;
+    const el = sr.querySelector('x-el');
+    assert_equals(el.customElementRegistry, null,
+        'customElementRegistry should be null while in null-registry shadow root');
+    el.remove();
+    assert_equals(el.customElementRegistry, null,
+        'customElementRegistry should remain null after removal from null-registry shadow root');
+}, "An element's null customElementRegistry should not mutate after removal from a declarative shadow root with shadowrootcustomelementregistry.");
+</script>
+</body>

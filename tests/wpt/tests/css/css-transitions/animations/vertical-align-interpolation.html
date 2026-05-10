@@ -39,11 +39,18 @@ test_interpolation({
   {at: 1.5, expect: '55px'},
 ]);
 
-test_no_interpolation({
+test_interpolation({
   property: 'vertical-align',
   from: 'initial',
-  to: '40px',
-});
+  to: '100px',
+}, [
+  {at: -0.5, expect: '-50px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '30px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'},
+]);
 
 test_interpolation({
   property: 'vertical-align',
@@ -58,11 +65,18 @@ test_interpolation({
   {at: 1.5, expect: '10px'},
 ]);
 
-test_no_interpolation({
+test_interpolation({
   property: 'vertical-align',
   from: 'unset',
-  to: '40px',
-});
+  to: '100px',
+}, [
+  {at: -0.5, expect: '-50px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '30px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'},
+]);
 
 test_interpolation({
   property: 'vertical-align',

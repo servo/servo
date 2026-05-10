@@ -5,6 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
@@ -12,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -34,7 +36,8 @@ pub(crate) struct Selection {
     document: Dom<Document>,
     range: MutNullableDom<Range>,
     direction: Cell<Direction>,
-    task_queued: Cell<bool>,
+    /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
+    has_scheduled_selectionchange_event: Cell<bool>,
 }
 
 impl Selection {
@@ -44,15 +47,15 @@ impl Selection {
             document: Dom::from_ref(document),
             range: MutNullableDom::new(None),
             direction: Cell::new(Direction::Directionless),
-            task_queued: Cell::new(false),
+            has_scheduled_selectionchange_event: Cell::new(false),
         }
     }
 
-    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<Selection> {
-        reflect_dom_object(
+    pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<Selection> {
+        reflect_dom_object_with_cx(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            can_gc,
+            cx,
         )
     }
 
@@ -60,10 +63,10 @@ impl Selection {
         // If we are setting to literally the same Range object
         // (not just the same positions), then there's nothing changing
         // and no task to queue.
-        if let Some(existing) = self.range.get() {
-            if &*existing == range {
-                return;
-            }
+        if let Some(existing) = self.range.get() &&
+            &*existing == range
+        {
+            return;
         }
         self.range.set(Some(range));
         range.associate_selection(self);
@@ -80,30 +83,52 @@ impl Selection {
         }
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     pub(crate) fn queue_selectionchange_task(&self) {
-        if self.task_queued.get() {
-            // Spec doesn't specify not to queue multiple tasks,
-            // but it's much easier to code range operations if
-            // change notifications within a method are idempotent.
+        // https://w3c.github.io/editing/docs/execCommand/#state-override
+        // https://w3c.github.io/editing/docs/execCommand/#value-override
+        // > Whenever the number of ranges in the selection changes to something different,
+        // > and whenever a boundary point of the range at a given index in the selection changes
+        // > to something different, the state override and value override must be unset for every command.
+        self.document.clear_command_overrides();
+
+        // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
+        if self.has_scheduled_selectionchange_event.get() {
             return;
         }
+        // Step 2. Set target's has scheduled selectionchange event to true.
+        self.has_scheduled_selectionchange_event.set(true);
+        // Step 3. Queue a task on the user interaction task source to fire a selectionchange event on target.
         let this = Trusted::new(self);
         self.document
             .owner_global()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
-                task!(selectionchange_task_steps: move || {
+                // https://w3c.github.io/selection-api/#firing-selectionchange-event
+                task!(selectionchange_task_steps: move |cx| {
                     let this = this.root();
-                    this.task_queued.set(false);
-                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
-                })
+                    // Step 1. Set target's has scheduled selectionchange event to false.
+                    this.has_scheduled_selectionchange_event.set(false);
+                    // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
+                    //
+                    // n/a
+
+                    // Step 3. Otherwise, if target is a document, fire an event named selectionchange,
+                    // which does not bubble and not cancelable, at target.
+                    this.document.upcast::<EventTarget>().fire_event(cx, atom!("selectionchange"));
+                }),
             );
-        self.task_queued.set(true);
     }
 
     fn is_same_root(&self, node: &Node) -> bool {
         &*node.GetRootNode(&GetRootNodeOptions::empty()) == self.document.upcast::<Node>()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
+    pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
+        // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
+        self.range.get()
     }
 }
 
@@ -214,11 +239,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
     fn RemoveRange(&self, range: &Range) -> ErrorResult {
-        if let Some(own_range) = self.range.get() {
-            if &*own_range == range {
-                self.clear_range();
-                return Ok(());
-            }
+        if let Some(own_range) = self.range.get() &&
+            &*own_range == range
+        {
+            self.clear_range();
+            return Ok(());
         }
         Err(Error::NotFound(None))
     }
@@ -236,7 +261,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
-    fn Collapse(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
+    fn Collapse(&self, cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
         if let Some(node) = node {
             if node.is_doctype() {
                 // w3c/selection-api#118
@@ -253,7 +278,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             }
 
             // Steps 4-5
-            let range = Range::new(&self.document, node, offset, node, offset, can_gc);
+            let range = Range::new(
+                &self.document,
+                node,
+                offset,
+                node,
+                offset,
+                CanGc::from_cx(cx),
+            );
 
             // Step 6
             self.set_range(&range);
@@ -271,27 +303,23 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the start-of-selection action, after a
     // selectstart event has fired and not been cancelled.
-    fn SetPosition(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
-        self.Collapse(node, offset, can_gc)
+    fn SetPosition(&self, cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
+        self.Collapse(cx, node, offset)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapsetostart>
-    fn CollapseToStart(&self, can_gc: CanGc) -> ErrorResult {
+    fn CollapseToStart(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(
-                Some(&*range.start_container()),
-                range.start_offset(),
-                can_gc,
-            )
+            self.Collapse(cx, Some(&*range.start_container()), range.start_offset())
         } else {
             Err(Error::InvalidState(None))
         }
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapsetoend>
-    fn CollapseToEnd(&self, can_gc: CanGc) -> ErrorResult {
+    fn CollapseToEnd(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.end_container()), range.end_offset(), can_gc)
+            self.Collapse(cx, Some(&*range.end_container()), range.end_offset())
         } else {
             Err(Error::InvalidState(None))
         }
@@ -300,7 +328,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-extend
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the continue-selection action
-    fn Extend(&self, node: &Node, offset: u32, can_gc: CanGc) -> ErrorResult {
+    fn Extend(&self, cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         if !self.is_same_root(node) {
             // Step 1
             return Ok(());
@@ -326,7 +354,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                     offset,
                     node,
                     offset,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ));
                 self.direction.set(Direction::Forwards);
             } else {
@@ -347,7 +375,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                         old_anchor_offset,
                         node,
                         offset,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Forwards);
                 } else {
@@ -358,7 +386,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                         offset,
                         old_anchor_node,
                         old_anchor_offset,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Backwards);
                 }
@@ -373,11 +401,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     /// <https://w3c.github.io/selection-api/#dom-selection-setbaseandextent>
     fn SetBaseAndExtent(
         &self,
+        cx: &mut JSContext,
         anchor_node: &Node,
         anchor_offset: u32,
         focus_node: &Node,
         focus_offset: u32,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1
         if anchor_node.is_doctype() || focus_node.is_doctype() {
@@ -409,7 +437,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 focus_offset,
                 anchor_node,
                 anchor_offset,
-                can_gc,
+                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Backwards);
         } else {
@@ -419,7 +447,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 anchor_offset,
                 focus_node,
                 focus_offset,
-                can_gc,
+                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Forwards);
         }
@@ -427,7 +455,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-selectallchildren>
-    fn SelectAllChildren(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
+    fn SelectAllChildren(&self, cx: &mut JSContext, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // w3c/selection-api#118
             return Err(Error::InvalidNodeType(None));
@@ -445,7 +473,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             0,
             node,
             node.children_count(),
-            can_gc,
+            CanGc::from_cx(cx),
         ));
 
         self.direction.set(Direction::Forwards);
@@ -453,11 +481,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-deletecontents>
-    fn DeleteFromDocument(&self) -> ErrorResult {
+    fn DeleteFromDocument(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
             // Since the range is changing, it should trigger a
             // selectionchange event as it would if if mutated any other way
-            return range.DeleteContents();
+            return range.DeleteContents(cx);
         }
         Ok(())
     }

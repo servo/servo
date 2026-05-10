@@ -1,0 +1,177 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - stream insertion logic</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    function get_method_name(method, safe) {
+      return `stream${method}HTML${safe ? "" : "Unsafe"}`;
+    }
+
+    // Regardless of the method, the insertion point is going to be before the ref_node.
+    function create_stream(method, safe, parent, ref_node) {
+      const method_name = get_method_name(method, safe);
+      switch (method) {
+        case "Before":
+          return ref_node[method_name]();
+        case "After":
+          return ref_node.previousSibling[method_name]();
+        case "ReplaceWith":
+          const placeholder = document.createElement("div");
+          parent.insertBefore(placeholder, ref_node);
+          return placeholder[method_name]();
+        case "Append":
+        case "Prepend":
+          return parent[method_name]();
+      }
+    }
+
+    async function stream_insert_before(
+      method,
+      safe,
+      parent,
+      ref_node,
+      new_html,
+    ) {
+      const writable = create_stream(method, safe, parent, ref_node);
+      assert_true(
+        writable instanceof WritableStream,
+        `node.streamInsertBefore() returns a writable stream`,
+      );
+      const writer = writable.getWriter();
+      await writer.write(new_html);
+      await writer.close();
+      return true;
+    }
+
+    for (const safe of [true, false]) {
+      for (const method of ["Append", "Prepend"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            await stream_insert_before(method, safe, parent, null, "A");
+            assert_equals(parent.innerHTML, "A");
+          },
+          `${get_method_name(method, safe)} without a ref node`,
+        );
+      }
+
+      for (const method of ["Before", "ReplaceWith", "After"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            parent.innerHTML = "<p>X</p>";
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.innerHTML, "<p>X</p>A<span></span>");
+          },
+          `${get_method_name(method, safe)} with a ref_node at end`,
+        );
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            parent.innerHTML = "<p>a</p><p>b</p><p>c</p>";
+            const ref_node = parent.firstChild.nextSibling;
+            await stream_insert_before(
+              method,
+              safe,
+              parent,
+              ref_node,
+              "<p>X</p>",
+            );
+            assert_equals(parent.innerHTML, "<p>a</p><p>X</p><p>b</p><p>c</p>");
+          },
+          `${get_method_name(method, safe)} with a ref_node in the middle`,
+        );
+      }
+      for (const method of ["Before", "ReplaceWith", "Prepend"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.innerHTML, "A<span></span>");
+          },
+          `${get_method_name(method, safe)} with a ref_node at start`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("A");
+            ref_node.remove();
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write("<p>B</p>"),
+              "DOMException",
+            );
+          },
+          `${get_method_name(method, safe)} should reject if ref node is removed`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("A");
+            document.body.append(ref_node);
+            t.add_cleanup(() => ref_node.remove());
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write("<p>B</p>"),
+              "DOMException",
+            );
+          },
+          `${get_method_name(method, safe)} should reject if ref node is no longer child of the same parent`,
+        );
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createComment("ref");
+            parent.appendChild(ref_node);
+            if (await stream_insert_before(method, safe, parent, ref_node, "A"))
+              assert_equals(parent.innerHTML, "A<!--ref-->");
+          },
+          `${get_method_name(method, safe)} with a comment ref_node`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createTextNode("ref");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.firstChild.data, "A");
+            assert_equals(parent.lastChild.data, "ref");
+            assert_equals(parent.textContent, "Aref");
+          },
+          `${get_method_name(method, safe)} with a text ref_node`,
+        );
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const shadow = parent.attachShadow({ mode: "open" });
+            const ref_node = document.createElement("span");
+            shadow.appendChild(ref_node);
+            await stream_insert_before(method, safe, shadow, ref_node, "A");
+            assert_equals(shadow.innerHTML, "A<span></span>");
+          },
+          `${get_method_name(method, safe)} in a ShadowRoot`,
+        );
+      }
+    }
+  </script>
+</body>

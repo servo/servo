@@ -19,6 +19,11 @@
   to   { }
 }
 
+@keyframes anim-keyframe-timing-var {
+  from { color: rgb(0, 0, 0); animation-timing-function: var(--kf_ease); }
+  to   { color: rgb(255, 255, 255); }
+}
+
 @keyframes anim-only-non-animatable {
   from { animation-duration: 3s; }
   to   { animation-duration: 5s; }
@@ -316,6 +321,26 @@ test(t => {
                 "value of 'easing' on ComputedKeyframe #2");
 }, 'KeyframeEffect.getKeyframes() returns frames with expected easing'
    + ' values, when the easing is specified on some keyframes');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.setProperty('--kf_ease', 'steps(2, start)');
+
+  // Note: This test matches current interop behavior (Firefox/Safari/Chromium),
+  // not necessarily the spec-intended behavior for var() in keyframe easing.
+  div.style.animation = 'anim-keyframe-timing-var 100s linear';
+
+  const animation = div.getAnimations()[0];
+  assert_equals(animation.effect.getTiming().easing, 'linear',
+                "value of 'easing' on effect.getTiming()");
+
+  const frames = getKeyframes(div);
+  assert_equals(frames.length, 2, "number of frames");
+  assert_equals(frames[0].easing, "linear",
+                "value of 'easing' on ComputedKeyframe #0");
+  assert_equals(frames[1].easing, "linear",
+                "value of 'easing' on ComputedKeyframe #1");
+}, 'KeyframeEffect.getKeyframes() returns animation-wide easing for var() keyframe easing');
 
 test(t => {
   for (const composite of kCompositeValues) {

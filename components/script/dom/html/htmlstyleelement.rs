@@ -6,16 +6,18 @@ use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
+use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -29,6 +31,8 @@ use crate::dom::css::stylesheetcontentscache::{
 };
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
+use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -51,6 +55,8 @@ pub(crate) struct HTMLStyleElement {
     in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-style-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLStyleElement {
@@ -69,24 +75,25 @@ impl HTMLStyleElement {
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            blocking: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLStyleElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLStyleElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -95,26 +102,38 @@ impl HTMLStyleElement {
         MediaList::parse_media_list(mq_str, &self.owner_window())
     }
 
-    pub(crate) fn parse_own_css(&self) {
+    /// <https://html.spec.whatwg.org/multipage/#update-a-style-block>
+    pub(crate) fn update_a_style_block(&self) {
+        // Step 1. Let element be the style element.
+        //
+        // That's self
+
+        // Step 2. If element has an associated CSS style sheet, remove the CSS style sheet in question.
+        self.remove_stylesheet();
+
+        // Step 3. If element is not connected, then return.
         let node = self.upcast::<Node>();
+        if !node.is_connected() {
+            return;
+        }
         assert!(
             node.is_in_a_document_tree() || node.is_in_a_shadow_tree(),
             "This stylesheet does not have an owner, so there's no reason to parse its contents"
         );
 
-        // Step 4. of <https://html.spec.whatwg.org/multipage/#the-style-element%3Aupdate-a-style-block>
+        // Step 4. If element's type attribute is present and its value is neither the empty string
+        // nor an ASCII case-insensitive match for "text/css", then return.
         let mut type_attribute = self.Type();
         type_attribute.make_ascii_lowercase();
         if !type_attribute.is_empty() && type_attribute != "text/css" {
             return;
         }
 
-        let doc = self.owner_document();
-        let global = &self.owner_global();
-
         // Step 5: If the Should element's inline behavior be blocked by Content Security Policy? algorithm
         // returns "Blocked" when executed upon the style element, "style",
         // and the style element's child text content, then return. [CSP]
+        let doc = self.owner_document();
+        let global = &self.owner_global();
         if global
             .get_csp_list()
             .should_elements_inline_type_behavior_be_blocked(
@@ -128,6 +147,7 @@ impl HTMLStyleElement {
             return;
         }
 
+        // Step 6. Create a CSS style sheet with the following properties:
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");
@@ -153,49 +173,69 @@ impl HTMLStyleElement {
             disabled: AtomicBool::new(false),
         });
 
-        // No subresource loads were triggered, queue load event
+        // From here we differ from the spec. Since we have a cache,
+        // we have two situations:
+        //
+        // 1. We hit the cache. No fetch ever runs, hence we don't
+        // need to muddy with render-/load-blocking
+        // 2. We don't hit the cache. In this scenario, we once again
+        // have two sub-scenarios:
+        //   a. We synchronously parse the contents without any `@import`.
+        //      This means we can proceed as in situation 1
+        //   b. We synchronously parse the contents and we encounter 1+
+        //      `@import` rules. In that case, we do start to load urls.
+        //
+        // For situation 1 and 2a, we can immediately fire the load event
+        // since we are done.
         if self.pending_loads.get() == 0 {
+            // Step 4 of https://html.spec.whatwg.org/multipage/#the-style-element:critical-subresources
+            //
+            // Step 4. Queue an element task on the networking task source given element and the following steps:
+            // Step 4.1. If success is true, fire an event named load at element.
             self.owner_global()
                 .task_manager()
-                .dom_manipulation_task_source()
+                .networking_task_source()
                 .queue_simple_event(self.upcast(), atom!("load"));
         }
 
-        self.set_stylesheet(sheet, cache_key, true);
+        // For situation 2b, we need to do more work.
+        // Therefore, the following steps are actually implemented in
+        // `ElementStylesheetLoader::load_with_element`.
+        //
+        //     Step 7. If element contributes a script-blocking style sheet,
+        //     append element to its node document's script-blocking style sheet set.
+        //
+        //     Step 8. If element's media attribute's value matches the environment
+        //     and element is potentially render-blocking, then block rendering on element.
+
+        // Finally, update our stylesheet, regardless of which scenario we ran into
+        self.clean_stylesheet_ownership();
+        self.set_stylesheet(sheet, cache_key);
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
     //
     // With the reuse of `StylesheetContent` for same stylesheet string content,
     // this function has a bit difference with `HTMLLinkElement::set_stylesheet` now.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_stylesheet(
         &self,
         s: Arc<Stylesheet>,
         cache_key: Option<StylesheetContentsCacheKey>,
-        need_clean_cssom: bool,
     ) {
-        let stylesheets_owner = self.stylesheet_list_owner();
-        if let Some(ref s) = *self.stylesheet.borrow() {
-            stylesheets_owner
-                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s);
-        }
-
-        if need_clean_cssom {
-            self.clean_stylesheet_ownership();
-        } else if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
-            let guard = s.shared_lock.read();
-            cssom_stylesheet.update_style_stylesheet(&s, &guard);
-        }
-
         *self.stylesheet.borrow_mut() = Some(s.clone());
         *self.stylesheetcontents_cache_key.borrow_mut() = cache_key;
-        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
+        self.stylesheet_list_owner()
+            .add_owned_stylesheet(self.upcast(), s);
     }
 
     pub(crate) fn will_modify_stylesheet(&self) {
         if let Some(stylesheet_with_owned_contents) = self.create_owned_contents_stylesheet() {
-            self.set_stylesheet(stylesheet_with_owned_contents, None, false);
+            self.remove_stylesheet();
+            if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
+                let guard = stylesheet_with_owned_contents.shared_lock.read();
+                cssom_stylesheet.update_style_stylesheet(&stylesheet_with_owned_contents, &guard);
+            }
+            self.set_stylesheet(stylesheet_with_owned_contents, None);
         }
     }
 
@@ -214,7 +254,7 @@ impl HTMLStyleElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 )
             })
         })
@@ -278,61 +318,55 @@ impl VirtualMethods for HTMLStyleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
-        // Handles the case when:
-        // "The element is not on the stack of open elements of an HTML parser or XML parser,
-        // and one of its child nodes is modified by a script."
-        // TODO: Handle Text child contents being mutated.
-        let node = self.upcast::<Node>();
-        if (node.is_in_a_document_tree() || node.is_in_a_shadow_tree()) &&
-            !self.in_stack_of_open_elements.get()
-        {
-            self.parse_own_css();
+        // > The element is not on the stack of open elements of an HTML parser or XML parser, and its children changed steps run.
+        if !self.in_stack_of_open_elements.get() {
+            self.update_a_style_block();
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
-        // Handles the case when:
-        // "The element is not on the stack of open elements of an HTML parser or XML parser,
-        // and it becomes connected or disconnected."
-        if context.tree_connected && !self.in_stack_of_open_elements.get() {
-            self.parse_own_css();
+        // > The element is not on the stack of open elements of an HTML parser or XML parser, and it becomes connected or disconnected.
+        if !self.in_stack_of_open_elements.get() {
+            self.update_a_style_block();
         }
     }
 
-    fn pop(&self) {
-        self.super_type().unwrap().pop();
-
-        // https://html.spec.whatwg.org/multipage/#update-a-style-block
-        // Handles the case when:
-        // "The element is popped off the stack of open elements of an HTML parser or XML parser."
+    fn pop(&self, cx: &mut js::context::JSContext) {
+        self.super_type().unwrap().pop(cx);
         self.in_stack_of_open_elements.set(false);
-        if self.upcast::<Node>().is_in_a_document_tree() {
-            self.parse_own_css();
+
+        // https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // > The element is popped off the stack of open elements of an HTML parser or XML parser.
+        self.update_a_style_block();
+    }
+
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(cx, context);
+        }
+
+        // https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // > The element is not on the stack of open elements of an HTML parser or XML parser, and it becomes connected or disconnected.
+        if !self.in_stack_of_open_elements.get() {
+            self.update_a_style_block();
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
-        }
-
-        if context.tree_connected {
-            self.remove_stylesheet();
-        }
-    }
-
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
 
         let node = self.upcast::<Node>();
@@ -343,24 +377,24 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if attr.name() == "type" {
-            if let AttributeMutation::Set(Some(old_value), _) = mutation {
-                if **old_value == **attr.value() {
-                    return;
-                }
+            if let AttributeMutation::Set(Some(old_value), _) = mutation &&
+                **old_value == **attr.value()
+            {
+                return;
             }
             self.remove_stylesheet();
-            self.parse_own_css();
-        } else if attr.name() == "media" {
-            if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
-                let shared_lock = node.owner_doc().style_shared_lock().clone();
-                let mut guard = shared_lock.write();
-                let media = stylesheet.media.write_with(&mut guard);
-                match mutation {
-                    AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
-                    AttributeMutation::Removed => *media = StyleMediaList::empty(),
-                };
-                self.owner_document().invalidate_stylesheets();
-            }
+            self.update_a_style_block();
+        } else if attr.name() == "media" &&
+            let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
+        {
+            let shared_lock = node.owner_doc().style_shared_lock().clone();
+            let mut guard = shared_lock.write();
+            let media = stylesheet.media.write_with(&mut guard);
+            match mutation {
+                AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
+                AttributeMutation::Removed => *media = StyleMediaList::empty(),
+            };
+            self.owner_document().invalidate_stylesheets();
         }
     }
 }
@@ -390,7 +424,21 @@ impl StylesheetOwner for HTMLStyleElement {
         self.parser_inserted.get()
     }
 
-    fn referrer_policy(&self) -> ReferrerPolicy {
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        //
+        // https://html.spec.whatwg.org/multipage/#the-style-element:implicitly-potentially-render-blocking
+        // > A style element is implicitly potentially render-blocking if the element was created by its node document's parser.
+        self.parser_inserted() ||
+            self.blocking
+                .get()
+                .is_some_and(|list| list.Contains("render".into()))
+    }
+
+    fn referrer_policy(&self, _cx: &mut js::context::JSContext) -> ReferrerPolicy {
         ReferrerPolicy::EmptyString
     }
 
@@ -414,7 +462,7 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
-    fn SetDisabled(&self, value: bool) {
+    fn SetDisabled(&self, _cx: &mut js::context::JSContext, value: bool) {
         if let Some(sheet) = self.get_cssom_stylesheet() {
             sheet.set_disabled(value);
         }
@@ -431,4 +479,16 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
 
     // <https://html.spec.whatwg.org/multipage/#attr-style-media>
     make_setter!(SetMedia, "media");
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-style-blocking>
+    fn Blocking(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                cx,
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+            )
+        })
+    }
 }

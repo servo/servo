@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/328662546">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+  #target1 {
+    background: blue;
+  }
+  #host {
+    background: red;
+  }
+</style>
+
+<body>
+<div id="source" draggable="true">Source</div>
+<div id="target1">Target 1</div>
+<div id="host">
+  <template shadowrootmode="open">
+    <div id=doNotExposeThisNode style="width: 100px; height: 100px; background: green;"></div>
+  </template>
+</div>
+
+<script>
+async_test(t => {
+  const source = document.getElementById('source');
+  const target1 = document.getElementById('target1');
+  const host = document.getElementById('host');
+
+  let dragLeaveFired = false;
+  let dragEnterFiredOnTarget1 = false;
+  let dragEnterFiredOnHost = false;
+
+  source.addEventListener('dragstart', t.step_func(e => {
+    e.dataTransfer.setData('text/plain', 'foo');
+    e.dataTransfer.effectAllowed = 'copy';
+  }));
+
+  // Target 1 setup
+  target1.addEventListener('dragenter', t.step_func(e => {
+    dragEnterFiredOnTarget1 = true;
+    e.preventDefault();
+  }));
+  target1.addEventListener('dragover', e => e.preventDefault());
+  target1.addEventListener('dragleave', t.step_func(e => {
+    dragLeaveFired = true;
+    assert_equals(e.relatedTarget, host, "dragleave on target1: relatedTarget should be the host element");
+  }));
+
+  // Host setup
+  host.addEventListener('dragenter', t.step_func(e => {
+    dragEnterFiredOnHost = true;
+    e.preventDefault();
+  }));
+  host.addEventListener('dragover', e => e.preventDefault());
+
+  const actions = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: source})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: target1}) // Drag over target1
+    .pointerMove(0, 0, {origin: host})    // Drag over host
+    .pointerUp();
+
+  actions.send().then(t.step_func_done(() => {
+    assert_true(dragEnterFiredOnTarget1, "dragenter should have fired on target1");
+    assert_true(dragEnterFiredOnHost, "dragenter should have fired on host");
+    assert_true(dragLeaveFired, "dragleave should have fired on target1");
+  }));
+
+}, "dragleave relatedTarget should be retargeted to shadow host when entering shadow DOM");
+</script>
+</body>

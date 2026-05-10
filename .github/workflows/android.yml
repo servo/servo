@@ -1,10 +1,14 @@
 name: Android
 on:
   workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: string
       bencher:
         required: false
@@ -15,9 +19,9 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: choice
-        options: ["release", "debug", "production"]
+        options: ["checked-release", "release", "debug", "production"]
       bencher:
         required: false
         default: false
@@ -33,6 +37,8 @@ jobs:
   build:
     name: Android Build
     runs-on: ubuntu-22.04
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     strategy:
       matrix:
         target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'x86_64-linux-android']
@@ -40,9 +46,8 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          tool-cache: false
+          tool-cache: true
           android: false
-          large-packages: false
           swap-storage: false
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
@@ -57,12 +62,15 @@ jobs:
           fetch-depth: 2
       - name: Install crown
         run: cargo install --path support/crown
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && ./mach bootstrap --skip-lints --skip-nextest
+        timeout-minutes: 30
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -99,27 +107,38 @@ jobs:
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
           ./mach build --use-crown --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
-          cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
+          mv target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
       # - name: Script tests
       #   run: ./mach test-android-startup
       - name: Archive build timing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
+        id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+          if-no-files-found: error
       - name: Upload AAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
+        id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+          if-no-files-found: error
+      - name: Collect artifact IDs needed by the release workflow
+        if: matrix.target == 'aarch64-linux-android'
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{steps.upload-apk.outputs.artifact-id}},${{steps.upload-aar.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
     needs: ["build"]

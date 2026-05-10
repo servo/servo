@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/#the-popover-attribute">
+
+<div id="p2" popover="hint">P2</div>
+<div id="p3" popover="auto">P3</div>
+<script>
+  p2.addEventListener("beforetoggle", e => {
+    if (e.newState === "closed") {
+      p3.popover = "hint";
+      try { p3.showPopover(); } catch(e) {}
+      p3.popover = "auto";
+      try { p3.showPopover(); } catch(e) {}
+    }
+  });
+  p2.showPopover();
+  try { p3.showPopover(); } catch(e) {}
+</script>

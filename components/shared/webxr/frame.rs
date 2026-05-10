@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
 /// The per-frame data that is provided by the device.
 /// <https://www.w3.org/TR/webxr/#xrframe>
 // TODO: other fields?
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct Frame {
     /// The pose information of the viewer
     pub pose: Option<ViewerPose>,
@@ -32,14 +33,14 @@ pub struct Frame {
     pub predicted_display_time: f64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub enum FrameUpdateEvent {
     UpdateFloorTransform(Option<RigidTransform3D<f32, Native, Floor>>),
     UpdateViewports(Viewports),
     HitTestSourceAdded(HitTestId),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct ViewerPose {
     /// The transform from the viewer to native coordinates
     ///

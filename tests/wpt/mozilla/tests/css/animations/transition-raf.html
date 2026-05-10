@@ -18,7 +18,6 @@
 <div id="box"></div>
 <script>
 var box = document.getElementById('box');
-var test = new window.TestBinding();
 async_test(function(t) {
   // Dummy RAF loop.
   (function onFrame() {
@@ -35,7 +34,7 @@ async_test(function(t) {
 
     box.addEventListener("transitionstart", () => {
       // Let the first restyle run at zero, then advance the clock.
-      test.advanceClock(500);
+      ServoTestUtils.advanceClock(500);
     });
     box.className = "expose";
   });

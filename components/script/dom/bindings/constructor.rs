@@ -13,6 +13,7 @@ use js::rust::wrappers2::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interface::get_desired_proto;
+use script_bindings::reflector::DomObject;
 
 use super::utils::ProtoOrIfaceArray;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -28,23 +29,23 @@ use crate::dom::bindings::codegen::Bindings::{
     HTMLHtmlElementBinding, HTMLIFrameElementBinding, HTMLImageElementBinding,
     HTMLInputElementBinding, HTMLLIElementBinding, HTMLLabelElementBinding,
     HTMLLegendElementBinding, HTMLLinkElementBinding, HTMLMapElementBinding,
-    HTMLMenuElementBinding, HTMLMetaElementBinding, HTMLMeterElementBinding, HTMLModElementBinding,
-    HTMLOListElementBinding, HTMLObjectElementBinding, HTMLOptGroupElementBinding,
-    HTMLOptionElementBinding, HTMLOutputElementBinding, HTMLParagraphElementBinding,
-    HTMLParamElementBinding, HTMLPictureElementBinding, HTMLPreElementBinding,
-    HTMLProgressElementBinding, HTMLQuoteElementBinding, HTMLScriptElementBinding,
-    HTMLSelectElementBinding, HTMLSlotElementBinding, HTMLSourceElementBinding,
-    HTMLSpanElementBinding, HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
-    HTMLTableCellElementBinding, HTMLTableColElementBinding, HTMLTableElementBinding,
-    HTMLTableRowElementBinding, HTMLTableSectionElementBinding, HTMLTemplateElementBinding,
-    HTMLTextAreaElementBinding, HTMLTimeElementBinding, HTMLTitleElementBinding,
-    HTMLTrackElementBinding, HTMLUListElementBinding, HTMLVideoElementBinding,
+    HTMLMarqueeElementBinding, HTMLMenuElementBinding, HTMLMetaElementBinding,
+    HTMLMeterElementBinding, HTMLModElementBinding, HTMLOListElementBinding,
+    HTMLObjectElementBinding, HTMLOptGroupElementBinding, HTMLOptionElementBinding,
+    HTMLOutputElementBinding, HTMLParagraphElementBinding, HTMLParamElementBinding,
+    HTMLPictureElementBinding, HTMLPreElementBinding, HTMLProgressElementBinding,
+    HTMLQuoteElementBinding, HTMLScriptElementBinding, HTMLSelectElementBinding,
+    HTMLSlotElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
+    HTMLStyleElementBinding, HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
+    HTMLTableColElementBinding, HTMLTableElementBinding, HTMLTableRowElementBinding,
+    HTMLTableSectionElementBinding, HTMLTemplateElementBinding, HTMLTextAreaElementBinding,
+    HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
+    HTMLUListElementBinding, HTMLVideoElementBinding,
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
 use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementState};
@@ -52,7 +53,7 @@ use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
 fn html_constructor(
@@ -61,7 +62,7 @@ fn html_constructor(
     call_args: &CallArgs,
     check_type: fn(&Element) -> bool,
     proto_id: PrototypeList::ID,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> Result<(), ()> {
     let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
@@ -81,7 +82,7 @@ fn html_constructor(
         throw_dom_exception(
             cx.into(),
             global,
-            Error::Type("new.target is null".to_owned()),
+            Error::Type(c"new.target is null".to_owned()),
             CanGc::from_cx(cx),
         );
         return Err(());
@@ -90,7 +91,7 @@ fn html_constructor(
         throw_dom_exception(
             cx.into(),
             global,
-            Error::Type("new.target must not be the active function object".to_owned()),
+            Error::Type(c"Illegal constructor.".to_owned()),
             CanGc::from_cx(cx),
         );
         return Err(());
@@ -105,7 +106,7 @@ fn html_constructor(
             throw_dom_exception(
                 cx.into(),
                 global,
-                Error::Type("No custom element definition found for new.target".to_owned()),
+                Error::Type(c"No custom element definition found for new.target".to_owned()),
                 CanGc::from_cx(cx),
             );
             return Err(());
@@ -131,17 +132,13 @@ fn html_constructor(
         if definition.is_autonomous() {
             // Since this element is autonomous, its active function object must be the HTMLElement
             // Retrieve the constructor object for HTMLElement
-            HTMLElementBinding::GetConstructorObject(
-                cx.into(),
-                global_object,
-                constructor.handle_mut(),
-            );
+            HTMLElementBinding::GetConstructorObject(cx, global_object, constructor.handle_mut());
         }
         // Step 6. Otherwise (i.e., if definition is for a customized built-in element):
         else {
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                cx.into(),
+                cx,
                 global_object,
                 constructor.handle_mut(),
             );
@@ -154,7 +151,7 @@ fn html_constructor(
             throw_dom_exception(
                 cx.into(),
                 global,
-                Error::Type("Custom element does not extend the proper interface".to_owned()),
+                Error::Type(c"Custom element does not extend the proper interface".to_owned()),
                 CanGc::from_cx(cx),
             );
             return Err(());
@@ -163,13 +160,7 @@ fn html_constructor(
 
     // Step 6
     rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-    get_desired_proto(
-        cx.into(),
-        call_args,
-        proto_id,
-        creator,
-        prototype.handle_mut(),
-    )?;
+    get_desired_proto(cx, call_args, proto_id, creator, prototype.handle_mut())?;
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
@@ -180,15 +171,10 @@ fn html_constructor(
             // Any prototype used to create these elements will be overwritten before returning
             // from this function, so we don't bother overwriting the defaults here.
             let element = if definition.is_autonomous() {
-                DomRoot::upcast(HTMLElement::new(
-                    name.local,
-                    None,
-                    &document,
-                    None,
-                    CanGc::from_cx(cx),
-                ))
+                DomRoot::upcast(HTMLElement::new(cx, name.local, None, &document, None))
             } else {
                 create_native_html_element(
+                    cx,
                     name,
                     None,
                     &document,
@@ -203,7 +189,7 @@ fn html_constructor(
             element.set_custom_element_state(CustomElementState::Custom);
 
             // Step 7.7 Set element's custom element definition to definition.
-            element.set_custom_element_definition(definition.clone());
+            element.set_custom_element_definition(definition);
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {
@@ -247,9 +233,9 @@ fn html_constructor(
         },
         // Step 10
         Some(ConstructionStackEntry::AlreadyConstructedMarker) => {
-            let s = "Top of construction stack marked AlreadyConstructed due to \
+            let s = c"Top of construction stack marked AlreadyConstructed due to \
                      a custom element constructor constructing itself after super()"
-                .to_string();
+                .to_owned();
             throw_dom_exception(cx.into(), global, Error::Type(s), CanGc::from_cx(cx));
             return Err(());
         },
@@ -278,7 +264,7 @@ fn html_constructor(
 /// extended attribute.
 fn get_constructor_object_from_local_name(
     name: LocalName,
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     global: HandleObject,
     rval: MutableHandleObject,
 ) -> bool {
@@ -353,7 +339,7 @@ fn get_constructor_object_from_local_name(
         local_name!("main") => HTMLElementBinding::GetConstructorObject,
         local_name!("map") => HTMLMapElementBinding::GetConstructorObject,
         local_name!("mark") => HTMLElementBinding::GetConstructorObject,
-        local_name!("marquee") => HTMLElementBinding::GetConstructorObject,
+        local_name!("marquee") => HTMLMarqueeElementBinding::GetConstructorObject,
         local_name!("menu") => HTMLMenuElementBinding::GetConstructorObject,
         local_name!("meta") => HTMLMetaElementBinding::GetConstructorObject,
         local_name!("meter") => HTMLMeterElementBinding::GetConstructorObject,
@@ -421,7 +407,7 @@ pub(crate) fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     args: &CallArgs,
     global: &GlobalScope,
     proto_id: PrototypeList::ID,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> bool {
     fn element_derives_interface<T: DerivedFrom<Element>>(element: &Element) -> bool {
         element.is::<T>()

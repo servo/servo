@@ -1,0 +1,360 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: container queries and style/layout duration</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: container queries</h1>
+<div id="log"></div>
+<script>
+
+// Container queries cause interleaved style and layout: the container must be
+// laid out before its children can be styled based on the container's size.
+// These tests verify that styleDuration and layoutDuration correctly account
+// for this interleaved work.
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-container {
+      container-type: inline-size;
+      width: 200px;
+    }
+    @container (min-width: 250px) {
+      .cq-child {
+        background-color: blue;
+        padding: 20px;
+        margin: 10px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const container = document.createElement("div");
+  container.className = "cq-container";
+  const child = document.createElement("div");
+  child.className = "cq-child";
+  child.textContent = "Container query layout test";
+  container.appendChild(child);
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Resize the container to trigger a container query match, which
+        // causes interleaved style recalculation and layout.
+        container.style.width = "300px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 with container query recalculation");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be >= 0 with container query recalculation");
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.duration,
+      "styleDuration + layoutDuration should not exceed frame duration");
+}, "Container query resize triggers measurable style and layout durations");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .nested-outer {
+      container-type: inline-size;
+      width: 400px;
+    }
+    .nested-inner {
+      container-type: inline-size;
+      width: 100%;
+    }
+    @container (min-width: 350px) {
+      .nested-inner {
+        padding: 15px;
+        border: 2px solid red;
+      }
+    }
+    @container (min-width: 100px) {
+      .nested-leaf {
+        background-color: green;
+        margin: 5px;
+        padding: 10px;
+        font-size: 20px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const outer = document.createElement("div");
+  outer.className = "nested-outer";
+  const inner = document.createElement("div");
+  inner.className = "nested-inner";
+  const leaf = document.createElement("div");
+  leaf.className = "nested-leaf";
+  leaf.textContent = "Nested container query test";
+  inner.appendChild(leaf);
+  outer.appendChild(inner);
+  document.body.appendChild(outer);
+  t.add_cleanup(() => outer.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Resize the outer container, triggering cascading container query
+        // evaluations through the nested containers.
+        outer.style.width = "500px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 with nested container queries");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be >= 0 with nested container queries");
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.duration,
+      "styleDuration + layoutDuration should not exceed frame duration");
+}, "Nested container queries trigger measurable style and layout durations");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-forced-container {
+      container-type: inline-size;
+      width: 200px;
+    }
+    @container (min-width: 250px) {
+      .cq-forced-child {
+        background-color: red;
+        padding: 15px;
+        height: 100px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const container = document.createElement("div");
+  container.className = "cq-forced-container";
+  const child = document.createElement("div");
+  child.className = "cq-forced-child";
+  child.textContent = "Forced layout with container query";
+  container.appendChild(child);
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 2);
+      // Resize the container to trigger a container query match, then
+      // force layout by reading a layout-dependent property. This causes
+      // interleaved style+layout during script execution.
+      container.style.width = "300px";
+      void child.offsetHeight;
+      busy_wait(very_long_frame_duration / 2);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  // Forced style+layout from container query resize should be captured
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration, 0,
+      "forcedStyleAndLayoutDuration should be >= 0");
+  assert_greater_than_equal(script.forcedStyleDuration, 0,
+      "forcedStyleDuration should be >= 0");
+  assert_greater_than_equal(script.forcedLayoutDuration, 0,
+      "forcedLayoutDuration should be >= 0");
+  assert_less_than_equal(script.forcedStyleDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedStyleDuration should be <= forcedStyleAndLayoutDuration");
+  assert_less_than_equal(script.forcedLayoutDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedLayoutDuration should be <= forcedStyleAndLayoutDuration");
+  // The sum should approximately equal the combined duration
+  const sum = script.forcedStyleDuration + script.forcedLayoutDuration;
+  assert_approx_equals(sum, script.forcedStyleAndLayoutDuration, 1.0,
+      "forcedStyleDuration + forcedLayoutDuration ≈ forcedStyleAndLayoutDuration");
+}, "Forced layout with container query captures style and layout separately");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-many-container {
+      container-type: inline-size;
+      width: 200px;
+      display: inline-block;
+    }
+    @container (min-width: 250px) {
+      .cq-many-child {
+        background-color: coral;
+        padding: 10px;
+        margin: 5px;
+        height: 50px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const containers = [];
+  for (let i = 0; i < 20; i++) {
+    const container = document.createElement("div");
+    container.className = "cq-many-container";
+    const child = document.createElement("div");
+    child.className = "cq-many-child";
+    child.textContent = `Item ${i}`;
+    container.appendChild(child);
+    document.body.appendChild(container);
+    containers.push(container);
+  }
+  t.add_cleanup(() => containers.forEach(c => c.remove()));
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Resize all containers to trigger many container query evaluations
+        containers.forEach(c => {
+          c.style.width = "300px";
+        });
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 with many container queries");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be >= 0 with many container queries");
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.duration,
+      "styleDuration + layoutDuration should not exceed frame duration");
+}, "Many simultaneous container query changes produce valid style and layout durations");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-toggle-container {
+      container-type: inline-size;
+      width: 200px;
+    }
+    @container (min-width: 250px) {
+      .cq-toggle-child {
+        background-color: purple;
+        padding: 20px;
+        height: 80px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const container = document.createElement("div");
+  container.className = "cq-toggle-container";
+  const child = document.createElement("div");
+  child.className = "cq-toggle-child";
+  child.textContent = "Toggle container query test";
+  container.appendChild(child);
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 3);
+      // Toggle the container size back and forth, forcing multiple
+      // container query evaluations and layouts.
+      for (let i = 0; i < 5; i++) {
+        container.style.width = (i % 2 === 0) ? "300px" : "200px";
+        void child.offsetHeight;
+      }
+      busy_wait(very_long_frame_duration / 3);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration, 0,
+      "forcedStyleAndLayoutDuration should be >= 0 after toggling");
+  assert_greater_than_equal(script.forcedStyleDuration, 0,
+      "forcedStyleDuration should be >= 0 after toggling");
+  assert_greater_than_equal(script.forcedLayoutDuration, 0,
+      "forcedLayoutDuration should be >= 0 after toggling");
+  const sum = script.forcedStyleDuration + script.forcedLayoutDuration;
+  assert_approx_equals(sum, script.forcedStyleAndLayoutDuration, 1.0,
+      "forcedStyleDuration + forcedLayoutDuration ≈ forcedStyleAndLayoutDuration");
+}, "Repeated container query toggles accumulate forced style and layout durations");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-ro-container {
+      container-type: inline-size;
+      width: 200px;
+    }
+    @container (min-width: 250px) {
+      .cq-ro-child {
+        background-color: orange;
+        padding: 10px;
+        height: 60px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const container = document.createElement("div");
+  container.className = "cq-ro-container";
+  const child = document.createElement("div");
+  child.className = "cq-ro-child";
+  child.textContent = "ResizeObserver + container query test";
+  container.appendChild(child);
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      const observer = new ResizeObserver(entries => {
+        // Do work during the ResizeObserver callback triggered by
+        // a container query resize.
+        busy_wait(very_long_frame_duration / 2);
+      });
+      observer.observe(container);
+
+      requestAnimationFrame(() => {
+        // Resize triggers container query + ResizeObserver
+        container.style.width = "300px";
+        requestAnimationFrame(() => {
+          observer.disconnect();
+          resolve();
+        });
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 with ResizeObserver + container query");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be >= 0 with ResizeObserver + container query");
+  assert_greater_than(entry.styleAndLayoutStart, 0,
+      "styleAndLayoutStart should be > 0 when rendering occurred");
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.duration,
+      "styleDuration + layoutDuration should not exceed frame duration");
+}, "Container query resize with ResizeObserver captures style and layout durations");
+
+</script>
+</body>

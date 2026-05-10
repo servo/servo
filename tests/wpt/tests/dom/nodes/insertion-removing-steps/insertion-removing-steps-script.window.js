@@ -18,17 +18,17 @@ promise_test(async t => {
   window.script1Executed = false;
   script1.innerText = `
     script1Executed = true;
-    assert_equals(document.scripts.length, kBaselineNumberOfScripts + 2,
-        "script1 executes synchronously, and thus observes only itself and " +
-        "previous scripts");
+    assert_equals(document.scripts.length, kBaselineNumberOfScripts + 3,
+        "script1 executes after all DOM insertions complete, observing all " +
+        "scripts");
   `;
 
   window.script2Executed = false;
   script2.innerText = `
     script2Executed = true;
     assert_equals(document.scripts.length, kBaselineNumberOfScripts + 3,
-        "script2 executes synchronously, and thus observes itself and all " +
-        "previous scripts");
+        "script2 executes after all DOM insertions complete, observing all " +
+        "scripts");
   `;
 
   assert_false(script0Executed, "Script0 does not execute before append()");
@@ -43,6 +43,5 @@ promise_test(async t => {
       "Script1 executes synchronously during fragment append()");
   assert_true(script2Executed,
       "Script2 executes synchronously during fragment append()");
-}, "Script node insertion is not atomic with regard to execution. Each " +
-   "script is synchronously executed during the HTML element insertion " +
-   "steps hook");
+}, "Script execution happens after all batched DOM insertions complete " +
+   "through post-connection steps");

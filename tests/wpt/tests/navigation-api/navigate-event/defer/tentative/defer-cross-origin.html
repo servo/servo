@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>navigateEvent.deferPageSwap: deferring is not allowed for cross-origin navigations</title>
+
+<script>
+  const { REMOTE_ORIGIN } = get_host_info();
+  switch (new URLSearchParams(location.search).get("phase") || "test") {
+    case "test":
+      promise_test(async (t) => {
+        window.step_timeout = t.step_timeout;
+        const done = Promise.withResolvers();
+        window.did_load = done.resolve;
+        const popup = window.open("?phase=initial");
+        const events = await done.promise;
+        assert_array_equals(events, ["navigate", "pagehide"]);
+      });
+      break;
+    case "initial":
+      const events = [];
+      navigation.addEventListener("navigate", (navigate_event) => {
+        events.push("navigate");
+        assert_throws_dom("SecurityError", () =>
+          navigate_event.deferPageSwap({
+            handler: () =>
+              new Promise((resolve) => {
+                events.push("handler");
+                window.opener.step_timeout(() => {
+                  events.push("preview");
+                  resolve();
+                });
+              }),
+          })
+        );
+      });
+      window.addEventListener("pagehide", () => {
+        events.push("pagehide");
+        window.opener.did_load(events);
+      });
+      window.navigation.navigate(
+        `${REMOTE_ORIGIN}/${location.pathname}?phase=done`
+      );
+      break;
+    case "done":
+      break;
+  }
+</script>

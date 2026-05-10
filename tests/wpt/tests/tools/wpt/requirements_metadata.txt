@@ -1,2 +1,0 @@
-pydantic==2.10.6; python_version < '3.9'
-pydantic==2.12.5; python_version >= '3.9'

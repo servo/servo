@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    background: gray;
+    grid-template-rows: repeat(2, auto 50px);
+    height: 900px;
+    width: 400px;
+}
+
+.grid-lanes > div {
+    width: 100px;
+}
+</style>
+<body>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; grid-row: span 3; height: 400px;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-row: span 2; height: 200px;">
+      Number 2
+    </div>
+    <div style="background: purple; height: 75px;">
+      Number 3
+    </div>
+    <div style="background: plum; grid-row: span 5; height: 650px;">
+      Number 4
+    </div>
+    <div style="background: yellow; grid-row: span 6; height: 400px">
+      Number 5
+    </div>
+    <div style="background: orange; grid-row: span 3; height: 300px;">
+      Number 6
+    </div>
+    <div style="background: lime; height: 150px;">
+      Number 7
+    </div>
+    <div style="background: pink; grid-row: span 2; height: 200px;">
+      Number 8
+    </div>
+  </div>
+  <script>
+    window.scrollTo(0, document.body.scrollHeight);
+  </script>
+</body>
+</html>

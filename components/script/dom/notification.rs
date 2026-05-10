@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -12,6 +11,7 @@ use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
     NotificationAction as EmbedderNotificationAction,
 };
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
@@ -23,10 +23,12 @@ use net_traits::image_cache::{
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use pixels::RasterImage;
+use rustc_hash::FxHashSet;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
-use super::bindings::cell::DomRefCell;
 use super::bindings::refcounted::{Trusted, TrustedPromise};
 use super::bindings::reflector::DomGlobal;
 use super::performanceresourcetiming::InitiatorType;
@@ -43,7 +45,6 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -58,7 +59,6 @@ use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -104,7 +104,7 @@ pub(crate) struct Notification {
     actions: Vec<Action>,
     /// Pending image, icon, badge, action icon resource request's id
     #[no_trace] // RequestId is not traceable
-    pending_request_ids: DomRefCell<HashSet<RequestId>>,
+    pending_request_ids: DomRefCell<FxHashSet<RequestId>>,
     /// <https://notifications.spec.whatwg.org/#image-resource>
     #[ignore_malloc_size_of = "RasterImage"]
     #[no_trace]
@@ -122,6 +122,7 @@ pub(crate) struct Notification {
 impl Notification {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
@@ -129,9 +130,8 @@ impl Notification {
         base_url: ServoUrl,
         fallback_timestamp: u64,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let notification = reflect_dom_object_with_proto(
+        let notification = reflect_dom_object_with_proto_and_cx(
             Box::new(Notification::new_inherited(
                 global,
                 title,
@@ -142,7 +142,7 @@ impl Notification {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         );
 
         notification.data.set(options.data.get());
@@ -162,7 +162,6 @@ impl Notification {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
         // may be find in `dom/bindings/structuredclone.rs`
 
-        let title = title.clone();
         let dir = options.dir;
         let lang = options.lang.clone();
         let body = options.body.clone();
@@ -242,7 +241,7 @@ impl Notification {
             tag,
             require_interaction,
             actions,
-            pending_request_ids: DomRefCell::new(HashSet::new()),
+            pending_request_ids: DomRefCell::new(Default::default()),
             image_resource: DomRefCell::new(None),
             icon_resource: DomRefCell::new(None),
             badge_resource: DomRefCell::new(None),
@@ -331,7 +330,7 @@ impl Notification {
                     icon_resource: icon_resource.clone(),
                 })
                 .collect(),
-            icon_resource: icon_resource.clone(),
+            icon_resource,
             badge_resource: self
                 .badge_resource
                 .borrow()
@@ -349,29 +348,29 @@ impl Notification {
 impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#constructors>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
         if global.is::<ServiceWorkerGlobalScope>() {
             return Err(Error::Type(
-                "Notification constructor cannot be used in service worker.".to_string(),
+                c"Notification constructor cannot be used in service worker.".to_owned(),
             ));
         }
 
         // step 2: Check options.actions must be empty
         if !options.actions.is_empty() {
             return Err(Error::Type(
-                "Actions are only supported for persistent notifications.".to_string(),
+                c"Actions are only supported for persistent notifications.".to_owned(),
             ));
         }
 
         // step 3: Create a notification with a settings object
         let notification =
-            create_notification_with_settings_object(global, title, options, proto, can_gc)?;
+            create_notification_with_settings_object(cx, global, title, options, proto)?;
 
         // TODO: Run step 5.1, 5.2 in parallel
         // step 5.1: If the result of getting the notifications permission state is not "granted",
@@ -400,16 +399,16 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
+        cx: &mut JSContext,
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new(global, CanGc::from_cx(cx));
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        let notification_permission = request_notification_permission(global, can_gc);
+        let notification_permission = request_notification_permission(cx, global);
 
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
         let trusted_promise = TrustedPromise::new(promise.clone());
@@ -417,22 +416,22 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         let uuid_ = uuid.clone();
 
         if let Some(callback) = permission_callback {
-            global.add_notification_permission_request_callback(uuid.clone(), callback.clone());
+            global.add_notification_permission_request_callback(uuid, callback);
         }
 
         global.task_manager().dom_manipulation_task_source().queue(
-            task!(request_permission: move || {
+            task!(request_permission: move |cx| {
                 let promise = trusted_promise.root();
                 let global = promise.global();
 
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
                 if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
-                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report, CanGc::note());
+                    let _ = callback.Call__(cx, notification_permission, ExceptionHandling::Report);
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native(&notification_permission, CanGc::note());
+                promise.resolve_native(&notification_permission, CanGc::from_cx(cx));
             }),
         );
 
@@ -453,62 +452,75 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // TODO: determine the maximum number of actions
         2
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
     fn Title(&self) -> DOMString {
         self.title.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-dir>
     fn Dir(&self) -> NotificationDirection {
         self.dir
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-lang>
     fn Lang(&self) -> DOMString {
         self.lang.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-body>
     fn Body(&self) -> DOMString {
         self.body.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-tag>
     fn Tag(&self) -> DOMString {
         self.tag.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-image>
     fn Image(&self) -> USVString {
         // step 1: If there is no this’s notification’s image URL, then return the empty string.
         // step 2: Return this’s notification’s image URL, serialized.
         self.image.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-icon>
     fn Icon(&self) -> USVString {
         // step 1: If there is no this’s notification’s icon URL, then return the empty string.
         // step 2: Return this’s notification’s icon URL, serialized.
         self.icon.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-badge>
     fn Badge(&self) -> USVString {
         // step 1: If there is no this’s notification’s badge URL, then return the empty string.
         // step 2: Return this’s notification’s badge URL, serialized.
         self.badge.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-renotify>
     fn Renotify(&self) -> bool {
         self.renotify
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-silent>
     fn GetSilent(&self) -> Option<bool> {
         self.silent
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-requireinteraction>
     fn RequireInteraction(&self) -> bool {
         self.require_interaction
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
     fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get());
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
-    fn Actions(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Actions(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         // step 1: Let frozenActions be an empty list of type NotificationAction.
         let mut frozen_actions: Vec<NotificationAction> = Vec::new();
 
@@ -528,16 +540,29 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(frozen_actions.as_slice(), cx, retval, can_gc);
+        to_frozen_array(
+            frozen_actions.as_slice(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
-    fn Vibrate(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval, can_gc);
+    fn Vibrate(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(
+            self.vibration_pattern.as_slice(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {
         self.timestamp
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-close>
     fn Close(&self) {
         // TODO: If notification is a persistent notification and notification was closed by the end user
@@ -572,11 +597,11 @@ struct Action {
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
 fn create_notification_with_settings_object(
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
     // step 1: Let origin be settings’s origin.
     let origin = global.origin().immutable().clone();
@@ -591,6 +616,7 @@ fn create_notification_with_settings_object(
     // step 4: Return the result of creating a notification given title, options, origin,
     //         baseURL, and fallbackTimestamp.
     create_notification(
+        cx,
         global,
         title,
         options,
@@ -598,13 +624,13 @@ fn create_notification_with_settings_object(
         base_url,
         fallback_timestamp,
         proto,
-        can_gc,
     )
 }
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification
 #[expect(clippy::too_many_arguments)]
 fn create_notification(
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -612,22 +638,22 @@ fn create_notification(
     base_url: ServoUrl,
     fallback_timestamp: u64,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
     // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
     if options.silent.is_some() && options.vibrate.is_some() {
         return Err(Error::Type(
-            "Can't specify vibration patterns when setting notification to silent.".to_string(),
+            c"Can't specify vibration patterns when setting notification to silent.".to_owned(),
         ));
     }
     // If options["renotify"] is true and options["tag"] is the empty string, then throw a TypeError.
     if options.renotify && options.tag.is_empty() {
         return Err(Error::Type(
-            "tag must be set to renotify as an existing notification.".to_string(),
+            c"tag must be set to renotify as an existing notification.".to_owned(),
         ));
     }
 
     Ok(Notification::new(
+        cx,
         global,
         title,
         options,
@@ -635,7 +661,6 @@ fn create_notification(
         base_url,
         fallback_timestamp,
         proto,
-        can_gc,
     ))
 }
 
@@ -660,7 +685,7 @@ fn validate_and_normalize_vibration_pattern(
 
     // If the length of the pattern is even and not zero then the last entry in the pattern will
     // have no effect so an implementation can remove it from the pattern at this point.
-    if pattern.len() % 2 == 0 && !pattern.is_empty() {
+    if pattern.len().is_multiple_of(2) && !pattern.is_empty() {
         pattern.pop();
     }
 
@@ -685,13 +710,15 @@ fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermi
     }
 }
 
-fn request_notification_permission(global: &GlobalScope, can_gc: CanGc) -> NotificationPermission {
-    let cx = GlobalScope::get_cx();
-    let promise = &Promise::new(global, can_gc);
+fn request_notification_permission(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+) -> NotificationPermission {
+    let promise = &Promise::new(global, CanGc::from_cx(cx));
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };
-    let status = PermissionStatus::new(global, &descriptor, can_gc);
+    let status = PermissionStatus::new(global, &descriptor, CanGc::from_cx(cx));
 
     // The implementation of `request_notification_permission` seemed to be synchronous
     Permissions::permission_request(cx, promise, &descriptor, &status);
@@ -727,10 +754,10 @@ struct ResourceFetchListener {
 
 impl FetchResponseListener for ResourceFetchListener {
     fn process_request_body(&mut self, _: RequestId) {}
-    fn process_request_eof(&mut self, _: RequestId) {}
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -765,7 +792,12 @@ impl FetchResponseListener for ResourceFetchListener {
         };
     }
 
-    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        request_id: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.pending_image_id,
@@ -776,6 +808,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_response_eof(
         self,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -784,7 +817,7 @@ impl FetchResponseListener for ResourceFetchListener {
             self.pending_image_id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -820,34 +853,34 @@ impl Notification {
     /// <https://notifications.spec.whatwg.org/#fetch-steps>
     fn fetch_resources_and_show_when_ready(&self) {
         let mut pending_requests: Vec<(RequestBuilder, ResourceType)> = vec![];
-        if let Some(image_url) = &self.image {
-            if let Ok(url) = ServoUrl::parse(image_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Image));
-            }
+        if let Some(image_url) = &self.image &&
+            let Ok(url) = ServoUrl::parse(image_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Image));
         }
-        if let Some(icon_url) = &self.icon {
-            if let Ok(url) = ServoUrl::parse(icon_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Icon));
-            }
+        if let Some(icon_url) = &self.icon &&
+            let Ok(url) = ServoUrl::parse(icon_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Icon));
         }
-        if let Some(badge_url) = &self.badge {
-            if let Ok(url) = ServoUrl::parse(badge_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Badge));
-            }
+        if let Some(badge_url) = &self.badge &&
+            let Ok(url) = ServoUrl::parse(badge_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Badge));
         }
         for action in self.actions.iter() {
-            if let Some(icon_url) = &action.icon_url {
-                if let Ok(url) = ServoUrl::parse(icon_url) {
-                    let request = self.build_resource_request(&url);
-                    self.pending_request_ids.borrow_mut().insert(request.id);
-                    pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
-                }
+            if let Some(icon_url) = &action.icon_url &&
+                let Ok(url) = ServoUrl::parse(icon_url)
+            {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
             }
         }
 
@@ -861,7 +894,7 @@ impl Notification {
         let request_id = request.id;
 
         let cache_result = global.image_cache().get_cached_image_status(
-            request.url.clone(),
+            request.url.url(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
         );
@@ -879,25 +912,13 @@ impl Notification {
                 _,
                 pending_image_id,
             )) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
             },
             ImageCacheResult::Pending(pending_image_id) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
             },
             ImageCacheResult::ReadyForRequest(pending_image_id) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
                 self.fetch(pending_image_id, request, global);
             },
             ImageCacheResult::FailedToLoadOrDecode => {
@@ -1000,7 +1021,7 @@ impl Notification {
             pending_image_id,
             image_cache: global.image_cache(),
             notification: Trusted::new(self),
-            url: request.url.clone(),
+            url: request.url.url(),
             status: Ok(()),
         };
 

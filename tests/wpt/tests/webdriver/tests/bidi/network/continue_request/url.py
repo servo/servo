@@ -97,17 +97,21 @@ async def test_navigation(
     assert events[0][0] == "network.responseStarted"
     assert_response_event(
         events[0][1],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
     assert events[1][0] == "network.responseCompleted"
     assert_response_event(
         events[1][1],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
     remove_before_request_sent_listener()

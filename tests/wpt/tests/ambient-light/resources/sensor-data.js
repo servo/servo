@@ -4,7 +4,7 @@ const kSensorData = {
   sensorName: 'AmbientLightSensor',
   permissionName: 'ambient-light-sensor',
   testDriverName: 'ambient-light',
-  featurePolicyNames: ['ambient-light-sensor']
+  permissionsPolicyNames: ['ambient-light-sensor']
 };
 
 const kReadings = {

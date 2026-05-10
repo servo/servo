@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <title>View Transitions: @view-transition types don't cascade</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
-<link rel="match" href="../at-rule-opt-in-auto-ref.html">
-<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <style>
   /* This should be ignored, because the following rule has the default "none" types */
   @view-transition {
@@ -13,21 +12,39 @@
   @view-transition {
     navigation: auto;
   }
-
-  html:active-view-transition {
-    background: blue;
-  }
-
-  html:active-view-transition-type(old-type) {
-    background: red;
-  }
 </style>
 <script>
-  function runTest() {
-    const url = "../resources/at-rule-opt-in-auto-with-types.html";
-    window.location.replace(new URL(url, window.location));
-  }
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
-</script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
 
-</html>
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    location.replace("?mode=new");
+  }));
+  break;
+case "new":
+  onpagereveal = e => {
+    if (!e.viewTransition) {
+      window.opener.did_reveal("fail: no viewTransition");
+      return;
+    }
+    if (e.viewTransition.types.has("old-type")) {
+      window.opener.did_reveal("fail: has old-type");
+      return;
+    }
+    window.opener.did_reveal("pass");
+  };
+  break;
+}
+</script>

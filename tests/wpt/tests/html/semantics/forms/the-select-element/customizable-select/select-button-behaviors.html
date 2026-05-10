@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/6004443">
+<link rel=help href="https://issues.chromium.org/issues/498095295">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -42,6 +43,11 @@ promise_test(async () => {
   await test_driver.click(select);
   assert_false(formWasSubmitted,
     'Clicking the select button should not submit the form.');
+
+  btninselect.style = 'interactivity: auto';
+  await test_driver.click(select);
+  assert_false(formWasSubmitted,
+    'Clicking the select button with interactivity:auto should not submit the form.');
 
   await test_driver.click(btninform);
   assert_true(formWasSubmitted,

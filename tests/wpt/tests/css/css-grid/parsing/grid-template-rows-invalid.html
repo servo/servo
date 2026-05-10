@@ -50,6 +50,9 @@ test_invalid_value("grid-template-rows", 'min-content repeat(auto-fill, fit-cont
 test_invalid_value("grid-template-rows", 'max-content repeat(auto-fill, fit-content(200px)) max-content');
 test_invalid_value("grid-template-rows", 'fit-content(200px) repeat(auto-fill, fit-content(200px)) fit-content(200px)');
 test_invalid_value("grid-template-rows", 'fit-content(200px) repeat(auto-fill, fit-content(200px)) repeat(5, fit-content(200px))');
+test_invalid_value("grid-template-rows", 'repeat(auto-fill, minmax(fit-content(200px), fit-content(300px)))');
+test_invalid_value("grid-template-rows", 'repeat(auto-fill, minmax(fit-content(200px), auto))');
+test_invalid_value("grid-template-rows", 'repeat(auto-fill, minmax(max-content, fit-content(200px)))');
 </script>
 </body>
 </html>

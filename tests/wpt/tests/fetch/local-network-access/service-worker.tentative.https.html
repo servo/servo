@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LNA Service Worker tests </title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support.sub.js"></script>
+<script>
+  "use strict";
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.append("method", "fetch");
+
+    function checkResult(evt) {
+      checkFetchTestResult(evt.data, FetchTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback Fetch with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.append("method", "fetch");
+
+    function checkResult(evt) {
+      checkFetchTestResult(evt.data, FetchTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback Fetch without permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.append("method", "webtransport");
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebTransportTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback WebTransport with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.append("method", "webtransport");
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebTransportTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback WebTransport without permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.append("method", "websocket");
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback WebSocket with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.append("method", "websocket");
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback WebSocket without permission');
+
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.append("method", "navigate");
+    // ID is used to idntify windowClient to navigate for service worker
+    const id = Math.random().toString();
+    sourceUrl.searchParams.append("id", id);
+
+    function checkResult(evt) {
+      // Main frame navigations not in scope, this should load.
+      assert_equals(evt.data.message, "loaded");
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public navigate to Loopback main frame without permission');
+
+  promise_test(t => {
+    const serviceWorkerUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({server: Server.HTTPS_PUBLIC}));
+    serviceWorkerUrl.searchParams.append("method", "navigate");
+    // ID is used to idntify windowClient to navigate for service worker
+    const id = Math.random().toString();
+    serviceWorkerUrl.searchParams.append("id", id);
+
+    const sourceUrl = resolveUrl(
+        'resources/iframer.html',
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.set('url', serviceWorkerUrl);
+
+    function checkResult(evt) {
+      assert_equals(evt.data.message, "loaded");
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public navigate to Loopback in iframe with permission');
+
+  promise_test(t => {
+    const serviceWorkerUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({server: Server.HTTPS_PUBLIC}));
+    serviceWorkerUrl.searchParams.append("method", "navigate");
+    // ID is used to idntify windowClient to navigate for service worker
+    const id = Math.random().toString();
+    serviceWorkerUrl.searchParams.append("id", id);
+
+    const sourceUrl = resolveUrl(
+        'resources/iframer.html',
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.set('url', serviceWorkerUrl);
+
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+  // Frame should not load because navigation should be blocked.
+  //
+  // There exists no interoperable way to check whether an iframe failed to
+  // load, so we use a timeout.
+  // See: https://github.com/whatwg/html/issues/125
+  return Promise.race([
+    futureMessage().then((data) => data.message),
+    new Promise((resolve) => {
+      t.step_timeout(() => resolve('timeout'), 2000 /* ms */);
+    }),
+  ]).then((message) => assert_equals(message, "timeout"));
+
+  }, 'LNA Service Worker Public navigate to Loopback in iframe without permission');
+
+</script>
+</body>

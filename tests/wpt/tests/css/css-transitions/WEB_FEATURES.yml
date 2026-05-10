@@ -11,6 +11,10 @@ features:
   - "!transition-timing-function-005-manual.html"
   - "!transition-timing-function-006-manual.html"
   - "!transition-property-017-manual.html"
+  - "!currentcolor-animation-001.html"
+- name: currentcolor
+  files:
+  - currentcolor-animation-001.html
 - name: starting-style
   files:
   - starting-style-*

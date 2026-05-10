@@ -48,6 +48,12 @@
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
 
+      let w = 1000 * emToPx;
+      assert_approx_equals(getBox("base001").width, w, epsilon, "msub base width");
+      assert_approx_equals(getBox("base002").width, w, epsilon, "msup base width");
+      assert_approx_equals(getBox("base003").width, w, epsilon, "msubsup base width");
+      assert_approx_equals(getBox("base004").width, w, epsilon, "mmultiscripts base width")
+
       var v = 0;
       assert_approx_equals(getBox("base001").right - getBox("sub001").left, v, epsilon, "msub");
       assert_approx_equals(getBox("sup002").left, getBox("base002").right, epsilon, "msup");
@@ -58,6 +64,12 @@
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
 
+      let w = 4000 * emToPx;
+      assert_approx_equals(getBox("base011").width, w, epsilon, "msub base width");
+      assert_approx_equals(getBox("base012").width, w, epsilon, "msup base width");
+      assert_approx_equals(getBox("base013").width, w, epsilon, "msubsup base width");
+      assert_approx_equals(getBox("base014").width, w, epsilon, "mmultiscripts base width")
+
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("base011").right - getBox("sub011").left, v, epsilon, "msub");
       assert_approx_equals(getBox("sup012").left, getBox("base012").right, epsilon, "msup");
@@ -67,6 +79,12 @@
     }, "NonNull Italic Correction (MathGlyphVariantRecord)");
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
+
+      let w = 7000 * emToPx;
+      assert_approx_equals(getBox("base021").width, w, epsilon, "msub base width");
+      assert_approx_equals(getBox("base022").width, w, epsilon, "msup base width");
+      assert_approx_equals(getBox("base023").width, w, epsilon, "msubsup base width");
+      assert_approx_equals(getBox("base024").width, w, epsilon, "mmultiscripts base width")
 
       var v = 5000 * emToPx;
       assert_approx_equals(getBox("base021").right - getBox("sub021").left, v, epsilon, "msub");
@@ -97,14 +115,14 @@
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight5000;">
       <msubsup>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base003" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub003" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup003" height="1em" width="1em" style="background: green"/>
       </msubsup>
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight5000;">
       <mmultiscripts>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base004" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub004" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup004" height="1em" width="1em" style="background: green"/>
         <mprescripts/>
@@ -129,14 +147,14 @@
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight2000-2AFF-italiccorrection3000;">
       <msubsup>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base013" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub013" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup013" height="1em" width="1em" style="background: green"/>
       </msubsup>
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight2000-2AFF-italiccorrection3000;">
       <mmultiscripts>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base014" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub014" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup014" height="1em" width="1em" style="background: green"/>
         <mprescripts/>
@@ -161,14 +179,14 @@
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
       <msubsup>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base023" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub023" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup023" height="1em" width="1em" style="background: green"/>
       </msubsup>
     </math>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
       <mmultiscripts>
-        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mo id="base024" lspace="0px" rspace="0px">&#x2AFF;</mo>
         <mspace id="sub024" height="1em" width="1em" style="background: blue"/>
         <mspace id="sup024" height="1em" width="1em" style="background: green"/>
         <mprescripts/>

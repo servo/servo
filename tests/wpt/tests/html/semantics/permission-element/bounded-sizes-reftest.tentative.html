@@ -4,7 +4,7 @@
 <link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
 <body>
   <div>
-    The permission element should have some limits for the min/max-width/height:
+    The usermedia element should have some limits for the min/max-width/height:
     <ul>
     <li>min-width should be sufficient to fit the element text (depends on user agent implementation)</li>
     <li>max-width should be at most 3x min-width</li>
@@ -66,7 +66,7 @@
   }
 </style>
 
-<div><permission id="id1" type="geolocation"></permission></div>
-<div><permission id="id2" type="camera"></permission></div>
-<div><permission id="id3" type="microphone"></permission></div>
+<div><usermedia id="id1" type="camera microphone"></usermedia></div>
+<div><usermedia id="id2" type="camera"></usermedia></div>
+<div><usermedia id="id3" type="microphone"></usermedia></div>
 </body>

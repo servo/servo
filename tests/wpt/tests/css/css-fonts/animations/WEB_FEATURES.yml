@@ -11,6 +11,15 @@ features:
 - name: font-size-adjust
   files:
   - font-size-adjust-*
+- name: font-style
+  files:
+  - font-style-interpolation.html
 - name: font-weight
   files:
   - font-weight-composition.html
+- name: font-variation-settings
+  files:
+  - font-variation-settings-*
+- name: font-stretch
+  files:
+  - font-stretch-interpolation.html

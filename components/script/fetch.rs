@@ -6,12 +6,13 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use base::id::WebViewId;
 use ipc_channel::ipc;
 use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -21,7 +22,9 @@ use net_traits::{
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
 };
 use rustc_hash::FxHashMap;
+use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
+use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
 use uuid::Uuid;
@@ -36,7 +39,6 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{DeferredRequestInit, WindowMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -56,7 +58,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -142,31 +144,34 @@ pub(crate) struct FetchGroup {
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
-    let mut builder =
-        RequestBuilder::new(request.target_webview_id, request.url(), request.referrer)
-            .method(request.method)
-            .headers(request.headers)
-            .unsafe_request(request.unsafe_request)
-            .body(request.body)
-            .destination(request.destination)
-            .synchronous(request.synchronous)
-            .mode(request.mode)
-            .cache_mode(request.cache_mode)
-            .use_cors_preflight(request.use_cors_preflight)
-            .credentials_mode(request.credentials_mode)
-            .use_url_credentials(request.use_url_credentials)
-            .referrer_policy(request.referrer_policy)
-            .pipeline_id(request.pipeline_id)
-            .redirect_mode(request.redirect_mode)
-            .integrity_metadata(request.integrity_metadata)
-            .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
-            .parser_metadata(request.parser_metadata)
-            .initiator(request.initiator)
-            .client(global.request_client())
-            .insecure_requests_policy(request.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
-            .https_state(request.https_state)
-            .response_tainting(request.response_tainting);
+    let mut builder = RequestBuilder::new(
+        request.target_webview_id,
+        request.url_with_blob_claim(),
+        request.referrer,
+    )
+    .method(request.method)
+    .headers(request.headers)
+    .unsafe_request(request.unsafe_request)
+    .body(request.body)
+    .destination(request.destination)
+    .synchronous(request.synchronous)
+    .mode(request.mode)
+    .cache_mode(request.cache_mode)
+    .use_cors_preflight(request.use_cors_preflight)
+    .credentials_mode(request.credentials_mode)
+    .use_url_credentials(request.use_url_credentials)
+    .referrer_policy(request.referrer_policy)
+    .pipeline_id(request.pipeline_id)
+    .redirect_mode(request.redirect_mode)
+    .integrity_metadata(request.integrity_metadata)
+    .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
+    .parser_metadata(request.parser_metadata)
+    .initiator(request.initiator)
+    .client(global.request_client())
+    .insecure_requests_policy(request.insecure_requests_policy)
+    .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
+    .https_state(request.https_state)
+    .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
 }
@@ -178,16 +183,15 @@ fn abort_fetch_call(
     response_object: Option<&Response>,
     abort_reason: HandleValue,
     global: &GlobalScope,
-    cx: SafeJSContext,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject(cx, abort_reason, can_gc);
+    promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    if let Some(body) = request.body() {
-        if body.is_readable() {
-            body.cancel(cx, global, abort_reason, can_gc);
-        }
+    if let Some(body) = request.body() &&
+        body.is_readable()
+    {
+        body.cancel(cx, global, abort_reason);
     }
     // Step 3. If responseObject is null, then return.
     // Step 4. Let response be responseObject’s response.
@@ -195,10 +199,10 @@ fn abort_fetch_call(
         return;
     };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    if let Some(body) = response.body() {
-        if body.is_readable() {
-            body.error(abort_reason, can_gc);
-        }
+    if let Some(body) = response.body() &&
+        body.is_readable()
+    {
+        body.error(cx, abort_reason);
     }
 }
 
@@ -208,24 +212,24 @@ pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
-    comp: InRealm,
-    can_gc: CanGc,
+    cx: &mut CurrentRealm,
 ) -> Rc<Promise> {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_current_realm(comp, can_gc);
-    let cx = GlobalScope::get_cx();
+    let promise = Promise::new_in_realm(cx);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global, can_gc);
-    response.Headers(can_gc).set_guard(Guard::Immutable);
+    let response = Response::new(cx, global);
+    response
+        .Headers(CanGc::from_cx(cx))
+        .set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request_object = match Request::Constructor(global, None, can_gc, input, init) {
+    let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
-            response.error_stream(e.clone(), can_gc);
-            promise.reject_error(e, can_gc);
+            response.error_stream(cx, e.clone());
+            promise.reject_error(e, CanGc::from_cx(cx));
             return promise;
         },
         Ok(r) => r,
@@ -238,8 +242,8 @@ pub(crate) fn Fetch(
     let signal = request_object.Signal();
     if signal.aborted() {
         // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
-        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx, abort_reason.handle_mut());
+        rooted!(&in(cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
             &request_object,
@@ -247,7 +251,6 @@ pub(crate) fn Fetch(
             abort_reason.handle(),
             global,
             cx,
-            can_gc,
         );
         // Step 4.2. Return p.
         return promise;
@@ -277,7 +280,7 @@ pub(crate) fn Fetch(
         global: Trusted::new(global),
         locally_aborted: false,
         canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
-        url: request_init.url.clone(),
+        url: request_init.url.url(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -347,25 +350,28 @@ fn queue_deferred_fetch(
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
 #[expect(non_snake_case, unsafe_code)]
 pub(crate) fn FetchLater(
+    cx: &mut js::context::JSContext,
     window: &Window,
     input: RequestInfo,
     init: RootedTraceableBox<DeferredRequestInit>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<FetchLaterResult>> {
     let global_scope = window.upcast();
     let document = window.Document();
     // Step 1. Let requestObject be the result of invoking the initial value
     // of Request as constructor with input and init as arguments.
-    let request_object = Request::constructor(global_scope, None, can_gc, input, &init.parent)?;
+    let request_object = Request::constructor(cx, global_scope, None, input, &init.parent)?;
     // Step 2. If requestObject’s signal is aborted, then throw signal’s abort reason.
     let signal = request_object.Signal();
     if signal.aborted() {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx, abort_reason.handle_mut());
+        rooted!(&in(cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            JS_SetPendingException(*cx, abort_reason.handle(), ExceptionStackBehavior::Capture);
+            assert!(!JS_IsExceptionPending(cx.raw_cx()));
+            JS_SetPendingException(
+                cx.raw_cx(),
+                abort_reason.handle(),
+                ExceptionStackBehavior::Capture,
+            );
         }
         return Err(Error::JSFailed);
     }
@@ -380,26 +386,28 @@ pub(crate) fn FetchLater(
     }
     // Step 6. If activateAfter is less than 0, then throw a RangeError.
     if *activate_after < 0.0 {
-        return Err(Error::Range("activateAfter must be at least 0".to_owned()));
+        return Err(Error::Range(c"activateAfter must be at least 0".to_owned()));
     }
     // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
     if !document.is_fully_active() {
-        return Err(Error::Type("Document is not fully active".to_owned()));
+        return Err(Error::Type(c"Document is not fully active".to_owned()));
     }
     let url = request.url();
     // Step 8. If request’s URL’s scheme is not an HTTP(S) scheme, then throw a TypeError.
     if !matches!(url.scheme(), "http" | "https") {
-        return Err(Error::Type("URL is not http(s)".to_owned()));
+        return Err(Error::Type(c"URL is not http(s)".to_owned()));
     }
     // Step 9. If request’s URL is not a potentially trustworthy URL, then throw a SecurityError.
     if !url.is_potentially_trustworthy() {
-        return Err(Error::Type("URL is not trustworthy".to_owned()));
+        return Err(Error::Type(c"URL is not trustworthy".to_owned()));
     }
-    // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
-    if let Some(body) = request.body.as_ref() {
-        if body.len().is_none_or(|len| len == 0) {
-            return Err(Error::Type("Body is empty".to_owned()));
-        }
+    // Step 10. If request’s body is not null, and request’s body length is null, then throw a TypeError.
+    if request
+        .body
+        .as_ref()
+        .is_some_and(|body| body.len().is_none())
+    {
+        return Err(Error::Type(c"Body is empty".to_owned()));
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
@@ -418,7 +426,11 @@ pub(crate) fn FetchLater(
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
     signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
-    Ok(FetchLaterResult::new(window, deferred_record_id, can_gc))
+    Ok(FetchLaterResult::new(
+        window,
+        deferred_record_id,
+        CanGc::from_cx(cx),
+    ))
 }
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
@@ -465,9 +477,8 @@ impl DeferredFetchRecord {
         // Step 2. Set deferredRecord’s invoke state to "sent".
         self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
         // Step 3. Fetch deferredRecord’s request.
-        let url = self.request.url().clone();
         let fetch_later_listener = FetchLaterListener {
-            url,
+            url: self.request.url(),
             global: Trusted::new(global),
         };
         let request_init = request_init_from_request(self.request.clone(), global);
@@ -498,8 +509,7 @@ impl FetchContext {
     pub(crate) fn abort_fetch(
         &mut self,
         abort_reason: HandleValue,
-        cx: SafeJSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         // Step 11.1. Set locallyAborted to true.
         self.locally_aborted = true;
@@ -524,7 +534,6 @@ impl FetchContext {
             abort_reason,
             &self.global.root(),
             cx,
-            can_gc,
         );
     }
 }
@@ -535,12 +544,9 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    fn process_request_eof(&mut self, _: RequestId) {
-        // TODO
-    }
-
     fn process_response(
         &mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -554,54 +560,60 @@ impl FetchResponseListener for FetchContext {
             .expect("fetch promise is missing")
             .root();
 
-        let _ac = enter_realm(&*promise);
+        let mut realm = enter_auto_realm(cx, &*promise);
+        let cx = &mut realm.current_realm();
         match fetch_metadata {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
             Err(error) => {
                 promise.reject_error(
-                    Error::Type(format!("Network error: {:?}", error)),
-                    CanGc::note(),
+                    Error::Type(cformat!("Network error: {:?}", error)),
+                    CanGc::from_cx(cx),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
-                response.set_type(DOMResponseType::Error, CanGc::note());
-                response.error_stream(
-                    Error::Type("Network error occurred".to_string()),
-                    CanGc::note(),
-                );
+                response.set_type(DOMResponseType::Error, CanGc::from_cx(cx));
+                response.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
                 return;
             },
             // Step 12.4. Set responseObject to the result of creating a Response object,
             // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::from_cx(cx));
                     self.response_object
                         .root()
-                        .set_type(DOMResponseType::Default, CanGc::note());
+                        .set_type(DOMResponseType::Default, CanGc::from_cx(cx));
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        fill_headers_with_metadata(
+                            self.response_object.root(),
+                            m,
+                            CanGc::from_cx(cx),
+                        );
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Basic, CanGc::note());
+                            .set_type(DOMResponseType::Basic, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::Cors(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        fill_headers_with_metadata(
+                            self.response_object.root(),
+                            m,
+                            CanGc::from_cx(cx),
+                        );
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Cors, CanGc::note());
+                            .set_type(DOMResponseType::Cors, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::Opaque => {
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Opaque, CanGc::note());
+                            .set_type(DOMResponseType::Opaque, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::OpaqueRedirect(url) => {
                         let r = self.response_object.root();
-                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::note());
+                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::from_cx(cx));
                         r.set_final_url(url);
                     },
                 },
@@ -609,29 +621,40 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native(&self.response_object.root(), CanGc::note());
+        promise.resolve_native(&self.response_object.root(), CanGc::from_cx(cx));
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk, CanGc::note());
+        response.stream_chunk(cx, chunk);
     }
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
-        response_object.finish(CanGc::note());
+        if let Err(ref error) = response &&
+            *error == NetworkError::DecompressionError
+        {
+            response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
+        }
+        response_object.finish(cx);
         // TODO
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -660,27 +683,32 @@ struct FetchLaterListener {
 impl FetchResponseListener for FetchLaterListener {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         _ = chunk;
     }
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -716,11 +744,11 @@ pub(crate) fn load_whole_resource(
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
     csp_violations_processor: &dyn CspViolationsProcessor,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let url = request.url.clone();
+    let url = request.url.url();
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
@@ -733,8 +761,7 @@ pub(crate) fn load_whole_resource(
     let mut muted_errors = false;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-            },
+            FetchResponseMsg::ProcessRequestBody(..) => {},
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 muted_errors = m.is_cors_cross_origin();
                 metadata = Some(match m {
@@ -746,7 +773,7 @@ pub(crate) fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
+                    submit_timing_data(cx, global, url, InitiatorType::Other, timing);
                 }
                 return Ok((metadata, buf, muted_errors));
             },
@@ -785,22 +812,26 @@ pub(crate) fn create_a_potential_cors_request(
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(webview_id, url, referrer)
-        // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
-        .mode(match cors_setting {
-            Some(_) => RequestMode::CorsMode,
-            // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
-            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
-            None => RequestMode::NoCors,
-        })
-        .credentials_mode(match cors_setting {
-            // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
-            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-            // Step 3. Let credentialsMode be "include".
-            _ => CredentialsMode::Include,
-        })
-        // Step 5. Return a new request whose URL is url, destination is destination,
-        // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
-        .destination(destination)
-        .use_url_credentials(true)
+    RequestBuilder::new(
+        webview_id,
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        referrer,
+    )
+    // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
+    .mode(match cors_setting {
+        Some(_) => RequestMode::CorsMode,
+        // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
+        None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+        None => RequestMode::NoCors,
+    })
+    .credentials_mode(match cors_setting {
+        // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
+        Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+        // Step 3. Let credentialsMode be "include".
+        _ => CredentialsMode::Include,
+    })
+    // Step 5. Return a new request whose URL is url, destination is destination,
+    // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
+    .destination(destination)
+    .use_url_credentials(true)
 }

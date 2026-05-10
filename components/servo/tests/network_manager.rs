@@ -46,7 +46,7 @@ fn test_cache_entries() {
     let port = url.port().unwrap();
 
     delegate.reset();
-    webview.load(url.clone().into_url());
+    webview.load(url.as_url().clone());
     let delegate_clone = delegate.clone();
     servo_test.spin(move || !delegate_clone.url_changed.get());
 
@@ -80,7 +80,7 @@ fn test_clear_cache() {
 
     let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     servo_test.spin(move || !delegate.url_changed.get());

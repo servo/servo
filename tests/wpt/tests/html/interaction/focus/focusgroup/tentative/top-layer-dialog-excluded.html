@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Modal dialog's own focusgroup works in top layer</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar inline">
+  <button id=a>A</button>
+  <dialog id=dlg focusgroup="toolbar inline">
+    <button id=dlg_x>X</button>
+    <button id=dlg_y>Y</button>
+    <button id=dlg_close onclick="dlg.close()">Close</button>
+  </dialog>
+  <button id=b>B</button>
+</div>
+
+<script>
+
+// Modal dialogs inert the rest of the page, which independently blocks
+// focusing ancestor focusgroup members. That makes ancestor-skip
+// behavior (A → B) untestable here: A.focus() is a no-op while the
+// dialog is modal. The subtest below therefore only verifies that the
+// dialog's own focusgroup operates normally in the top layer (spec
+// requirement: "A focusgroup defined on the top-layer element itself
+// still operates normally").
+
+promise_test(async t => {
+  const dlg = document.getElementById("dlg");
+  dlg.showModal();
+  t.add_cleanup(() => dlg.close());
+
+  await assert_directional_navigation_bidirectional([dlg_x, dlg_y, dlg_close]);
+}, "Modal dialog's own focusgroup navigates in both directions while in the top layer");
+
+</script>

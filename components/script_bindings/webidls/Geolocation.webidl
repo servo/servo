@@ -11,20 +11,20 @@ partial interface Navigator {
    [SameObject, Pref="dom_geolocation_enabled"] readonly attribute Geolocation geolocation;
 };
 
-// FIXME: The errorCallback parameters are currently commented out because they are not yet supported by the codegen,
-// further debugging is needed.
 // https://www.w3.org/TR/geolocation/#geolocation_interface
 [Pref="dom_geolocation_enabled", Exposed=Window]
 interface Geolocation {
-  undefined getCurrentPosition (
+  [Throws] undefined getCurrentPosition (
     PositionCallback successCallback,
-//     optional PositionErrorCallback? errorCallback = null,
+    // FIXME: PositionErrorCallback breaks codegen (#39616)
+    optional /* PositionErrorCallback? */any errorCallback = null,
     optional PositionOptions options = {}
   );
 
-  long watchPosition (
+  [Throws] long watchPosition (
     PositionCallback successCallback,
-//     optional PositionErrorCallback? errorCallback = null,
+    // FIXME: PositionErrorCallback breaks codegen (#39616)
+    optional /* PositionErrorCallback? */any errorCallback = null,
     optional PositionOptions options = {}
   );
 

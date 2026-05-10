@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>iterationComposite accumulate with incompatible intrinsic size keywords</title>
+  <!-- crbug.com/467366440 -->
+</head>
+<body>
+  <del id="target"></del>
+</body>
+<script>
+window.onload = function() {
+  target.animate([{ "height": "fit-content" }],
+                 {
+                   duration: 1000,
+                   iterationStart: 10,
+                   iterationComposite: "accumulate",
+                 });
+};
+</script>
+</html>

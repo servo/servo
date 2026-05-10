@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<link rel="match" href="rtl-text-path-ref.html">
+<title>rtl text on textPath</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2014019"/>
+
+<body style="margin:20px">
+
+<svg width="600" height="100">
+  <path id="path37" d="M 50 50 L 550 50" fill="none" stroke="red" stroke-width="3" />
+  <text font-size="20px">
+    <textPath href="#path37">
+  <!-- prefixing with RLO (U+202e) will make the text display RTL -->
+&#x202e;the quick brown fox runs backwards
+    </textPath>
+  </text>
+</svg>
+
+</body>
+</html>

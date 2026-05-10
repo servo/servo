@@ -6,16 +6,17 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -54,19 +55,19 @@ impl HTMLFieldSetElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLFieldSetElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLFieldSetElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -86,17 +87,12 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-elements>
-    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(
-            &self.owner_window(),
-            self.upcast(),
-            |element, _| {
-                element
-                    .downcast::<HTMLElement>()
-                    .is_some_and(HTMLElement::is_listed_element)
-            },
-            can_gc,
-        )
+    fn Elements(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
+        HTMLCollection::new_with_filter_fn(cx, &self.owner_window(), self.upcast(), |element, _| {
+            element
+                .downcast::<HTMLElement>()
+                .is_some_and(HTMLElement::is_listed_element)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
@@ -127,13 +123,13 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -148,7 +144,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
     fn Type(&self) -> DOMString {
-        DOMString::from_string(String::from("fieldset"))
+        "fieldset".into()
     }
 }
 
@@ -157,10 +153,15 @@ impl VirtualMethods for HTMLFieldSetElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -176,7 +177,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 element.set_disabled_state(disabled_state);
                 element.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
-                let children = node.children().filter(|node| {
+                let children = node.children_unrooted(cx.no_gc()).filter(|node| {
                     if found_legend {
                         true
                     } else if node.is::<HTMLLegendElement>() {
@@ -222,7 +223,6 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
                     }
                 } else {
                     for field in fields {
@@ -243,13 +243,11 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
                     }
                 }
-                element.update_sequentially_focusable_status(can_gc);
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             _ => {},
         }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-autospace with supplementary ideographs</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-supplementary-ideograph-ref.html">
+<style>
+.test {
+  font-size: 40px;
+  border: solid 3px salmon;
+  width: fit-content;
+  margin-bottom: 2px;
+}
+.normal {
+  text-autospace: normal;
+}
+</style>
+<!-- U+20000 is a CJK Unified Ideographs Extension B character (supplementary plane).
+     Autospacing should apply between it and Latin letters, just as it does for BMP ideographs. -->
+
+<!-- BMP ideograph (U+56FD) as baseline: these should get autospacing -->
+<div class="test normal">国A</div>
+<div class="test normal">A国</div>
+
+<!-- Supplementary ideograph (U+20000) must also get autospacing -->
+<div class="test normal">&#x20000;A</div>
+<div class="test normal">A&#x20000;</div>
+
+<!-- Across a span boundary -->
+<div class="test normal"><span>&#x20000;</span><span>A</span></div>
+<div class="test normal"><span>A</span><span>&#x20000;</span></div>

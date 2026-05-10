@@ -4,17 +4,17 @@ version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
-publish.workspace = true
 rust-version.workspace = true
+publish = false
 
 [lib]
 name = "script_tests"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
-script = {path = "../../../components/script"}
-servo_url = {path = "../../../components/url"}
+script = { workspace = true }
+servo-base = { workspace = true }
+servo-url = { workspace = true }

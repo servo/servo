@@ -10,6 +10,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId,
@@ -19,22 +20,22 @@ use net_traits::{
     CoreResourceThread, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::cell::DomRefCell;
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
@@ -42,7 +43,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::CanGc;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct HTMLVideoElement {
@@ -79,19 +80,19 @@ impl HTMLVideoElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLVideoElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLVideoElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -148,7 +149,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn update_poster_frame(&self, poster_url: Option<&str>, can_gc: CanGc) {
+    fn update_poster_frame(&self, poster_url: Option<&str>, cx: &mut js::context::JSContext) {
         // Step 1. If there is an existing instance of this algorithm running
         // for this video element, abort that instance of this algorithm without
         // changing the poster frame.
@@ -165,7 +166,12 @@ impl HTMLVideoElement {
         // the poster attribute's value, relative to the element's node
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
-        let poster_url = match self.owner_document().encoding_parse_a_url(poster_url) {
+        let global = self.owner_global();
+        let poster_url = match self
+            .owner_document()
+            .encoding_parse_a_url(poster_url)
+            .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
+        {
             Ok(url) => url,
             Err(_) => {
                 self.htmlmediaelement.set_poster_frame(None);
@@ -178,7 +184,7 @@ impl HTMLVideoElement {
         let window = self.owner_window();
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
-            poster_url.clone(),
+            poster_url.url(),
             window.origin().immutable().clone(),
             None,
         );
@@ -189,16 +195,16 @@ impl HTMLVideoElement {
                 url,
                 ..
             }) => {
-                self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
+                self.process_image_response(ImageResponse::Loaded(image, url), cx);
                 return;
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, can_gc);
+                self.do_fetch_poster_frame(poster_url, id, cx);
                 id
             },
             ImageCacheResult::FailedToLoadOrDecode => {
-                self.process_image_response(ImageResponse::FailedToLoadOrDecode, can_gc);
+                self.process_image_response(ImageResponse::FailedToLoadOrDecode, cx);
                 return;
             },
             ImageCacheResult::Pending(id) => id,
@@ -206,21 +212,26 @@ impl HTMLVideoElement {
 
         let trusted_node = Trusted::new(self);
         let generation = self.generation_id();
-        let callback = window.register_image_cache_listener(id, move |response| {
+        let callback = window.register_image_cache_listener(id, move |response, cx| {
             let element = trusted_node.root();
 
             // Ignore any image response for a previous request that has been discarded.
             if generation != element.generation_id() {
                 return;
             }
-            element.process_image_response(response.response, CanGc::note());
+            element.process_image_response(response.response, cx);
         });
 
         image_cache.add_listener(ImageLoadListener::new(callback, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn do_fetch_poster_frame(&self, poster_url: ServoUrl, id: PendingImageId, can_gc: CanGc) {
+    fn do_fetch_poster_frame(
+        &self,
+        poster_url: UrlWithBlobClaim,
+        id: PendingImageId,
+        cx: &mut js::context::JSContext,
+    ) {
         // Step 5. Let request be a new request whose URL is url, client is the element's node
         // document's relevant settings object, destination is "image", initiator type is "video",
         // credentials mode is "include", and whose use-URL-credentials flag is set.
@@ -243,15 +254,15 @@ impl HTMLVideoElement {
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, can_gc);
+        LoadBlocker::terminate(blocker, cx);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &self.owner_document(),
-            LoadType::Image(poster_url.clone()),
+            LoadType::Image(poster_url.url()),
         ));
 
         let context = PosterFrameFetchContext::new(
             self,
-            poster_url,
+            poster_url.url(),
             id,
             request.id,
             self.global().core_resource_thread(),
@@ -264,7 +275,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+    fn process_image_response(&self, response: ImageResponse, cx: &mut js::context::JSContext) {
         // Step 7. If an image is thus obtained, the poster frame is that image.
         // Otherwise, there is no poster frame.
         match response {
@@ -274,14 +285,14 @@ impl HTMLVideoElement {
                     Some(image) => self.htmlmediaelement.set_poster_frame(Some(image)),
                     None => warn!("Vector images are not yet supported in video poster"),
                 }
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
+                LoadBlocker::terminate(&self.load_blocker, cx);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::FailedToLoadOrDecode => {
                 self.htmlmediaelement.set_poster_frame(None);
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
+                LoadBlocker::terminate(&self.load_blocker, cx);
             },
         }
     }
@@ -333,10 +344,10 @@ impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_getter!(Poster, "poster");
+    make_url_getter!(Poster, "poster");
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_setter!(SetPoster, "poster");
+    make_url_setter!(SetPoster, "poster");
 
     // For testing purposes only. This is not an event from
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
@@ -348,21 +359,26 @@ impl VirtualMethods for HTMLVideoElement {
         Some(self.upcast::<HTMLMediaElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
-                self.update_poster_frame(Some(&new_value), CanGc::note())
+                self.update_poster_frame(Some(&new_value), cx)
             } else {
-                self.update_poster_frame(None, CanGc::note())
+                self.update_poster_frame(None, cx)
             }
         };
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self
@@ -401,14 +417,13 @@ struct PosterFrameFetchContext {
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
-    fn process_request_body(&mut self, _: RequestId) {}
-
-    fn process_request_eof(&mut self, _: RequestId) {
+    fn process_request_body(&mut self, _: RequestId) {
         self.fetch_canceller.ignore()
     }
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -424,7 +439,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         let status_is_ok = metadata
             .as_ref()
-            .map_or(true, |m| m.status.in_range(200..300));
+            .is_none_or(|m| m.status.in_range(200..300));
 
         if !status_is_ok {
             self.cancelled = true;
@@ -432,7 +447,12 @@ impl FetchResponseListener for PosterFrameFetchContext {
         }
     }
 
-    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        request_id: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.cancelled {
             // An error was received previously, skip processing the payload.
             return;
@@ -446,6 +466,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -454,7 +475,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -500,14 +521,8 @@ impl PosterFrameFetchContext {
     }
 }
 
-pub(crate) trait LayoutHTMLVideoElementHelpers {
-    fn data(self) -> HTMLMediaData;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
-    fn data(self) -> HTMLMediaData {
+impl LayoutDom<'_, HTMLVideoElement> {
+    pub(crate) fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
 
         // Get the current frame being rendered.
@@ -527,7 +542,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
         }
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -535,7 +550,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

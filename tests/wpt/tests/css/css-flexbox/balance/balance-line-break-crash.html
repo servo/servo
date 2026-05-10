@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-balance">
+<meta name="assert" content="Various widths which may cause a line-count mis-match.">
+<style>
+.flex {
+  display: flex;
+  flex-wrap: balance;
+  width: 100px;
+  row-gap: 10px;
+  border: solid 2px;
+  margin: 10px;
+}
+.flex > div {
+  min-width: var(--width);
+  outline: dashed green 2px;
+}
+</style>
+
+<!-- A single small item. -->
+<div class="flex" style="--width: 50px">
+  <div></div>
+</div>
+
+<!-- A single "perfect" item. -->
+<div class="flex" style="--width: 100px">
+  <div></div>
+</div>
+
+<!-- A single "large" item. -->
+<div class="flex" style="--width: 150px">
+  <div></div>
+</div>
+
+<!-- Many "perfect" items. -->
+<div class="flex" style="--width: 100px">
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Many items which will create "perfect" lines. -->
+<div class="flex" style="--width: 50px">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Many large items. -->
+<div class="flex" style="--width: 150px">
+  <div></div>
+  <div></div>
+</div>

@@ -176,6 +176,8 @@ async function setCookieStringDocument(setCookie) {
 //     eventPromise, {changed: [{name: 'name', value: 'value'}]});
 //
 function observeNextCookieChangeEvent() {
+  if (!kHasDocument)
+    throw 'cookiestore.onchange not available in this context';
   return new Promise(resolve => {
     cookieStore.addEventListener('change', e => resolve(e), {once: true});
   });

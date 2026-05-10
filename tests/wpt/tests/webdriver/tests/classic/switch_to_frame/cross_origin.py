@@ -2,8 +2,8 @@ from urllib.parse import urlparse
 
 import webdriver.protocol as protocol
 
-from tests.support.asserts import assert_success
-from tests.support.helpers import document_location
+from tests.support.classic.asserts import assert_success
+from tests.support.classic.helpers import document_location
 
 
 """

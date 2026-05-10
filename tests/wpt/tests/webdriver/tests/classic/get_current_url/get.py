@@ -1,6 +1,6 @@
 import pytest
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 @pytest.fixture
@@ -18,11 +18,9 @@ def test_no_top_browsing_context(session, closed_window):
     assert_error(response, "no such window")
 
 
-def test_no_browsing_context(session, closed_frame, doc):
-    session.url = doc
-
+def test_no_browsing_context(session, closed_frame):
     response = get_current_url(session)
-    assert_success(response, doc)
+    assert_error(response, "no such window")
 
 
 def test_get_current_url_matches_location(session, doc):

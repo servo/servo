@@ -18,7 +18,7 @@
   }
 
   #target2 {
-    column-rule-width: 5px 10px 15px;
+    column-rule-width: 5px, 10px, 15px;
   }
 
   #target3 {
@@ -38,7 +38,7 @@
   test(function() {
     const containerStyle = window.getComputedStyle(document.querySelector('#target2'));
     const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
-    assert_equals(columnRuleWidth, '5px 10px 15px');
+    assert_equals(columnRuleWidth, '5px, 10px, 15px');
 
   }, "`column-rule-width` should be as specified regardless of `column-rule-style` with multiple values");
 

@@ -21,8 +21,8 @@ function test_setting(e, muted, hasAttribute) {
 }
 </script>
 
-<!-- These tests are inside <audio>/<video> so that the steps for updating the
-     muted IDL attribute cannot be delayed until the end tag is parsed. -->
+<!-- These tests are inside <audio>/<video> so that the parser-created
+     elements are available for testing before the closing tag. -->
 
 <audio id=a1>
 <script>
@@ -80,8 +80,8 @@ test(function() {
 </script>
 </video>
 
-<!-- Negative test to ensure that the load algorithm does not update the
-     muted IDL attribute to match the content attribute. -->
+<!-- Negative test to ensure that the load algorithm does not reset the
+     muted state. -->
 
 <video id=v3 muted></video>
 <script>
@@ -112,25 +112,22 @@ async_test(function(t) {
   test(function() {
     var m = document.createElement(tagName);
     m.setAttribute('muted', '');
-    assert_false(m.muted);
+    assert_true(m.muted);
   }, 'getting ' + tagName + '.muted with muted="" (script-created)');
 
   test(function() {
     var m = document.createElement(tagName);
     m.setAttribute('muted', '');
-    test_setting(m, false, true);
+    test_setting(m, true, true);
   }, 'setting ' + tagName + '.muted with muted="" (script-created)');
 
-  // Spec bug: https://www.w3.org/Bugs/Public/show_bug.cgi?id=25153
-  /*
   test(function() {
     var m = document.createElement(tagName);
     m.setAttribute('muted', '');
     m = m.cloneNode(false);
     assert_true(m.hasAttribute('muted'));
-    assert_false(m.muted);
+    assert_true(m.muted);
   }, 'getting ' + tagName + '.muted with muted="" (cloneNode-created)');
-  */
 
   test(function() {
     var div = document.createElement('div');
@@ -165,5 +162,29 @@ async_test(function(t) {
     var c = m.cloneNode(true);
     assert_true(c.muted);
   }, 'cloning ' + tagName + ' propagates muted (innerHTML-created)');
+
+  test(function() {
+    var m = document.createElement(tagName);
+    assert_false(m.muted);
+    m.setAttribute('muted', '');
+    assert_true(m.muted);
+    m.removeAttribute('muted');
+    assert_false(m.muted);
+  }, 'adding/removing muted attribute dynamically affects ' + tagName + '.muted');
+
+  test(function() {
+    var m = document.createElement(tagName);
+    m.muted = false;
+    m.setAttribute('muted', '');
+    assert_false(m.muted);
+  }, 'adding muted attribute has no effect on ' + tagName + '.muted after setter');
+
+  test(function() {
+    var m = document.createElement(tagName);
+    m.setAttribute('muted', '');
+    m.muted = true;
+    m.removeAttribute('muted');
+    assert_true(m.muted);
+  }, 'removing muted attribute has no effect on ' + tagName + '.muted after setter');
 });
 </script>

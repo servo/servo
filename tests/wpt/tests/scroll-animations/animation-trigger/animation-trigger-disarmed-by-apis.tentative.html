@@ -94,8 +94,8 @@
       function setupAnimationTrigger(use_default_trigger=false) {
         const trigger = new TimelineTrigger([{
               timeline: view_timeline,
-              rangeStart: `${TRIGGER_START_PX}px`,
-              rangeEnd: `${TRIGGER_END_PX}px`
+              activationRangeStart: `${TRIGGER_START_PX}px`,
+              activationRangeEnd: `${TRIGGER_END_PX}px`
             }]);
         return trigger;
       }
@@ -122,6 +122,7 @@
 
         // First, verify that the trigger is indeed active.
         await rangeBoundaries.enterTriggerRange();
+        await waitForCompositorCommit();
         await animation.finished;
 
         assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,

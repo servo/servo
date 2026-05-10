@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: remove middle placeholder before fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Remove the middle placeholder before fetch completes.
+    const redUrl = "./support/styles-red.css";
+    const blueUrl = "./support/styles.css";
+    const greenUrl = "./support/styles-green.css";
+    const { shadowRoot, testElement } = createStylesheetHost(
+      [redUrl, blueUrl, greenUrl]);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "Before mutation: expected 3 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before mutation: placeholder at index 0 should be empty.");
+    assert_equals(shadowRoot.adoptedStyleSheets[1].cssRules.length, 0,
+      "Before mutation: placeholder at index 1 should be empty.");
+    assert_equals(shadowRoot.adoptedStyleSheets[2].cssRules.length, 0,
+      "Before mutation: placeholder at index 2 should be empty.");
+
+    const originalPlaceholders = [...shadowRoot.adoptedStyleSheets];
+    shadowRoot.adoptedStyleSheets = [originalPlaceholders[0], originalPlaceholders[2]];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "adoptedStyleSheets should have two entries after removing the middle placeholder.");
+
+    await fetchAndWait(redUrl, blueUrl, greenUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "Removed placeholder's fetch should not re-insert the sheet.");
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "Index 0");
+    assertSheetRule(shadowRoot, 1, "span { color: green; }", "Index 1");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 128, 0)",
+      "Green should win the cascade as the last remaining sheet.");
+  }, "Removing middle placeholder before fetch excludes it from final adoptedStyleSheets.");
+</script>
+</body>

@@ -45,7 +45,7 @@
     --foo: bar;
   }
 </style>
-<div id=container>
+<div id=container xyzzy="5px">
   <div id=inner data-foo="3px"></div>
 </div>
 <script>
@@ -239,9 +239,27 @@
   test_query_with_custom_properties('style(--x >= 3ms)',
                                   [['--x', '3px']],
                                   false);
-  test_query_with_custom_properties(`style(--length <= 30px)`,
+  test_query_with_custom_properties('style(--length <= 30px)',
                                   [['--length', 'attr(data-foo type(<length>))']],
                                   true);
+
+  // These should be true: the container has an attribute 'xyzzy="5px"',
+  // while 'plugh' is undefined so will use the default.
+  test_query('style(1px < attr(xyzzy type(<length>)) < 10px)', true);
+  test_query('style(1px < attr(plugh, 5px) < 10px)', true);
+  test_query('style(1px < attr(plugh type(<length>), 5px) < 10px)', true);
+  // This is false because the untyped attr() resolves to a string, not a length.
+  test_query('style(1px < attr(xyzzy) < 10px)', false);
+  test_query('style(1px < attr(plugh, "5px") < 10px)', false);
+
+  // var() function with a default value.
+  test_query('style(var(--unknown-prop, 20px) > 10px)', true);
+  test_query_with_custom_properties('style(var(--prop, 5px) > 10px)',
+                                    [['--prop', '15px']],
+                                    true);
+  test_query_with_custom_properties('style(var(--length, 20px) < 10px)',
+                                    [['--length', 'attr(data-foo type(<length>))']],
+                                    true);
 
   test_query('style(10px <= 10px < 11px)', true);
   test_query_with_custom_properties(
@@ -253,4 +271,7 @@
     [['--x', '3'], ['--y', '3'], ['--z', '1']],
     true);
 
+  // test queries with env(), assuming "safe area" insets will never be negative.
+  test_query('style(0px <= env(safe-area-inset-top))', true);
+  test_query('style(0px > env(safe-area-inset-bottom))', false);
 </script>

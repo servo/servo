@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS ::selection pseudo-element on select::picker(select)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#the-picker-pseudo-element">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-selection">
+<link rel="match" href="select-picker-pseudo-selection-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+select::picker(select)::selection {
+  background-color: green;
+  color: white;
+}
+</style>
+
+<select>
+  Hello World
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  document.querySelector("select").showPicker();
+
+  const select = document.querySelector("select");
+  const textNode = [...select.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.nodeValue.includes("Hello"));
+  const start = textNode.nodeValue.indexOf("Hello");
+  const range = document.createRange();
+  range.setStart(textNode, start);
+  range.setEnd(textNode, start + 5); // "Hello"
+  window.getSelection().addRange(range);
+
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>

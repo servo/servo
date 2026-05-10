@@ -4,16 +4,18 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
+use crate::dom::storagemanager::StorageManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -24,6 +26,7 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct WorkerNavigator {
     reflector_: Reflector,
     permissions: MutNullableDom<Permissions>,
+    storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
 }
@@ -33,6 +36,7 @@ impl WorkerNavigator {
         WorkerNavigator {
             reflector_: Reflector::new(),
             permissions: Default::default(),
+            storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
         }
@@ -112,13 +116,20 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
+    }
+
+    /// <https://storage.spec.whatwg.org/#api>
+    fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
+        self.storage
+            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
+        self.gpu
+            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

@@ -1,0 +1,36 @@
+<!doctype html>
+<title>SVG path 'd' attribute from-by animation with mismatched commands</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty"/>
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1056"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="M10,10 L50,10">
+    <animate id="animation" attributeName="d"
+             from="M10,10 L50,10 L50,50 Z"
+             by="M20,20 C40,20 40,40 60,40 Z"
+             begin="0s" dur="2s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// Setup animation test
+function sample1() {
+  // Invalid animation: mismatched commands in from-by, fallback to base value
+  assert_animated_path_equals(path, "M10,10 L50,10");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample1],
+    ["animation", 2.0,   sample1],
+    ["animation", 2.001, sample1]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

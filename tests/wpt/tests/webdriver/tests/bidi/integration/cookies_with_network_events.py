@@ -63,11 +63,13 @@ async def test_iframe(
     wait_for_event,
     wait_for_future_safe,
     domain_1,
+    iframe
 ):
     cookie_name = "bar"
     cookie_value = "foo"
+    iframe_html = "<div id='in-iframe'>with cookies</div>"
     iframe_url = inline(
-        "<div id='in-iframe'>with cookies</div>",
+        iframe_html,
         domain=domain_1,
         parameters={"pipe": f"header(Set-Cookie, {cookie_name}={cookie_value})"},
     )
@@ -80,7 +82,11 @@ async def test_iframe(
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
     on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
 
-    page_url = inline(f"<iframe src='{iframe_url}'></iframe>")
+    page_url = inline(
+        iframe(iframe_html,
+        domain=domain_1,
+        parameters={"pipe": f"header(Set-Cookie, {cookie_name}={cookie_value})"})
+    )
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page_url, wait="complete"
     )

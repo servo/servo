@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>contenteditable=false should override designMode</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=462735">
+<link rel="help" href="https://w3c.github.io/editing/docs/execCommand/#editable">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<div id="ceFalse" contenteditable="false">test</div>
+<div contenteditable="false">
+  <div contenteditable="true" id="ceTrue">aa</div>
+</div>
+<script>
+document.designMode = "on";
+
+promise_test(async () => {
+  ceFalse.focus();
+  await new test_driver.Actions()
+    .keyDown("a")
+    .keyUp("a")
+    .send();
+  assert_equals(ceFalse.textContent, "test");
+}, "contenteditable=false inside design mode should not be editable");
+
+promise_test(async () => {
+  ceTrue.focus();
+  getSelection().collapse(ceTrue.childNodes[0], 1);
+  await new test_driver.Actions()
+    .keyDown("b")
+    .keyUp("b")
+    .send();
+  assert_equals(ceTrue.textContent, "aba");
+}, "contenteditable=true in contenteditable=false should be editable");
+</script>

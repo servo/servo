@@ -1,4 +1,7 @@
 features:
+- name: scroll-elements
+  files:
+  - scroll-*
 - name: scrollend
   files:
   - scrollend-*

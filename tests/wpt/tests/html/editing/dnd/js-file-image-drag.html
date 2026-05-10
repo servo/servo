@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Drag and Drop: JS File Object (PNG)</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#the-datatransfer-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+  .box {
+    display: inline-block;
+    border: 2px solid black;
+    width: 100px;
+    height: 100px;
+    margin: 20px;
+    vertical-align: top;
+    line-height: 100px;
+    text-align: center;
+  }
+  #drag-src { background: lightblue; }
+  #drop-tgt { background: lightgrey; }
+</style>
+
+<div id="drag-src" class="box" draggable="true">Source</div>
+<div id="drop-tgt" class="box">Target</div>
+
+<script>
+'use strict';
+
+function makePngBytes() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1; canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'red';
+  ctx.fillRect(0, 0, 1, 1);
+  const bin = atob(canvas.toDataURL('image/png').split(',')[1]);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+const PNG_BYTES = makePngBytes();
+
+promise_test(async t => {
+  const dragSrc = document.getElementById('drag-src');
+  const dropTgt = document.getElementById('drop-tgt');
+
+  const dropWatcher = new Promise((resolve, reject) => {
+    dragSrc.ondragstart = t.step_func(e => {
+      const file = new File([PNG_BYTES], 'test.png', {type: 'image/png'});
+      e.dataTransfer.items.add(file);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    dropTgt.ondragenter = e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    };
+    dropTgt.ondragover = e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    };
+
+    dropTgt.ondrop = t.step_func(async e => {
+      e.preventDefault();
+      try {
+        assert_equals(e.dataTransfer.files.length, 1, "File should be in .files");
+        const file = e.dataTransfer.files[0];
+        assert_equals(file.name, 'test.png');
+
+        const buffer = await file.arrayBuffer();
+        assert_equals(buffer.byteLength, PNG_BYTES.byteLength, "Content size mismatch");
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+
+  await new test_driver.Actions()
+    .pointerMove(0, 0, {origin: dragSrc})
+    .pointerDown()
+    .pause(100)
+    .pointerMove(15, 15, {origin: dragSrc})
+    .pause(100)
+    .pointerMove(0, 0, {origin: dropTgt})
+    .pause(100)
+    .pointerUp()
+    .send();
+
+  await dropWatcher;
+}, 'JS File with PNG bytes carries content to drop target');
+</script>

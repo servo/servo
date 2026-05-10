@@ -1,3 +1,5 @@
 @mixin --m1() {
-  color: green;
+  @result {
+    color: green;
+  }
 }

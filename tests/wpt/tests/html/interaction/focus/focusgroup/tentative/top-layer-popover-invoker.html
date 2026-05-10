@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Popover invoker inside focusgroup</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html#popover-focus-navigation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!--
+  An item inside the focusgroup is the actual invoker for a sibling popover
+  (popovertarget="..."). When the user clicks the invoker, the popover scope
+  is associated with it, which affects sequential focus navigation: Tab from
+  the invoker should reach into the popover. Arrow-key focusgroup navigation,
+  however, must still skip the popover subtree because the popover is in the
+  top layer.
+-->
+<div focusgroup="toolbar inline">
+  <button id=before>Before</button>
+  <button id=invoker popovertarget=pop>Invoker</button>
+  <button id=after>After</button>
+</div>
+<div id=pop popover>
+  <button id=pop_first>Popover first</button>
+  <button id=pop_last>Popover last</button>
+</div>
+<button id=outside>Outside</button>
+
+<script>
+
+async function openViaInvoker(t) {
+  const pop = document.getElementById("pop");
+  invoker.focus();
+  assert_equals(document.activeElement, invoker, "invoker focused");
+  invoker.click();
+  assert_true(pop.matches(":popover-open"), "popover should be open after click");
+  assert_equals(document.activeElement, invoker,
+    "focus stays on the invoker after activation");
+  t.add_cleanup(() => pop.hidePopover());
+}
+
+promise_test(async t => {
+  await openViaInvoker(t);
+
+  // Arrow navigation in the focusgroup must skip the open popover even though
+  // it was opened by a sibling focusgroup item. The popover lives in the top
+  // layer and is not a focusgroup item, so the focusgroup behaves as if it
+  // contains [before, invoker, after].
+  await assert_directional_navigation_bidirectional([before, invoker, after]);
+}, "Arrow keys skip a popover opened by a focusgroup-item invoker");
+
+promise_test(async t => {
+  await openViaInvoker(t);
+
+  // Per the popover invoker focus-navigation rules, Tab from the invoker
+  // enters the popover before continuing to the next tab stop in the
+  // document. The focusgroup is treated as a single tab stop (the invoker,
+  // since it was the last-focused entry), so after the popover ends focus
+  // lands on the element that follows the focusgroup.
+  await assert_focusgroup_tab_navigation([invoker, pop_first, pop_last, outside]);
+}, "Tab from a focusgroup-item invoker enters the open popover");
+
+promise_test(async t => {
+  await openViaInvoker(t);
+
+  // Shift+Tab from the first popover item should return to the invoker.
+  // This depends on pop_first being the first focusable element in the
+  // popover; if more focusable content is inserted before it, update the
+  // expected sequence.
+  await assert_focusgroup_shift_tab_navigation([pop_first, invoker]);
+}, "Shift+Tab from popover content opened by an invoker returns to the invoker");
+
+</script>
+
+<!--
+  Regression: a tabindex=-1 element is mouse-focusable but not keyboard-
+  focusable. When such an element is the popover invoker, Tab and Shift+Tab
+  must not crash the renderer (crbug.com/40210717#comment75). Forward
+  navigation from a programmatically-focused tabindex=-1 invoker advances
+  past the (empty) popover to the next tab stop; reverse navigation skips
+  the tabindex=-1 invoker entirely.
+-->
+<div focusgroup="menu">
+  <button id=neg_invoker tabindex="-1"
+          commandfor=neg_pop command="toggle-popover">icecream</button>
+</div>
+<div id=neg_pop popover>popover</div>
+<button id=neg_after>bread</button>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("neg_pop");
+  neg_invoker.click();
+  assert_true(pop.matches(":popover-open"), "popover should be open");
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Programmatically focus the tabindex=-1 invoker, then Tab forward.
+  neg_invoker.focus();
+  assert_equals(document.activeElement, neg_invoker);
+  await sendTabForward();
+  assert_equals(document.activeElement, neg_after,
+    "Tab from tabindex=-1 popover invoker should advance to neg_after");
+
+  // Shift+Tab from neg_after. Because neg_invoker has tabindex=-1 it is
+  // skipped during sequential focus navigation, so focus lands on the
+  // closest preceding focusable element ("outside").
+  neg_after.focus();
+  assert_equals(document.activeElement, neg_after);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, outside,
+    "Shift+Tab from neg_after skips the tabindex=-1 invoker and lands on outside");
+}, "Tab and Shift+Tab on a tabindex=-1 popover invoker do not crash");
+
+</script>
+
+<!--
+  The popover is a focusgroup descendant placed before the invoker in
+  document order. With the invoker focus-navigation scope, Tab from the
+  invoker reaches the popover content. Without it, Tab would leave the
+  focusgroup and land on `outside`. This shape exercises both the
+  focusgroup top-layer exclusion and the invoker scope at once.
+-->
+
+<div focusgroup="toolbar inline">
+  <div id=pt_pop popover>
+    <button id=pt_pop_first>Popover first</button>
+  </div>
+  <button id=pt_before>Before</button>
+  <button id=pt_invoker popovertarget=pt_pop>Invoker</button>
+</div>
+<button id=pt_outside>Outside</button>
+
+<script>
+promise_test(async t => {
+  const pop = document.getElementById("pt_pop");
+  pt_invoker.focus();
+  pt_invoker.click();
+  assert_true(pop.matches(":popover-open"));
+  t.add_cleanup(() => pop.hidePopover());
+
+  await sendTabForward();
+  assert_equals(document.activeElement, pt_pop_first,
+    "Tab from the popovertarget invoker should enter the popover");
+}, "Tab from a popovertarget invoker reaches the popover even when it precedes the invoker");
+</script>
+
+<div focusgroup="toolbar inline">
+  <div id=cf_pop popover>
+    <button id=cf_pop_first>Popover first</button>
+  </div>
+  <button id=cf_before>Before</button>
+  <button id=cf_invoker commandfor=cf_pop command="toggle-popover">Invoker</button>
+</div>
+<button id=cf_outside>Outside</button>
+
+<script>
+promise_test(async t => {
+  const pop = document.getElementById("cf_pop");
+  cf_invoker.focus();
+  cf_invoker.click();
+  assert_true(pop.matches(":popover-open"));
+  t.add_cleanup(() => pop.hidePopover());
+
+  await sendTabForward();
+  assert_equals(document.activeElement, cf_pop_first,
+    "Tab from the commandfor invoker should enter the popover");
+}, "Tab from a commandfor invoker reaches the popover even when it precedes the invoker");
+</script>
+
+<!--
+  Programmatic invoker path: showPopover({source}) maps to a non-null
+  invoker argument in ShowPopoverInternal(), establishing the same focus
+  navigation scope as a click-driven invoker.
+-->
+<div focusgroup="toolbar inline">
+  <div id=src_pop popover>
+    <button id=src_pop_first>Popover first</button>
+  </div>
+  <button id=src_before>Before</button>
+  <button id=src_invoker>Invoker</button>
+</div>
+<button id=src_outside>Outside</button>
+
+<script>
+promise_test(async t => {
+  const pop = document.getElementById("src_pop");
+  src_invoker.focus();
+  pop.showPopover({source: src_invoker});
+  assert_true(pop.matches(":popover-open"));
+  t.add_cleanup(() => pop.hidePopover());
+
+  await sendTabForward();
+  assert_equals(document.activeElement, src_pop_first,
+    "Tab from the showPopover({source}) invoker should enter the popover");
+}, "Tab from a showPopover source invoker reaches the popover even when it precedes the invoker");
+</script>
+

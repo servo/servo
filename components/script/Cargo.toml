@@ -1,5 +1,5 @@
 [package]
-name = "script"
+name = "servo-script"
 build = "build.rs"
 version.workspace = true
 authors.workspace = true
@@ -7,13 +7,15 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "script"
 path = "lib.rs"
 
 [features]
-bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
+bluetooth = ['servo-bluetooth-traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
@@ -21,18 +23,22 @@ jitspew = ['js/jitspew']
 js_backtrace = []
 js_jit = ["js/jit"]
 profilemozjs = ['js/profilemozjs']
-refcell_backtrace = ["accountable-refcell"]
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
-webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
+webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
+webgpu = [
+    "dep:webgpu_traits",
+    "dep:wgpu-core",
+    "dep:wgpu-types",
+    "script_bindings/webgpu",
+    "script_traits/webgpu",
+]
 webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 
 [dependencies]
-accountable-refcell = { workspace = true, optional = true }
 aes = { workspace = true }
 aes-gcm = { workspace = true }
 aes-kw = { workspace = true }
@@ -41,42 +47,34 @@ argon2 = { workspace = true }
 arrayvec = { workspace = true }
 atomic_refcell = { workspace = true }
 aws-lc-rs = { workspace = true }
-background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
-base = { workspace = true }
 base64 = { workspace = true }
 base64ct = { workspace = true }
-bincode = { workspace = true }
 bitflags = { workspace = true }
-bluetooth_traits = { workspace = true, optional = true }
 brotli = { workspace = true }
-canvas_traits = { workspace = true }
 cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chardetng = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
-compositing_traits = { workspace = true }
-constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 ctr = { workspace = true }
 data-url = { workspace = true }
-deny_public_fields = { path = "../deny_public_fields" }
+deny_public_fields = { workspace = true }
 der = { workspace = true }
 devtools_traits = { workspace = true }
 digest = { workspace = true }
-dom_struct = { path = "../dom_struct" }
-domobject_derive = { path = "../domobject_derive" }
+dom_struct = { workspace = true }
 ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 flate2 = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { workspace = true }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
@@ -84,23 +82,23 @@ hkdf = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
-image = { workspace = true }
+icu_locid = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 js = { workspace = true }
-jstraceable_derive = { path = "../jstraceable_derive" }
+jstraceable_derive = { workspace = true }
 keyboard-types = { workspace = true }
-kurbo = { workspace = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 markup5ever = { workspace = true }
-media = { path = "../media" }
-metrics = { path = "../metrics" }
+media = { workspace = true }
+metrics = { workspace = true }
 mime = { workspace = true }
+mime-multipart-hyper1 = { workspace = true }
 mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
@@ -113,27 +111,36 @@ ocb3 = { workspace = true }
 p256 = { workspace = true }
 p384 = { workspace = true }
 p521 = { workspace = true }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.13"
-pixels = { path = "../pixels" }
+pixels = { workspace = true }
 pkcs8 = { workspace = true }
+postcard = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }
-script_bindings = { path = "../script_bindings" }
+script_bindings = { workspace = true }
 script_traits = { workspace = true }
 sec1 = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
+servo-background-hang-monitor-api = { workspace = true }
+servo-base = { workspace = true }
+servo-bluetooth-traits = { workspace = true, optional = true }
+servo-canvas-traits = { workspace = true }
+servo-config = { workspace = true }
+servo-constellation-traits = { workspace = true }
+servo-geometry = { workspace = true }
 servo-media = { workspace = true }
+servo-tracing = { workspace = true }
+servo-url = { workspace = true }
+servo-wakelock = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
 sha1 = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true }
@@ -149,24 +156,24 @@ swapper = "0.1"
 tempfile = "3"
 tendril = { workspace = true }
 time = { workspace = true }
-timers = { path = "../timers" }
+timers = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
-unicode-segmentation = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
-utf-8 = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
+web_atoms = "0.2.4"
 webdriver = { workspace = true }
-webgpu_traits = { workspace = true }
+webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
-wgpu-core = { workspace = true }
-wgpu-types = { workspace = true }
+wgpu-core = { workspace = true, optional = true }
+wgpu-types = { workspace = true, optional = true }
 x25519-dalek = { workspace = true }
 xml5ever = { workspace = true }
 xpath = { workspace = true }
+zeroize = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = { workspace = true }

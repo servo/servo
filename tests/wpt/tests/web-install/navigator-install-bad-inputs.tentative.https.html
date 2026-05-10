@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>navigator.install() rejects with TypeError for bad inputs</title>
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/WebInstall/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+// These tests verify that navigator.install() rejects with TypeError for
+// malformed or invalid inputs. Each test requires a user activation via
+// test_driver.bless() since the activation is consumed by each call.
+
+promise_test(async function(t) {
+  await test_driver.bless('install with empty url');
+  return promise_rejects_js(t, TypeError, navigator.install(''),
+      'Empty install_url should reject with TypeError');
+}, 'navigator.install("") rejects with TypeError for empty install URL.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with invalid url');
+  return promise_rejects_js(t, TypeError, navigator.install('://invalid'),
+      'Invalid install_url should reject with TypeError');
+}, 'navigator.install("://invalid") rejects with TypeError for invalid URL.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with empty manifest_id');
+  return promise_rejects_js(t, TypeError,
+      navigator.install('https://example.com', ''),
+      'Empty manifest_id should reject with TypeError');
+}, 'navigator.install(url, "") rejects with TypeError for empty manifest ID.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with whitespace-only url');
+  return promise_rejects_js(t, TypeError, navigator.install('   '),
+      'Whitespace-only install_url should reject with TypeError');
+}, 'navigator.install("   ") rejects with TypeError for whitespace-only URL.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with null manifest_id');
+  return promise_rejects_js(t, TypeError,
+      navigator.install('https://example.com', null),
+      'Null manifest_id should reject with TypeError');
+}, 'navigator.install(url, null) rejects with TypeError for null manifest ID.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with undefined manifest_id');
+  var manifest_id;
+  return promise_rejects_js(t, TypeError,
+      navigator.install('https://example.com', manifest_id),
+      'Undefined manifest_id should reject with TypeError');
+}, 'navigator.install(url, undefined) rejects with TypeError for undefined ' +
+   'manifest ID.');
+</script>
+</body>

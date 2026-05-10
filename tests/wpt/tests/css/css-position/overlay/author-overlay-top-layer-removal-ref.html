@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-position-4/#overlay">
+<meta name=assert content="popovers should be removed from the top layer even with an author overlay rule.">
+
+<p>Text before popover</p>
+<div id=zindex>zindex</div>
+<div id=popover popover>popover</div>
+<p>Text after popover</p>
+
+<style>
+#popover {
+  overlay: auto !important;
+  position: initial;
+  display: block;
+}
+#zindex {
+  background-color: green;
+  z-index: 999;
+  position: absolute;
+}
+</style>
+
+<script>
+const rect = popover.getBoundingClientRect();
+const zindex = document.getElementById('zindex');
+zindex.style.top = `${rect.y}px`;
+zindex.style.left = `${rect.x}px`;
+</script>

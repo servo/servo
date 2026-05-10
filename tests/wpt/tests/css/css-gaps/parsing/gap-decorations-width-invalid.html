@@ -16,11 +16,11 @@ const properties = ["column-rule-width", "row-rule-width", "rule-width"];
 for (let property of properties) {
     test_invalid_value(property, "auto");
 
-    test_invalid_value(property, "thin, medium, thick");
-    test_invalid_value(property, "repeat(auto, thin, 10px, thick)");
+    test_invalid_value(property, "thin medium thick");
+    test_invalid_value(property, "repeat(auto, thin 10px thick)");
     test_invalid_value(property, "repeat(0, 10px, 20px, 30px)");
     test_invalid_value(property, "repeat(-1, 10px, thin, medium)");
-    test_invalid_value(property, "repeat(auto, 10px) thin repeat(auto, thick)");
+    test_invalid_value(property, "repeat(auto, 10px), thin, repeat(auto, thick)");
     test_invalid_value(property, "10 20 30");
     test_invalid_value(property, "repeat(2, -20px)");
     test_invalid_value(property, "30%");

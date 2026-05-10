@@ -20,4 +20,16 @@ xfo_simple_tests({
   sameOriginAllowed: false,
   crossOriginAllowed: false
 });
+
+xfo_simple_tests({
+  headerValue: `\x0BDENY`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `\x0CDENY`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
 </script>

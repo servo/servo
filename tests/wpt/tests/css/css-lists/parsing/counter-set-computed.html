@@ -28,6 +28,8 @@ test_computed_value('counter-set', 'myCounter otherCounter 8', 'myCounter 0 othe
 test_computed_value('counter-set', 'myCounter 7 otherCounter', 'myCounter 7 otherCounter 0');
 test_computed_value('counter-set', 'myCounter calc(10 + (sign(2cqw - 10px) * 5))', 'myCounter 5');
 test_computed_value('counter-set', 'myCounter calc(10 + (sign(2cqw - 10px) * 5)) otherCounter calc(15 + (sign(2cqw - 10px) * 5))', 'myCounter 5 otherCounter 10');
+test_computed_value('counter-set', 'a 1 b 2 c 3 d 4 e 5');
+test_computed_value('counter-set', 'a 1 b 2 c 3 a 4 b 5');
 </script>
 </body>
 </html>

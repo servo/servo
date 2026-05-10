@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name='timeout' content='long'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="helper.js"></script>
+</head>
+<body>
+<script>
+
+const assert_json_equals = (a, b) => assert_equals(JSON.stringify(a), JSON.stringify(b));
+const assert_json_not_equals = (a, b) => assert_not_equals(JSON.stringify(a), JSON.stringify(b));
+
+const reuse = {}; // speed up tests
+
+promise_test(async t => {
+   const frame = await createRTCEncodedFrameFromScratch("video");
+   reuse["video"] = frame;
+   assert_true(frame instanceof RTCEncodedVideoFrame);
+   assert_equals(frame.type, "key"); // first frame is key
+
+   const clone = new RTCEncodedVideoFrame(frame);
+   assert_true(clone instanceof RTCEncodedVideoFrame);
+   assert_equals(clone.type, frame.type);
+   assert_true(areArrayBuffersEqual(clone.data, frame.data));
+   assert_json_equals(clone.getMetadata(), frame.getMetadata());
+}, "RTCEncodedVideoFrame copy construction on main thread.");
+
+promise_test(async t => {
+   const frame = await createRTCEncodedFrameFromScratch("audio");
+   reuse["audio"] = frame;
+   assert_true(frame instanceof RTCEncodedAudioFrame);
+
+   const clone = new RTCEncodedAudioFrame(frame);
+   assert_true(clone instanceof RTCEncodedAudioFrame);
+   assert_equals(clone.type, frame.type);
+   assert_true(areArrayBuffersEqual(clone.data, frame.data));
+   assert_json_equals(clone.getMetadata(), frame.getMetadata());
+}, "RTCEncodedAudioFrame copy construction on main thread.");
+
+function different(value) {
+   switch (typeof value) {
+     case "number": return value + 1;
+     case "string": return value + "2";
+     case "object": return Array.isArray(value) ? value.concat([2]) : {};
+     default: assert_unreached(`unexpected type ${typeof value}`);
+   }
+}
+
+["RTCEncodedVideoFrame", "RTCEncodedAudioFrame"].forEach(constr => {
+  const kind = constr.includes("Video")? "video" : "audio";
+
+  promise_test(async t => {
+    const frame = reuse[kind];
+    const oldData = frame.getMetadata();
+    // test single key replacement
+    for (const key of Object.keys(oldData)) {
+      const metadata = {[key]: different(oldData[key])};
+      // Spec says "The new frame’s [[metadata]] is a deep copy
+      // of originalFrame.[[metadata]], with fields replaced with
+      // deep copies of the fields present in options.[metadata]."
+      // This compares well to how Object.assign() works
+      const expected = Object.assign(structuredClone(oldData), metadata);
+      const clone = new window[constr](frame, {metadata});
+      assert_json_equals(clone.getMetadata(), expected);
+      assert_json_not_equals(clone.getMetadata(), oldData);
+    }
+    // test cumulative key replacement
+    let metadata = {};
+    for (const key of Object.keys(oldData)) {
+      Object.assign(metadata, {[key]: different(oldData[key])});
+      const expected = Object.assign(structuredClone(oldData), metadata);
+      const clone = new window[constr](frame, {metadata});
+      assert_json_equals(clone.getMetadata(), expected);
+      assert_json_not_equals(clone.getMetadata(), oldData);
+    }
+  }, `${constr} copy construction metadata override on main thread.`);
+
+  promise_test(async t => {
+    const frame = reuse[kind];
+    assert_greater_than(frame.data.byteLength, 0);
+    const length = frame.data.byteLength;
+    const clone = structuredClone(frame);
+    assert_equals(frame.data.byteLength, length, "not transferred");
+    assert_true(areArrayBuffersEqual(clone.data, frame.data));
+    assert_json_equals(clone.getMetadata(), frame.getMetadata());
+  }, `${constr} structuredClone on main thread.`);
+
+  promise_test(async t => {
+    const frame = reuse[kind];
+    assert_greater_than(frame.data.byteLength, 0);
+    const length = frame.data.byteLength;
+    const clone = structuredClone(frame, {transfer: [frame.data]});
+    assert_equals(frame.data.byteLength, 0, "was transferred");
+    assert_equals(clone.data.byteLength, length);
+  }, `${constr} structuredClone transfer on main thread.`);
+
+});
+</script>
+</body>
+</html>

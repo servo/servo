@@ -118,6 +118,11 @@ def main(request, response):
       file.close()
       return image
 
+    ## Return valid text content and Content-Type ##
+    if key.startswith(b"text"):
+      response.headers.set(b"Content-Type", b"text/plain")
+      return b""
+
     ## Return a valid dedicated worker
     if key.startswith(b"worker"):
       response.headers.set(b"Content-Type", b"application/javascript")

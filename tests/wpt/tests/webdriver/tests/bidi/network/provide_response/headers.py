@@ -63,11 +63,13 @@ async def test_headers_before_request_sent(
 
     response_started_event = await wait_for_future_safe(on_response_started)
     assert_response_event(
-        response_started_event, expected_response={"headers": response_headers}
+        response_started_event,
+        expected_event={"response": {"headers": response_headers}},
     )
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
-        response_completed_event, expected_response={"headers": response_headers}
+        response_completed_event,
+        expected_event={"response": {"headers": response_headers}},
     )
 
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Table column width distribution with colspan and mixed percent/auto columns</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<link rel="match" href="table-colspan-percent-auto-ref.html">
+<style>
+  table {
+    border-collapse: collapse;
+    width: 400px;
+  }
+  td {
+    border: 1px solid black;
+    padding: 0;
+  }
+  .marker {
+    width: 100%;
+    height: 20px;
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td style="width: 90%;">
+        <div class="marker"></div>
+      </td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="white-space: nowrap;">
+        Lorem ipsum dolor sit amet consectetuer adipiscing
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

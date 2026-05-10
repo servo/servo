@@ -1,0 +1,233 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - positional streaming methods</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    async function create_and_stream(method, old_html, new_html, options = {}) {
+      const placeholder = document.createElement("div");
+      const inner = document.createElement("span");
+      inner.innerHTML = old_html;
+      placeholder.appendChild(inner);
+      document.body.appendChild(placeholder);
+      const writable = inner[method](options);
+      assert_true(
+        writable instanceof WritableStream,
+        `node.${method}() returns a writable stream`,
+      );
+      const writer = writable.getWriter();
+      await writer.write(new_html);
+      await writer.close();
+      const result = placeholder.innerHTML;
+      placeholder.remove();
+      return result;
+    }
+
+    function test_stream_result(method, old_html, new_html, options, expected) {
+      promise_test(
+        async (t) => {
+          assert_equals(
+            await create_and_stream(method, old_html, new_html, options),
+            expected,
+          );
+        },
+        `${method}(${JSON.stringify(options)}) with ${old_html} and ${new_html}`,
+      );
+    }
+
+    for (const safe of [true, false]) {
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>AB</span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span>A<p>B</p></span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span><p>A</p>B</span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>A</p><p>B</p></span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>BA</span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span><p>B</p>A</span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span>B<p>A</p></span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>B</p><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "B",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<p>B</p>",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "B",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<p>B</p>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "B<span>A</span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<p>B</p><span>A</span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "B<span><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<p>B</p><span><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>A</span>B",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span>A</span><p>B</p>",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span><p>A</p></span>B",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>A</p></span><p>B</p>",
+      );
+
+      for (const runScripts of [true, false]) {
+        const should_run_scripts = runScripts && !safe;
+        const options = { runScripts };
+        for (const position of [
+          "After",
+          "Before",
+          "ReplaceWith",
+          "Append",
+          "Prepend",
+        ]) {
+          const method = `stream${position}HTML${safe ? "" : "Unsafe"}`;
+          promise_test(
+            async (t) => {
+              window.did_run = false;
+              await create_and_stream(
+                method,
+                "",
+                "<script>window.did_run = true;</" + "script>",
+                options,
+              );
+              assert_equals(window.did_run, should_run_scripts);
+            },
+            `${method}(${JSON.stringify(options)}) should ${should_run_scripts ? "" : "not "}run scripts`,
+          );
+        }
+      }
+      for (const method of [
+        "streamAfterHTML",
+        "streamBeforeHTML",
+        "streamReplaceWithHTML",
+      ]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name]();
+          });
+        }, `${method_name} throw if parent is a Document`);
+
+        test(() => {
+          const fragment = document.createDocumentFragment();
+          const span = document.createElement("span");
+          fragment.appendChild(span);
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name]();
+          });
+        }, `${method_name} throw if parent is a DocumentFragment`);
+      }
+    }
+  </script>
+</body>

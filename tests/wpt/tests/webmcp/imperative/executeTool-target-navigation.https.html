@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with Target Navigation</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = 'resources/iframe-register-tool.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  // Tell iframe to register a tool.
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    hangsForever: true,
+    tool: {
+      name: 'iframe_tool',
+      description: 'Iframe tool'
+    }
+  }, '*');
+
+  // Wait for toolchange.
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  // Invoke tool and immediately navigate iframe away.
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'iframe_tool');
+  const promise = navigator.modelContext.executeTool(tool, '{}');
+  iframe.src = 'about:blank';
+
+  // The promise should be rejected because the target document died.
+  // We expect AbortError or similar. Let's assume AbortError for now.
+  await promise_rejects_dom(t, 'UnknownError', promise, 'Promise should be rejected when target document dies');
+}, 'executeTool() rejects when target document navigates away');
+</script>
+</body>
+</html>

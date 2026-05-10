@@ -2,8 +2,8 @@
 
 import pytest
 
-from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
-from tests.support.helpers import element_rect
+from tests.support.classic.asserts import assert_error, assert_success, assert_dialog_handled
+from tests.support.classic.helpers import element_rect
 
 
 def get_element_rect(session, element_id):

@@ -127,9 +127,9 @@ Expected Result:
 
                 map.get("input").forEach(value => {
                     assert_false(seenInteractionIds.has(value.interactionId), "All Inputs shall have unique InteractionIds.");
-                    seenInteractionIds.add(value);
+                    seenInteractionIds.add(value.interactionId);
                     assert_greater_than(value.interactionId, 0, 'Input should have an interactionId greater than 0');
-                    const filteredArrayKeydowns = map.get('keydown').filter(interactionId => interactionId === value.interactionId);
+                    const filteredArrayKeydowns = (map.get('keydown') || []).filter(entry => entry.interactionId === value.interactionId);
                     const countKeydowns = filteredArrayKeydowns.length;
                     logEventSummary(value.interactionId, "keydown", countKeydowns);
                     assert_true((countKeydowns <= 1), "For each input there should be no more than 1 keydown.");
@@ -137,7 +137,7 @@ Expected Result:
                     logEventSummary(value.interactionId, "compositionupdate", 1);
                     logEventSummary(value.interactionId, "input", 1);
 
-                    const filteredArrayKeyups = map.get('keyup').filter(interactionId => interactionId === value.interactionId);
+                    const filteredArrayKeyups = (map.get('keyup') || []).filter(entry => entry.interactionId === value.interactionId);
                     const countKeyups = filteredArrayKeyups.length;
                     logEventSummary(value.interactionId, "keyup", countKeyups);
 

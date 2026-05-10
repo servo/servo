@@ -24,7 +24,7 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
     #[expect(unsafe_code)]
     fn Gc(global: &GlobalScope) -> Rc<Promise> {
         // 1. Let p be a new promise.
-        let promise = Promise::new(global, CanGc::note());
+        let promise = Promise::new(global, CanGc::deprecated_note());
         let trusted = TrustedPromise::new(promise.clone());
         // 2. Run the following in parallel:
         // 2.1 Run implementation-defined steps to perform a garbage collection covering at least the entry Realm.
@@ -36,7 +36,7 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
                 JS_GC(*GlobalScope::get_cx(), GCReason::DOM_TESTUTILS);
             }
             let promise = trusted.root();
-            promise.resolve_native(&(), CanGc::note());
+            promise.resolve_native(&(), CanGc::deprecated_note());
         });
 
         global

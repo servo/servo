@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+  <link rel="help" href="https://crbug.com/493952652">
+  <style>
+    /*
+       Evaluation of [style] will add a new attribute to the element,
+       as lazy style gets synchronized. However, the bucketing will be
+       on input type, so we do not synchronize the attributes _before_
+       iteration.
+     */
+    input[style][type="text"] {}
+  </style>
+  <style>
+    /*
+       For the second stylesheet, when checking the type="" value string,
+       we must not use a reference into the old attributes.
+     */
+    input[style][type="text"] {}
+  </style>
+</head>
+<body>
+  <input id="target" type="text"></input>
+  <script>
+    document.getElementById('target').style.color = 'red';
+  </script>
+</body>

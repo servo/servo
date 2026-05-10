@@ -11,7 +11,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 cookie_test(async t => {
   const {exec} = await create_prerendered_page(t);

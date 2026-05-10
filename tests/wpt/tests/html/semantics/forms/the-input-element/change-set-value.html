@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Change events when value is manipulated by script</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1691435">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input type="text" value="a" id="i1">
+<input type="text" value="a" id="i2">
+<script>
+promise_test(async () => {
+  let changeFired = false;
+  i1.addEventListener("change", () => {
+    changeFired = true;
+  });
+  i1.focus();
+  i1.value = "b";
+  i1.blur();
+  assert_false(changeFired, "Shouldn't fire change event.");
+}, "No change event when value is changed by script");
+
+promise_test(async () => {
+  let changeFired = false;
+  let oldValue = i2.value;
+  i2.addEventListener("input", function(e) {
+    let newValue = i2.value;
+    i2.value = oldValue;
+    i2.value = newValue;
+    oldValue = newValue;
+  });
+  i2.addEventListener("change", () => {
+    changeFired = true;
+  });
+  i2.focus();
+  i2.select();
+  await test_driver.send_keys(i2, "b");
+  i2.select();
+  await test_driver.send_keys(i2, "a");
+  i2.blur();
+  assert_false(changeFired, "Shouldn't fire change event when value isn't changed.");
+  i2.focus();
+  i2.select();
+  await test_driver.send_keys(i2, "b");
+  i2.blur();
+  assert_true(changeFired, "Should fire change event after blur.");
+}, "Change event when restoring pre-focused value then setting it again");
+</script>

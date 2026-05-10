@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets async fetch failure</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // --- Scenario 1: a specifier that resolves to a 404 URL. ---
+    // The fetch should fail gracefully; the placeholder sheet should remain
+    // empty and no crash should occur.
+    const nonexistentUrl = "./support/nonexistent.css";
+    const { shadowRoot, testElement } = createStylesheetHost(nonexistentUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before fetch settles: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before fetch settles: placeholder at index 0 should be empty.");
+
+    await fetchAndWait(nonexistentUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "After failed fetch: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "After failed fetch: placeholder at index 0 should be empty.");
+
+    // --- Scenario 2: mixed valid and invalid specifiers. ---
+    const nonexistentUrl2 = "./support/nonexistent-2.css";
+    const validUrl = "./support/styles.css?failure";
+    const { shadowRoot: shadowRoot2, testElement: testElement2 } =
+      createStylesheetHost([nonexistentUrl2, validUrl]);
+
+    assert_equals(shadowRoot2.adoptedStyleSheets.length, 2,
+      "Two entries should be present (one placeholder, one fetched or placeholder).");
+
+    await fetchAndWait(nonexistentUrl2, validUrl);
+
+    assert_equals(shadowRoot2.adoptedStyleSheets.length, 2,
+      "adoptedStyleSheets should still have two entries.");
+    assert_equals(shadowRoot2.adoptedStyleSheets[0].cssRules.length, 0,
+      "The first entry (failed fetch) should be an empty placeholder.");
+    assertSheetRule(shadowRoot2, 1, "span { color: blue; }", "Second entry (valid)");
+    assert_equals(getComputedStyle(testElement2).color, "rgb(0, 0, 255)",
+      "The valid specifier's styles (blue) should be applied.");
+  }, "Async fetch failure: 404 leaves placeholder empty, valid specifier still works.");
+</script>
+</body>

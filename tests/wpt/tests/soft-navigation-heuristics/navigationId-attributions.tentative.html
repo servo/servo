@@ -1,0 +1,83 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SoftNavigationEntry: Verify navigationId attributions for entries</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+<script src="resources/soft-navigation-test-helper.js"></script>
+<style>
+  #shift-target {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    position: absolute;
+    top: 50px;
+  }
+</style>
+</head>
+<body>
+  <main id=main>
+    <a id=link>Click me!</a>
+    <a id=soft_nav_link>Click for Soft Nav!</a>
+    <div id="shift-target"></div>
+  </main>
+  <script>
+    const clickTarget = document.getElementById("link");
+    clickTarget.addEventListener('click', async (e) => {
+      // 1. Add delay, to force a long event timing
+      const start = performance.now();
+      while (performance.now() - start < 120);
+
+      // 2. Trigger layout shift
+      const el = document.getElementById('shift-target');
+      el.style.top = (parseInt(el.style.top || 50, 10) + 50) + 'px';
+    });
+
+    async function simulateSoftNavAndGetNavId(t, label) {
+      const helper = new SoftNavigationTestHelper(t);
+
+      const softNavLink = document.getElementById("soft_nav_link");
+      softNavLink.addEventListener('click', async (e) => {
+        // Must modify DOM or paint to trigger soft navigation heuristics!
+        await helper.withTimeoutMessage(addTextParagraphToMain(`Contentful paint to trigger soft NAV (${label})`), `Timed out waiting for addTextParagraphToMain (${label})`, 2000);
+        history.pushState({}, '', `foobar.html?${counter++}`);
+      }, {once: true});
+
+      let soft_nav_promise = getNextEntry('soft-navigation');
+      await test_driver.click(softNavLink);
+      let softNavEntry = await helper.withTimeoutMessage(soft_nav_promise, `Timed out waiting for soft-navigation entry (${label})`, 2000);
+
+      return softNavEntry.navigationId;
+    }
+
+    async function triggerPerformanceEntriesInNavigationSlice(t, expectedNavId, sliceLabel) {
+      const helper = new SoftNavigationTestHelper(t);
+
+      const eventPromise = getNextEntry('event');
+      const shiftPromise = getNextEntry('layout-shift');
+
+      await test_driver.click(clickTarget);
+
+      const eventEntry = await helper.withTimeoutMessage(eventPromise, `Timed out waiting for event entry (${sliceLabel}) [navId: ${expectedNavId}]`, 2000);
+      const shiftEntry = await helper.withTimeoutMessage(shiftPromise, `Timed out waiting for layout-shift entry (${sliceLabel}) [navId: ${expectedNavId}]`, 2000);
+
+      assert_equals(eventEntry.navigationId, expectedNavId, "event navigationId should match expected navId");
+      assert_equals(shiftEntry.navigationId, expectedNavId, "layout shift navigationId should match expected navId");
+    }
+
+    promise_test(async t => {
+      const navId0 = performance.getEntriesByType('navigation')[0].navigationId;
+      await triggerPerformanceEntriesInNavigationSlice(t, navId0, "Initial Navigation Validate");
+      const navId1 = await simulateSoftNavAndGetNavId(t, "Soft Nav 1 Simulate");
+      await triggerPerformanceEntriesInNavigationSlice(t, navId1, "Soft Nav 1 Validate");
+      const navId2 = await simulateSoftNavAndGetNavId(t, "Soft Nav 2 Simulate");
+      await triggerPerformanceEntriesInNavigationSlice(t, navId2, "Soft Nav 2 Validate");
+
+    }, "Entries have navigationId properly attributed before and after soft navigation");
+  </script>
+</body>
+</html>

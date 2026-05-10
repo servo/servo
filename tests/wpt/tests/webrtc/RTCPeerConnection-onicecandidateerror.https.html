@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.onicecandidateerror</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -34,5 +35,46 @@ promise_test(async t => {
   await pc.setLocalDescription(await pc.createOffer());
   await onErrorPromise;
 }, 'Surfacing onicecandidateerror');
+
+promise_test(async t => {
+  const iceServers = [
+    {urls: "turn:turn1.invalid:3478", username: "u", credential: "p"},
+    {urls: "turn:turn2.invalid:3478?transport=tcp", username: "u", credential: "p"},
+    {urls: "turns:turn3.invalid:5349", username: "u", credential: "p"},
+    {urls: "stun:stun1.invalid:3478"},
+  ];
+  const pc = new RTCPeerConnection({iceServers});
+  t.add_cleanup(() => pc.close());
+
+  const expectedUrls = new Set([
+    "turn:turn1.invalid:3478",
+    "turn:turn2.invalid:3478?transport=tcp",
+    "turns:turn3.invalid:5349?transport=tcp",
+    "stun:stun1.invalid:3478",
+  ]);
+  const remaining = new Set(expectedUrls);
+  const errors = [];
+  const allErrorsReceived = new Promise(resolve => {
+    pc.addEventListener('icecandidateerror', event => {
+      errors.push(event);
+      remaining.delete(event.url);
+      if (remaining.size === 0) resolve();
+    });
+  });
+
+  const stream = await getNoiseStream({audio: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  pc.addTrack(stream.getAudioTracks()[0], stream);
+
+  await pc.setLocalDescription();
+  await allErrorsReceived;
+
+  for (const event of errors) {
+    assert_true(event instanceof RTCPeerConnectionIceErrorEvent,
+      'Expect event to be instance of RTCPeerConnectionIceErrorEvent');
+    assert_true(expectedUrls.has(event.url), `unexpected url: ${event.url}`);
+    assert_true(event.errorCode >= 300 && event.errorCode <= 799, "errorCode in valid range");
+  }
+}, 'icecandidateerror fires for each failing server');
 
 </script>

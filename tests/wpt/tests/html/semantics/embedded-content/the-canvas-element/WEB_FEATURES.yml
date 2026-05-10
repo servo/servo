@@ -1,0 +1,10 @@
+features:
+- name: canvas
+  files:
+  - "*"
+  - "!imagedata.html"
+  - "!2d-getcontext-options.html"
+- name: canvas-2d
+  files:
+  - "imagedata.html"
+  - "2d-getcontext-options.html"

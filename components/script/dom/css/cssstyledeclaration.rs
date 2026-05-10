@@ -8,6 +8,8 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -25,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -61,7 +63,7 @@ pub(crate) enum CSSStyleOwner {
 impl CSSStyleOwner {
     // Mutate the declaration block associated to this style owner, and
     // optionally indicate if it has changed (assumed to be true).
-    fn mutate_associated_block<F, R>(&self, f: F, can_gc: CanGc) -> R
+    fn mutate_associated_block<F, R>(&self, cx: &mut JSContext, f: F) -> R
     where
         F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
     {
@@ -107,9 +109,9 @@ impl CSSStyleOwner {
                         let mut serialization = String::new();
                         pdb.read_with(&guard).to_css(&mut serialization).unwrap();
                         el.set_attribute(
+                            cx,
                             &local_name!("style"),
                             AttrValue::Declaration(serialization, pdb),
-                            can_gc,
                         );
                     }
                 } else {
@@ -183,8 +185,7 @@ impl CSSStyleOwner {
                     .url_data
                     .0
                     .clone()
-            })
-            .clone(),
+            }),
         }
     }
 }
@@ -205,12 +206,12 @@ macro_rules! css_properties(
                 );
                 self.get_property_value($id)
             }
-            fn $setter(&self, value: DOMString) -> ErrorResult {
+            fn $setter(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property($id, value, DOMString::new(), CanGc::note())
+                self.set_property(cx, $id, value, DOMString::new())
             }
         )*
     );
@@ -318,17 +319,12 @@ impl CSSStyleDeclaration {
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
     fn set_property(
         &self,
+        cx: &mut JSContext,
         id: PropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.set_property_inner(
-            PotentiallyParsedPropertyId::Parsed(id),
-            value,
-            priority,
-            can_gc,
-        )
+        self.set_property_inner(cx, PotentiallyParsedPropertyId::Parsed(id), value, priority)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
@@ -337,10 +333,10 @@ impl CSSStyleDeclaration {
     /// the caller already has a parsed property ID.
     fn set_property_inner(
         &self,
+        cx: &mut JSContext,
         id: PotentiallyParsedPropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
@@ -363,66 +359,63 @@ impl CSSStyleDeclaration {
             },
         };
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
-        self.owner.mutate_associated_block(
-            |pdb, changed| {
-                // Step 3. If value is the empty string, invoke removeProperty()
-                // with property as argument and return.
-                if value.is_empty() {
-                    *changed = remove_property(pdb, &id);
+        self.owner.mutate_associated_block(cx, |pdb, changed| {
+            // Step 3. If value is the empty string, invoke removeProperty()
+            // with property as argument and return.
+            if value.is_empty() {
+                *changed = remove_property(pdb, &id);
+                return Ok(());
+            }
+
+            // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
+            // match for the string "important", then return.
+            let importance = match &*priority.str() {
+                "" => Importance::Normal,
+                p if p.eq_ignore_ascii_case("important") => Importance::Important,
+                _ => {
+                    *changed = false;
                     return Ok(());
-                }
+                },
+            };
 
-                // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
-                // match for the string "important", then return.
-                let importance = match &*priority.str() {
-                    "" => Importance::Normal,
-                    p if p.eq_ignore_ascii_case("important") => Importance::Important,
-                    _ => {
-                        *changed = false;
-                        return Ok(());
-                    },
-                };
+            // Step 5
+            let window = self.owner.window();
+            let quirks_mode = window.Document().quirks_mode();
+            let mut declarations = SourcePropertyDeclaration::default();
+            let result = parse_one_declaration_into(
+                &mut declarations,
+                id,
+                &value.str(),
+                Origin::Author,
+                &base_url,
+                Some(window.css_error_reporter()),
+                ParsingMode::DEFAULT,
+                quirks_mode,
+                CssRuleType::Style,
+            );
 
-                // Step 5
-                let window = self.owner.window();
-                let quirks_mode = window.Document().quirks_mode();
-                let mut declarations = SourcePropertyDeclaration::default();
-                let result = parse_one_declaration_into(
-                    &mut declarations,
-                    id,
-                    &value.str(),
-                    Origin::Author,
-                    &base_url,
-                    Some(window.css_error_reporter()),
-                    ParsingMode::DEFAULT,
-                    quirks_mode,
-                    CssRuleType::Style,
-                );
-
-                // Step 6
-                match result {
-                    Ok(()) => {},
-                    Err(_) => {
-                        *changed = false;
-                        return Ok(());
-                    },
-                }
-
-                let mut updates = Default::default();
-                *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
-
-                if !*changed {
+            // Step 6
+            match result {
+                Ok(()) => {},
+                Err(_) => {
+                    *changed = false;
                     return Ok(());
-                }
+                },
+            }
 
-                // Step 7
-                // Step 8
-                pdb.update(declarations.drain(), importance, &mut updates);
+            let mut updates = Default::default();
+            *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
 
-                Ok(())
-            },
-            can_gc,
-        )
+            if !*changed {
+                return Ok(());
+            }
+
+            // Step 7
+            // Step 8
+            pdb.update(declarations.drain(), importance, &mut updates);
+
+            Ok(())
+        })
     }
 }
 
@@ -512,21 +505,21 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty>
     fn SetProperty(
         &self,
+        cx: &mut JSContext,
         property: DOMString,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         self.set_property_inner(
+            cx,
             PotentiallyParsedPropertyId::NotParsed(property),
             value,
             priority,
-            can_gc,
         )
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
-    fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, cx: &mut JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed(None));
@@ -538,13 +531,10 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         };
 
         let mut string = String::new();
-        self.owner.mutate_associated_block(
-            |pdb, changed| {
-                pdb.property_value_to_css(&id, &mut string).unwrap();
-                *changed = remove_property(pdb, &id);
-            },
-            can_gc,
-        );
+        self.owner.mutate_associated_block(cx, |pdb, changed| {
+            pdb.property_value_to_css(&id, &mut string).unwrap();
+            *changed = remove_property(pdb, &id);
+        });
 
         // Step 6
         Ok(DOMString::from(string))
@@ -556,12 +546,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssFloat(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         self.set_property(
+            cx,
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
-            can_gc,
         )
     }
 
@@ -596,7 +586,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn SetCssText(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         let window = self.owner.window();
 
         // Step 1
@@ -606,19 +596,16 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         let quirks_mode = window.Document().quirks_mode();
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
-        self.owner.mutate_associated_block(
-            |pdb, _changed| {
-                // Step 3
-                *pdb = parse_style_attribute(
-                    &value.str(),
-                    &base_url,
-                    Some(window.css_error_reporter()),
-                    quirks_mode,
-                    CssRuleType::Style,
-                );
-            },
-            can_gc,
-        );
+        self.owner.mutate_associated_block(cx, |pdb, _changed| {
+            // Step 3
+            *pdb = parse_style_attribute(
+                &value.str(),
+                &base_url,
+                Some(window.css_error_reporter()),
+                quirks_mode,
+                CssRuleType::Style,
+            );
+        });
 
         Ok(())
     }

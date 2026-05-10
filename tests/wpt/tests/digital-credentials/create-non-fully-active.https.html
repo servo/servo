@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Digital Credentials Test: navigator.credentials.create() non-fully active document</title>
+<link
+  rel="help"
+  href="https://github.com/w3c/webappsec-credential-management"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+  import { makeCreateOptions } from "./support/helper.js";
+  async function createIframe() {
+    const iframe = document.createElement("iframe");
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+      iframe.src = "about:blank";
+      document.body.appendChild(iframe);
+    });
+    return iframe;
+  }
+
+  promise_test(async (t) => {
+    const iframe = await createIframe();
+
+    // The signal check happens after the fully active check.
+    // This allows us to confirm the right error is thrown
+    // and in the right order.
+    const controller = new iframe.contentWindow.AbortController();
+    const signal = controller.signal;
+    controller.abort();
+
+    // Steal all the needed references.
+    const { credentials } = iframe.contentWindow.navigator;
+    const DOMExceptionCtor = iframe.contentWindow.DOMException;
+
+    // No longer fully active.
+    iframe.remove();
+
+    // Try to create credentials while not fully active...
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      DOMExceptionCtor,
+      credentials.create({ signal }),
+      "Expected InvalidStateError for create() on non-fully-active document"
+    );
+
+    // Try to prevent silent access while not fully active...
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      DOMExceptionCtor,
+      credentials.preventSilentAccess(),
+      "Expected InvalidStateError for preventSilentAccess() on non-fully-active document"
+    );
+  }, "non-fully active document behavior for navigator.credentials.create()");
+
+  promise_test(async (t) => {
+    let iframe = await createIframe();
+    const DOMExceptionCtor = iframe.contentWindow.DOMException;
+    let stolenNavigator = iframe.contentWindow.navigator;
+    const request = makeCreateOptions();
+    await test_driver.bless("User activation", null, iframe.contentWindow);
+    await iframe.focus();
+    const p = promise_rejects_dom(
+      t,
+      "AbortError",
+      DOMExceptionCtor,
+      iframe.contentWindow.navigator.credentials.create(request),
+      "Expect promise to reject if the document becomes non-fully active"
+    );
+    iframe.remove();
+    await p;
+  }, "Promise rejects with DOMException when the document becomes non-fully active");
+
+  promise_test(async (t) => {
+    const iframe = await createIframe();
+    iframe.focus();
+    t.add_cleanup(() => iframe.remove());
+
+    for (let i = 0; i < 10; ++i) {
+      await test_driver.bless("User activation", null, iframe.contentWindow);
+      const controller = new iframe.contentWindow.AbortController();
+      const p = iframe.contentWindow.navigator.credentials.create(
+        makeCreateOptions({ signal: controller.signal })
+      );
+
+      const abortReason = new Error(`Aborted iteration ${i}`);
+      controller.abort(abortReason);
+
+      try {
+        await p;
+        assert_unreached("navigator.credentials.create() unexpectedly resolved");
+      } catch (e) {
+        assert_equals(
+          e,
+          abortReason,
+          `Iteration ${i}: should reject with the exact abort reason`
+        );
+      }
+    }
+  }, "Aborted Digital Credentials create() requests do not leave a subsequent request stuck in an invalid state");
+</script>

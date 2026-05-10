@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection.prototype.createOffer</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
@@ -66,6 +70,7 @@
       pc.createOffer());
   }, 'createOffer() after connection is closed should reject with InvalidStateError');
 
+if (rest) {
   /*
    *  Final steps to create an offer
    *    2.  If connection was modified in such a way that additional inspection of the
@@ -89,7 +94,9 @@
         'Expect m=audio line to be found in offer SDP')
     });
   }, 'When media stream is added when createOffer() is running in parallel, the result offer should contain the new media stream');
+}
 
+if (interop2026) {
   /*
   If connection's signaling state is neither "stable" nor "have-local-offer", return a promise rejected with a newly created InvalidStateError.
   */
@@ -110,6 +117,8 @@
        })
      )
   }, 'createOffer() should fail when signaling state is not stable or have-local-offer');
+}
+
   /*
    *  TODO
    *  4.3.2 createOffer

@@ -189,11 +189,17 @@
   #revert-layer {
     --foo: revert-layer;
   }
+  #revert-rule {
+    --foo: revert-rule;
+  }
   @container not style(--foo: revert) {
     #revert-child { color: green; }
   }
   @container not style(--foo: revert-layer) {
     #revert-layer-child { color: green; }
+  }
+  @container not style(--foo: revert-rule) {
+    #revert-rule-child { color: green; }
   }
   @container style(--foo: revert) {
     #revert-child { color: red; }
@@ -201,12 +207,18 @@
   @container style(--foo: revert-layer) {
     #revert-layer-child { color: red; }
   }
+  @container style(--foo: revert-rule) {
+    #revert-rule-child { color: red; }
+  }
 </style>
 <div id="revert">
   <div id="revert-child"></div>
 </div>
 <div id="revert-layer">
   <div id="revert-layer-child"></div>
+</div>
+<div id="revert-rule">
+  <div id="revert-rule-child"></div>
 </div>
 <script>
   test(() => {
@@ -216,6 +228,15 @@
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#revert-layer-child")).color, green);
   }, "Style query with revert-layer keyword is false");
+
+  // The test is guarded by a CSS.supports() check to avoid sneaking
+  // 'revert-rule' into Interop 2026.
+  // https://github.com/web-platform-tests/interop/issues/1260
+  if (CSS.supports('color', 'revert-rule')) {
+    test(() => {
+      assert_equals(getComputedStyle(document.querySelector("#revert-rule-child")).color, green);
+    }, "Style query with revert-rule keyword is false");
+  }
 </script>
 
 <style>

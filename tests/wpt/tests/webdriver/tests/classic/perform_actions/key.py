@@ -22,7 +22,7 @@ def test_no_browsing_context(session, closed_frame, key_chain):
 
 
 def test_key_down_closes_browsing_context(
-    session, configuration, http_new_tab, inline, key_chain
+    session, configuration, new_tab_classic, inline, key_chain
 ):
     session.url = inline("""
         <input onkeydown="window.close()">close</input>

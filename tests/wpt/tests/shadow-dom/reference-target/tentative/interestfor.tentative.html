@@ -50,12 +50,15 @@
 
         let xPopoverShowCount = 0;
         xPopover.addEventListener('beforetoggle', (e) => {
-          if (e.newState === "open")
+          // Check that xPopover is the first element in the composed path to distinguish between the case
+          // where the event bubbled from the shadow versus the case where the event is dispatched on
+          // xPopover itself.
+          if (e.composedPath()[0] === xPopover && e.newState === "open")
             ++xPopoverShowCount;
         });
         let popoverShowCount = 0;
         popover.addEventListener('beforetoggle', (e) => {
-          if (e.newState === "open")
+          if (e.composedPath()[0] === popover && e.newState === "open")
             ++popoverShowCount;
         });
 

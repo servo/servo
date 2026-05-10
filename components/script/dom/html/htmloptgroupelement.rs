@@ -4,16 +4,17 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
@@ -47,19 +48,19 @@ impl HTMLOptGroupElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLOptGroupElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLOptGroupElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -97,10 +98,15 @@ impl VirtualMethods for HTMLOptGroupElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("disabled") {
             let disabled_state = match mutation {
                 AttributeMutation::Set(None, _) => true,
@@ -133,21 +139,21 @@ impl VirtualMethods for HTMLOptGroupElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.bind_to_tree(context, can_gc);
+            super_type.bind_to_tree(cx, context);
         }
 
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
-                .validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                .validity_state(CanGc::from_cx(cx))
+                .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
         }
     }
 }

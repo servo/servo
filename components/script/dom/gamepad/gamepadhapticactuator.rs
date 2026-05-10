@@ -5,19 +5,20 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
 use js::rust::MutableHandleValue;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericCallback;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
     GamepadEffectParameters, GamepadHapticActuatorMethods, GamepadHapticEffectType,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -45,9 +46,9 @@ impl HapticEffectListener {
     fn handle_completed(&self, completed_successfully: bool) {
         let context = self.context.clone();
         self.task_source
-            .queue(task!(handle_haptic_effect_completed: move || {
+            .queue(task!(handle_haptic_effect_completed: move |cx| {
                 let actuator = context.root();
-                actuator.handle_haptic_effect_completed(completed_successfully, CanGc::note());
+                actuator.handle_haptic_effect_completed(completed_successfully, CanGc::from_cx(cx));
             }));
     }
 }
@@ -136,7 +137,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Strong magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -144,7 +145,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Weak magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -156,7 +157,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Strong magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -164,7 +165,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Weak magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -172,7 +173,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.leftTrigger < 0.0 || *params.leftTrigger > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Left trigger value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -180,7 +181,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.rightTrigger < 0.0 || *params.rightTrigger > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Right trigger value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -199,10 +200,10 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
             self.global().task_manager().gamepad_task_source().queue(
-                task!(preempt_promise: move || {
+                task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::from_cx(cx));
                 }),
             );
         }
@@ -263,15 +264,15 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
             self.global().task_manager().gamepad_task_source().queue(
-                task!(preempt_promise: move || {
+                task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::from_cx(cx));
                 }),
             );
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(promise.clone());
+        *self.playing_effect_promise.borrow_mut() = Some(promise);
 
         self.reset_sequence_id.set(self.sequence_id.get());
 
@@ -330,14 +331,14 @@ impl GamepadHapticActuator {
             let sequence_id = self.sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
             self.global().task_manager().gamepad_task_source().queue(
-                task!(complete_promise: move || {
+                task!(complete_promise: move |cx| {
                     if sequence_id != reset_sequence_id {
                         warn!("Mismatched sequence/reset sequence ids: {} != {}", sequence_id, reset_sequence_id);
                         return;
                     }
                     let promise = trusted_promise.root();
                     let message = DOMString::from("complete");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::from_cx(cx));
                 })
             );
         }
@@ -351,13 +352,13 @@ impl GamepadHapticActuator {
 
         let this = Trusted::new(self);
         self.global().task_manager().gamepad_task_source().queue(
-            task!(stop_playing_effect: move || {
+            task!(stop_playing_effect: move |cx| {
                 let actuator = this.root();
                 let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {
                     return;
                 };
                 let message = DOMString::from("preempted");
-                promise.resolve_native(&message, CanGc::note());
+                promise.resolve_native(&message, CanGc::from_cx(cx));
             }),
         );
 

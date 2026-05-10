@@ -1,7 +1,7 @@
 import pytest
 from webdriver import error
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def back(session):
@@ -31,6 +31,20 @@ def test_no_browsing_context(session, closed_frame):
 def test_no_browsing_history(session):
     response = back(session)
     assert_success(response)
+
+
+def test_timeout_page_load_null(session, inline):
+    first_page = inline("<div id=foo>")
+    second_page = inline("<div id=bar>")
+
+    session.url = first_page
+    session.url = second_page
+
+    session.timeouts.page_load = None
+
+    back(session)
+
+    assert session.url == first_page
 
 
 @pytest.mark.parametrize("protocol,parameters", [

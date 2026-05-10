@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Forwarded click from label preserves pointer properties and trust</title>
+<link rel="author" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#the-label-element">
+<link rel="help" href="https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/pointerevents/pointerevent_support.js"></script>
+<style>
+  #label {
+    display: block;
+    background:#ddd;
+    width: 100px;
+    height: 20px;
+  }
+</style>
+<label id="label" for="control">
+  click me
+</label>
+<input id="control" type="text">
+<script>
+promise_test(async (t) => {
+  const labelClick = getEvent('click', label, t);
+  const controlClick = getEvent('click', control, t);
+  await test_driver.click(label);
+  const labelEvent = await labelClick;
+  const controlEvent = await controlClick;
+
+  assert_true(
+    labelEvent.isTrusted,
+    'label click should be trusted');
+  assert_true(
+    controlEvent.isTrusted,
+    'forwarded control click should be trusted for real user input');
+  assert_equals(
+    controlEvent.pointerType,
+    labelEvent.pointerType,
+    'forwarded click should preserve pointerType');
+  assert_equals(
+    controlEvent.pointerId,
+    labelEvent.pointerId,
+    'forwarded click should preserve pointerId');
+  assert_equals(
+    controlEvent.isPrimary,
+    labelEvent.isPrimary,
+    'forwarded click should preserve isPrimary');
+  assert_equals(
+    controlEvent.detail,
+    labelEvent.detail,
+    'forwarded click should preserve detail');
+}, 'Click forwarded from label to control preserves pointer metadata');
+
+promise_test(async (t) => {
+  const labelClick = getEvent('click', label, t);
+  const controlClick = getEvent('click', control, t);
+  label.click();
+  const labelEvent = await labelClick;
+  const controlEvent = await controlClick;
+
+  assert_false(
+    labelEvent.isTrusted,
+    'label.click() should not be trusted');
+  assert_false(
+    controlEvent.isTrusted,
+    'forwarded click from label.click() should not be trusted');
+}, 'Click forwarded from label.click() is not trusted');
+</script>

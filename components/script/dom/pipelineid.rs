@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::PipelineIdMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -14,13 +14,13 @@ use crate::script_runtime::CanGc;
 pub(crate) struct PipelineId {
     reflector_: Reflector,
     #[no_trace]
-    inner: base::id::PipelineId,
+    inner: servo_base::id::PipelineId,
 }
 
 impl PipelineId {
     pub(crate) fn new(
         global: &GlobalScope,
-        pipeline_id: base::id::PipelineId,
+        pipeline_id: servo_base::id::PipelineId,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(

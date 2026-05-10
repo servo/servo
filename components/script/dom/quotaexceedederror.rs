@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
-use constellation_traits::SerializableQuotaExceededError;
 use dom_struct::dom_struct;
 use js::gc::HandleObject;
 use rustc_hash::FxHashMap;
@@ -11,12 +9,14 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
 use script_bindings::num::Finite;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
+use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
+use servo_constellation_traits::SerializableQuotaExceededError;
 
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::types::{DOMException, GlobalScope};
@@ -39,10 +39,7 @@ impl QuotaExceededError {
         requested: Option<Finite<f64>>,
     ) -> Self {
         Self {
-            dom_exception: DOMException::new_inherited(
-                message,
-                DOMString::from_string("QuotaExceededError".to_string()),
-            ),
+            dom_exception: DOMException::new_inherited(message, "QuotaExceededError".into()),
             quota,
             requested,
         }
@@ -77,7 +74,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
             // If options["quota"] is less than 0, then throw a RangeError.
             if *quota < 0.0 {
                 return Err(Error::Range(
-                    "quota must be at least zero if present".to_string(),
+                    c"quota must be at least zero if present".to_owned(),
                 ));
             }
         }
@@ -86,16 +83,16 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
             // If options["requested"] is less than 0, then throw a RangeError.
             if *requested < 0.0 {
                 return Err(Error::Range(
-                    "requested must be at least zero if present".to_string(),
+                    c"requested must be at least zero if present".to_owned(),
                 ));
             }
         }
         // If this’s quota is not null, this’s requested is not null, and this’s requested
         // is less than this’s quota, then throw a RangeError.
-        if let (Some(quota), Some(requested)) = (options.quota, options.requested) {
-            if *requested < *quota {
-                return Err(Error::Range("requested is less than quota".to_string()));
-            }
+        if let (Some(quota), Some(requested)) = (options.quota, options.requested) &&
+            *requested < *quota
+        {
+            return Err(Error::Range(c"requested is less than quota".to_owned()));
         }
         Ok(reflect_dom_object_with_proto(
             Box::new(QuotaExceededError::new_inherited(

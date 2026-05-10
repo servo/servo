@@ -37,7 +37,6 @@ impl HTMLCanvasElementOrOffscreenCanvas {
 
 impl From<&RootedHTMLCanvasElementOrOffscreenCanvas> for HTMLCanvasElementOrOffscreenCanvas {
     /// Returns a traced version suitable for use as member of other DOM objects.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn from(
         value: &RootedHTMLCanvasElementOrOffscreenCanvas,
     ) -> HTMLCanvasElementOrOffscreenCanvas {
@@ -182,9 +181,7 @@ impl RenderingContext {
                 unreachable!("Should never set an `ImageKey` on a Placeholder")
             },
             RenderingContext::Context2d(context) => context.set_image_key(image_key),
-            RenderingContext::BitmapRenderer(_) => {
-                unreachable!("Should never set an `ImageKey` on a ImageBitmapRenderingContext")
-            },
+            RenderingContext::BitmapRenderer(context) => context.set_image_key(image_key),
             RenderingContext::WebGL(context) => context.set_image_key(image_key),
             RenderingContext::WebGL2(context) => context.set_image_key(image_key),
             #[cfg(feature = "webgpu")]
@@ -322,8 +319,8 @@ impl CanvasContext for RenderingContext {
 pub(crate) enum OffscreenRenderingContext {
     Context2d(Dom<OffscreenCanvasRenderingContext2D>),
     BitmapRenderer(Dom<ImageBitmapRenderingContext>),
-    // WebGL(Dom<WebGLRenderingContext>),
-    // WebGL2(Dom<WebGL2RenderingContext>),
+    WebGL(Dom<WebGLRenderingContext>),
+    WebGL2(Dom<WebGL2RenderingContext>),
     // #[cfg(feature = "webgpu")]
     // WebGPU(Dom<GPUCanvasContext>),
     Detached,
@@ -338,6 +335,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.canvas(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.canvas(),
+            OffscreenRenderingContext::WebGL(context) => context.canvas(),
+            OffscreenRenderingContext::WebGL2(context) => context.canvas(),
             OffscreenRenderingContext::Detached => None,
         }
     }
@@ -346,6 +345,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.resize(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.resize(),
+            OffscreenRenderingContext::WebGL(context) => context.resize(),
+            OffscreenRenderingContext::WebGL2(context) => context.resize(),
             OffscreenRenderingContext::Detached => {},
         }
     }
@@ -354,6 +355,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.reset_bitmap(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.reset_bitmap(),
+            OffscreenRenderingContext::WebGL(context) => context.reset_bitmap(),
+            OffscreenRenderingContext::WebGL2(context) => context.reset_bitmap(),
             OffscreenRenderingContext::Detached => {},
         }
     }
@@ -362,6 +365,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.get_image_data(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.get_image_data(),
+            OffscreenRenderingContext::WebGL(context) => context.get_image_data(),
+            OffscreenRenderingContext::WebGL2(context) => context.get_image_data(),
             OffscreenRenderingContext::Detached => None,
         }
     }
@@ -370,6 +375,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.origin_is_clean(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.origin_is_clean(),
+            OffscreenRenderingContext::WebGL(context) => context.origin_is_clean(),
+            OffscreenRenderingContext::WebGL2(context) => context.origin_is_clean(),
             OffscreenRenderingContext::Detached => true,
         }
     }
@@ -378,6 +385,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.size(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.size(),
+            OffscreenRenderingContext::WebGL(context) => context.size(),
+            OffscreenRenderingContext::WebGL2(context) => context.size(),
             OffscreenRenderingContext::Detached => Size2D::default(),
         }
     }
@@ -386,6 +395,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.mark_as_dirty(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.mark_as_dirty(),
+            OffscreenRenderingContext::WebGL(context) => context.mark_as_dirty(),
+            OffscreenRenderingContext::WebGL2(context) => context.mark_as_dirty(),
             OffscreenRenderingContext::Detached => {},
         }
     }
@@ -394,6 +405,8 @@ impl CanvasContext for OffscreenRenderingContext {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.onscreen(),
             OffscreenRenderingContext::BitmapRenderer(context) => context.onscreen(),
+            OffscreenRenderingContext::WebGL(context) => context.onscreen(),
+            OffscreenRenderingContext::WebGL2(context) => context.onscreen(),
             OffscreenRenderingContext::Detached => false,
         }
     }

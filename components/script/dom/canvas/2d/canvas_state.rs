@@ -8,27 +8,29 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::Epoch;
-use base::generic_channel::GenericSender;
-use canvas_traits::canvas::{
-    Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
-    FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
-    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
-};
-use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::{Vector2D, vec2};
 use fonts::{
-    ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
-    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions, TextByteRange,
+    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef, ShapingFlags,
+    ShapingOptions,
 };
-use ipc_channel::ipc;
+use icu_locid::subtags::Language;
+use js::context::JSContext;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::cell::DomRefCell;
 use servo_arc::Arc as ServoArc;
+use servo_base::generic_channel::GenericSender;
+use servo_base::{Epoch, generic_channel};
+use servo_canvas_traits::canvas::{
+    Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
+    FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
+    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
+};
+use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -45,7 +47,6 @@ use webrender_api::ImageKey;
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
 use crate::conversions::Convert;
 use crate::css::parser_context_for_anonymous_content;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
@@ -698,6 +699,37 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
+                OffscreenRenderingContext::WebGL(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
+
+                OffscreenRenderingContext::WebGL2(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState(None)),
             }
         } else {
@@ -793,6 +825,37 @@ impl CanvasState {
                                 self.state.borrow().transform,
                             )),
                         OffscreenRenderingContext::BitmapRenderer(ref context) => {
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
+                        },
+                        OffscreenRenderingContext::WebGL(ref context) => {
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
+                        },
+
+                        OffscreenRenderingContext::WebGL2(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
                                 return Ok(());
                             };
@@ -1189,16 +1252,16 @@ impl CanvasState {
     pub(super) fn create_linear_gradient(
         &self,
         global: &GlobalScope,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         CanvasGradient::new(
             global,
+            cx,
             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0, *y0, *x1, *y1, Vec::new())),
-            can_gc,
         )
     }
 
@@ -1207,13 +1270,13 @@ impl CanvasState {
     pub(super) fn create_radial_gradient(
         &self,
         global: &GlobalScope,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         r0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         if *r0 < 0. || *r1 < 0. {
             return Err(Error::IndexSize(None));
@@ -1221,6 +1284,7 @@ impl CanvasState {
 
         Ok(CanvasGradient::new(
             global,
+            cx,
             CanvasGradientStyle::Radial(RadialGradientStyle::new(
                 *x0,
                 *y0,
@@ -1230,7 +1294,6 @@ impl CanvasState {
                 *r1,
                 Vec::new(),
             )),
-            can_gc,
         ))
     }
 
@@ -1238,9 +1301,9 @@ impl CanvasState {
     pub(super) fn create_pattern(
         &self,
         global: &GlobalScope,
+        cx: &mut JSContext,
         image: CanvasImageSource,
         mut repetition: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let snapshot = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
@@ -1304,11 +1367,11 @@ impl CanvasState {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
+                cx,
                 snapshot,
                 size.cast(),
                 rep,
                 self.is_origin_clean(image),
-                can_gc,
             )))
         } else {
             Err(Error::Syntax(None))
@@ -1471,7 +1534,7 @@ impl CanvasState {
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> DomRoot<TextMetrics> {
         // > Step 1: If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.0
         // Max width is not provided for `measureText()`.
@@ -1487,11 +1550,11 @@ impl CanvasState {
 
         let Some(font_context) = global.font_context() else {
             warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
-            return TextMetrics::default(global, can_gc);
+            return TextMetrics::default(global, cx);
         };
 
         let font_style = self.font_style();
-        let font_group = font_context.font_group(font_style.clone());
+        let font_group = font_context.font_group(font_style);
         let font = font_group.first(font_context).expect("couldn't find font");
         let ascent = font.metrics.ascent.to_f64_px();
         let descent = font.metrics.descent.to_f64_px();
@@ -1540,6 +1603,7 @@ impl CanvasState {
 
         TextMetrics::new(
             global,
+            cx,
             total_advance as f64,
             anchor_x - bounding_box.min_x(),
             bounding_box.max_x() - anchor_x,
@@ -1552,7 +1616,6 @@ impl CanvasState {
             hanging_baseline - anchor_y,
             alphabetic_baseline - anchor_y,
             ideographic_baseline - anchor_y,
-            can_gc,
         )
     }
 
@@ -1793,7 +1856,7 @@ impl CanvasState {
         };
 
         let data = if self.is_paintable() {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
             self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(Some(read_rect), sender));
 
             let mut snapshot = receiver.recv().unwrap().to_owned();
@@ -2106,9 +2169,13 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    pub(super) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+    pub(super) fn get_transform(
+        &self,
+        global: &GlobalScope,
+        cx: &mut JSContext,
+    ) -> DomRoot<DOMMatrix> {
         let transform = self.state.borrow_mut().transform;
-        DOMMatrix::new(global, true, transform.to_3d(), can_gc)
+        DOMMatrix::new(global, true, transform.to_3d(), CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
@@ -2338,33 +2405,54 @@ impl CanvasState {
         font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
-        let mut current_text_run = UnshapedTextRun::default();
+        // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
+        // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
+        let x_language = self.font_style()._x_lang.clone();
+        let language = x_language.0.parse().unwrap_or(Language::UND);
+        let mut current_text_run = UnshapedTextRun::new(language);
         let mut current_text_run_start_index = 0;
 
-        for (index, character) in text.char_indices() {
-            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
-            // have support for color glyphs.
-            let script = Script::from(character);
-            let font = font_group.find_by_codepoint(font_context, character, None, None, None);
+        // Variation Selectors (U+FE00–U+FE0F) and Variation Selectors Supplement (U+E0100–U+E01EF)
+        // are used to select specific glyph variants (e.g., text vs. emoji presentation).
+        // They must be attached to the preceding base character and do not start new runs.
+        // - VS1–VS16 (U+FE00..U+FE0F) in the Variation Selectors block.
+        // - VS17–VS256 (U+E0100..U+E01EF) in the Variation Selectors Supplement block.
+        fn is_variation_selector(c: char) -> bool {
+            matches!(c as u32, 0xFE00..=0xFE0F | 0xE0100..=0xE01EF)
+        }
 
-            if !current_text_run.script_and_font_compatible(script, &font) {
+        for (index, character) in text.char_indices() {
+            let next_char = text[index + character.len_utf8()..].chars().next();
+
+            let script = Script::from(character);
+
+            let font = font_group.find_by_codepoint(font_context, character, next_char, language);
+
+            if !is_variation_selector(character) &&
+                !current_text_run.script_and_font_compatible(script, &font)
+            {
                 let previous_text_run = std::mem::replace(
                     &mut current_text_run,
                     UnshapedTextRun {
                         font: font.clone(),
                         script,
-                        ..Default::default()
+                        string: Default::default(),
+                        language,
                     },
                 );
                 current_text_run_start_index = index;
-                runs.push(previous_text_run)
+                if !previous_text_run.string.is_empty() && previous_text_run.font.is_some() {
+                    runs.push(previous_text_run);
+                }
             }
 
             current_text_run.string =
                 &text[current_text_run_start_index..index + character.len_utf8()];
         }
 
-        runs.push(current_text_run);
+        if !current_text_run.string.is_empty() && current_text_run.font.is_some() {
+            runs.push(current_text_run);
+        }
         runs
     }
 
@@ -2422,14 +2510,23 @@ impl Drop for CanvasState {
     }
 }
 
-#[derive(Default)]
 struct UnshapedTextRun<'a> {
     font: Option<FontRef>,
     script: Script,
     string: &'a str,
+    language: Language,
 }
 
 impl UnshapedTextRun<'_> {
+    fn new(language: Language) -> Self {
+        Self {
+            font: Default::default(),
+            script: Default::default(),
+            string: Default::default(),
+            language,
+        }
+    }
+
     fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
         if self.script != script {
             return false;
@@ -2443,20 +2540,14 @@ impl UnshapedTextRun<'_> {
     }
 
     fn into_shaped_text_run(self, previous_advance: f32) -> Option<TextRun> {
+        debug_assert!(!self.string.is_empty() && self.font.is_some());
         let font = self.font?;
-        if self.string.is_empty() {
-            return None;
-        }
 
-        let word_spacing = Au::from_f64_px(
-            font.glyph_index(' ')
-                .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                .unwrap_or(LAST_RESORT_GLYPH_ADVANCE),
-        );
         let options = ShapingOptions {
             letter_spacing: None,
-            word_spacing,
+            word_spacing: None,
             script: self.script,
+            language: self.language,
             flags: ShapingFlags::empty(),
         };
 
@@ -2465,7 +2556,7 @@ impl UnshapedTextRun<'_> {
         let mut advance = 0.0;
         let mut bounds = None;
         let glyphs_and_positions = glyphs
-            .iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), glyphs.len()))
+            .glyphs()
             .map(|glyph| {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let glyph_and_position = GlyphAndPosition {
@@ -2487,7 +2578,9 @@ impl UnshapedTextRun<'_> {
         let identifier = font.identifier();
         let font_data = match &identifier {
             FontIdentifier::Local(_) => None,
-            FontIdentifier::Web(_) => Some(font.font_data_and_index().ok()?),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                Some(font.font_data_and_index().ok()?)
+            },
         }
         .cloned();
         let canvas_font = CanvasFont {
@@ -2515,33 +2608,30 @@ pub(super) fn parse_color(
     let url = Url::parse("about:blank").unwrap().into();
     let context =
         parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
-    match Color::parse_and_compute(&context, &mut parser, None) {
-        Some(color) => {
-            // TODO: https://github.com/whatwg/html/issues/1099
-            // Reconsider how to calculate currentColor in a display:none canvas
+    Color::parse_and_compute(&context, &mut parser, None).map(|color| {
+        // TODO: https://github.com/whatwg/html/issues/1099
+        // Reconsider how to calculate currentColor in a display:none canvas
 
-            // TODO: will need to check that the context bitmap mode is fixed
-            // once we implement CanvasProxy
-            let current_color = match canvas {
-                // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
-                // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
-                // it is treated as opaque black.
-                None => AbsoluteColor::BLACK,
-                Some(canvas) => {
-                    let canvas_element = canvas.upcast::<Element>();
-                    match canvas_element.style() {
-                        Some(ref s) if canvas_element.has_css_layout_box() => {
-                            s.get_inherited_text().color
-                        },
-                        _ => AbsoluteColor::BLACK,
-                    }
-                },
-            };
+        // TODO: will need to check that the context bitmap mode is fixed
+        // once we implement CanvasProxy
+        let current_color = match canvas {
+            // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
+            // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
+            // it is treated as opaque black.
+            None => AbsoluteColor::BLACK,
+            Some(canvas) => {
+                let canvas_element = canvas.upcast::<Element>();
+                match canvas_element.style() {
+                    Some(ref s) if canvas_element.has_css_layout_box() => {
+                        s.get_inherited_text().color
+                    },
+                    _ => AbsoluteColor::BLACK,
+                }
+            },
+        };
 
-            Ok(color.resolve_to_absolute(&current_color))
-        },
-        None => Err(()),
-    }
+        color.resolve_to_absolute(&current_color)
+    })
 }
 
 // Used by drawImage to determine if a source or destination rectangle is valid

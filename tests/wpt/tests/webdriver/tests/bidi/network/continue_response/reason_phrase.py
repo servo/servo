@@ -36,7 +36,7 @@ async def test_reason_phrase(
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
         response_completed_event,
-        expected_response={"statusText": reason_phrase},
+        expected_event={"response": {"statusText": reason_phrase}},
     )
 
 
@@ -66,5 +66,7 @@ async def test_reason_phrase_and_status_code(
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
         response_completed_event,
-        expected_response={"statusText": reason_phrase, "status": status_code},
+        expected_event={
+            "response": {"statusText": reason_phrase, "status": status_code}
+        },
     )

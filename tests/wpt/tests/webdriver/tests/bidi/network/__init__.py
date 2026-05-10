@@ -17,16 +17,13 @@ from .. import (
     any_list,
     any_string,
     any_string_or_null,
+    assert_bytes_value,
+    assert_cookie,
     assert_cookies,
     int_interval,
     number_interval,
     recursive_compare,
 )
-
-
-def assert_bytes_value(bytes_value):
-    assert bytes_value["type"] in ["string", "base64"]
-    any_string(bytes_value["value"])
 
 
 def assert_headers(event_headers, expected_headers):
@@ -92,8 +89,6 @@ def assert_request_data(request_data, expected_request, expected_time_range):
         request_data,
     )
 
-    for cookie in request_data["cookies"]:
-        assert_bytes_value(cookie["value"])
 
     if "cookies" in expected_request:
         assert_cookies(request_data["cookies"], expected_request["cookies"])
@@ -102,6 +97,10 @@ def assert_request_data(request_data, expected_request, expected_time_range):
         # We don't want to assert all headers and cookies, so we do a custom
         # assert for each and then delete it before using recursive_compare.
         del expected_request["cookies"]
+    else:
+        # Otherwise still check the cookies have the expected shape.
+        for cookie in request_data["cookies"]:
+            assert_cookie(cookie)
 
     for header in request_data["headers"]:
         assert_bytes_value(header["value"])
@@ -116,16 +115,7 @@ def assert_request_data(request_data, expected_request, expected_time_range):
     recursive_compare(expected_request, request_data)
 
 
-def assert_base_parameters(
-    event,
-    context=None,
-    intercepts=None,
-    is_blocked=None,
-    navigation=None,
-    redirect_count=None,
-    expected_request=None,
-    expected_time_range=None,
-):
+def assert_base_parameters(event, expected_event):
     recursive_compare(
         {
             "context": any_string_or_null,
@@ -138,11 +128,11 @@ def assert_base_parameters(
         event,
     )
 
-    if context is not None:
-        assert event["context"] == context
+    if "context" in expected_event:
+        assert event["context"] == expected_event["context"]
 
-    if is_blocked is not None:
-        assert event["isBlocked"] == is_blocked
+    if "isBlocked" in expected_event:
+        assert event["isBlocked"] == expected_event["isBlocked"]
 
     if event["isBlocked"]:
         assert isinstance(event["intercepts"], list)
@@ -152,30 +142,25 @@ def assert_base_parameters(
     else:
         assert "intercepts" not in event
 
-    if intercepts is not None:
-        assert event["intercepts"] == intercepts
+    if "intercepts" in expected_event:
+        assert event["intercepts"] == expected_event["intercepts"]
 
-    if navigation is not None:
-        assert event["navigation"] == navigation
+    if "navigation" in expected_event:
+        assert event["navigation"] == expected_event["navigation"]
 
-    if redirect_count is not None:
-        assert event["redirectCount"] == redirect_count
+    if "redirectCount" in expected_event:
+        assert event["redirectCount"] == expected_event["redirectCount"]
 
     # Assert request data (expected_time_range is optional)
-    if expected_request is not None:
-        assert_request_data(event["request"], expected_request, expected_time_range)
+    if "request" in expected_event:
+        assert_request_data(
+            event["request"],
+            expected_event["request"],
+            expected_event.get("timestamp"),
+        )
 
 
-def assert_before_request_sent_event(
-    event,
-    context=None,
-    intercepts=None,
-    is_blocked=None,
-    navigation=None,
-    redirect_count=None,
-    expected_request=None,
-    expected_time_range=None,
-):
+def assert_before_request_sent_event(event, expected_event):
     # Assert initiator
     if "initiator" in event:
         assert isinstance(event["initiator"], dict)
@@ -183,43 +168,21 @@ def assert_before_request_sent_event(
     # Assert base parameters
     assert_base_parameters(
         event,
-        context=context,
-        intercepts=intercepts,
-        is_blocked=is_blocked,
-        navigation=navigation,
-        redirect_count=redirect_count,
-        expected_request=expected_request,
-        expected_time_range=expected_time_range,
+        expected_event
     )
 
 
-def assert_fetch_error_event(
-    event,
-    context=None,
-    errorText=None,
-    intercepts=None,
-    is_blocked=None,
-    navigation=None,
-    redirect_count=None,
-    expected_request=None,
-    expected_time_range=None,
-):
+def assert_fetch_error_event(event, expected_event):
     # Assert errorText
     assert isinstance(event["errorText"], str)
 
-    if errorText is not None:
-        assert event["errorText"] == errorText
+    if "errorText" in expected_event:
+        assert event["errorText"] == expected_event["errorText"]
 
     # Assert base parameters
     assert_base_parameters(
         event,
-        context=context,
-        intercepts=intercepts,
-        is_blocked=is_blocked,
-        navigation=navigation,
-        redirect_count=redirect_count,
-        expected_request=expected_request,
-        expected_time_range=expected_time_range,
+        expected_event
     )
 
 
@@ -261,32 +224,16 @@ def assert_response_data(response_data, expected_response):
     recursive_compare(expected_response, response_data)
 
 
-def assert_response_event(
-    event,
-    context=None,
-    intercepts=None,
-    is_blocked=None,
-    navigation=None,
-    redirect_count=None,
-    expected_request=None,
-    expected_response=None,
-    expected_time_range=None,
-):
+def assert_response_event(event, expected_event):
     # Assert response data
     any_dict(event["response"])
-    if expected_response is not None:
-        assert_response_data(event["response"], expected_response)
+    if "response" in expected_event:
+        assert_response_data(event["response"], expected_event["response"])
 
     # Assert base parameters
     assert_base_parameters(
         event,
-        context=context,
-        intercepts=intercepts,
-        is_blocked=is_blocked,
-        navigation=navigation,
-        redirect_count=redirect_count,
-        expected_request=expected_request,
-        expected_time_range=expected_time_range,
+        expected_event
     )
 
 

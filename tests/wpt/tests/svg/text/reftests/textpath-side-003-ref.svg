@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="200" viewBox="0 0 400 200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <!-- Reversed path: equivalent to side="right" on the original curve -->
+    <path id="curve-reversed" d="M 350,100 Q 200,30 50,100"/>
+  </defs>
+  <!-- Reference: reversed path without side attr = same as side="right" on original -->
+  <text fill="black">
+    <textPath href="#curve-reversed">ABCDE</textPath>
+  </text>
+</svg>

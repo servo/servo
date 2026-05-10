@@ -3,8 +3,9 @@ import pytest
 from . import assert_javascript_entry, create_log
 from ... import int_interval
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_types_and_values(
     bidi_session, subscribe_events, current_time, top_context, wait_for_event, wait_for_future_safe
 ):

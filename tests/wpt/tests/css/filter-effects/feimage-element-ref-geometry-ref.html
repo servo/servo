@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+    svg, .box {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 400px;
+        height: 300px;
+    }
+    .test {
+        width: 400px;
+        height: 300px;
+        filter: url(#filter);
+    }
+    .indicator {
+        border: 1px solid black;
+    }
+    /* This also hides any antialiasing of the filter content */
+    .filter-indicator {
+        top: 38px;
+        left: 38px;
+        width: 354px;
+        height: 254px;
+        box-sizing: border-box;
+        border: 4px solid orange;
+    }
+</style>
+</head>
+<body>
+  <svg width="400" height="300">
+    <defs>
+      <g id="group">
+        <rect x="20" y="20" width="350" height="250" fill="green"></rect>
+        <!-- The large offset triggers buffer scaling in some UAs -->
+        <rect x="4000" y="4000" width="500" height="400" fill="red"></rect>
+      </g>
+    </defs>
+    <use href="#group">
+  </svg>
+</div>
+
+<div class="indicator box"></div>
+<div class="filter-indicator box"></div>
+
+</body>
+</html>

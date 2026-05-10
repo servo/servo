@@ -6,3 +6,11 @@ features:
   files:
   - SVGAnimatedEnumeration-SVGFilterElement.html
   - SVGAnimatedEnumeration-SVGFEColorMatrixElement.html
+- name: svg
+  files:
+  - SVGGraphicsElement*
+  - SVGLength-*
+  - SVGLengthList-*
+  - SVGMatrix-tentative.html
+  - SVGPathElement.getTotalLength-01.html
+  - SVGRect.html

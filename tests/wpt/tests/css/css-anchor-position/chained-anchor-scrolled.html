@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Ensure that chained anchor's getBoudningClientRect is correct</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #a {
+    anchor-name: --b;
+    position: fixed;
+    position-anchor: --a;
+    position-area: bottom;
+    background: lime;
+  }
+  #b {
+     position: fixed;
+     position-anchor: --b;
+     position-area: bottom;
+     background: cyan;
+  }
+  #base {
+    anchor-name: --a;
+    margin-top: 100vh;
+    margin-bottom: 100vh;
+    background: lightgrey;
+  }
+  .box {
+    width: 50px;
+    height: 50px;
+  }
+  .spacer {
+    height: 1000px;
+  }
+</style>
+
+<div class=box id="base" style=""></div>
+<div class=box id="target" style="display: none;">
+  <div class=box id="a"></div>
+  <div class=box id="b"></div>
+</div>
+<div class=spacer></div>
+<script>
+async_test((t) => {
+  base.scrollIntoView({block: 'center'});
+  target.style.display = '';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t.step(() => {
+      assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom, "initial");
+      assert_equals(document.elementFromPoint(a.getBoundingClientRect().left + 1, a.getBoundingClientRect().top + 1), a, "a initial");
+      assert_equals(document.elementFromPoint(b.getBoundingClientRect().left + 1, b.getBoundingClientRect().top + 1), b, "b initial");
+    });
+
+    window.scrollBy(0, 100);
+
+    requestAnimationFrame(() => {
+      t.step(() => {
+        assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom, "after scroll");
+        assert_equals(document.elementFromPoint(a.getBoundingClientRect().left + 1, a.getBoundingClientRect().top + 1), a, "a after scroll");
+        assert_equals(document.elementFromPoint(b.getBoundingClientRect().left + 1, b.getBoundingClientRect().top + 1), b, "b after scroll");
+        t.done();
+      });
+    });
+  }));
+}, '#b top should be at #a bottom');
+</script>

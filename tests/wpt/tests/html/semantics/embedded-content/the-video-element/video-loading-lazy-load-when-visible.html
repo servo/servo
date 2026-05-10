@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+
+<video class="below-viewport" controls src="/media/A4.webm" loading="lazy"></video>
+
+<script>
+  const video = document.querySelector("video");
+
+  const t = async_test(
+    "Video with loading=lazy does not fetch video while not visible, then fetches video once scrolled into view"
+  );
+
+  // Step 1: Not visible => check initial dimensions.
+  t.step_timeout(() => {
+      const initialWidth = video.offsetWidth;
+      const initialHeight = video.offsetHeight;
+
+      // Step 2: Scroll into view => video should load and dimensions should change.
+      video.scrollIntoView();
+
+      t.step_timeout(() => {
+        const finalWidth = video.offsetWidth;
+        const finalHeight = video.offsetHeight;
+        assert_not_equals(
+          finalWidth,
+          initialWidth,
+          "Video width should change after video loads"
+        );
+        assert_not_equals(
+          finalHeight,
+          initialHeight,
+          "Video height should change after video loads"
+        );
+        t.done();
+      }, 2000);
+  }, 2000);
+</script>

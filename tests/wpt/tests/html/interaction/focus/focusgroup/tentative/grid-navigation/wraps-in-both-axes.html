@@ -2,12 +2,13 @@
 <meta charset="utf-8">
 <title>HTML Test: focusgroup - Validate that wrap allows both horizontal and vertical wrapping.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <table focusgroup="grid wrap">
@@ -29,32 +30,32 @@
     var r1c1 = document.getElementById("r1c1");
     var r1c3 = document.getElementById("r1c3");
 
-    await focusAndKeyPress(r1c3, kArrowRight);
+    await focusAndSendDirectionalInput(r1c3, kRight);
     assert_equals(document.activeElement, r1c1);
-  }, "When on the last column, a right arrow press should move the focus to first column if the focusgroup wraps horizontally.");
+  }, "When on the last column, navigating right should move the focus to first column if the focusgroup wraps horizontally.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
     var r2c1 = document.getElementById("r2c1");
 
-    await focusAndKeyPress(r2c1, kArrowDown);
+    await focusAndSendDirectionalInput(r2c1, kDown);
     assert_equals(document.activeElement, r1c1);
-  }, "When on the last row, a down arrow press should move the focus to first row if the focusgroup wraps vertically.");
+  }, "When on the last row, navigating down should move the focus to first row if the focusgroup wraps vertically.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
     var r1c3 = document.getElementById("r1c3");
 
-    await focusAndKeyPress(r1c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r1c1, kLeft);
     assert_equals(document.activeElement, r1c3);
-  }, "When on the first column, a left arrow press should move the focus to last column if the focusgroup wraps horizontally.");
+  }, "When on the first column, navigating left should move the focus to last column if the focusgroup wraps horizontally.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
     var r2c1 = document.getElementById("r2c1");
 
-    await focusAndKeyPress(r1c1, kArrowUp);
+    await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r2c1);
-  }, "When on the first row, an up arrow press should move the focus to last row if the focusgroup wraps vertically.");
+  }, "When on the first row, navigating up should move the focus to last row if the focusgroup wraps vertically.");
 
 </script>

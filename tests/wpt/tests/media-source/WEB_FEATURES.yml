@@ -1,3 +1,8 @@
 features:
 - name: media-source
-  files: "**"
+  files:
+  - "*"
+  - "!mediasource-avtracks.html"
+- name: audio-video-tracks
+  files:
+  - mediasource-avtracks.html

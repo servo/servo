@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Row fill-reverse with out-of-flow items and indefinite size</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="row-fill-reverse-out-of-flow-indefinite-size-001-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      flow-tolerance: 0;
+      grid-template-rows: repeat(3, 50px);
+      gap: 10px;
+      border: solid blue;
+      grid-lanes-direction: row fill-reverse;
+      position: relative;
+    }
+    .abspos {
+      position: absolute;
+      background: coral;
+      width: 30px;
+      height: 30px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that out-of-flow items do not affect fill-reverse placement of in-flow
+     items in a row container with indefinite inline size, and that OOF items are
+     positioned correctly.</p>
+  <div class="grid-lanes">
+    <div style="background: lavender; width: 20px;">1</div>
+    <div class="abspos" style="top: 10px; left: 10px;">A</div>
+    <div style="background: lightskyblue; width: 30px;">2</div>
+    <div style="background: lightgreen; width: 20px;">3</div>
+    <div class="abspos" style="bottom: 10px; right: 10px;">B</div>
+    <div style="background: lightpink; width: 25px;">4</div>
+    <div style="background: gold; width: 35px;">5</div>
+    <div style="background: orchid; width: 20px;">6</div>
+  </div>
+</body>
+</html>

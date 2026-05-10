@@ -17,7 +17,7 @@
   .grid-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: 20px 10px 20px 10px 20px 20px 10px 20px 10px;
+    grid-template-rows: 20px 10px 20px 10px 20px 10px 10px 10px 10px 10px 10px;
     background: lightgray;
     column-gap: 10px;
   }
@@ -27,7 +27,7 @@
     grid-template-rows: subgrid;
     background: teal;
     grid-column: 2 / -2;
-    grid-row: 3 / -3;
+    grid-row: 3 / 8;
     background: orange;
   }
   .item {
@@ -62,7 +62,7 @@
 <div class="multicol">
   <div class="grid-container">
     <div class="subgrid">
-      <div style="grid-row: 4; grid-column: 2/4; background: red; "></div>
+      <div style="grid-row: 4/6; grid-column: 2/4; background: red; "></div>
     </div>
   </div>
 
@@ -78,9 +78,12 @@
     <div class="col-gap" style="background: white;"></div>
   </div>
 
-  <div class="col-gap-group" style="left: 160px; height: 50px;">
+  <div class="col-gap-group" style="left: 160px; height: 60px; gap: 80px;">
     <div class="col-gap"></div>
     <div class="col-gap"></div>
+  </div>
+
+  <div class="col-gap-group" style="left: 190px; height: 30px; top: 30px;">
     <div class="col-gap"></div>
     <div class="col-gap"></div>
   </div>
@@ -100,7 +103,7 @@
     <div class="row-gap" style="width: 20px;"></div>
   </div>
 
-  <div class="row-gap-group" style="flex-direction: row; width: 140px;  left:140px;">
+  <div class="row-gap-group" style="flex-direction: row; width: 140px; top: 30px;  left:140px;">
     <div class="row-gap" style="width: 30px;"></div>
     <div class="row-gap" style="width: 80px;"></div>
     <div class="row-gap" style="width: 30px;"></div>

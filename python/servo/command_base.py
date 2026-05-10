@@ -20,32 +20,26 @@ import subprocess
 import sys
 import tarfile
 from tarfile import TarInfo
-import urllib
 import zipfile
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from enum import Enum
 from glob import glob
 from os import path
-from subprocess import PIPE, CompletedProcess
-from typing import Any, Optional, Union, LiteralString, cast, List
+from subprocess import CompletedProcess
+from typing import Any, Optional, Union, cast, List
 from collections.abc import Generator, Callable
-from xml.etree.ElementTree import XML
 
 import toml
 from mach.decorators import CommandArgument, CommandArgumentGroup
-from mach.registrar import Registrar
 
 import servo.platform
 import servo.util as util
 from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyTarget
-from servo.util import download_file, get_default_cache_dir
+from servo.util import get_default_cache_dir
 
 from python.servo.platform.build_target import SanitizerKind
 from python.servo.util import get_target_dir
 
-NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 
 
@@ -59,15 +53,19 @@ class BuildType:
     kind: Kind
     profile: str
 
+    @staticmethod
     def dev() -> BuildType:
         return BuildType(BuildType.Kind.DEV, "debug")
 
+    @staticmethod
     def release() -> BuildType:
         return BuildType(BuildType.Kind.RELEASE, "release")
 
+    @staticmethod
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
+    @staticmethod
     def custom(profile: str) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
@@ -94,6 +92,7 @@ class BuildType:
     def as_cargo_arg(self) -> List[str]:
         return ["--profile", self.profile]
 
+    @staticmethod
     def from_string(profile: str) -> BuildType:
         if profile == "dev":
             return BuildType.dev()
@@ -252,6 +251,10 @@ def is_linux() -> bool:
     return sys.platform.startswith("linux")
 
 
+def is_freebsd() -> bool:
+    return sys.platform.startswith("freebsd")
+
+
 class BuildNotFound(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
@@ -359,124 +362,6 @@ class CommandBase(object):
 
         return binary_path
 
-    def detach_volume(self, mounted_volume: str | bytes) -> None:
-        print("Detaching volume {}".format(mounted_volume))
-        try:
-            subprocess.check_call(["hdiutil", "detach", mounted_volume])
-        except subprocess.CalledProcessError as e:
-            print("Could not detach volume {} : {}".format(mounted_volume, e.returncode))
-            sys.exit(1)
-
-    def detach_volume_if_attached(self, mounted_volume: str | bytes) -> None:
-        if os.path.exists(mounted_volume):
-            self.detach_volume(mounted_volume)
-
-    def mount_dmg(self, dmg_path: str) -> None:
-        print("Mounting dmg {}".format(dmg_path))
-        try:
-            subprocess.check_call(["hdiutil", "attach", dmg_path])
-        except subprocess.CalledProcessError as e:
-            print("Could not mount Servo dmg : {}".format(e.returncode))
-            sys.exit(1)
-
-    def extract_nightly(self, nightlies_folder: LiteralString, destination_folder: str, destination_file: str) -> None:
-        print("Extracting to {} ...".format(destination_folder))
-        if is_macosx():
-            mounted_volume = path.join(path.sep, "Volumes", "Servo")
-            self.detach_volume_if_attached(mounted_volume)
-            self.mount_dmg(destination_file)
-            # Servo folder is always this one
-            servo_directory = path.join(path.sep, "Volumes", "Servo", "Servo.app", "Contents", "MacOS")
-            print("Copying files from {} to {}".format(servo_directory, destination_folder))
-            shutil.copytree(servo_directory, destination_folder)
-            self.detach_volume(mounted_volume)
-        else:
-            if is_windows():
-                command = "msiexec /a {} /qn TARGETDIR={}".format(
-                    os.path.join(nightlies_folder, destination_file), destination_folder
-                )
-                if subprocess.call(command, stdout=PIPE, stderr=PIPE) != 0:
-                    print("Could not extract the nightly executable from the msi package.")
-                    sys.exit(1)
-            else:
-                with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
-                    tar.extractall(destination_folder)
-
-    def get_executable(self, destination_folder: str) -> str:
-        if is_windows():
-            return path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
-        if is_linux:
-            return path.join(destination_folder, "servo", "servo")
-        return path.join(destination_folder, "servo")
-
-    def get_nightly_binary_path(self, nightly_date: str | None) -> str | None:
-        if nightly_date is None:
-            return
-        if not nightly_date:
-            print("No nightly date has been provided although the --nightly or -n flag has been passed.")
-            sys.exit(1)
-        # Will alow us to fetch the relevant builds from the nightly repository
-        os_prefix = "linux"
-        if is_windows():
-            os_prefix = "windows-msvc"
-        if is_macosx():
-            os_prefix = "mac"
-        nightly_date = nightly_date.strip()
-        # Fetch the filename to download from the build list
-        repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
-        req = urllib.request.Request("{}/{}/{}".format(repository_index, os_prefix, nightly_date))
-        try:
-            response = urllib.request.urlopen(req).read()
-            tree = XML(response)
-            namespaces = {"ns": tree.tag[1 : tree.tag.index("}")]}
-            # pyrefly: ignore  # missing-attribute
-            file_to_download = tree.find("ns:Contents", namespaces).find("ns:Key", namespaces).text
-        except urllib.error.URLError as e:
-            print("Could not fetch the available nightly versions from the repository : {}".format(e.reason))
-            sys.exit(1)
-        except ValueError as e:
-            print(
-                "Could not fetch a nightly version for date {} and platform {} cause of {}".format(
-                    nightly_date, os_prefix, e
-                )
-            )
-            sys.exit(1)
-        except AttributeError:
-            print("Could not fetch a nightly version for date {} and platform {}".format(nightly_date, os_prefix))
-            sys.exit(1)
-
-        nightly_target_directory = path.join(self.context.topdir, "target")
-        # ':' is not an authorized character for a file name on Windows
-        # make sure the OS specific separator is used
-        # pyrefly: ignore  # missing-attribute
-        target_file_path = file_to_download.replace(":", "-").split("/")
-        destination_file = os.path.join(nightly_target_directory, os.path.join(*target_file_path))
-        # Once extracted, the nightly folder name is the tar name without the extension
-        # (eg /foo/bar/baz.tar.gz extracts to /foo/bar/baz)
-        destination_folder = os.path.splitext(destination_file)[0]
-        nightlies_folder = path.join(nightly_target_directory, "nightly", os_prefix)
-
-        # Make sure the target directory exists
-        if not os.path.isdir(nightlies_folder):
-            print("The nightly folder for the target does not exist yet. Creating {}".format(nightlies_folder))
-            os.makedirs(nightlies_folder)
-
-        # Download the nightly version
-        if os.path.isfile(path.join(nightlies_folder, destination_file)):
-            print("The nightly file {} has already been downloaded.".format(destination_file))
-        else:
-            print("The nightly {} does not exist yet, downloading it.".format(destination_file))
-            # pyrefly: ignore  # no-matching-overload
-            download_file(destination_file, NIGHTLY_REPOSITORY_URL + file_to_download, destination_file)
-
-        # Extract the downloaded nightly version
-        if os.path.isdir(destination_folder):
-            print("The nightly folder {} has already been extracted.".format(destination_folder))
-        else:
-            self.extract_nightly(nightlies_folder, destination_folder, destination_file)
-
-        return self.get_executable(destination_folder)
-
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
@@ -536,6 +421,12 @@ class CommandBase(object):
                 print("Error: Cross-compiling servo on windows requires the Ninja tool to be installed and in PATH.")
                 print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
                 exit(1)
+
+        # Increase stylo thread stack size to 8 MiB for all builds
+        # to match the recursion depth of Chromium.
+        # This only reserves virtual memory space and has almost no overhead.
+        # See https://github.com/servo/servo/pull/43888
+        env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(8 * 1024))
 
         return env
 
@@ -711,13 +602,9 @@ class CommandBase(object):
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
-                        kwargs["servo_binary"] = (
-                            kwargs.get("bin")
-                            or self.get_nightly_binary_path(kwargs.get("nightly"))
-                            or self.get_binary_path(
-                                cast(BuildType, kwargs.get("build_type")),
-                                sanitizer=cast(SanitizerKind, kwargs.get("sanitizer")),
-                            )
+                        kwargs["servo_binary"] = kwargs.get("bin") or self.get_binary_path(
+                            cast(BuildType, kwargs.get("build_type")),
+                            sanitizer=cast(SanitizerKind, kwargs.get("sanitizer")),
                         )
                     kwargs.pop("bin")
                     kwargs.pop("nightly")
@@ -770,12 +657,17 @@ class CommandBase(object):
                 return BuildType.dev()
 
         if release:
+            self.config["build"]["mode"] = "release"
             return BuildType.release()
         elif dev:
+            self.config["build"]["mode"] = "dev"
             return BuildType.dev()
         elif prod:
+            self.config["build"]["mode"] = "production"
             return BuildType.prod()
         else:
+            # Guaranteed non-None.
+            self.config["build"]["mode"] = profile
             return BuildType.from_string(profile)
 
     def configure_build_target(self, kwargs: dict[str, Any], suppress_log: bool = False) -> None:
@@ -813,7 +705,7 @@ class CommandBase(object):
 
         self.context.target = self.target
         if self.target.is_cross_build() and not suppress_log:
-            print(f"Targeting '{self.target.triple()}' for cross-compilation")
+            print(f"Targeting '{self.target.triple()}' for cross-compilation", file=sys.stderr)
 
     def is_media_enabled(self, media_stack: Optional[str]) -> bool:
         """Determine whether media is enabled based on the value of the build target
@@ -925,14 +817,14 @@ class CommandBase(object):
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
-    def android_adb_path(self, env: dict[str, Any]) -> LiteralString:
+    def android_adb_path(self, env: dict[str, Any]) -> str:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "platform-tools", "adb")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
 
-    def android_emulator_path(self, env: dict[str, Any]) -> LiteralString:
+    def android_emulator_path(self, env: dict[str, Any]) -> str:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "emulator", "emulator")
             if path.exists(sdk_adb):
@@ -950,35 +842,13 @@ class CommandBase(object):
         if not self.target.is_cross_build():
             return
 
+        if shutil.which("rustup") is None:
+            print("Warning: rustup not found. Skipping automatic target installation for cross-compilation.")
+            print(f"  You may need to manually ensure the '{self.target.triple()}' target is installed.")
+            return
+
         installed_targets = check_output(["rustup", "target", "list", "--installed"], cwd=self.context.topdir)
         if isinstance(installed_targets, bytes):
             installed_targets = installed_targets.decode("utf-8")
         if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()], cwd=self.context.topdir)
-
-    def ensure_clobbered(self, target_dir: str | None = None) -> None:
-        if target_dir is None:
-            target_dir = util.get_target_dir()
-        auto = True if os.environ.get("AUTOCLOBBER", False) else False
-        src_clobber = os.path.join(self.context.topdir, "CLOBBER")
-        target_clobber = os.path.join(target_dir, "CLOBBER")
-
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-
-        if not os.path.exists(target_clobber):
-            # Simply touch the file.
-            with open(target_clobber, "a"):
-                pass
-
-        if auto:
-            if os.path.getmtime(src_clobber) > os.path.getmtime(target_clobber):
-                print("Automatically clobbering target directory: {}".format(target_dir))
-
-                try:
-                    Registrar.dispatch("clean", context=self.context, verbose=True)
-                    print("Successfully completed auto clobber.")
-                except subprocess.CalledProcessError as error:
-                    sys.exit(error.returncode)
-            else:
-                print("Clobber not needed.")

@@ -4,7 +4,7 @@
 
 use std::ops::Range;
 
-use icu_segmenter::LineSegmenter;
+use icu_segmenter::{LineBreakOptions, LineSegmenter};
 
 pub(crate) struct LineBreaker {
     linebreaks: Vec<usize>,
@@ -12,8 +12,8 @@ pub(crate) struct LineBreaker {
 }
 
 impl LineBreaker {
-    pub(crate) fn new(string: &str) -> Self {
-        let line_segmenter = LineSegmenter::new_auto();
+    pub(crate) fn new(string: &str, options: LineBreakOptions) -> Self {
+        let line_segmenter = LineSegmenter::new_auto_with_options(options);
         Self {
             // From https://docs.rs/icu_segmenter/1.5.0/icu_segmenter/struct.LineSegmenter.html
             // > For consistency with the grapheme, word, and sentence segmenters, there is always a
@@ -60,7 +60,7 @@ mod test {
 
     #[test]
     fn test_linebreaker_ranges() {
-        let linebreaker = LineBreaker::new("abc def");
+        let linebreaker = LineBreaker::new("abc def", LineBreakOptions::default());
         assert_eq!(linebreaker.linebreaks, [4, 7]);
         assert_eq!(
             linebreaker.linebreaks_in_range_after_current_offset(0..5),
@@ -72,7 +72,7 @@ mod test {
             0..1
         );
 
-        let linebreaker = LineBreaker::new("abc d def");
+        let linebreaker = LineBreaker::new("abc d def", LineBreakOptions::default());
         assert_eq!(linebreaker.linebreaks, [4, 6, 9]);
         assert_eq!(
             linebreaker.linebreaks_in_range_after_current_offset(0..5),
@@ -93,7 +93,7 @@ mod test {
         );
 
         std::panic::catch_unwind(|| {
-            let linebreaker = LineBreaker::new("abc def");
+            let linebreaker = LineBreaker::new("abc def", LineBreakOptions::default());
             linebreaker.linebreaks_in_range_after_current_offset(5..2);
         })
         .expect_err("Reversed range should cause an assertion failure.");
@@ -101,7 +101,7 @@ mod test {
 
     #[test]
     fn test_linebreaker_stateful_advance() {
-        let mut linebreaker = LineBreaker::new("abc d def");
+        let mut linebreaker = LineBreaker::new("abc d def", LineBreakOptions::default());
         assert_eq!(linebreaker.linebreaks, [4, 6, 9]);
         assert!(linebreaker.advance_to_linebreaks_in_range(0..7) == &[4, 6]);
         assert!(linebreaker.advance_to_linebreaks_in_range(8..9).is_empty());
@@ -117,7 +117,7 @@ mod test {
         linebreaker.current_offset = 0;
 
         std::panic::catch_unwind(|| {
-            let mut linebreaker = LineBreaker::new("abc d def");
+            let mut linebreaker = LineBreaker::new("abc d def", LineBreakOptions::default());
             linebreaker.advance_to_linebreaks_in_range(2..0);
         })
         .expect_err("Reversed range should cause an assertion failure.");

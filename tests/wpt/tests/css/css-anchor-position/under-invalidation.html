@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/486806596">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+#container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+#anchor {
+  position: absolute;
+  anchor-name: --a;
+  width: 100px;
+  height: 10px;
+  top: 90px;
+  background: green;
+}
+#target {
+  position: absolute;
+  width: 100px;
+  min-height: 150px;
+  bottom: anchor(--a top);
+  background: green;
+  position-try-fallbacks: --fallback;
+}
+@position-try --fallback {
+   min-height: 90px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="anchor"></div>
+  <div id="target"></div>
+</div>

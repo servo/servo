@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - menu behavior token defaults</title>
+<meta name="assert" content="menu implies block axis, wrap. Explicit inline overrides axis; nowrap suppresses wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="menu">
+  <button tabindex=0 id=m1>m1</button>
+  <button tabindex=0 id=m2>m2</button>
+  <button tabindex=0 id=m3>m3</button>
+</div>
+
+<!-- menu inline: explicit inline overrides default block -->
+<div focusgroup="menu inline">
+  <button tabindex=0 id=mi1>mi1</button>
+  <button tabindex=0 id=mi2>mi2</button>
+  <button tabindex=0 id=mi3>mi3</button>
+</div>
+
+<!-- menu nowrap: suppresses default block-axis wrap -->
+<div focusgroup="menu nowrap">
+  <button tabindex=0 id=mnw1>mnw1</button>
+  <button tabindex=0 id=mnw2>mnw2</button>
+  <button tabindex=0 id=mnw3>mnw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kDown);
+    assert_equals(document.activeElement.id, 'm2');
+  }, "menu: Down navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m2'), kUp);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: Up navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kRight);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: Right blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kLeft);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: Left blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m3'), kDown);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: Down wraps at end");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kUp);
+    assert_equals(document.activeElement.id, 'm3');
+  }, "menu: Up wraps at start");
+
+  // --- menu inline: explicit inline overrides default block ---
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kRight);
+    assert_equals(document.activeElement.id, 'mi2');
+  }, "menu inline: Right navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi2'), kLeft);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: Left navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kDown);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: Down blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kUp);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: Up blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi3'), kRight);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: Right wraps at end");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kLeft);
+    assert_equals(document.activeElement.id, 'mi3');
+  }, "menu inline: Left wraps at start");
+
+  // --- menu nowrap: suppresses default block-axis wrap ---
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mnw1'), kDown);
+    assert_equals(document.activeElement.id, 'mnw2');
+  }, "menu nowrap: Down navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mnw3'), kDown);
+    assert_equals(document.activeElement.id, 'mnw3');
+  }, "menu nowrap: Down does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('mnw1'), kUp);
+    assert_equals(document.activeElement.id, 'mnw1');
+  }, "menu nowrap: Up does not wrap at start");
+
+</script>

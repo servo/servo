@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Tests balancing with a minimum number of lines.">
+<style>
+div > div {
+  background: green;
+  width: 100px;
+  height: 25px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; width: 200px; flex-wrap: balance; flex-line-count: 4;">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

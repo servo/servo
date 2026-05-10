@@ -5,13 +5,15 @@
 use std::mem;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::PipelineId;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
 
+#[derive(MallocSizeOf)]
 pub(crate) struct FramerateActor {
     name: String,
     pipeline_id: PipelineId,

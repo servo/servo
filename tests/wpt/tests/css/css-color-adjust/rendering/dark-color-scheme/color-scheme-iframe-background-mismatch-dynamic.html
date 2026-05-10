@@ -1,0 +1,44 @@
+<!doctype html>
+
+<html class="reftest-wait">
+
+<title>CSS Color Adjustment Test: Same-origin frame with a light color-scheme should get an opaque background when parent frame changes from light to dark</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="match" href="support/light-frame-scrolling.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+  iframe {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<iframe src="support/light-frame-scrolling.html" scrolling="yes" onload="iframeLoaded()"></iframe>
+<script>
+  async function iframeLoaded() {
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    document.querySelector(":root").style.colorScheme = "dark";
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    takeScreenshot();
+  }
+</script>
+
+</html>

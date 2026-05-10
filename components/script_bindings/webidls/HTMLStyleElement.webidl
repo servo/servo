@@ -11,5 +11,7 @@ interface HTMLStyleElement : HTMLElement {
   [CEReactions] attribute DOMString media;
 
   [CEReactions] attribute DOMString type;
+
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
 };
 HTMLStyleElement includes LinkStyle;

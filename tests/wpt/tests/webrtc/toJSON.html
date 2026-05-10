@@ -1,4 +1,5 @@
 <!doctype html>
+<meta charset=utf-8>
 <title>WebRTC objects toJSON() methods</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -9,6 +10,7 @@
 // * RTCIceCandidate.toJSON()
 // are kept in a single file since they are similar and typically
 // would need to be changed together.
+
 test(t => {
   const desc = new RTCSessionDescription({
     type: 'offer',
@@ -44,5 +46,6 @@ test(t => {
   assert_equals(Object.keys(json).length, 4);
 
 }, 'RTCIceCandidate.toJSON serializes only specific attributes');
+
 
 </script>

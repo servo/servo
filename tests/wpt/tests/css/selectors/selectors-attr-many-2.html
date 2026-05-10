@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Selectors: Many attribute selectors, and one that is only set</title>
+<link rel="help" href="https://crbug.com/502249092"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"], [x="y"],
+  [a="b"][x] { color: green; }
+</style>
+<div id="target" a="b" x="z">This text should be green.</div>
+<script>
+  test(() => {
+    let target = document.getElementById('target');
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  });
+</script>

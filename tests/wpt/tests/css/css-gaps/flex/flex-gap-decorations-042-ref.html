@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        width: 400px;
+        border: 2px solid #333;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-evenly;
+    }
+
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+
+    .rule {
+        position: absolute;
+        top: 2px;
+        height: 50px;
+        background: gold;
+        width: 5px;
+    }
+</style>
+<div class="rule" style="left: 81.5px;"></div>
+<div class="rule" style="left: 159.83px;"></div>
+<div class="rule" style="left: 239.17px;"></div>
+<div class="rule" style="left: 316.5px;"></div>
+
+<div class="rule" style="top: 52px; left: 106px;"></div>
+<div class="rule" style="top: 52px; left: 200px;"></div>
+<div class="rule" style="top: 52px; left: 294px;"></div>
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

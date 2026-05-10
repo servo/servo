@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <style>
@@ -38,6 +39,6 @@
       document.getElementById("btn4")
     ];
 
-    await assert_focus_navigation_bidirectional(elementsInVisualOrder);
+    await assert_directional_navigation_bidirectional(elementsInVisualOrder);
   }, "Simple mixed reading flow test.");
 </script>

@@ -8,7 +8,7 @@ on:
         type: string
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: string
       compressed-file-path:
         required: false
@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@44317e3cd86c5ff2ef0b08878b90da246bc237da
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
@@ -77,8 +77,8 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
-      - uses: actions/download-artifact@v4
+      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
           path: ${{ inputs.profile }}-binary-${{ inputs.target }}
@@ -92,12 +92,16 @@ jobs:
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' && (inputs.speedometer || inputs.dromaeo) }}
+        timeout-minutes: 30
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
       - uses: bencherdev/bencher@main
       - name: File size
         if: ${{ inputs.file-size == true }}

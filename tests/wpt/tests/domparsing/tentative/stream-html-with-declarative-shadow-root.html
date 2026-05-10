@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>streamHTML - declarative shadow roots</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+  for (const baseMethod of [
+    "",
+    "Append",
+    "Prepend",
+    "Before",
+    "After",
+    "ReplaceWith",
+  ]) {
+    for (const safe of [true, false]) {
+      for (const sanitize of [
+        "remove-shadow-root",
+        "remove-internal",
+        "none",
+      ]) {
+        const method = `stream${baseMethod}HTML${safe ? "" : "Unsafe"}`;
+        promise_test(async (t) => {
+          const parent = document.createElement("div");
+          const ref_node = document.createElement("div");
+          parent.appendChild(ref_node);
+          const writer = ref_node[method](
+            sanitize === "none"
+              ? {}
+              : {
+                  sanitizer: {
+                    removeAttributes:
+                      sanitize === "remove-shadow-root"
+                        ? ["shadowrootmode"]
+                        : ["forbidden"],
+                  },
+                },
+          ).getWriter();
+          await writer.write(`<span>
+          <template shadowrootmode="open">
+            <h1 forbidden="yes">Forbidden</h1>
+          </template>
+        </span>`);
+          await writer.close();
+          switch (sanitize) {
+            case "remove-shadow-root":
+              assert_equals(parent.querySelector("span").shadowRoot, null);
+              break;
+            case "remove-specific":
+              assert_not_equals(parent.querySelector("span").shadowRoot, null);
+              assert_false(
+                parent
+                  .querySelector("span")
+                  .shadowRoot.querySelector("h1")
+                  .hasAttribute("forbidden"),
+              );
+              break;
+            case "none":
+              if (safe) {
+                assert_equals(parent.querySelector("span").shadowRoot, null);
+              } else {
+                assert_not_equals(
+                  parent.querySelector("span").shadowRoot,
+                  null,
+                );
+              }
+              break;
+          }
+        }, `element.${method} (sanitization===${sanitize})`);
+      }
+    }
+  }
+</script>

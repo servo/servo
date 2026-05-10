@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Email input IDN value attributes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type=email)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input id="parser" type="email" value="test@exämle.com">
+<input id="parser-multiple" type="email" multiple value="test@exämle.com, user@お.com">
+<script>
+test(() => {
+  const input = document.getElementById('parser');
+  assert_equals(input.value, 'test@xn--exmle-hra.com');
+  assert_true(input.validity.valid);
+}, 'IDN domain in parser-created email value attribute is converted to ASCII');
+
+test(() => {
+  const input = document.createElement('input');
+  input.type = 'email';
+  input.setAttribute('value', 'user@お.com');
+  assert_equals(input.value, 'user@xn--t8j.com');
+  assert_true(input.validity.valid);
+}, 'IDN domain in dynamically-set email value attribute is converted to ASCII');
+
+test(() => {
+  const input = document.getElementById('parser-multiple');
+  assert_equals(input.value, 'test@xn--exmle-hra.com,user@xn--t8j.com');
+  assert_true(input.validity.valid);
+}, 'IDN domains in multiple email value attribute are converted to ASCII');
+
+test(() => {
+  const input = document.createElement('input');
+  input.setAttribute('value', 'test@exämle.com');
+  input.type = 'email';
+  assert_equals(input.value, 'test@xn--exmle-hra.com');
+  assert_true(input.validity.valid);
+}, 'IDN domain is converted when type changes to email');
+
+</script>

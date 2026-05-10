@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    .hang { white-space: pre; }
+    .not-hang { white-space: pre; }
+    .frame { width: 65px; font-family: ahem; border: solid 3px cyan; }
+</style>
+<!-- Overflow occurred at U+3001. This should hang. -->
+<div class="hang frame">ab c&#x3001;</div>
+<!-- Overflow occurred at "d". This should NOT hang. -->
+<div class="not-hang frame">ab
+cd&#x3001;</div>
+<!-- Overflow occurred at first U+3001. This should NOT hang. -->
+<div class="not-hang frame">ab
+c&#x3001;&#x3001;</div>
+<!-- Overflow occurred at second U+3001. This should hang. -->
+<div class="hang frame">a b&#x3001;&#x3001;</div>
+<!-- Hanging with soft hyphen. This should hang. -->
+<div class="hang frame">a b&shy;c&#x3001;</div>
+<!-- Overflow occurred at U+3001 and there is a <br> after it. This should hang. -->
+<div class="hang frame">ab c&#x3001;<br></div>

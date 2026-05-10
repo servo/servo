@@ -41,7 +41,7 @@ promise_test(async t => {
   assert_equals(w.onloadFired, undefined, "onload must not yet have fired");
   assert_equals(w.history.length, 1, "history.length for the opened window must start at 1");
 
-  await new Promise(r => {
+  await new Promise(resolve => {
     window.addEventListener("message", t.step_func(e => {
       if (e.data === "ready") {
         resolve();

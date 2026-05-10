@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: size containment inside clamping by height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-046-ref.html">
+<meta name="assert" content="Checks that when clamping by height, size contained boxes with no height constraints behave as if they had `height: 0`">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  width: 500px;
+  background-color: yellow;
+}
+.size-containment {
+  contain: size;
+  text-align: right;
+}
+</style>
+
+<div class="clamp">
+  <div class="size-containment">
+    Line A <br>
+    Line B <br>
+    Line C <br>
+    Line D <br>
+    Line E <br>
+  </div>
+  Line 1 <br>
+  Line 2 <br>
+  Line 3 <br>
+  Line 4 <br>
+  Line 5 <br>
+</div>

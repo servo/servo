@@ -17,7 +17,9 @@
   <style>
     @layer one {
       @mixin --m1() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
     }
 
@@ -36,7 +38,9 @@
   <style>
     @layer {
       @mixin --m2() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
     }
 
@@ -55,13 +59,17 @@
   <style>
     @layer two {
       @mixin --m3() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
     }
 
     @layer one {
       @mixin --m3() {
-        color: red;
+        @result {
+          color: red;
+        }
       }
     }
 
@@ -80,13 +88,17 @@
   <style>
     @layer one {
       @mixin --m4() {
-        color: red;
+        @result {
+          color: red;
+        }
       }
     }
 
     @layer two {
       @mixin --m4() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
     }
 

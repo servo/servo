@@ -1,0 +1,34 @@
+<!doctype html>
+<title>SMIL from-to animation of the 'pathLength' attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<svg>
+  <path id="path" d="M0,0 L100,0" pathLength="100">
+    <animate id="animation" attributeName="pathLength" attributeType="CSS"
+             begin="0s" dur="4s" from="100" to="200" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+function checkPathLength(expected) {
+  return () => {
+    assert_equals(
+        getComputedStyle(path).getPropertyValue('path-length'),
+        String(expected));
+  };
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   checkPathLength(100)],
+    ["animation", 1.0,   checkPathLength(125)],
+    ["animation", 2.0,   checkPathLength(150)],
+    ["animation", 3.0,   checkPathLength(175)],
+    ["animation", 4.001, checkPathLength(200)],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

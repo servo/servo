@@ -6,9 +6,9 @@ use std::ptr::NonNull;
 
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
+use script_bindings::reflector::DomObject;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
@@ -58,7 +58,7 @@ where
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
-            T::new(ctx, CanGc::note())
+            T::new(ctx, CanGc::deprecated_note())
         });
         if !enabled {
             self.enable(ext);

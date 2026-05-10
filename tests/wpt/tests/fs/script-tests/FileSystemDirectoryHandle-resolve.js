@@ -25,3 +25,11 @@ directory_test(async (t, root_dir) => {
 
   assert_equals(await subdir.resolve(file), null);
 }, 'Resolve returns null when entry is not a child');
+
+directory_test(async (t, root_dir) => {
+  const subdir = await createDirectory('sub', root_dir);
+  const subdir2 = await createDirectory('subdir', root_dir);
+  const file = await createEmptyFile('file-name', subdir2);
+
+  assert_equals(await subdir.resolve(file), null);
+}, 'Resolve returns null when sibling directory name is a prefix');

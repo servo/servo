@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::{DirEntry, Metadata, ReadDir};
+use std::fs::Metadata;
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
@@ -15,7 +15,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use url::Url;
 
-pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Response {
+pub(crate) async fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Response {
     if !pref!(network_local_directory_listing_enabled) {
         // If you want to be able to browse local directories, configure Servo prefs so that
         // "network.local_directory_listing.enabled" is set to true.
@@ -29,7 +29,7 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
         return Response::network_error(NetworkError::LocalDirectoryError);
     }
 
-    let directory_contents = match std::fs::read_dir(path_buf.clone()) {
+    let directory_contents = match tokio::fs::read_dir(path_buf.clone()).await {
         Ok(directory_contents) => directory_contents,
         Err(error) => {
             return Response::network_error(NetworkError::ResourceLoadError(format!(
@@ -38,7 +38,7 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
         },
     };
 
-    let output = build_html_directory_listing(url.as_url(), path_buf, directory_contents);
+    let output = build_html_directory_listing(url.as_url(), path_buf, directory_contents).await;
 
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
     response.headers.typed_insert(ContentType::html());
@@ -55,10 +55,10 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
 /// * `url` - the original URL of the request that triggered this directory listing.
 /// * `path` - the full path to the local directory.
 /// * `directory_contents` - a [`ReadDir`] with the contents of the directory.
-pub fn build_html_directory_listing(
+pub(crate) async fn build_html_directory_listing(
     url: &Url,
     path: PathBuf,
-    directory_contents: ReadDir,
+    mut directory_contents: tokio::fs::ReadDir,
 ) -> String {
     let mut page_html = String::with_capacity(1024);
     page_html.push_str("<!DOCTYPE html>");
@@ -81,11 +81,8 @@ pub fn build_html_directory_listing(
         parent_url_string
     ));
 
-    for directory_entry in directory_contents {
-        let Ok(directory_entry) = directory_entry else {
-            continue;
-        };
-        let Ok(metadata) = directory_entry.metadata() else {
+    while let Ok(Some(directory_entry)) = directory_contents.next_entry().await {
+        let Ok(metadata) = directory_entry.metadata().await else {
             continue;
         };
         write_directory_entry(directory_entry, metadata, url, &mut page_html);
@@ -97,7 +94,12 @@ pub fn build_html_directory_listing(
     page_html
 }
 
-fn write_directory_entry(entry: DirEntry, metadata: Metadata, url: &Url, output: &mut String) {
+fn write_directory_entry(
+    entry: tokio::fs::DirEntry,
+    metadata: Metadata,
+    url: &Url,
+    output: &mut String,
+) {
     let Ok(name) = entry.file_name().into_string() else {
         return;
     };

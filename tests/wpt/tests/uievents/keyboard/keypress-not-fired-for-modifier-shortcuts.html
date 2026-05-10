@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>UI Events Test: keypress not fired for modifier shortcuts</title>
+<link rel="author" title="Karl Dubost" href="https://otsukare.info/">
+<link rel="help" href="https://w3c.github.io/uievents/#keypress" />
+<meta name="assert" content="This test checks that keypress events are not fired when Control or Meta modifier keys are active, per the UI Events spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="target" tabindex="0">Target</div>
+<script>
+  // WebDriver modifier key codes.
+  const CONTROL = '\uE009';
+  const META = '\uE03D';
+
+  const modifiers = {
+    "Control": CONTROL,
+    "Meta": META,
+  };
+
+  target.focus();
+
+  for (const [modName, modCode] of Object.entries(modifiers)) {
+    promise_test(() => {
+      let keypressFired = false;
+      return new Promise(resolve => {
+        function onKeypress() {
+          keypressFired = true;
+        }
+        function onKeyup(event) {
+          if (event.key !== modName) {
+            target.removeEventListener("keypress", onKeypress);
+            target.removeEventListener("keyup", onKeyup);
+            resolve(keypressFired);
+          }
+        }
+        target.addEventListener("keypress", onKeypress);
+        target.addEventListener("keyup", onKeyup);
+        test_driver.send_keys(target, modCode + 'v');
+      }).then((fired) => {
+        assert_false(fired, "keypress should not fire for " + modName + "+v");
+      });
+    }, `keypress must not be dispatched for ${modName} + v`);
+  }
+
+  promise_test(() => {
+    let keypressFired = false;
+    return new Promise(resolve => {
+      function onKeypress() {
+        keypressFired = true;
+      }
+      function onKeyup(event) {
+        target.removeEventListener("keypress", onKeypress);
+        target.removeEventListener("keyup", onKeyup);
+        resolve(keypressFired);
+      }
+      target.addEventListener("keypress", onKeypress);
+      target.addEventListener("keyup", onKeyup);
+      test_driver.send_keys(target, 'a');
+    }).then((fired) => {
+      assert_true(fired, "keypress should fire for plain 'a'");
+    });
+  }, `keypress must be dispatched for a plain key`);
+</script>

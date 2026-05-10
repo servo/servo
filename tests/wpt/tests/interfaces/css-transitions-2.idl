@@ -8,6 +8,15 @@ interface CSSStartingStyleRule : CSSGroupingRule {
 };
 
 [Exposed=Window]
+partial interface TransitionEvent {
+  readonly attribute CSSTransition? animation;
+};
+
+partial dictionary TransitionEventInit {
+  CSSTransition? animation = null;
+};
+
+[Exposed=Window]
 interface CSSTransition : Animation {
   readonly attribute CSSOMString transitionProperty;
 };

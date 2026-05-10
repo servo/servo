@@ -84,13 +84,32 @@
       // Get the instance of the host of these controls.
       this.media = this.controls.host;
 
-      this.mutationObserver = new MutationObserver(() => {
-        // We can only get here if the `controls` attribute is removed.
-        this.cleanup();
+      this.mutationObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          // Here we handle the `controls` attribute removal.
+          if (mutation.type === "attributes") {
+            this.cleanup();
+            return;
+          }
+          // Here we handle element removal from DOM.
+          if (mutation.type === "childList") {
+            for (const node of mutation.removedNodes) {
+              if (node === this.media) {
+                this.cleanup();
+                return;
+              }
+            }
+          }
+        }
       });
       this.mutationObserver.observe(this.media, {
         attributeFilter: ["controls"]
       });
+      if (this.media.parentNode) {
+        this.mutationObserver.observe(this.media.parentNode, {
+          childList: true
+        });
+      }
 
       this.isAudioOnly = this.media.localName == "audio";
 
@@ -241,12 +260,15 @@
 
     cleanup() {
       this.mutationObserver.disconnect();
+      this.mutationObserver = null;
       this.mediaEvents.forEach(event => {
         this.media.removeEventListener(event, this);
       });
       this.controlEvents.forEach(({ el, type }) => {
         el.removeEventListener(type, this);
       });
+      this.media = null;
+      this.controls = null;
     }
 
     // State change handler

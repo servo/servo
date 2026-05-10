@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Table column width distribution reference</title>
+<style>
+  table {
+    border-collapse: collapse;
+    width: 400px;
+  }
+  td {
+    border: 1px solid black;
+    padding: 0;
+  }
+  .marker {
+    width: 100%;
+    height: 20px;
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td style="width: 90%;">
+        <div class="marker"></div>
+      </td>
+      <td style="width: 10%;"></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="white-space: nowrap;">
+        Lorem ipsum dolor sit amet consectetuer adipiscing
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

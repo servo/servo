@@ -135,6 +135,7 @@ features:
   - at-container-style-*
   - custom-property-style-*
   - display-contents-dynamic-style-queries.html
+  - multiple-conditions-001.html
   - multiple-style-containers-comma-separated-queries.html
   - nested-size-style-container-invalidation.html
   - pseudo-elements-005.html

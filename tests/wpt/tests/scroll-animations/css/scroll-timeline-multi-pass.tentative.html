@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>ScrollTimelines may trigger multiple style/layout passes</title>
 <link rel="help" src="https://github.com/w3c/csswg-drafts/issues/5261">
+<link rel="help" src="https://github.com/whatwg/html/pull/11613">
 <link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -55,7 +56,7 @@
       main.insertBefore(scroller, element1);
     }
 
-    promise_test(async () => {
+    promise_test(async (t) => {
       await waitForNextFrame();
 
       let events1 = [];
@@ -67,11 +68,11 @@
       //
       // https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles
       assert_equals(getComputedStyle(element1).width, '1px');
-      (new ResizeObserver(entries => {
+      (new ResizeObserver(entries => t.step_func(() => {
         events1.push(entries);
         insertScroller('--timeline2');
         assert_equals(getComputedStyle(element2).height, '1px');
-      })).observe(element1);
+      }))).observe(element1);
 
       (new ResizeObserver(entries => {
         events2.push(entries);
@@ -96,17 +97,21 @@
       assert_equals(events1[0][0].contentBoxSize.length, 1);
       assert_equals(events1[0][0].contentBoxSize[0].inlineSize, 100);
 
-      // ScrollTimelines created during the ResizeObserver should remain
-      // inactive during the frame they're created, so the ResizeObserver
-      // event should not reflect the animated value.
-      assert_equals(events2.length, 1);
+      // The HTML PR[3] that uses the 'run snapshot post-layout state steps',
+      // would try to create new scroll-timelines for each iteration of the
+      // resize observer loop, so the ResizeObserver event should reflect the
+      // animated value for the second observation.
+      //
+      // [3] https://github.com/whatwg/html/pull/11613/
+      assert_equals(events2.length, 2);
       assert_equals(events2[0].length, 1);
       assert_equals(events2[0][0].contentBoxSize.length, 1);
       assert_equals(events2[0][0].contentBoxSize[0].blockSize, 1);
+      assert_equals(events2[1].length, 1);
+      assert_equals(events2[1][0].contentBoxSize.length, 1);
+      assert_equals(events2[1][0].contentBoxSize[0].blockSize, 100);
 
       assert_equals(getComputedStyle(element1).width, '100px');
-
-      await waitForNextFrame();
       assert_equals(getComputedStyle(element2).height, '100px');
     }, 'Multiple style/layout passes occur when necessary');
 </script>

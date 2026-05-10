@@ -182,8 +182,18 @@ test(t => {
   assert_equals(animLeft.animationName, 'animLeft',
                 'Originally, animLeft animation comes first');
 
+  // Pause: now we are ignoring animation-play-state.
+  animLeft.pause();
+
   // Disassociate animLeft from markup and restart
   div.style.animation = 'animTop 100s';
+
+  // The animation should be cancelled regardless of whether we are ignoring
+  // animation-play-state.
+  assert_equals(document.getAnimations().length, 1,
+      'one animation (animLeft) cancelled');
+  assert_equals(document.getAnimations()[0].animationName, 'animTop',
+      'only animTop remains');
   animLeft.play();
 
   const animations = document.getAnimations();
@@ -191,7 +201,8 @@ test(t => {
                 'getAnimations returns markup-bound and free animations');
   assert_equals(animations[0].animationName, 'animTop',
                 'Markup-bound animations come first');
-  assert_equals(animations[1], animLeft, 'Free animations come last');
+  assert_equals(animations[1].animationName, 'animLeft',
+      'Free animations come last');
 }, 'Order of CSS Animations - markup-bound vs free animations');
 
 test(t => {
@@ -200,6 +211,7 @@ test(t => {
   const animLeft = document.getAnimations()[0];
   // Disassociate animLeft from markup and restart
   div.style.animation = '';
+  assert_equals(document.getAnimations().length, 0, "css animation cancelled");
   animLeft.play();
 
   div.style.top = '0px';
@@ -214,7 +226,8 @@ test(t => {
   assert_equals(animations.length, 2,
                 'Both CSS animations and transitions are returned');
   assert_class_string(animations[0], 'CSSTransition', 'Transition comes first');
-  assert_equals(animations[1], animLeft, 'Free animations come last');
+  assert_equals(animations[1].animationName,
+      "animLeft", 'Free animations come last');
 }, 'Order of CSS Animations - free animation vs CSS Transitions');
 
 test(t => {
@@ -224,15 +237,16 @@ test(t => {
 
   // Disassociate both animations from markup and restart in opposite order
   div.style.animation = '';
+  assert_equals(document.getAnimations().length, 0, "animations are removed");
   animTop.play();
   animLeft.play();
 
   const animations = document.getAnimations();
   assert_equals(animations.length, 2,
                 'getAnimations returns free animations');
-  assert_equals(animations[0], animTop,
+  assert_equals(animations[0].animationName, "animTop",
                 'Free animations are returned in the order they are started');
-  assert_equals(animations[1], animLeft,
+  assert_equals(animations[1].animationName, "animLeft",
                 'Animations started later are returned later');
 
   // Restarting an animation should have no effect

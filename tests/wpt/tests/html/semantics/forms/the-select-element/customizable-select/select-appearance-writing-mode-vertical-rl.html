@@ -13,6 +13,10 @@ html {
 select, select::picker(select) {
   appearance: base-select;
 }
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
 </style>
 
 <select>

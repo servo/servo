@@ -14,11 +14,11 @@
     <script>
       test(() => {
         target.style.columnRuleStyle = 'solid';
-        target.style.columnRuleWidth= 'repeat(2, 20px 20px) 30px 30px';
-        var animation = target.animate([{}, {columnRuleWidth: 'repeat(2, 40px 40px) 40px 40px'}], 1000);
+        target.style.columnRuleWidth= 'repeat(2, 20px, 20px), 30px, 30px';
+        var animation = target.animate([{}, {columnRuleWidth: 'repeat(2, 40px, 40px), 40px, 40px'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleWidth, '30px 30px 30px 30px 35px 35px');
+        assert_equals(getComputedStyle(target).columnRuleWidth, '30px, 30px, 30px, 30px, 35px, 35px');
       }, 'gap decorations column-rule-width with repeaters supports neutral keyframe.');
     </script>
   </body>

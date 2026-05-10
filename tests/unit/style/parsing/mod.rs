@@ -33,6 +33,7 @@ where
         /* namespaces = */ Default::default(),
         None,
         None,
+        /* attr_taint = */ Default::default(),
     );
     let mut parser = Parser::new(input);
     f(&context, &mut parser)

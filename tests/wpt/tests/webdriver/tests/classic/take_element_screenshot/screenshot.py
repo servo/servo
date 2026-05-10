@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import WebElement
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from tests.support.image import png_dimensions
 from . import element_dimensions, take_element_screenshot
 
@@ -88,3 +88,34 @@ def test_format_and_dimensions(session, inline):
     screenshot = assert_success(response)
 
     assert png_dimensions(screenshot) == element_dimensions(session, element)
+
+
+def test_clip_huge_element_to_viewport(session, inline):
+    width = "32768px"
+    height = "32768px"
+
+    session.url = inline(f"""
+        <style>
+            body {{ margin: 0; }}
+        </style>
+        <div style='width: {width}; height: {height}; background-color: black;'></div>
+    """)
+    element = session.find.css("div", all=False)
+
+    response = take_element_screenshot(session, element.id)
+
+    screenshot = assert_success(response)
+
+    viewport = session.execute_script("""
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            devicePixelRatio: window.devicePixelRatio
+        };
+    """)
+
+    expected_width = round(viewport["width"] * viewport["devicePixelRatio"])
+    expected_height = round(viewport["height"] * viewport["devicePixelRatio"])
+
+    # 5. Assert the screenshot was clipped to the viewport size
+    assert png_dimensions(screenshot) == (expected_width, expected_height)

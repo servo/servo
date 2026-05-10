@@ -56,15 +56,6 @@
       }
 
       // This click handler won't cause a soft navigation, because it
-      // uses history.replaceState() instead of history.pushState().
-      function replaceState() {
-        const greeting = document.createElement("div");
-        greeting.textContent = "Hello, World.";
-        document.body.appendChild(greeting);
-        history.replaceState({}, "", "/replace-state");
-      }
-
-      // This click handler won't cause a soft navigation, because it
       // doesn't pass a URL to pushState().
       function noUrlPassedToPushState() {
         const greeting = document.createElement("div");
@@ -80,7 +71,6 @@
     <div id="dom-not-attached" onclick="domNotAttached()">Click here!</div>
     <div id="no-dom-change" onclick="noDomChange()">Click here!</div>
     <div id="no-paint" onclick="noPaint()">Click here!</div>
-    <div id="replace-state" onclick="replaceState()">Click here!</div>
     <div id="no-url-passed-to-push-state" onclick="noUrlPassedToPushState()">Click here!</div>
 
     <script>
@@ -115,7 +105,6 @@
       test_template("dom-not-attached", "Creates an element but doesn't attach it to the DOM.");
       test_template("no-paint", "Doesn't paint because the element is hidden.");
       test_template("no-dom-change", "The DOM change is missing.");
-      test_template("replace-state", "Uses replaceState() instead of pushState().");
       test_template("no-url-passed-to-push-state", "Doesn't pass a URL to pushState().");
     </script>
   </body>

@@ -68,7 +68,7 @@ class BuildTarget(object):
         return self.target_triple
 
     def binary_name(self) -> str:
-        return f"servo{servo.platform.get().executable_suffix()}"
+        return f"servoshell{servo.platform.get().executable_suffix()}"
 
     def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         pass
@@ -216,7 +216,7 @@ class AndroidTarget(CrossBuildTarget):
                 encoding="utf8",
             ).stdout
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
-            env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
+            env["RUSTFLAGS"] += f" -C link-arg={libclangrt_filename}"
 
         assert host_cc
         assert host_cxx
@@ -260,10 +260,6 @@ class AndroidTarget(CrossBuildTarget):
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # This variable is needed for the aws-lc-rs compilation.
-        # See https://github.com/servo/servo/pull/41912#issuecomment-3752460352
-        env["AWS_LC_SYS_CMAKE_BUILDER"] = "1"
 
         # The two variables set below are passed by our custom
         # support/android/toolchain.cmake to the NDK's CMake toolchain file
@@ -310,14 +306,15 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if "OHOS_SDK_NATIVE" not in env:
             print(
                 "Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
-                "in the OpenHarmony SDK."
+                "in the OpenHarmony SDK.",
+                file=sys.stderr,
             )
             sys.exit(1)
 
         ndk_root = pathlib.Path(env["OHOS_SDK_NATIVE"])
 
         if not ndk_root.is_dir():
-            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`")
+            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`", file=sys.stderr)
             sys.exit(1)
 
         ndk_root = ndk_root.resolve()
@@ -329,19 +326,25 @@ class OpenHarmonyTarget(CrossBuildTarget):
             ohos_sdk_version = parse_version(meta["version"])
             if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 14:
                 raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0.2 (API-14) or newer.")
-            print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
+            print(
+                f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}",
+                file=sys.stderr,
+            )
         except (OSError, json.JSONDecodeError) as e:
-            print(f"Failed to read metadata information from {package_info}")
-            print(f"Exception: {e}")
+            print(f"Failed to read metadata information from {package_info}", file=sys.stderr)
+            print(f"Exception: {e}", file=sys.stderr)
 
         llvm_toolchain = ndk_root.joinpath("llvm")
         llvm_bin = llvm_toolchain.joinpath("bin")
         ohos_sysroot = ndk_root.joinpath("sysroot")
         if not (llvm_toolchain.is_dir() and llvm_bin.is_dir()):
-            print(f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`")
+            print(
+                f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if not ohos_sysroot.is_dir():
-            print(f"Could not find OpenHarmony sysroot in {ndk_root}")
+            print(f"Could not find OpenHarmony sysroot in {ndk_root}", file=sys.stderr)
             sys.exit(1)
         # When passing the sysroot to Rust crates such as `cc-rs` or bindgen, we should pass
         # POSIX paths, since otherwise the backslashes in windows paths may be interpreted as
@@ -452,39 +455,45 @@ class OpenHarmonyTarget(CrossBuildTarget):
             env["RUSTFLAGS"] += " -Zexternal-clangrt"
             san_compile_flags.append("-fno-omit-frame-pointer")
 
-        # On OpenHarmony we add some additional flags when asan is enabled
-        if sanitizer.is_asan():
-            libasan_so_path = libclang_arch.joinpath("libclang_rt.asan.so")
-            libasan_preinit_path = libclang_arch.joinpath("libclang_rt.asan-preinit.a")
-            if not libasan_so_path.exists():
-                raise RuntimeError(f"Couldn't find ASAN runtime library at {libasan_so_path}")
-            link_args.extend(
-                [
-                    "-fsanitize=address",
-                    "--rtlib=compiler-rt",
-                    "-shared-libasan",
-                    str(libasan_so_path),
-                    "-Wl,--whole-archive",
-                    "-Wl," + str(libasan_preinit_path),
-                    "-Wl,--no-whole-archive",
-                ]
-            )
+            # On OpenHarmony we add some additional flags when asan is enabled
+            if sanitizer.is_asan():
+                libasan_so_path = libclang_arch.joinpath("libclang_rt.asan.so")
+                libasan_preinit_path = libclang_arch.joinpath("libclang_rt.asan-preinit.a")
+                if not libasan_so_path.exists():
+                    raise RuntimeError(f"Couldn't find ASAN runtime library at {libasan_so_path}")
+                link_args.extend(
+                    [
+                        "-fsanitize=address",
+                        "--rtlib=compiler-rt",
+                        "-shared-libasan",
+                        str(libasan_so_path),
+                        "-Wl,--whole-archive",
+                        "-Wl," + str(libasan_preinit_path),
+                        "-Wl,--no-whole-archive",
+                    ]
+                )
 
-            san_compile_flags.extend(["-fsanitize=address", "-shared-libasan", "-fsanitize-recover=address"])
+                san_compile_flags.extend(["-fsanitize=address", "-shared-libasan", "-fsanitize-recover=address"])
 
-            arch_asan_ignore_list = lib_clang_version_dir.joinpath("share", "asan_ignorelist.txt")
-            if arch_asan_ignore_list.exists():
-                san_compile_flags.append("-fsanitize-system-ignorelist=" + str(arch_asan_ignore_list))
-            else:
-                print(f"Warning: Couldn't find system ASAN ignorelist at `{arch_asan_ignore_list}`")
-        elif sanitizer.is_tsan():
-            libtsan_so_path = libclang_arch.joinpath("libclang_rt.tsan.so")
-            builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
+                arch_asan_ignore_list = lib_clang_version_dir.joinpath("share", "asan_ignorelist.txt")
+                if arch_asan_ignore_list.exists():
+                    san_compile_flags.append("-fsanitize-system-ignorelist=" + str(arch_asan_ignore_list))
+                else:
+                    print(f"Warning: Couldn't find system ASAN ignorelist at `{arch_asan_ignore_list}`")
+            elif sanitizer.is_tsan():
+                libtsan_so_path = libclang_arch.joinpath("libclang_rt.tsan.so")
+                builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
 
-            link_args.extend(
-                ["-fsanitize=thread", "--rtlib=compiler-rt", "-shared-libsan", str(libtsan_so_path), str(builtins_path)]
-            )
-            san_compile_flags.append("-shared-libsan")
+                link_args.extend(
+                    [
+                        "-fsanitize=thread",
+                        "--rtlib=compiler-rt",
+                        "-shared-libsan",
+                        str(libtsan_so_path),
+                        str(builtins_path),
+                    ]
+                )
+                san_compile_flags.append("-shared-libsan")
 
         link_args = [f"-Clink-arg={arg}" for arg in link_args]
         env["RUSTFLAGS"] += " " + " ".join(link_args)

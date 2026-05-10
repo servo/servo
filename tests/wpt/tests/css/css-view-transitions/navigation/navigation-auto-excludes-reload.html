@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <title>View transitions: basic cross-document navigation</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="author" href="mailto:bokan@chromium.org">
-<link rel="match" href="navigation-auto-excludes-reload-ref.html">
-<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <style>
 @view-transition {
   navigation: auto;
 }
-html {
-  background: limegreen;
-}
-::view-transition {
-  background-color: red;
-}
-::view-transition-group(root) {
-  animation-duration: 300s;
-}
-::view-transition-old(root),
-::view-transition-new(root) {
-  opacity: 0;
-  animation: none;
-}
 </style>
 <script>
-if (location.hash == '#loaded') {
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
-} else {
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
-}
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
 
-function runTest() {
-  location.hash = 'loaded';
-  location.reload();
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=popup");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(event.viewTransition, null, "ViewTransition must not be triggered.");
+  });
+  break;
+case "popup":
+  if (location.hash == '#loaded') {
+    onpagereveal = e => window.opener.did_reveal(e);
+  } else {
+    onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.hash = 'loaded';
+      location.reload();
+    }));
+  }
+  break;
 }
 </script>
-</html>

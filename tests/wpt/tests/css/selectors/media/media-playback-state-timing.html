@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>Media Playback State: the :playing, :paused, and :seeking pseudo-classes</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#video-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<body>
+  <video width="300" height="300" muted loop></video>
+  <script>
+    test(() => {
+      // The :playing and :paused pseudo-classes should match based on the
+      // paused attribute which changes synchronously when calling play() and
+      // does not require a media resource to actually be loaded yet.
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
+      assert_implements(CSS.supports("selector(:playing)"), ":paused is not supported");
+      const video = document.querySelector("video");
+
+      assert_equals(video.currentSrc, "");
+
+      // Test selector matching synchronously before/after play()
+      assert_true(video.paused, ".paused before play()");
+      assert_false(video.matches(":playing"), ":playing before play()");
+      assert_true(video.matches(":paused"), ":paused before play()");
+      video.play().catch(() => {});
+      assert_false(video.paused, ".paused after play()");
+      assert_true(video.matches(":playing"), ":playing after play()");
+      assert_false(video.matches(":paused"), ":paused after play()");
+
+      // Calling load() will synchronously set paused back to true.
+      video.load();
+      assert_true(video.paused, ".paused after load()");
+      assert_false(video.matches(":playing"), ":playing after load()");
+      assert_true(video.matches(":paused"), ":paused after load()");
+    }, "Test :playing and :paused timing without media resource");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
+      assert_implements(CSS.supports("selector(:playing)"), ":paused is not supported");
+      const video = document.querySelector("video");
+
+      // Also test with a media resource loaded for completeness. In a
+      // spec-compliant implementation this would test the same code paths as
+      // the previous test, but bugs in this area are plausible.
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+
+      // Test selector matching synchronously before/after play()
+      assert_true(video.paused, ".paused before play()");
+      assert_false(video.matches(":playing"), ":playing before play()");
+      assert_true(video.matches(":paused"), ":paused before play()");
+      video.play().catch(() => {});
+      assert_false(video.paused, ".paused after play()");
+      assert_true(video.matches(":playing"), ":playing after play()");
+      assert_false(video.matches(":paused"), ":paused after play()");
+
+      // Calling load() will synchronously set paused back to true.
+      video.load();
+      assert_true(video.paused, ".paused after load()");
+      assert_false(video.matches(":playing"), ":playing after load()");
+      assert_true(video.matches(":paused"), ":paused after load()");
+    }, "Test :playing and :paused timing with a media resource");
+
+    promise_test(async (t) => {
+      // The :seeking pseudo-class should match based on the seeking attribute
+      // which changes synchronously when setting currentTime.
+      // Note: This does require a media resource to be loaded yet, otherwise
+      // only the "default playback start position" is set.
+      assert_implements(CSS.supports("selector(:seeking)"), ":seeking is not supported");
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+
+      assert_false(video.seeking, ".seeking before setting currentTime");
+      assert_false(video.matches(":seeking"), ":seeking before setting currentTime");
+      video.currentTime = 10;
+      assert_true(video.seeking, ".seeking after setting currentTime");
+      assert_true(video.matches(":seeking"), ":seeking after setting currentTime");
+
+      // Calling load() will synchronously set seeking back to false.
+      video.load();
+      assert_false(video.seeking, ".seeking after load()");
+      assert_false(video.matches(":seeking"), ":seeking after load()");
+    }, "Test :seeking timing when setting currentTime");
+  </script>
+</body>

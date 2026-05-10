@@ -6,15 +6,14 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
 
-use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::realm::AutoRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CacheMode, CredentialsMode, RedirectMode, Referrer, RequestBuilder, RequestMode,
     ServiceWorkersMode,
@@ -23,10 +22,13 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
+use servo_base::generic_channel::{LazyCallback, lazy_callback};
+use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -34,7 +36,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;
@@ -107,22 +109,21 @@ pub(crate) struct WebSocket {
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, // Flag to tell if there is a running thread to clear buffered_amount
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
-    sender: IpcSender<WebSocketDomAction>,
+    callback: LazyCallback<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
     protocol: DomRefCell<String>, // Subprotocol selected by server
 }
 
 impl WebSocket {
-    fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket {
+    fn new_inherited(url: ServoUrl, callback: LazyCallback<WebSocketDomAction>) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url,
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            sender,
+            callback,
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DomRefCell::new("".to_owned()),
         }
@@ -132,7 +133,7 @@ impl WebSocket {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
-        sender: IpcSender<WebSocketDomAction>,
+        sender: LazyCallback<WebSocketDomAction>,
         can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
         let websocket = reflect_dom_object_with_proto(
@@ -204,9 +205,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
         // Step 1. Let baseURL be this's relevant settings object's API base URL.
+        let base_url = global.api_base_url();
         // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
         // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
-        let mut url_record = ServoUrl::parse(&url.str()).or(Err(Error::Syntax(None)))?;
+        let mut url_record =
+            ServoUrl::parse_with_base(Some(&base_url), &url.str()).or(Err(Error::Syntax(None)))?;
 
         // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
         // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".
@@ -262,14 +265,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         }
 
         // Create the interface for communication with the resource thread
-        let (dom_action_sender, resource_action_receiver): (
-            IpcSender<WebSocketDomAction>,
-            IpcReceiver<WebSocketDomAction>,
-        ) = ipc::channel().unwrap();
-        let (resource_event_sender, dom_event_receiver): (
-            IpcSender<WebSocketNetworkEvent>,
-            ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
-        ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (dom_action_sender, resource_action_receiver) = lazy_callback();
+        let (resource_event_sender, dom_event_receiver) =
+            ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
@@ -282,7 +280,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         // "include", cache mode is "no-store" , and redirect mode is "error"
         let request = RequestBuilder::new(
             global.webview_id(),
-            url_record.clone(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url_record.clone()),
             Referrer::NoReferrer,
         )
         .with_global_scope(global)
@@ -389,7 +387,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
@@ -408,7 +406,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         if send_data {
             let bytes = blob.get_bytes().unwrap_or_default();
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
@@ -423,7 +421,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
@@ -437,7 +435,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
@@ -451,11 +449,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 return Err(Error::InvalidAccess(None));
             }
         }
-        if let Some(ref reason) = reason {
-            if reason.0.len() > 123 {
-                // reason cannot be larger than 123 bytes
-                return Err(Error::Syntax(Some("Reason too long".to_string())));
-            }
+        if let Some(ref reason) = reason &&
+            reason.0.len() > 123
+        {
+            // reason cannot be larger than 123 bytes
+            return Err(Error::Syntax(Some("Reason too long".to_string())));
         }
 
         match self.ready_state.get() {
@@ -481,7 +479,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 // Kick off _Start the WebSocket Closing Handshake_
                 // https://tools.ietf.org/html/rfc6455#section-7.1.2
                 let reason = reason.map(|reason| reason.0);
-                let _ = self.sender.send(WebSocketDomAction::Close(code, reason));
+                let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
             },
         }
         Ok(()) // Return Ok
@@ -524,7 +522,7 @@ impl TaskOnce for ConnectionEstablishedTask {
         };
 
         // Step 4.
-        ws.upcast().fire_event(atom!("open"), CanGc::from_cx(cx));
+        ws.upcast().fire_event(cx, atom!("open"));
     }
 }
 
@@ -570,7 +568,7 @@ impl TaskOnce for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_event(atom!("error"), CanGc::from_cx(cx));
+            ws.upcast().fire_event(cx, atom!("error"));
         }
 
         // Step 3.

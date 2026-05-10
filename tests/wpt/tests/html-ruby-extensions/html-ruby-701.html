@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>Ruby Markup Content Model: rb outside ruby</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rb-element">
+<meta name="assert" content="An rb element that is not a child of a ruby element represents the same thing as its children. ">
+<link rel="mismatch" href="reference/html-ruby-701-ref.html">
+<body>
+<p>
+This test passes if the word "PASS" appears below.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr>
+<rt>PASS</rt>

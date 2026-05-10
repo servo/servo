@@ -29,11 +29,9 @@ var embeddedElements = {
     name: "string",
     sandbox: "settable tokenlist",
     allowFullscreen: "boolean",
-    allowUserMedia: "boolean",
     width: "string",
     height: "string",
     referrerPolicy: {type: "enum", keywords: ["", "no-referrer", "no-referrer-when-downgrade", "same-origin", "origin", "strict-origin", "origin-when-cross-origin", "strict-origin-when-cross-origin", "unsafe-url"]},
-    delegateStickyUserActivation: {type: "enum", keywords: ["vibration", "media"], defaultVal: null},
 
     // Obsolete
     align: "string",
@@ -95,6 +93,7 @@ var embeddedElements = {
     controls: "boolean",
     controlsList: {type: "tokenlist", domAttrName: "controlsList"},
     defaultMuted: {type: "boolean", domAttrName: "muted"},
+    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},
 
     width: "unsigned long",
     height: "unsigned long",
@@ -110,7 +109,8 @@ var embeddedElements = {
     autoplay: "boolean",
     loop: "boolean",
     controls: "boolean",
-    defaultMuted: {type: "boolean", domAttrName: "muted"}
+    defaultMuted: {type: "boolean", domAttrName: "muted"},
+    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},
   },
   source: {
     src: "url",

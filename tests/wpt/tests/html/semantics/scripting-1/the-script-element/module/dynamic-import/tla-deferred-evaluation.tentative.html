@@ -1,0 +1,21 @@
+<!doctype html>
+<title>import.defer with TLA dependency</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+  delete window.__tlaModuleEvaluated;
+  delete window.__moduleWithTlaDepEvaluated;
+  const ns = await import.defer("./resources/module-with-tla-dep.js");
+  assert_true(window.__tlaModuleEvaluated,
+      "TLA dependency should be eagerly evaluated");
+  assert_equals(window.__moduleWithTlaDepEvaluated, undefined,
+      "Deferred entrypoint should not be evaluated yet");
+  assert_equals(ns.value, "tla-done",
+      "Accessing namespace property should return the exported value");
+  assert_true(window.__moduleWithTlaDepEvaluated,
+      "Deferred entrypoint should be evaluated after namespace access");
+}, "import.defer() eagerly evaluates TLA dependencies but defers the entrypoint");
+</script>

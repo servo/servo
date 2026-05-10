@@ -3,14 +3,14 @@
 
 <!-- Straightforward test - invoking a panic from a toplevel script execution -->
 <script>
-(new TestBinding()).panic();
+ServoTestUtils.panic();
 </script>
 
 <!-- invoking a panic from an event handler which is invoked by native code -->
-<!--<iframe src="data:,hi there" onload="(new TestBinding()).panic()"></iframe>-->
+<!--<iframe src="data:,hi there" onload="ServoTestUtils.panic()"></iframe>-->
 
 <!-- invoking a panic from an event handler which is invoked by script -->
-<!--<div onclick="(new TestBinding()).panic()"></div>
+<!--<div onclick="ServoTestUtils.panic()"></div>
 <script>
 document.querySelector('div').click();
 </script>-->

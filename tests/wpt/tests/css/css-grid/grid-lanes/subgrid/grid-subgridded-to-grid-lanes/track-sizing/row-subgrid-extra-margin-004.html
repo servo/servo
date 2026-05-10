@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: auto-placed subgrid on mixed definite/intrinsic tracks (rows)</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-extra-margin-004-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.grid-lanes {
+  display: inline grid-lanes;
+  grid-template-rows: 50px 50px auto auto;
+  border: 1px solid;
+  font:10px/1 Ahem;
+}
+item {
+  width: 40px;
+  background: grey;
+}
+.stretch {
+  align-self: stretch;
+  background: green;
+}
+.subgrid {
+  display: grid;
+  grid: subgrid / auto;
+  grid-row: span 2;
+  padding-top: 80px;
+  background: yellow;
+}
+</style>
+<div class="grid-lanes">
+  <item style="height:10px">1</item>
+  <item style="height:10px">2</item>
+  <item class="stretch">3</item>
+  <item style="height:10px">4</item>
+  <div class="subgrid">
+    <item style="height:10px">5</item>
+    <item style="height:10px">6</item>
+  </div>
+</div>
+</html>

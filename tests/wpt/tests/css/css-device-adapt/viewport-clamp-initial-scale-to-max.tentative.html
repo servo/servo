@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, initial-scale=10.0, maximum-scale=2.0">
+<link rel="help" href="https://drafts.csswg.org/css-device-adapt/">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/9004">
+<link rel=help href="https://github.com/servo/servo/issues/40390">
+<link rel="author" title="Shubham Gupta" href="mailto:shubham.gupta@chromium.org">
+<style>
+body {
+  margin: 0;
+}
+#content {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<div id="content">Content</div>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+test(() => {
+  assert_equals(window.visualViewport.scale, 2.0,
+    'visual viewport scale should be 2.0');
+}, 'Page with meta viewport "width=device-width, ' +
+   'initial-scale=10.0, maximum-scale=2.0" ' +
+   'should scale to 2.0.');
+</script>

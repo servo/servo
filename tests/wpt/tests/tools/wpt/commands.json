@@ -100,7 +100,7 @@
     "help": "Validate metadata from wpt-metadata",
     "virtualenv": true,
     "requirements": [
-      "requirements_metadata.txt"
+      "../metadata/requirements.txt"
     ]
   },
   "metadata-list": {
@@ -110,7 +110,7 @@
     "help": "List metadata with given labels from wpt-metadata",
     "virtualenv": true,
     "requirements": [
-      "requirements_metadata.txt"
+      "../metadata/requirements.txt"
     ]
   }
 }

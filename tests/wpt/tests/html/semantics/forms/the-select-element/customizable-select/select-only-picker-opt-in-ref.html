@@ -3,6 +3,13 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
+<style>
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
+</style>
+
 <select>
   <option>option</option>
 </select>

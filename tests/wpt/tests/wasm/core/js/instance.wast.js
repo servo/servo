@@ -28,7 +28,7 @@ let $3 = instance($$2);
 assert_return(() => call($3, "glob", []), "instance.wast:54", 0);
 
 // instance.wast:55
-assert_return(() => call($3, "tab", []), "instance.wast:55", "ref.null");
+assert_return(() => call($3, "tab", []), "instance.wast:55", null);
 
 // instance.wast:56
 assert_return(() => call($3, "mem", []), "instance.wast:56", 0);

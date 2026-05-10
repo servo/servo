@@ -1,0 +1,23 @@
+<!doctype html>
+<head>
+<script>
+onload = () => {
+  opener.postMessage("load", "*");
+};
+
+onmessage = () => {
+  runTest();
+}
+
+async function runTest() {
+  await navigation.navigate("#1").finished;
+  navigation.onnavigate = async () => {
+    await navigation.back().finished.catch(() => {
+      opener.postMessage("done", "*");
+    })
+  }
+
+  history.back();
+}
+</script>
+</head>

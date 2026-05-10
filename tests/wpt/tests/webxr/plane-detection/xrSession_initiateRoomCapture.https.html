@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+xr_session_promise_test(
+  "initiateRoomCapture behavior",
+  async (session, controller, t) => {
+    // 1. Successful call
+    await session.initiateRoomCapture();
+
+    // 2. Calling it a second time should throw InvalidStateError
+    await promise_rejects_dom(t, "InvalidStateError", session.initiateRoomCapture());
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+xr_session_promise_test(
+  "initiateRoomCapture throws NotSupportedError if feature not requested",
+  async (session, controller, t) => {
+    await promise_rejects_dom(t, "NotSupportedError", session.initiateRoomCapture());
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: [] }
+);
+
+xr_session_promise_test(
+  "initiateRoomCapture throws InvalidStateError if session ended",
+  async (session, controller, t) => {
+    await session.end();
+    await promise_rejects_dom(t, "InvalidStateError", session.initiateRoomCapture());
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+</script>

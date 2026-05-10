@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use net_traits::pub_domains::{is_pub_domain, is_reg_domain, pub_suffix, reg_suffix};
+use servo_default_resources as _;
 
 // These tests may need to be updated if the PSL changes.
 

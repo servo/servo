@@ -2,36 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Configuration options for a single run of the servo application. Created
-//! from command line arguments.
+//! Options are global configuration options that are initialized once and cannot be changed at
+//! runtime.
 
+use core::str::FromStr;
 use std::default::Default;
 use std::path::PathBuf;
-use std::process;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
+use strum::{
+    AsRefStr, Display as EnumDisplay, EnumCount, EnumIter, EnumMessage, EnumString,
+    IntoEnumIterator,
+};
 
-/// Global flags for Servo, currently set on the command line.
+/// The set of global options supported by Servo. The values for these can be configured during
+/// initialization of Servo and cannot be changed later at runtime.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
-    /// `None` to disable the time profiler or `Some` to enable it with:
+    /// `None` to disable the time profiler or `Some` to enable it with either:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
-    ///    (`i.e. -p 5`).
     ///  - a file path to write profiling info to a TSV file upon Servo's termination.
-    ///    (`i.e. -p out.tsv`).
     pub time_profiling: Option<OutputOptions>,
 
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
     /// visualizing the traces as a timeline.
     pub time_profiler_trace_path: Option<String>,
-
-    /// True to turn off incremental layout.
-    pub nonincremental_layout: bool,
-
-    pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -67,6 +64,9 @@ pub struct Opts {
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
 
+    /// Use temporary storage (data on disk will not persist across restarts).
+    pub temporary_storage: bool,
+
     /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
 
@@ -83,100 +83,127 @@ pub struct Opts {
 
     /// Unminify Css.
     pub unminify_css: bool,
-
-    /// Print Progressive Web Metrics to console.
-    pub print_pwm: bool,
 }
 
-/// Debug options for Servo, currently set on the command line with -Z
+/// The set of diagnostic options that can be enabled in Servo.
+#[derive(
+    AsRefStr,
+    Copy,
+    Clone,
+    Debug,
+    EnumCount,
+    EnumDisplay,
+    EnumIter,
+    EnumMessage,
+    EnumString,
+    PartialEq,
+)]
+pub enum DiagnosticsLoggingOption {
+    /// Log the DOM after each restyle
+    #[strum(to_string = "style-tree")]
+    StyleTree,
+
+    /// Log the rule tree
+    #[strum(to_string = "rule-tree")]
+    RuleTree,
+
+    /// Log the fragment tree after each layout
+    #[strum(to_string = "flow-tree")]
+    FlowTree,
+
+    /// Log the stacking context tree after each layout
+    #[strum(to_string = "stacking-context-tree")]
+    StackingContextTree,
+
+    /// Log the scroll tree (the hierarchy of scrollable areas) after each layout
+    #[strum(to_string = "scroll-tree")]
+    ScrollTree,
+
+    /// Log the display list after each layout
+    #[strum(to_string = "display-list")]
+    DisplayList,
+
+    /// Log notifications when a relayout occurs
+    #[strum(to_string = "relayout-event")]
+    RelayoutEvent,
+
+    /// Periodically log on which events script threads spend their processing time
+    #[strum(to_string = "profile-script-events")]
+    ProfileScriptEvents,
+
+    /// Log the the hit/miss statistics for the style sharing cache after each restyle
+    #[strum(to_string = "style-stats")]
+    StyleStatistics,
+
+    /// Log garbage collection passes and their durations
+    #[strum(to_string = "gc-profile")]
+    GcProfile,
+
+    /// Log Progressive Web Metrics
+    #[strum(to_string = "progressive-web-metrics")]
+    ProgressiveWebMetrics,
+}
+
+impl DiagnosticsLoggingOption {
+    /// Returns a string representation of this variant that is compatible with
+    /// [`FromStr::from_str`] and [`DiagnosticsLogging::extend_from_string`].
+    /// This value can be used as a command-line argument for an application.
+    pub fn help_option(&self) -> &str {
+        self.as_ref()
+    }
+
+    /// Returns a string with a short description of the diagnostic option.
+    /// This value can be used as a command-line argument description for an application.
+    pub fn help_message(&self) -> &str {
+        self.get_documentation()
+            .expect("all variants of `DiagnosticsLoggingOption` should have a help message")
+    }
+
+    /// Returns an `Iterator` that can be used to iterate over all the diagnostic options
+    /// supported by Servo. This is useful when constructing a help message that enumerates
+    /// all possible diagnostic flags and their respective help messages.
+    pub fn iter() -> impl Iterator<Item = Self> {
+        <Self as IntoEnumIterator>::iter()
+    }
+}
+
+/// The current configuration of the diagnostic options for Servo.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DiagnosticsLogging {
-    /// List all the debug options.
-    pub help: bool,
-
-    /// Print the DOM after each restyle.
-    pub style_tree: bool,
-
-    /// Log the rule tree.
-    pub rule_tree: bool,
-
-    /// Log the fragment tree after each layout.
-    pub flow_tree: bool,
-
-    /// Log the stacking context tree after each layout.
-    pub stacking_context_tree: bool,
-
-    /// Log the scroll tree after each layout.
-    ///
-    /// Displays the hierarchy of scrollable areas and their properties.
-    pub scroll_tree: bool,
-
-    /// Log the display list after each layout.
-    pub display_list: bool,
-
-    /// Log notifications when a relayout occurs.
-    pub relayout_event: bool,
-
-    /// Periodically log on which events script threads spend their processing time.
-    pub profile_script_events: bool,
-
-    /// Log style sharing cache statistics to after each restyle.
-    ///
-    /// Shows hit/miss statistics for the style sharing cache
-    pub style_statistics: bool,
-
-    /// Log garbage collection passes and their durations.
-    pub gc_profile: bool,
+    options: [bool; DiagnosticsLoggingOption::COUNT],
 }
 
 impl DiagnosticsLogging {
     /// Create a new DiagnosticsLogging configuration.
     ///
-    /// In non-production builds, this will automatically read and parse the
+    /// In builds with debug assertions enabled, this will automatically read and parse the
     /// SERVO_DIAGNOSTICS environment variable if it is set.
     pub fn new() -> Self {
-        let mut config: DiagnosticsLogging = Default::default();
+        #[cfg(not(debug_assertions))]
+        return DiagnosticsLogging::default();
 
-        // Disabled for production builds
+        // Disabled for production and release builds
         #[cfg(debug_assertions)]
         {
-            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") {
-                if let Err(error) = config.extend_from_string(&diagnostics_var) {
-                    eprintln!("Could not parse debug logging option: {error}");
-                }
-            }
+            let mut config: DiagnosticsLogging = Default::default();
+            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") &&
+                let Err(error) = config.extend_from_string(&diagnostics_var)
+            {
+                eprintln!("Could not parse debug logging option: {error}");
+            };
+            config
         }
-
-        config
     }
 
-    /// Print available diagnostic logging options and their descriptions.
-    fn print_debug_options_usage(app: &str) {
-        fn print_option(name: &str, description: &str) {
-            println!("\t{:<35} {}", name, description);
-        }
+    /// Enables or disables the diagnostics represented by the given [`DiagnosticsLoggingOption`]
+    /// variant.
+    pub fn toggle_option(&mut self, option: DiagnosticsLoggingOption, enabled: bool) {
+        self.options[option as usize] = enabled;
+    }
 
-        println!(
-            "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
-            app
-        );
-        print_option("help", "Show this help message");
-        print_option("style-tree", "Log the style tree after each restyle");
-        print_option("rule-tree", "Log the rule tree");
-        print_option("flow-tree", "Log the fragment tree after each layout");
-        print_option(
-            "stacking-context-tree",
-            "Log the stacking context tree after each layout",
-        );
-        print_option("scroll-tree", "Log the scroll tree after each layout");
-        print_option("display-list", "Log the display list after each layout");
-        print_option("style-stats", "Log style sharing cache statistics");
-        print_option("relayout-event", "Log when relayout occurs");
-        print_option("profile-script-events", "Log script event processing time");
-        print_option("gc-profile", "Log garbage collection statistics");
-        println!();
-
-        process::exit(0);
+    /// Returns true if the given diagnostic option is enabled.
+    pub fn is_enabled(&self, option: DiagnosticsLoggingOption) -> bool {
+        self.options[option as usize]
     }
 
     /// Extend the current configuration with additional options.
@@ -185,20 +212,9 @@ impl DiagnosticsLogging {
     pub fn extend_from_string(&mut self, option_string: &str) -> Result<(), String> {
         for option in option_string.split(',') {
             let option = option.trim();
-            match option {
-                "help" => Self::print_debug_options_usage("servo"),
-                "display-list" => self.display_list = true,
-                "stacking-context-tree" => self.stacking_context_tree = true,
-                "flow-tree" => self.flow_tree = true,
-                "rule-tree" => self.rule_tree = true,
-                "style-tree" => self.style_tree = true,
-                "style-stats" => self.style_statistics = true,
-                "scroll-tree" => self.scroll_tree = true,
-                "gc-profile" => self.gc_profile = true,
-                "profile-script-events" => self.profile_script_events = true,
-                "relayout-event" => self.relayout_event = true,
-                "" => {},
-                _ => return Err(format!("Unknown diagnostic option: {option}")),
+            match DiagnosticsLoggingOption::from_str(option) {
+                Ok(flag) => self.toggle_option(flag, true),
+                Err(_) => return Err(format!("Unknown diagnostic option: {option}")),
             };
         }
 
@@ -206,9 +222,9 @@ impl DiagnosticsLogging {
     }
 }
 
+/// The destination for the time profiler reports.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum OutputOptions {
-    /// Database connection config (hostname, name, user, pass)
     FileName(String),
     Stdout(f64),
 }
@@ -218,8 +234,6 @@ impl Default for Opts {
         Self {
             time_profiling: None,
             time_profiler_trace_path: None,
-            nonincremental_layout: false,
-            user_stylesheets: Vec::new(),
             hard_fail: true,
             multiprocess: false,
             force_ipc: false,
@@ -229,13 +243,13 @@ impl Default for Opts {
             sandbox: false,
             debug: Default::default(),
             config_dir: None,
+            temporary_storage: false,
             shaders_path: None,
             certificate_path: None,
             ignore_certificate_errors: false,
             unminify_js: false,
             local_script_source: None,
             unminify_css: false,
-            print_pwm: false,
         }
     }
 }
@@ -248,16 +262,16 @@ static OPTIONS: OnceLock<Opts> = OnceLock::new();
 /// Initialize options.
 ///
 /// Should only be called once at process startup.
-/// Must be called before the first call to [get].
+/// Must be called before the first call to [`get`].
 pub fn initialize_options(opts: Opts) {
     OPTIONS.set(opts).expect("Already initialized");
 }
 
 /// Get the servo options
 ///
-/// If the servo options have not been initialized by calling [initialize_options], then the
-/// options will be initialized to default values. Outside of tests the options should
-/// be explicitly initialized.
+/// If the servo options have not been initialized by calling [`initialize_options`], then the
+/// options will be initialized to default values. Outside of tests the options should be
+/// explicitly initialized.
 #[inline]
 pub fn get() -> &'static Opts {
     // In unit-tests using default options reduces boilerplate.
@@ -266,4 +280,41 @@ pub fn get() -> &'static Opts {
     // We rely on the `expect` in `initialize_options` to inform us if refactoring
     // causes a `get` call to move before `initialize_options`.
     OPTIONS.get_or_init(Default::default)
+}
+
+#[test]
+fn test_parsing_of_diagnostics_logging_options() {
+    assert!(DiagnosticsLoggingOption::iter().collect::<Vec<_>>().len() > 0);
+
+    let mut diagnostics = DiagnosticsLogging::new();
+    for option in DiagnosticsLoggingOption::iter() {
+        assert_eq!(diagnostics.is_enabled(option), false);
+    }
+
+    assert!(
+        diagnostics
+            .extend_from_string("profile-script-events,style-stats")
+            .is_ok()
+    );
+    assert!(diagnostics.is_enabled(DiagnosticsLoggingOption::ProfileScriptEvents));
+    assert!(diagnostics.is_enabled(DiagnosticsLoggingOption::StyleStatistics));
+    assert!(!diagnostics.is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics));
+
+    assert!(
+        diagnostics
+            .extend_from_string("profile-script-events,syle-stats")
+            .is_err()
+    );
+
+    let mut diagnostics = DiagnosticsLogging::new();
+    for option in DiagnosticsLoggingOption::iter() {
+        assert_eq!(
+            DiagnosticsLoggingOption::from_str(option.help_option()),
+            Ok(option)
+        );
+
+        assert!(!diagnostics.is_enabled(option));
+        assert!(diagnostics.extend_from_string(option.help_option()).is_ok());
+        assert!(diagnostics.is_enabled(option),);
+    }
 }

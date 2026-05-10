@@ -4,11 +4,16 @@
 
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
+use std::ops::Range;
 
 use icu_segmenter::WordSegmenter;
+use layout_api::{LayoutNode, SharedSelection};
+use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
+use unicode_categories::UnicodeCategories;
 
 use super::text_run::TextRun;
 use super::{
@@ -17,13 +22,11 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::LayoutBox;
+use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::NodeAndStyleInfo;
+use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
-use crate::flow::inline::AnonymousBlockBox;
-use crate::flow::{BlockContainer, BlockLevelBox, PseudoElement};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::ComputedValuesExt;
 
@@ -42,6 +45,15 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The current offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
     current_text_offset: usize,
+
+    /// The current character offset in the final text string of this [`InlineFormattingContext`],
+    /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
+    /// different from the UTF-8 code point offset.
+    current_character_offset: usize,
+
+    /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
+    /// originating node in the DOM, this will not be `None`.
+    pub shared_selection: Option<SharedSelection>,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -81,21 +93,38 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// during box tree construction. An IFC is empty if it only contains TextRuns with
     /// completely collapsible whitespace. When that happens it can be ignored completely.
     pub is_empty: bool,
+
+    /// Whether or not the `::first-letter` pseudo-element of this inline formatting context
+    /// has been processed yet.
+    has_processed_first_letter: bool,
 }
 
 impl InlineFormattingContextBuilder {
-    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
-        Self::new_for_shared_styles(vec![info.into()])
+    /// <https://drafts.csswg.org/css-text/#white-space>:
+    /// > Except where specified otherwise, white space processing in CSS affects only the document
+    /// > white space characters: spaces (U+0020), tabs (U+0009), and segment breaks.
+    ///
+    /// From <https://github.com/w3c/csswg-drafts/issues/5147#issuecomment-637816669>:
+    /// > HTML clearly treats CR, LF, and CRLF as segment breaks.
+    ///
+    /// Other browsers also consider the form feed character (0x0c) to be document white space, it
+    /// seems.
+    ///
+    /// Taken all together, this is equivalent to the WhatWG Infra Standard's definition of ASCII
+    /// white space.
+    pub(crate) fn is_document_white_space(character: char) -> bool {
+        character.is_ascii_whitespace()
     }
 
-    pub(crate) fn new_for_shared_styles(
-        shared_inline_styles_stack: Vec<SharedInlineStyles>,
-    ) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
             is_empty: true,
-            shared_inline_styles_stack,
+            shared_inline_styles_stack: vec![SharedInlineStyles::from_info_and_context(
+                info, context,
+            )],
+            shared_selection: info.node.selection(),
             ..Default::default()
         }
     }
@@ -107,6 +136,7 @@ impl InlineFormattingContextBuilder {
     fn push_control_character_string(&mut self, string_to_push: &str) {
         self.text_segments.push(string_to_push.to_owned());
         self.current_text_offset += string_to_push.len();
+        self.current_character_offset += string_to_push.chars().count();
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -125,7 +155,7 @@ impl InlineFormattingContextBuilder {
         // If there is an existing undamaged layout box that's compatible, use that.
         let independent_formatting_context = old_layout_box
             .and_then(|layout_box| match layout_box {
-                LayoutBox::InlineLevel(InlineItem::Atomic(atomic, ..)) => Some(atomic.clone()),
+                LayoutBox::InlineLevel(InlineItem::Atomic(atomic, ..)) => Some(atomic),
                 _ => None,
             })
             .unwrap_or_else(independent_formatting_context_creator);
@@ -145,6 +175,9 @@ impl InlineFormattingContextBuilder {
         self.last_inline_box_ended_with_collapsible_white_space = false;
         self.on_word_boundary = true;
 
+        // Atomics such as images should prevent any following text as being interpreted as the first letter.
+        self.has_processed_first_letter = true;
+
         inline_level_box
     }
 
@@ -158,7 +191,7 @@ impl InlineFormattingContextBuilder {
                 LayoutBox::InlineLevel(InlineItem::OutOfFlowAbsolutelyPositionedBox(
                     positioned_box,
                     ..,
-                )) => Some(positioned_box.clone()),
+                )) => Some(positioned_box),
                 _ => None,
             })
             .unwrap_or_else(absolutely_positioned_box_creator);
@@ -197,40 +230,17 @@ impl InlineFormattingContextBuilder {
         inline_level_box
     }
 
-    pub(crate) fn push_block_level_box(
-        &mut self,
-        block_level_box: ArcRefCell<BlockLevelBox>,
-        block_builder_info: &NodeAndStyleInfo,
-        layout_context: &LayoutContext,
-    ) {
+    pub(crate) fn push_block_level_box(&mut self, block_level: ArcRefCell<BlockLevelBox>) {
         assert!(self.currently_processing_inline_box());
-        self.contains_floats = self.contains_floats || block_level_box.borrow().contains_floats();
-
-        if let Some(InlineItem::AnonymousBlock(anonymous_block)) = self.inline_items.last() {
-            if let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
-                anonymous_block.borrow_mut().contents
-            {
-                block_level_boxes.push(block_level_box);
-                return;
-            }
-        }
-        let info = &block_builder_info
-            .with_pseudo_element(layout_context, PseudoElement::ServoAnonymousBox)
-            .expect("Should never fail to create anonymous box");
-        self.inline_items
-            .push(InlineItem::AnonymousBlock(ArcRefCell::new(
-                AnonymousBlockBox {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    contents: BlockContainer::BlockLevelBoxes(vec![block_level_box]),
-                },
-            )));
+        self.contains_floats = self.contains_floats || block_level.borrow().contains_floats();
+        self.inline_items.push(InlineItem::BlockLevel(block_level));
     }
 
     pub(crate) fn start_inline_box(
         &mut self,
         inline_box_creator: impl FnOnce() -> ArcRefCell<InlineBox>,
         old_layout_box: Option<LayoutBox>,
-    ) {
+    ) -> InlineItem {
         // If there is an existing undamaged layout box that's compatible, use the `InlineBox` within it.
         let inline_box = old_layout_box
             .and_then(|layout_box| match layout_box {
@@ -247,10 +257,11 @@ impl InlineFormattingContextBuilder {
         std::mem::drop(borrowed_inline_box);
 
         let identifier = self.inline_boxes.start_inline_box(inline_box.clone());
-        self.inline_items
-            .push(InlineItem::StartInlineBox(inline_box));
+        let inline_item = InlineItem::StartInlineBox(inline_box);
+        self.inline_items.push(inline_item.clone());
         self.inline_box_stack.push(identifier);
         self.is_empty = false;
+        inline_item
     }
 
     /// End the ongoing inline box in this [`InlineFormattingContextBuilder`], returning
@@ -268,6 +279,61 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = self.inline_boxes.get(&identifier);
         let bidi_control_chars = inline_level_box.borrow().base.style.bidi_control_chars();
         self.push_control_character_string(bidi_control_chars.1);
+    }
+
+    /// This is like [`Self::push_text`], except that it might possibly add an anonymous box if
+    ///
+    ///  - This inline formatting context has a `::first-letter` style.
+    ///  - No anonymous box for `::first-letter` has been added yet.
+    ///  - First letter content is detected in this text.
+    ///
+    /// Note that this should only be used when processing text in block containers.
+    pub(crate) fn push_text_with_possible_first_letter<'dom>(
+        &mut self,
+        text: Cow<'dom, str>,
+        info: &NodeAndStyleInfo<'dom>,
+        container_info: &NodeAndStyleInfo<'dom>,
+        layout_context: &LayoutContext,
+    ) -> bool {
+        if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
+            self.push_text(text, info);
+            return false;
+        }
+
+        let Some(first_letter_info) =
+            container_info.with_pseudo_element(layout_context, PseudoElement::FirstLetter)
+        else {
+            self.push_text(text, info);
+            return false;
+        };
+
+        let first_letter_range = first_letter_range(&text[..]);
+        if first_letter_range.is_empty() {
+            return false;
+        }
+
+        // Push any leading white space first.
+        if first_letter_range.start != 0 {
+            self.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+        }
+
+        // Push the first-letter text into an anonymous box with the `::first-letter` style.
+        let box_slot = first_letter_info.node.box_slot();
+        let inline_item = self.start_inline_box(
+            || ArcRefCell::new(InlineBox::new(&first_letter_info, layout_context)),
+            None,
+        );
+        box_slot.set(LayoutBox::InlineLevel(inline_item));
+
+        let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
+        self.push_text(first_letter_text, &first_letter_info);
+        self.end_inline_box();
+        self.has_processed_first_letter = true;
+
+        // Now push the non-first-letter text.
+        self.push_text(Cow::Borrowed(&text[first_letter_range.end..]), info);
+
+        true
     }
 
     pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
@@ -302,14 +368,27 @@ impl InlineFormattingContextBuilder {
             },
         };
 
+        let char_iterator = if info.style.clone__webkit_text_security() != WebKitTextSecurity::None
+        {
+            Box::new(TextSecurityTransform::new(
+                char_iterator,
+                info.style.clone__webkit_text_security(),
+            ))
+        } else {
+            char_iterator
+        };
+
         let white_space_collapse = info.style.clone_white_space_collapse();
+        let mut character_count = 0;
         let new_text: String = char_iterator
             .inspect(|&character| {
+                character_count += 1;
+
                 self.is_empty = self.is_empty &&
                     match white_space_collapse {
-                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
+                        WhiteSpaceCollapse::Collapse => Self::is_document_white_space(character),
                         WhiteSpaceCollapse::PreserveBreaks => {
-                            character.is_ascii_whitespace() && character != '\n'
+                            Self::is_document_white_space(character) && character != '\n'
                         },
                         WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
                     };
@@ -320,7 +399,6 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let selection_range = info.get_selection_range();
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
@@ -329,20 +407,53 @@ impl InlineFormattingContextBuilder {
 
         let new_range = self.current_text_offset..self.current_text_offset + new_text.len();
         self.current_text_offset = new_range.end;
+
+        let new_character_range =
+            self.current_character_offset..self.current_character_offset + character_count;
+        self.current_character_offset = new_character_range.end;
+
         self.text_segments.push(new_text);
 
-        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() {
-            text_run.borrow_mut().text_range.end = new_range.end;
+        let current_inline_styles = self.shared_inline_styles();
+
+        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() &&
+            text_run
+                .borrow()
+                .inline_styles
+                .ptr_eq(&current_inline_styles)
+        {
+            let box_slot = info.node.box_slot();
+            let old_text_run = box_slot.take_layout_box_as_text_run();
+
+            {
+                let mut text_run = text_run.borrow_mut();
+                text_run.text_range.end = new_range.end;
+                text_run.character_range.end = new_character_range.end;
+
+                // If this text node does not have a `TextRun` in the box slot, this means that
+                // it is either new or dirty, which means that the entire `TextRun` just extended
+                // is dirty as well. In this case, never reuse existing shaping results. Clear
+                // all old items to ensure this.
+                if old_text_run.is_none() {
+                    text_run.items.clear();
+                }
+            }
+
+            box_slot.set(LayoutBox::Text(text_run.clone()));
             return;
         }
 
+        let box_slot = info.node.box_slot();
+        let text_run = ArcRefCell::new(TextRun::new(
+            info.into(),
+            current_inline_styles,
+            new_range,
+            new_character_range,
+            box_slot.take_layout_box_as_text_run(),
+        ));
         self.inline_items
-            .push(InlineItem::TextRun(ArcRefCell::new(TextRun::new(
-                info.into(),
-                self.shared_inline_styles(),
-                new_range,
-                selection_range,
-            ))));
+            .push(InlineItem::TextRun(text_run.clone()));
+        box_slot.set(LayoutBox::Text(text_run));
     }
 
     pub(crate) fn enter_display_contents(&mut self, shared_inline_styles: SharedInlineStyles) {
@@ -474,7 +585,9 @@ where
             // Don't push non-newline whitespace immediately. Instead wait to push it until we
             // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
             // above.
-            if character.is_ascii_whitespace() && character != '\n' {
+            if InlineFormattingContextBuilder::is_document_white_space(character) &&
+                character != '\n'
+            {
                 self.inside_white_space = true;
                 continue;
             }
@@ -633,6 +746,49 @@ where
     }
 }
 
+pub struct TextSecurityTransform<InputIterator> {
+    /// The input character iterator.
+    char_iterator: InputIterator,
+    /// The `-webkit-text-security` value to use.
+    text_security: WebKitTextSecurity,
+}
+
+impl<InputIterator> TextSecurityTransform<InputIterator> {
+    pub fn new(char_iterator: InputIterator, text_security: WebKitTextSecurity) -> Self {
+        Self {
+            char_iterator,
+            text_security,
+        }
+    }
+}
+
+impl<InputIterator> Iterator for TextSecurityTransform<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // The behavior of `-webkit-text-security` isn't specified, so we have some
+        // flexibility in the implementation. We just need to maintain a rough
+        // compatability with other browsers.
+        Some(match self.char_iterator.next()? {
+            // This is not ideal, but zero width space is used for some special reasons in
+            // `<input>` fields, so these remain untransformed, otherwise they would show up
+            // in empty text fields.
+            '\u{200B}' => '\u{200B}',
+            // Newlines are preserved, so that `<br>` keeps working as expected.
+            '\n' => '\n',
+            character => match self.text_security {
+                WebKitTextSecurity::None => character,
+                WebKitTextSecurity::Circle => '○',
+                WebKitTextSecurity::Disc => '●',
+                WebKitTextSecurity::Square => '■',
+            },
+        })
+    }
+}
+
 /// Given a string and whether the start of the string represents a word boundary, create a copy of
 /// the string with letters after word boundaries capitalized.
 pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
@@ -646,14 +802,14 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some(next_index) = bounds.peek() {
-            if *next_index == current_byte_index {
-                bounds.next();
+        if let Some(next_index) = bounds.peek() &&
+            *next_index == current_byte_index
+        {
+            bounds.next();
 
-                if current_byte_index != 0 || allow_word_at_start {
-                    output_string.extend(character.to_uppercase());
-                    continue;
-                }
+            if current_byte_index != 0 || allow_word_at_start {
+                output_string.extend(character.to_uppercase());
+                continue;
             }
         }
 
@@ -661,4 +817,152 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
     }
 
     output_string
+}
+
+/// Computes the range of the first letter.
+///
+/// The range includes any preceding punctuation and white space, and any trailing punctuation. Any
+/// non-punctuation following the letter/number/symbol of first-letter ends the range. Intervening
+/// spaces within trailing punctuation are not supported yet.
+///
+/// If the resulting range is empty, no compatible first-letter text was found.
+///
+/// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+fn first_letter_range(text: &str) -> Range<usize> {
+    enum State {
+        /// All characters that precede the `PrecedingWhitespaceAndPunctuation` state.
+        Start,
+        /// All preceding punctuation and intervening whitepace that precedes the `Lns` state.
+        PrecedingPunctuation,
+        /// Unicode general category L: letter, N: number and S: symbol
+        Lns,
+        /// All punctuation (but no whitespace or other characters), that
+        /// come after the `Lns` state.
+        TrailingPunctuation,
+    }
+
+    let mut start = 0;
+    let mut state = State::Start;
+    for (index, character) in text.char_indices() {
+        match &mut state {
+            State::Start => {
+                if character.is_letter() || character.is_number() || character.is_symbol() {
+                    start = index;
+                    state = State::Lns;
+                } else if character.is_punctuation() {
+                    start = index;
+                    state = State::PrecedingPunctuation
+                }
+            },
+            State::PrecedingPunctuation => {
+                if character.is_letter() || character.is_number() || character.is_symbol() {
+                    state = State::Lns;
+                } else if !character.is_separator_space() && !character.is_punctuation() {
+                    return 0..0;
+                }
+            },
+            State::Lns => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if character.is_punctuation() &&
+                    !character.is_punctuation_open() &&
+                    !character.is_punctuation_dash()
+                {
+                    state = State::TrailingPunctuation;
+                } else {
+                    return start..index;
+                }
+            },
+            State::TrailingPunctuation => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if character.is_punctuation() &&
+                    !character.is_punctuation_open() &&
+                    !character.is_punctuation_dash()
+                {
+                    continue;
+                } else {
+                    return start..index;
+                }
+            },
+        }
+    }
+
+    match state {
+        State::Start | State::PrecedingPunctuation => 0..0,
+        State::Lns | State::TrailingPunctuation => start..text.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_first_letter_eq(text: &str, expected: &str) {
+        let range = first_letter_range(text);
+        assert_eq!(&text[range], expected);
+    }
+
+    #[test]
+    fn test_first_letter_range() {
+        // All spaces
+        assert_first_letter_eq("", "");
+        assert_first_letter_eq("  ", "");
+
+        // Spaces and punctuation only
+        assert_first_letter_eq("(", "");
+        assert_first_letter_eq(" (", "");
+        assert_first_letter_eq("( ", "");
+        assert_first_letter_eq("()", "");
+
+        // Invalid chars
+        assert_first_letter_eq("\u{0903}", "");
+
+        // First letter only
+        assert_first_letter_eq("A", "A");
+        assert_first_letter_eq(" A", "A");
+        assert_first_letter_eq("A ", "A");
+        assert_first_letter_eq(" A ", "A");
+
+        // Word
+        assert_first_letter_eq("App", "A");
+        assert_first_letter_eq(" App", "A");
+        assert_first_letter_eq("App ", "A");
+
+        // Preceding punctuation(s), intervening spaces and first letter
+        assert_first_letter_eq(r#""A"#, r#""A"#);
+        assert_first_letter_eq(r#" "A"#, r#""A"#);
+        assert_first_letter_eq(r#""A "#, r#""A"#);
+        assert_first_letter_eq(r#"" A"#, r#"" A"#);
+        assert_first_letter_eq(r#" "A "#, r#""A"#);
+        assert_first_letter_eq(r#"("A"#, r#"("A"#);
+        assert_first_letter_eq(r#" ("A"#, r#"("A"#);
+        assert_first_letter_eq(r#"( "A"#, r#"( "A"#);
+        assert_first_letter_eq(r#"[ ( "A"#, r#"[ ( "A"#);
+
+        // First letter and succeeding punctuation(s)
+        // TODO: modify test cases when intervening spaces in succeeding puntuations is supported
+        assert_first_letter_eq(r#"A""#, r#"A""#);
+        assert_first_letter_eq(r#"A" "#, r#"A""#);
+        assert_first_letter_eq(r#"A)]"#, r#"A)]"#);
+        assert_first_letter_eq(r#"A" )]"#, r#"A""#);
+        assert_first_letter_eq(r#"A)] >"#, r#"A)]"#);
+
+        // All
+        assert_first_letter_eq(r#" ("A" )]"#, r#"("A""#);
+        assert_first_letter_eq(r#" ("A")] >"#, r#"("A")]"#);
+
+        // Non ASCII chars
+        assert_first_letter_eq("一", "一");
+        assert_first_letter_eq(" 一 ", "一");
+        assert_first_letter_eq("一二三", "一");
+        assert_first_letter_eq(" 一二三 ", "一");
+        assert_first_letter_eq("（一二三）", "（一");
+        assert_first_letter_eq(" （一二三） ", "（一");
+        assert_first_letter_eq("（（一", "（（一");
+        assert_first_letter_eq(" （ （一", "（ （一");
+        assert_first_letter_eq("一）", "一）");
+        assert_first_letter_eq("一））", "一））");
+        assert_first_letter_eq("一） ）", "一）");
+    }
 }

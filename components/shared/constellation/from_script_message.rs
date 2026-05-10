@@ -6,21 +6,13 @@
 
 use std::fmt;
 
-use base::Epoch;
-use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
-use base::id::{
-    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
-    ServiceWorkerRegistrationId, WebViewId,
-};
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
+    WakeLockType,
 };
 use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
@@ -31,11 +23,21 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::{ReferrerPolicy, ResourceThreads};
+use paint_api::CrossProcessPaintApi;
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_base::Epoch;
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
+use servo_base::id::{
+    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
+    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
+    ServiceWorkerRegistrationId, WebViewId,
+};
+use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::webgl::WebGLChan;
+use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
@@ -77,7 +79,7 @@ pub enum LoadOrigin {
     /// A load originating in webdriver.
     WebDriver,
     /// A load originating in script.
-    Script(ImmutableOrigin),
+    Script(OriginSnapshot),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
@@ -88,6 +90,8 @@ pub struct LoadData {
     pub load_origin: LoadOrigin,
     /// The URL.
     pub url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
+    pub about_base_url: Option<ServoUrl>,
     /// The creator pipeline id if this is an about:blank load.
     pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
@@ -105,7 +109,7 @@ pub struct LoadData {
     /// The data that will be used as the body of the request.
     pub data: Option<RequestBody>,
     /// The result of evaluating a javascript scheme url.
-    pub js_eval_result: Option<JsEvalResult>,
+    pub js_eval_result: Option<String>,
     /// The referrer.
     pub referrer: Referrer,
     /// The referrer policy.
@@ -133,22 +137,13 @@ pub struct LoadData {
     pub container_document_encoding: Option<&'static Encoding>,
 }
 
-/// The result of evaluating a javascript scheme url.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum JsEvalResult {
-    /// The js evaluation had a non-string result, 204 status code.
-    /// <https://html.spec.whatwg.org/multipage/#navigate> 12.11
-    NoContent,
-    /// The js evaluation had a string result.
-    Ok(Vec<u8>),
-}
-
 impl LoadData {
     /// Create a new `LoadData` object.
     #[expect(clippy::too_many_arguments)]
     pub fn new(
         load_origin: LoadOrigin,
         url: ServoUrl,
+        about_base_url: Option<ServoUrl>,
         creator_pipeline_id: Option<PipelineId>,
         referrer: Referrer,
         referrer_policy: ReferrerPolicy,
@@ -160,6 +155,7 @@ impl LoadData {
         Self {
             load_origin,
             url,
+            about_base_url,
             creator_pipeline_id,
             method: Method::GET,
             headers: HeaderMap::new(),
@@ -185,6 +181,7 @@ impl LoadData {
         Self::new(
             LoadOrigin::Constellation,
             url,
+            None,
             None,
             Referrer::NoReferrer,
             ReferrerPolicy::EmptyString,
@@ -224,6 +221,10 @@ pub struct ScopeThings {
     pub devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// service worker id
     pub worker_id: WorkerId,
+    /// the browsing context id of the page that registered the service worker
+    pub browsing_context_id: BrowsingContextId,
+    /// the webview id of the page that registered the service worker
+    pub webview_id: WebViewId,
 }
 
 /// Message that gets passed to service worker scope on postMessage
@@ -327,6 +328,8 @@ pub struct Job {
     pub referrer: ServoUrl,
     /// Various data needed to process job.
     pub scope_things: Option<ScopeThings>,
+    /// <https://w3c.github.io/ServiceWorker/#job-storage-key>
+    pub storage_key: ImmutableOrigin,
 }
 
 impl Job {
@@ -338,6 +341,7 @@ impl Job {
         client: GenericCallback<JobResult>,
         referrer: ServoUrl,
         scope_things: Option<ScopeThings>,
+        storage_key: ImmutableOrigin,
     ) -> Job {
         Job {
             job_type,
@@ -346,6 +350,7 @@ impl Job {
             client,
             referrer,
             scope_things,
+            storage_key,
         }
     }
 }
@@ -403,7 +408,7 @@ pub struct AuxiliaryWebViewCreationRequest {
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
     /// Sender for the constellation’s response to our request.
-    pub response_sender: IpcSender<Option<AuxiliaryWebViewCreationResponse>>,
+    pub response_sender: GenericSender<Option<AuxiliaryWebViewCreationResponse>>,
 }
 
 /// Constellation’s response to auxiliary browsing context creation requests.
@@ -435,6 +440,9 @@ pub struct IFrameLoadInfo {
     /// Whether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub history_handling: NavigationHistoryBehavior,
+    /// A snapshot of the navigation-related parameters of the target
+    /// of this navigation.
+    pub target_snapshot_params: TargetSnapshotParams,
 }
 
 /// Specifies the information required to load a URL in an iframe.
@@ -481,6 +489,8 @@ pub struct WorkerGlobalScopeInit {
     pub inherited_secure_context: Option<bool>,
     /// Unminify Javascript.
     pub unminify_js: bool,
+    /// Handle for communicating messages to the WebGL thread, if available.
+    pub webgl_chan: Option<WebGLChan>,
 }
 
 /// Common entities representing a network load origin
@@ -536,6 +546,16 @@ pub enum ScreenshotReadinessResponse {
     NoLongerActive,
 }
 
+/// Identifies a category of events/notifications that a pipeline can register
+/// interest in with the constellation. When a pipeline has active listeners for
+/// events in a given category, it registers interest so the constellation only
+/// sends notifications to pipelines that care.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum ConstellationInterest {
+    /// Interest in `storage` events (fired when another same-origin pipeline modifies storage).
+    StorageEvent,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -583,6 +603,12 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
+    /// Register this pipeline's interest in a category of notifications.
+    /// The constellation will only send notifications in this category to
+    /// pipelines that have registered interest.
+    RegisterInterest(ConstellationInterest),
+    /// Unregister this pipeline's interest in a category of notifications.
+    UnregisterInterest(ConstellationInterest),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
@@ -612,29 +638,36 @@ pub enum ScriptToConstellationMessage {
     ///
     /// The second field is a sequence number that the constellation should use
     /// when sending a focus-related message to the sender pipeline next time.
-    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
-    /// Requests the constellation to focus the specified browsing context.
-    FocusRemoteDocument(BrowsingContextId),
+    FocusAncestorBrowsingContextsForFocusingSteps(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Focus a remote `BrowsingContext` and run the focusing steps. This is used in two situations:
+    /// - When calling the DOM `focus()` API on a remote `Window` as well as from
+    ///   WebDriver. The difference between this and `FocusDocumentAsPartOfFocusingSteps` is that this
+    ///   version actually does run the focusing steps and may result in blur and focus events firing
+    ///   up the frame tree.
+    /// - When doing sequential focus navigation into and out of frames.
+    FocusRemoteBrowsingContext(BrowsingContextId, RemoteFocusOperation),
     /// Get the top-level browsing context info for a given browsing context.
-    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
+    GetTopForBrowsingContext(BrowsingContextId, GenericSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
     /// embedded and the parent pipeline id of that browsing context.
     GetBrowsingContextInfo(
         PipelineId,
-        IpcSender<Option<(BrowsingContextId, Option<PipelineId>)>>,
+        GenericSender<Option<(BrowsingContextId, Option<PipelineId>)>>,
     ),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(
         BrowsingContextId,
         usize,
-        IpcSender<Option<BrowsingContextId>>,
+        GenericSender<Option<BrowsingContextId>>,
     ),
+    /// Get the origin of the document corresponding to the given pipeline
+    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, NavigationHistoryBehavior),
+    LoadUrl(LoadData, NavigationHistoryBehavior, TargetSnapshotParams),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -703,7 +736,7 @@ pub enum ScriptToConstellationMessage {
     ),
     #[cfg(feature = "webgpu")]
     /// Get WebGPU channel
-    GetWebGPUChan(IpcSender<Option<WebGPU>>),
+    GetWebGPUChan(GenericSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
     /// Notify the constellation that the size of some `<iframe>`s has changed.
@@ -719,6 +752,16 @@ pub enum ScriptToConstellationMessage {
     ForwardKeyboardScroll(PipelineId, KeyboardScroll),
     /// Notify the Constellation of the screenshot readiness of a given pipeline.
     RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
+    /// Request the constellation to force garbage collection in all `ScriptThread`'s.
+    TriggerGarbageCollection,
+    /// Request to acquire a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from 0 to 1.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock(WakeLockType),
+    /// Request to release a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from N to 0.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock(WakeLockType),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
@@ -726,4 +769,43 @@ impl fmt::Debug for ScriptToConstellationMessage {
         let variant_string: &'static str = self.into();
         write!(formatter, "ScriptMsg::{variant_string}")
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#target-snapshot-params>
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct TargetSnapshotParams {
+    /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-sandbox>
+    pub sandboxing_flags: SandboxingFlagSet,
+    /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-iframe-referrer-policy>
+    pub iframe_element_referrer_policy: ReferrerPolicy,
+}
+
+impl Default for TargetSnapshotParams {
+    fn default() -> Self {
+        Self {
+            sandboxing_flags: SandboxingFlagSet::empty(),
+            iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
+        }
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#sequential-focus-direction>
+///
+/// > A sequential focus direction is one of two possible values: "forward", or "backward". They are
+/// > used in the below algorithms to describe the direction in which sequential focus travels at the
+/// > user's request.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum SequentialFocusDirection {
+    Forward,
+    Backward,
+}
+
+/// The type of focus operation to do on a remote document.
+#[derive(Deserialize, Serialize)]
+pub enum RemoteFocusOperation {
+    /// Focus the entire viewport of the remote document.
+    Viewport,
+    /// Do sequential focus navigation using the `<iframe>` element with the given
+    /// [`BrowsingContextId`] as the starting point and in the given direction.
+    Sequential(SequentialFocusDirection, Option<BrowsingContextId>),
 }

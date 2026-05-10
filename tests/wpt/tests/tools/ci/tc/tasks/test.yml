@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: ghcr.io/web-platform-tests/wpt:2
+    image: ghcr.io/web-platform-tests/wpt:3
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -41,6 +41,11 @@ components:
     vars:
       test-type: crashtest
 
+  wpt-test262:
+    chunks: 8
+    vars:
+      test-type: test262
+
   run-options:
     options:
       xvfb: true
@@ -54,6 +59,7 @@ components:
       browser:
         - ${vars.browser}
       channel: ${vars.channel}
+    commit-args-name: wpt-args
     command: >-
       ./tools/ci/taskcluster-run.py
       ${vars.browser}
@@ -117,15 +123,15 @@ components:
     chunks-override:
       testharness: 30
 
-  tox-python3_8:
+  tox-python3_9:
     env:
-      TOXENV: py38
+      TOXENV: py39
       PY_COLORS: "0"
     install:
-      - python3.8
-      - python3.8-distutils
-      - python3.8-dev
-      - python3.8-venv
+      - python3.9
+      - python3.9-distutils
+      - python3.9-dev
+      - python3.9-venv
 
   tox-python3_14:
     env:
@@ -157,6 +163,8 @@ tasks:
             suite: wdspec
         - vars:
             suite: crashtest
+        - vars:
+            suite: test262
       do:
         $map:
           for:
@@ -170,7 +178,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox
@@ -295,7 +303,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox
@@ -407,7 +415,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox
@@ -574,13 +582,13 @@ tasks:
           - update_built
       command: "./tools/ci/ci_built_diff.sh"
 
-  - tools/ unittests (Python 3.8):
+  - tools/ unittests (Python 3.9):
       description: >-
-        Unit tests for tools running under Python 3.8, excluding wptrunner
+        Unit tests for tools running under Python 3.9, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -602,13 +610,13 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ integration tests (Python 3.8):
+  - tools/ integration tests (Python 3.9):
       description: >-
-        Integration tests for tools running under Python 3.8
+        Integration tests for tools running under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -646,13 +654,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - resources/ tests (Python 3.8):
+  - resources/ tests (Python 3.9):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.8
+        Tests for testharness.js and other files in resources/ under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools

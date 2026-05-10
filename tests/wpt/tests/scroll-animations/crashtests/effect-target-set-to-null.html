@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>This test passes if it does not crash</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<script src="/web-animations/testcommon.js"></script>
+<body>
+
+<script>
+
+(async function() {
+    document.body.style.height = '4000px';
+
+    const target = document.body.appendChild(document.createElement('div'));
+    target.style.cssText = 'width:100px; height:100px; background:black;';
+
+    const timeline = new ScrollTimeline({ source: document.documentElement });
+    const animation = target.animate([{ opacity: 0 }], { timeline });
+
+    await animation.ready;
+    animation.effect.target = null;
+})();
+</script>

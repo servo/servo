@@ -5,6 +5,7 @@
 use app_units::Au;
 use euclid::{Size2D, Vector2D};
 use style::computed_values::background_attachment::SingleComputedValue as BackgroundAttachment;
+use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
 use style::properties::ComputedValues;
@@ -24,6 +25,7 @@ pub(super) struct BackgroundLayer {
     pub tile_size: units::LayoutSize,
     pub tile_spacing: units::LayoutSize,
     pub repeat: bool,
+    pub blend_mode: BackgroundBlendMode,
 }
 
 #[derive(Debug)]
@@ -34,7 +36,7 @@ struct Layout1DResult {
     tile_spacing: f32,
 }
 
-fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
+pub(crate) fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
     &values[layer_index % values.len()]
 }
 
@@ -266,12 +268,14 @@ pub(super) fn layout_layer(
     );
     let tile_spacing = units::LayoutSize::new(result_x.tile_spacing, result_y.tile_spacing);
 
+    let blend_mode = *get_cyclic(&b.background_blend_mode.0, layer_index);
     Some(BackgroundLayer {
         common,
         bounds,
         tile_size,
         tile_spacing,
         repeat: result_x.repeat || result_y.repeat,
+        blend_mode,
     })
 }
 
@@ -297,7 +301,9 @@ fn layout_1d(
     // > | zero).
     if let Repeat::Round = repeat {
         let round = |number: f32| number.round().max(1.0);
-        *tile_size = positioning_area_size / round(positioning_area_size / *tile_size);
+        if positioning_area_size != 0.0 {
+            *tile_size = positioning_area_size / round(positioning_area_size / *tile_size);
+        }
     }
     // https://drafts.csswg.org/css-backgrounds/#background-position
     let mut position = position

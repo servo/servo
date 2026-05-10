@@ -12,11 +12,11 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
-use base::id::PainterId;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use fonts_traits::FontDescriptor;
+use icu_locid::subtags::Language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -24,6 +24,8 @@ use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PainterId;
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -37,9 +39,9 @@ use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 use crate::platform::font::{FontTable, PlatformFont};
 use crate::platform::font_list::fallback_font_families;
 use crate::{
-    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
-    FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
 };
 
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
@@ -80,7 +82,7 @@ pub trait PlatformFontMethods: Sized {
                 variations,
                 synthetic_bold,
             ),
-            FontIdentifier::Web(_) => Self::new_from_data(
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
@@ -183,13 +185,21 @@ impl FontMetrics {
         static EMPTY: OnceLock<Arc<FontMetrics>> = OnceLock::new();
         EMPTY.get_or_init(Default::default).clone()
     }
+
+    /// Whether or not the block metrics of the two `FontMetrics` instances differ in a way
+    /// that requires the resulting block size of a containing inline box to change.
+    pub fn block_metrics_meaningfully_differ(&self, other: &Self) -> bool {
+        self.ascent != other.ascent ||
+            self.descent != other.descent ||
+            self.line_gap != other.line_gap
+    }
 }
 
 #[derive(Debug, Default)]
 struct CachedShapeData {
     glyph_advances: HashMap<GlyphId, FractionalPixel>,
     glyph_indices: HashMap<char, Option<GlyphId>>,
-    shaped_text: HashMap<ShapeCacheEntry, Arc<GlyphStore>>,
+    shaped_text: HashMap<ShapeCacheEntry, Arc<ShapedText>>,
 }
 
 impl malloc_size_of::MallocSizeOf for CachedShapeData {
@@ -354,10 +364,6 @@ impl Font {
 bitflags! {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
-        /// Set if the text is entirely whitespace.
-        const IS_WHITESPACE_SHAPING_FLAG = 1 << 0;
-        /// Set if the text ends with whitespace.
-        const ENDS_WITH_WHITESPACE_SHAPING_FLAG = 1 << 1;
         /// Set if we are to ignore ligatures.
         const IGNORE_LIGATURES_SHAPING_FLAG = 1 << 2;
         /// Set if we are to disable kerning.
@@ -374,13 +380,30 @@ bitflags! {
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
+    ///
+    /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
+    /// determine the amount of spacing to apply.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Au,
+    pub word_spacing: Option<Au>,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
+    /// The preferred language, obtained from the `lang` attribute.
+    pub language: Language,
     /// Various flags.
     pub flags: ShapingFlags,
+}
+
+impl ShapingOptions {
+    pub(crate) fn letter_spacing_for_character(&self, character: char) -> Option<Au> {
+        // https://drafts.csswg.org/css-text/#letter-spacing-property
+        // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
+        // Spacing must be added as if those characters did not exist in the document.
+        self.letter_spacing.filter(|_| {
+            icu_properties::maps::general_category().get(character) !=
+                icu_properties::GeneralCategory::Format
+        })
+    }
 }
 
 /// An entry in the shape cache.
@@ -391,7 +414,7 @@ struct ShapeCacheEntry {
 }
 
 impl Font {
-    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
+    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
@@ -403,45 +426,27 @@ impl Font {
             }
         }
 
-        let is_single_preserved_newline = text.len() == 1 && text.starts_with('\n');
         let start_time = Instant::now();
-        let mut glyphs = GlyphStore::new(
-            text.len(),
-            options
-                .flags
-                .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
-            options
-                .flags
-                .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
-            is_single_preserved_newline,
-            options.flags.contains(ShapingFlags::RTL_FLAG),
-        );
-
-        if self.can_do_fast_shaping(text, options) {
+        let glyphs = if self.can_do_fast_shaping(text, options) {
             debug!("shape_text: Using ASCII fast path.");
-            self.shape_text_fast(text, options, &mut glyphs);
+            self.shape_text_fast(text, options)
         } else {
             debug!("shape_text: Using Harfbuzz.");
-            self.shape_text_harfbuzz(text, options, &mut glyphs);
-        }
+            self.shaper
+                .get_or_init(|| Shaper::new(self))
+                .shape_text(text, options)
+        };
 
         let shaped_text = Arc::new(glyphs);
         let mut cache = self.cached_shape_data.write();
         cache.shaped_text.insert(lookup_key, shaped_text.clone());
 
-        let end_time = Instant::now();
         TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
-            (end_time.duration_since(start_time).as_nanos()) as usize,
+            ((Instant::now() - start_time).as_nanos()) as usize,
             Ordering::Relaxed,
         );
 
         shaped_text
-    }
-
-    fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        self.shaper
-            .get_or_init(|| Shaper::new(self))
-            .shape_text(text, options, glyphs);
     }
 
     /// Whether not a particular text and [`ShapingOptions`] combination can use
@@ -460,31 +465,34 @@ impl Font {
     }
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
-    fn shape_text_fast(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+    fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> ShapedText {
+        let mut glyph_store = ShapedText::new(text.len(), false /* is_rtl */);
         let mut prev_glyph_id = None;
-        for (i, byte) in text.bytes().enumerate() {
+        for (string_byte_offset, byte) in text.bytes().enumerate() {
             let character = byte as char;
-            let glyph_id = match self.glyph_index(character) {
-                Some(id) => id,
-                None => continue,
+            let Some(glyph_id) = self.glyph_index(character) else {
+                continue;
             };
 
-            let mut advance = advance_for_shaped_glyph(
-                Au::from_f64_px(self.glyph_h_advance(glyph_id)),
-                character,
-                options,
-            );
+            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
                 Point2D::new(h_kerning, Au::zero())
             });
 
-            let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
-            glyphs.add_glyph_for_byte_index(ByteIndex(i as isize), character, &glyph);
+            let mut glyph = ShapedGlyph {
+                glyph_id,
+                string_byte_offset,
+                advance,
+                offset,
+            };
+            glyph.adjust_for_character(character, options);
+
+            glyph_store.add_glyph(character, &glyph);
             prev_glyph_id = Some(glyph_id);
         }
-        glyphs.finalize_changes();
+        glyph_store
     }
 
     pub(crate) fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
@@ -560,10 +568,24 @@ impl Font {
     pub fn baseline(&self) -> Option<FontBaseline> {
         self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
+
+    #[cfg(not(target_os = "macos"))]
+    pub(crate) fn find_fallback_using_system_font_api(
+        &self,
+        _: &FallbackFontSelectionOptions,
+    ) -> Option<FontRef> {
+        None
+    }
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct FontRef(#[conditional_malloc_size_of] pub(crate) Arc<Font>);
+
+impl PartialEq for FontRef {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(self, other)
+    }
+}
 
 impl Deref for FontRef {
     type Target = Arc<Font>;
@@ -572,13 +594,39 @@ impl Deref for FontRef {
     }
 }
 
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct FallbackKey {
+    script: Script,
+    unicode_block: Option<UnicodeBlock>,
+    language: Language,
+}
+
+impl FallbackKey {
+    fn new(options: &FallbackFontSelectionOptions) -> Self {
+        Self {
+            script: Script::from(options.character),
+            unicode_block: options.character.block(),
+            language: options.language,
+        }
+    }
+}
+
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the
 /// styles are suitable, a fallback font may be used.
 #[derive(MallocSizeOf)]
 pub struct FontGroup {
+    /// The [`FontDescriptor`] which describes the properties of the fonts that should
+    /// be loaded for this [`FontGroup`].
     descriptor: FontDescriptor,
+    /// The families that have been loaded for this [`FontGroup`]. This correponds to the
+    /// list of fonts specified in CSS.
     families: SmallVec<[FontGroupFamily; 8]>,
+    /// A list of fallbacks that have been used in this [`FontGroup`]. Currently this
+    /// can grow indefinitely, but maybe in the future it should be an LRU cache.
+    /// It's unclear if this is the right thing to do. Perhaps fallbacks should
+    /// always be stored here as it's quite likely that they will be used again.
+    fallbacks: RwLock<HashMap<FallbackKey, FontRef>>,
 }
 
 impl FontGroup {
@@ -593,6 +641,7 @@ impl FontGroup {
         FontGroup {
             descriptor,
             families,
+            fallbacks: Default::default(),
         }
     }
 
@@ -605,8 +654,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        first_fallback: Option<FontRef>,
-        lang: Option<String>,
+        language: Language,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -616,7 +664,7 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, lang);
+        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, language);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -652,24 +700,37 @@ impl FontGroup {
             return font_or_synthesized_small_caps(font);
         }
 
-        if let Some(ref first_fallback) = first_fallback {
-            if char_in_template(first_fallback.template.clone()) &&
-                font_has_glyph_and_presentation(first_fallback)
-            {
-                return font_or_synthesized_small_caps(first_fallback.clone());
-            }
+        let fallback_key = FallbackKey::new(&options);
+        if let Some(fallback) = self.fallbacks.read().get(&fallback_key) &&
+            char_in_template(fallback.template.clone()) &&
+            font_has_glyph_and_presentation(fallback)
+        {
+            return font_or_synthesized_small_caps(fallback.clone());
         }
 
-        if let Some(font) = self.find_fallback(
+        if let Some(font) = self.find_fallback_using_system_font_list(
             font_context,
             options.clone(),
             &char_in_template,
             &font_has_glyph_and_presentation,
         ) {
-            return font_or_synthesized_small_caps(font);
+            let fallback = font_or_synthesized_small_caps(font);
+            if let Some(fallback) = fallback.clone() {
+                self.fallbacks.write().insert(fallback_key, fallback);
+            }
+            return fallback;
         }
 
-        self.first(font_context)
+        let first_font = self.first(font_context);
+        if let Some(fallback) = first_font
+            .as_ref()
+            .and_then(|font| font.find_fallback_using_system_font_api(&options)) &&
+            font_has_glyph_and_presentation(&fallback)
+        {
+            return Some(fallback);
+        }
+
+        first_font
     }
 
     /// Find the first available font in the group, or the first available fallback font.
@@ -685,7 +746,7 @@ impl FontGroup {
         let font_predicate = |_: &FontRef| true;
         self.find(font_context, &space_in_template, &font_predicate)
             .or_else(|| {
-                self.find_fallback(
+                self.find_fallback_using_system_font_list(
                     font_context,
                     FallbackFontSelectionOptions::default(),
                     &space_in_template,
@@ -717,10 +778,11 @@ impl FontGroup {
     }
 
     /// Attempts to find a suitable fallback font which matches the given `template_predicate` and
-    /// `font_predicate`. The default family (i.e. "serif") will be tried first, followed by
-    /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
-    /// used to refine the list of family names which will be tried.
-    fn find_fallback(
+    /// `font_predicate` using the system font list. The default family (i.e. "serif") will be tried
+    /// first, followed by platform-specific family names. If a `codepoint` is provided, then its
+    /// Unicode block may be used to refine
+    /// the list of family names which will be tried.
+    fn find_fallback_using_system_font_list(
         &self,
         font_context: &FontContext,
         options: FallbackFontSelectionOptions,
@@ -896,7 +958,7 @@ pub struct FontBaseline {
 /// let mapped_weight = apply_font_config_to_style_mapping(&mapping, weight as f64);
 /// ```
 #[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
+    any(target_os = "linux", target_os = "macos", target_os = "freebsd"),
     not(target_env = "ohos")
 ))]
 pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value: f64) -> f64 {
@@ -915,26 +977,4 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
-}
-
-/// Computes the total advance for a glyph, taking `letter-spacing` and `word-spacing` into account.
-pub(super) fn advance_for_shaped_glyph(
-    mut advance: Au,
-    character: char,
-    options: &ShapingOptions,
-) -> Au {
-    if let Some(letter_spacing) = options.letter_spacing {
-        advance += letter_spacing;
-    };
-
-    // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
-    // space (U+00A0) left in the text after the white space processing rules have been
-    // applied. The effect of the property on other word-separator characters is undefined."
-    // We elect to only space the two required code points.
-    if character == ' ' || character == '\u{a0}' {
-        // https://drafts.csswg.org/css-text-3/#word-spacing-property
-        advance += options.word_spacing;
-    }
-
-    advance
 }

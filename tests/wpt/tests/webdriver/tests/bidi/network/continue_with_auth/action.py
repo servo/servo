@@ -3,7 +3,6 @@ import webdriver.bidi.error as error
 from webdriver.bidi.modules.network import AuthCredentials
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_response_event,
     AUTH_REQUIRED_EVENT,
@@ -14,7 +13,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_cancel(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, wait_for_future_safe
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, wait_for_bidi_events, wait_for_future_safe
 ):
     request = await setup_blocked_request("authRequired")
 
@@ -37,21 +36,23 @@ async def test_cancel(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 401,
-            "statusText": "Unauthorized",
+        expected_event={
+            "response": {
+                "status": 401,
+                "statusText": "Unauthorized",
+            }
         },
     )
 
     # check no other responseCompleted event was received
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
+        await wait_for_bidi_events(events, 2, timeout=0.5)
 
     remove_listener()
 
 
 async def test_default(
-    setup_blocked_request, subscribe_events, bidi_session
+    setup_blocked_request, subscribe_events, bidi_session, wait_for_bidi_events
 ):
     request = await setup_blocked_request("authRequired")
 
@@ -73,13 +74,13 @@ async def test_default(
     await bidi_session.network.continue_with_auth(request=request, action="default")
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
 
 async def test_provideCredentials(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, wait_for_future_safe
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, wait_for_bidi_events, wait_for_future_safe
 ):
     # Setup unique username / password because browsers cache credentials.
     username = "test_provideCredentials"
@@ -109,21 +110,23 @@ async def test_provideCredentials(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 200,
-            "statusText": "OK",
+        expected_event={
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+            }
         },
     )
 
     # check no other responseCompleted event was received
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
+        await wait_for_bidi_events(events, 2, timeout=0.5)
 
     remove_listener()
 
 
 async def test_provideCredentials_wrong_credentials(
-    setup_blocked_request, subscribe_events, bidi_session, wait_for_event, wait_for_future_safe
+    setup_blocked_request, subscribe_events, bidi_session, wait_for_event, wait_for_bidi_events, wait_for_future_safe
 ):
     # Setup unique username / password because browsers cache credentials.
     username = "test_provideCredentials_wrong_credentials"
@@ -164,14 +167,16 @@ async def test_provideCredentials_wrong_credentials(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 200,
-            "statusText": "OK",
+        expected_event={
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+            }
         },
     )
 
     # check no other responseCompleted event was received
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
+        await wait_for_bidi_events(events, 2, timeout=0.5)
 
     remove_listener()

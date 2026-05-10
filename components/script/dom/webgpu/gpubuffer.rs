@@ -6,23 +6,24 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::string::String;
 
-use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use js::typedarray::HeapArrayBuffer;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
+use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 use wgpu_core::device::HostMap;
 use wgpu_core::resource::BufferAccessError;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUFlagsConstant,
     GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -51,11 +52,11 @@ impl ActiveBufferMapping {
         let size = range.end - range.start;
         // Step 2
         if size > (1 << 53) - 1 {
-            return Err(Error::Range("Over MAX_SAFE_INTEGER".to_string()));
+            return Err(Error::Range(c"Over MAX_SAFE_INTEGER".to_owned()));
         }
         let size: usize = size
             .try_into()
-            .map_err(|_| Error::Range("Over usize".to_string()))?;
+            .map_err(|_| Error::Range(c"Over usize".to_owned()))?;
         Ok(Self {
             data: DataBlock::new_zeroed(size),
             mode,
@@ -67,7 +68,6 @@ impl ActiveBufferMapping {
 #[dom_struct]
 pub(crate) struct GPUBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
@@ -171,7 +171,7 @@ impl GPUBuffer {
 
         Ok(GPUBuffer::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             buffer,
             device,
             descriptor.size,
@@ -185,7 +185,7 @@ impl GPUBuffer {
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        self.Destroy()
+        self.Destroy();
     }
 }
 
@@ -193,8 +193,10 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {
         // Step 1
-        if let Some(promise) = self.pending_map.borrow_mut().take() {
-            promise.reject_error(Error::Abort(None), CanGc::note());
+        let promise = self.pending_map.borrow_mut().take();
+        if let Some(promise) = promise {
+            promise.reject_error(Error::Abort(None), CanGc::deprecated_note());
+            *self.pending_map.borrow_mut() = Some(promise);
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
@@ -309,14 +311,18 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self.size.saturating_sub(offset)
         };
         // Step 2: validation
-        let mut mapping = self.mapping.borrow_mut();
-        let mapping = mapping.as_mut().ok_or(Error::Operation(None))?;
+        let mut mapping = self
+            .mapping
+            .borrow_mut()
+            .take()
+            .ok_or(Error::Operation(None))?;
 
-        let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
+        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
+            self.mapping.borrow_mut().replace(mapping);
             return Err(Error::Operation(None));
         }
 
@@ -324,11 +330,14 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         // only mapping.range is mapped with mapping.range.start at 0
         // so we need to rebase range to mapped.range
         let rebased_offset = (offset - mapping.range.start) as usize;
-        mapping
+        let result = mapping
             .data
             .view(rebased_offset..rebased_offset + range_size as usize, can_gc)
             .map(|view| view.array_buffer())
-            .map_err(|()| Error::Operation(None))
+            .map_err(|()| Error::Operation(None));
+
+        self.mapping.borrow_mut().replace(mapping);
+        result
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
@@ -366,18 +375,18 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
 
 impl GPUBuffer {
     fn map_failure(&self, p: &Rc<Promise>, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
         // Step 1
-        if pending_map.as_ref() != Some(p) {
+        if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
         // Step 2
         assert!(p.is_pending());
         // Step 3
-        pending_map.take();
+        self.pending_map.borrow_mut().take();
         // Step 4
-        if self.device.is_lost() {
+        let is_lost = self.device.is_lost();
+        if is_lost {
             p.reject_error(Error::Abort(None), can_gc);
         } else {
             p.reject_error(Error::Operation(None), can_gc);
@@ -385,10 +394,8 @@ impl GPUBuffer {
     }
 
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
-
         // Step 1
-        if pending_map.as_ref() != Some(p) {
+        if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
@@ -407,8 +414,8 @@ impl GPUBuffer {
 
         match mapping {
             Err(error) => {
-                *pending_map = None;
-                p.reject_error(error.clone(), can_gc);
+                *self.pending_map.borrow_mut() = None;
+                p.reject_error(error, can_gc);
             },
             Ok(mut mapping) => {
                 // Step 5
@@ -416,7 +423,7 @@ impl GPUBuffer {
                 // Step 6
                 self.mapping.borrow_mut().replace(mapping);
                 // Step 7
-                pending_map.take();
+                self.pending_map.borrow_mut().take();
                 p.resolve_native(&(), can_gc);
             },
         }
@@ -426,13 +433,13 @@ impl GPUBuffer {
 impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: Result<Mapping, BufferAccessError>,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
-            Ok(mapping) => self.map_success(promise, mapping, can_gc),
-            Err(_) => self.map_failure(promise, can_gc),
+            Ok(mapping) => self.map_success(promise, mapping, CanGc::from_cx(cx)),
+            Err(_) => self.map_failure(promise, CanGc::from_cx(cx)),
         }
     }
 }

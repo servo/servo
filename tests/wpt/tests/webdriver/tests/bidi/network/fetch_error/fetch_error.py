@@ -4,7 +4,6 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_fetch_error_event,
     assert_response_event,
@@ -15,8 +14,9 @@ from .. import (
     PAGE_INVALID_URL,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_subscribe_status(
     bidi_session,
     subscribe_events,
@@ -49,9 +49,7 @@ async def test_subscribe_status(
     assert len(events) == 1
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
     await bidi_session.session.unsubscribe(events=[FETCH_ERROR_EVENT])
@@ -65,7 +63,6 @@ async def test_subscribe_status(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_aborted_request(
     new_tab,
     wait_for_event,
@@ -90,16 +87,18 @@ async def test_aborted_request(
     fetch_error_event = await wait_for_future_safe(on_fetch_error)
     assert_fetch_error_event(
         fetch_error_event,
-        expected_request={"url": slow_url},
-        context=new_tab["context"],
+        expected_event={
+            "request": {"url": slow_url},
+            "context": new_tab["context"],
+        },
     )
 
 
-@pytest.mark.asyncio
 async def test_iframe_load(
     bidi_session,
     new_tab,
     setup_network_test,
+    wait_for_bidi_events,
     inline,
 ):
     network_events = await setup_network_test(
@@ -112,7 +111,7 @@ async def test_iframe_load(
         url=inline(f"<iframe src='{PAGE_INVALID_URL}'></iframe>"),
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=2)
+    await wait_for_bidi_events(events, 1, timeout=2)
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     frame_context = contexts[0]["children"][0]
@@ -120,17 +119,18 @@ async def test_iframe_load(
     assert len(events) == 1
     assert_fetch_error_event(
         events[0],
-        expected_request={"url": PAGE_INVALID_URL},
-        context=frame_context["context"],
+        expected_event={
+            "request": {"url": PAGE_INVALID_URL},
+            "context": frame_context["context"],
+        },
     )
 
 
-@pytest.mark.asyncio
 async def test_navigation_id(
     bidi_session,
     new_tab,
-    wait_for_event,
     url,
+    wait_for_event,
     fetch,
     setup_network_test,
     wait_for_future_safe,
@@ -143,8 +143,7 @@ async def test_navigation_id(
 
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event,
-        expected_request=expected_request,
+        fetch_error_event, expected_event={"request": expected_request}
     )
     # Check that requests not related to a navigation have no navigation id.
     assert fetch_error_event["navigation"] is None
@@ -157,8 +156,7 @@ async def test_navigation_id(
 
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event,
-        expected_request=expected_request,
+        fetch_error_event, expected_event={"request": expected_request}
     )
 
 
@@ -174,11 +172,11 @@ async def test_navigation_id(
         ("PUT", True),
     ],
 )
-@pytest.mark.asyncio
 async def test_request_method(
     bidi_session,
     new_tab,
     wait_for_event,
+    wait_for_bidi_events,
     wait_for_future_safe,
     fetch,
     setup_network_test,
@@ -196,7 +194,7 @@ async def test_request_method(
     # request which uses the OPTIONS method.
     expected_events = 2 if has_preflight else 1
 
-    await wait_for_bidi_events(bidi_session, events, expected_events, timeout=2)
+    await wait_for_bidi_events(events, expected_events, timeout=2)
 
     # TODO: At the moment the event order for preflight requests differs between
     # Chrome and Firefox so we cannot assume the order of fetchError events.
@@ -209,12 +207,10 @@ async def test_request_method(
 
     for event in events:
         assert_fetch_error_event(
-            event,
-            expected_request={"url": PAGE_INVALID_URL},
+            event, expected_event={"request": {"url": PAGE_INVALID_URL}}
         )
 
 
-@pytest.mark.asyncio
 async def test_request_timing_info(
     bidi_session,
     new_tab,
@@ -244,13 +240,14 @@ async def test_request_timing_info(
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         events[0],
-        expected_request=expected_request,
-        expected_time_range=time_range,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "timestamp": time_range,
+            "redirectCount": 0,
+        },
     )
 
 
-@pytest.mark.asyncio
 async def test_redirect_fetch(
     bidi_session, new_tab, wait_for_event, url, fetch, setup_network_test
 ):
@@ -278,12 +275,12 @@ async def test_redirect_fetch(
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
         response_completed_event,
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event, expected_request=expected_request, redirect_count=1
+        fetch_error_event,
+        expected_event={"request": expected_request, "redirectCount": 1},
     )
 
     # Check that both requests share the same requestId
@@ -293,7 +290,6 @@ async def test_redirect_fetch(
     )
 
 
-@pytest.mark.asyncio
 async def test_redirect_navigation(
     bidi_session, new_tab, wait_for_event, url, setup_network_test
 ):
@@ -323,14 +319,12 @@ async def test_redirect_navigation(
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
         response_completed_event,
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         fetch_error_event,
-        expected_request=expected_request,
-        redirect_count=1,
+        expected_event={"request": expected_request, "redirectCount": 1},
     )
 
     # Check that all events share the same requestId

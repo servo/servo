@@ -1,55 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<svg id="svg-root"
-  width="100%" height="100%" viewBox="0 0 480 360"
+<svg width="400" height="300" viewBox="0 0 400 300"
   xmlns="http://www.w3.org/2000/svg"
-  xmlns:xlink="http://www.w3.org/1999/xlink"
   xmlns:html="http://www.w3.org/1999/xhtml">
-  <g id="testmeta">
-    <title>TextPath Side — 001</title>
-    <html:link rel="author"
-          title="Tavmjong Bah"
-          href="mailto:tavmjong@free.fr"/>
-  </g>
-
-  <style id="test-font" type="text/css">
-    /* Standard Font (if needed). */
-    @font-face {
-      font-family: FreeSans;
-      src: url("fonts/FreeSans.woff") format("woff"),
-           local("FreeSans");
-    }
-    text { font-family: FreeSans, sans-serif }
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
   </style>
-
-  <style id="test-style" type="text/css">
-    /* Style that is being tested (if needed). */
-    text { font-family: FreeSans, sans-serif }
-  </style>
-
   <defs>
-    <path id="TextPath" d="m 90,150 c 100,-100 200,100 300,0"/>
-    <path id="TextPathReversed" d="m 390,150 c -100,100 -200,-100 -300,0"/>
+    <path id="path" d="M 50,80 Q 200,20 350,80"/>
+    <!-- Reversed path: geometrically equivalent to side="right" on the forward path -->
+    <path id="path-reversed" d="M 350,80 Q 200,20 50,80"/>
   </defs>
-
-  <g id="test-body-content" style="font-size:24px">
-    <g transform="translate(0,0)">
-      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
-      <text>
-        <textPath xlink:href="#TextPath">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
-      </text>
-    </g>
-    <g transform="translate(0,75)">
-      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
-      <text>
-        <textPath xlink:href="#TextPath">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
-      </text>
-    </g>
-    <g transform="translate(0,150)">
-      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
-      <text>
-        <textPath xlink:href="#TextPathReversed">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
-      </text>
-    </g>
+  <!-- Row 1: no side attribute (default = left) -->
+  <g transform="translate(0,0)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path">ABCD</textPath>
+    </text>
   </g>
-
+  <!-- Row 2: same as row 1 (side="left" == default) -->
+  <g transform="translate(0,80)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path">ABCD</textPath>
+    </text>
+  </g>
+  <!-- Row 3: reversed path = equivalent to side="right" -->
+  <g transform="translate(0,160)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path-reversed">ABCD</textPath>
+    </text>
+  </g>
 </svg>

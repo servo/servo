@@ -1,0 +1,131 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG image sizing: density (srcset) vs CSS zoom</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#density-corrected-intrinsic-width-and-height">
+<link rel="help" href="https://drafts.csswg.org/css-images/#natural-dimensions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+img {
+  display: block;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.zoom2x {
+  zoom: 2;
+}
+</style>
+
+<!-- SVG with no intrinsic dimensions -->
+<img id="noIntrinsic"
+     src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'></svg>">
+<img id="noIntrinsicDensity2x"
+     srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'></svg> 2x">
+<div class="zoom2x">
+  <img id="noIntrinsicZoom2x"
+       src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'></svg>">
+</div>
+
+<!-- SVG with intrinsic width only (60px) -->
+<img id="intrinsicWidth"
+     src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60'></svg>">
+<img id="intrinsicWidthDensity2x"
+     srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20width='60'></svg> 2x">
+<div class="zoom2x">
+  <img id="intrinsicWidthZoom2x"
+       src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60'></svg>">
+</div>
+
+<!-- SVG with both intrinsic dimensions (60x40) -->
+<img id="intrinsicBoth"
+     src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='40'></svg>">
+<img id="intrinsicBothDensity2x"
+     srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20width='60'%20height='40'></svg> 2x">
+<div class="zoom2x">
+  <img id="intrinsicBothZoom2x"
+       src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='40'></svg>">
+</div>
+
+<script>
+setup({explicit_done: true});
+onload = function() {
+  // --- SVG with no intrinsic dimensions (defaults to 300x150) ---
+
+  test(() => {
+    assert_equals(noIntrinsic.naturalWidth, 300, "naturalWidth");
+    assert_equals(noIntrinsic.naturalHeight, 150, "naturalHeight");
+    assert_equals(noIntrinsic.getBoundingClientRect().width, 300, "rendered width");
+    assert_equals(noIntrinsic.getBoundingClientRect().height, 150, "rendered height");
+  }, "SVG, no intrinsic dims: baseline");
+
+  test(() => {
+    // Density should NOT scale the 300x150 defaults.
+    assert_equals(noIntrinsicDensity2x.naturalWidth, 300, "naturalWidth");
+    assert_equals(noIntrinsicDensity2x.naturalHeight, 150, "naturalHeight");
+    assert_equals(noIntrinsicDensity2x.getBoundingClientRect().width, 300, "rendered width");
+    assert_equals(noIntrinsicDensity2x.getBoundingClientRect().height, 150, "rendered height");
+  }, "SVG, no intrinsic dims + 2x density: defaults not scaled");
+
+  test(() => {
+    // Zoom should NOT affect naturalWidth/Height.
+    assert_equals(noIntrinsicZoom2x.naturalWidth, 300, "naturalWidth");
+    assert_equals(noIntrinsicZoom2x.naturalHeight, 150, "naturalHeight");
+    // Zoom SHOULD scale the rendered size.
+    assert_equals(noIntrinsicZoom2x.getBoundingClientRect().width, 600, "rendered width");
+    assert_equals(noIntrinsicZoom2x.getBoundingClientRect().height, 300, "rendered height");
+  }, "SVG, no intrinsic dims + 2x zoom: rendered size scaled, naturalWidth/Height not");
+
+  // --- SVG with intrinsic width only (60px, height defaults to 150) ---
+
+  test(() => {
+    assert_equals(intrinsicWidth.naturalWidth, 60, "naturalWidth");
+    assert_equals(intrinsicWidth.naturalHeight, 150, "naturalHeight");
+    assert_equals(intrinsicWidth.getBoundingClientRect().width, 60, "rendered width");
+    assert_equals(intrinsicWidth.getBoundingClientRect().height, 150, "rendered height");
+  }, "SVG, intrinsic width only: baseline");
+
+  test(() => {
+    // Density scales the intrinsic width but NOT the default height.
+    assert_equals(intrinsicWidthDensity2x.naturalWidth, 30, "naturalWidth");
+    assert_equals(intrinsicWidthDensity2x.naturalHeight, 150, "naturalHeight");
+    assert_equals(intrinsicWidthDensity2x.getBoundingClientRect().width, 30, "rendered width");
+    assert_equals(intrinsicWidthDensity2x.getBoundingClientRect().height, 150, "rendered height");
+  }, "SVG, intrinsic width only + 2x density: width scaled, default height not");
+
+  test(() => {
+    assert_equals(intrinsicWidthZoom2x.naturalWidth, 60, "naturalWidth");
+    assert_equals(intrinsicWidthZoom2x.naturalHeight, 150, "naturalHeight");
+    // Zoom scales everything including the default height.
+    assert_equals(intrinsicWidthZoom2x.getBoundingClientRect().width, 120, "rendered width");
+    assert_equals(intrinsicWidthZoom2x.getBoundingClientRect().height, 300, "rendered height");
+  }, "SVG, intrinsic width only + 2x zoom: everything scaled");
+
+  // --- SVG with both intrinsic dimensions (60x40) ---
+
+  test(() => {
+    assert_equals(intrinsicBoth.naturalWidth, 60, "naturalWidth");
+    assert_equals(intrinsicBoth.naturalHeight, 40, "naturalHeight");
+    assert_equals(intrinsicBoth.getBoundingClientRect().width, 60, "rendered width");
+    assert_equals(intrinsicBoth.getBoundingClientRect().height, 40, "rendered height");
+  }, "SVG, both intrinsic dims: baseline");
+
+  test(() => {
+    // Density scales both intrinsic dimensions.
+    assert_equals(intrinsicBothDensity2x.naturalWidth, 30, "naturalWidth");
+    assert_equals(intrinsicBothDensity2x.naturalHeight, 20, "naturalHeight");
+    assert_equals(intrinsicBothDensity2x.getBoundingClientRect().width, 30, "rendered width");
+    assert_equals(intrinsicBothDensity2x.getBoundingClientRect().height, 20, "rendered height");
+  }, "SVG, both intrinsic dims + 2x density: both scaled");
+
+  test(() => {
+    assert_equals(intrinsicBothZoom2x.naturalWidth, 60, "naturalWidth");
+    assert_equals(intrinsicBothZoom2x.naturalHeight, 40, "naturalHeight");
+    // Zoom scales both.
+    assert_equals(intrinsicBothZoom2x.getBoundingClientRect().width, 120, "rendered width");
+    assert_equals(intrinsicBothZoom2x.getBoundingClientRect().height, 80, "rendered height");
+  }, "SVG, both intrinsic dims + 2x zoom: rendered size scaled, naturalWidth/Height not");
+
+  done();
+};
+</script>

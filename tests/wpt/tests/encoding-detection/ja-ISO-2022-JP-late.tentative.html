@@ -7,7 +7,7 @@
 setup({explicit_done:true});
 window.onmessage = function(e) {
     test(function() {
-        assert_equals(e.data, "ISO-2022-JP", 'Expected ISO-2022-JP');
+        assert_equals(e.data, "windows-1252", 'Expected windows-1252 due to ISO-2022-JP no longer getting detected');
     }, "Check detection result");
     w.close();
     done();

@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection.prototype.addTransceiver</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://rawgit.com/w3c/webrtc-pc/cc8d80f455b86c8041d63bceb8b457f45c72aa89/webrtc.html
@@ -75,6 +79,7 @@
       3.  If the first argument is a string, let it be kind and run the following steps:
         1.  If kind is not a legal MediaStreamTrack kind, throw a TypeError.
    */
+if (rest) {
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -311,6 +316,7 @@
     assert_true(senders.includes(sender2));
 
   }, 'addTransceiver(track) multiple times should create multiple transceivers');
+}
 
   /*
     5.1.  addTransceiver
@@ -322,6 +328,7 @@
 
 ["video", "audio"].forEach(kind => {
 
+  if (interop2026) {
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -347,7 +354,9 @@
         }]
       }));
   }, `addTransceiver("${kind}") with rid longer than 16 characters should throw TypeError`);
+  }
 
+  if (rest) {
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -392,6 +401,7 @@
       }]
     });
   }, `addTransceiver("${kind}") with valid sendEncodings should succeed`);
+  }
 });
 
   /*

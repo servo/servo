@@ -1,3 +1,6 @@
 features:
 - name: move-before
   files: "**"
+- name: slot
+  files:
+  - slotchange-events.html

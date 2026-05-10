@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<title>CSS Pseudo Test: CSSPseudoElement GeometryUtils - getBoxQuads</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#extension-to-the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    position: absolute;
+    left: 100px;
+    top: 50px;
+    width: 200px;
+    height: 100px;
+    padding: 10px;
+    border: 5px solid black;
+    margin: 20px;
+  }
+
+  #target::before {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 30px;
+    padding: 5px;
+    border: 2px solid blue;
+    margin: 3px;
+  }
+
+  #target::after {
+    content: 'after';
+    display: block;
+    width: 80px;
+    height: 40px;
+  }
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    assert_true(typeof pseudo.getBoxQuads === 'function', 'getBoxQuads should be a function');
+  }, 'CSSPseudoElement should have getBoxQuads method');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let quads = pseudo.getBoxQuads();
+    assert_true(Array.isArray(quads), 'getBoxQuads should return an array');
+  }, 'getBoxQuads should return an array');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let quads = pseudo.getBoxQuads();
+    assert_equals(quads.length, 1, 'should return one quad for a block pseudo-element');
+    let quad = quads[0];
+    assert_true(quad instanceof DOMQuad, 'each quad should be a DOMQuad');
+  }, 'getBoxQuads returns DOMQuad for ::before');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let borderQuads = pseudo.getBoxQuads({ box: 'border' });
+    assert_equals(borderQuads.length, 1);
+    let bounds = borderQuads[0].getBounds();
+    // The ::before has width:50px, padding:5px*2=10px, border:2px*2=4px
+    // So border box width should be 50 + 10 + 4 = 64px
+    // Height: 30px + 10px + 4px = 44px
+    assert_equals(bounds.width, 64, 'border box width should include border and padding');
+    assert_equals(bounds.height, 44, 'border box height should include border and padding');
+  }, 'getBoxQuads with box="border" returns border box dimensions');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let contentQuads = pseudo.getBoxQuads({ box: 'content' });
+    assert_equals(contentQuads.length, 1);
+    let bounds = contentQuads[0].getBounds();
+    // Content box is just width:50px height:30px
+    assert_equals(bounds.width, 50, 'content box width');
+    assert_equals(bounds.height, 30, 'content box height');
+  }, 'getBoxQuads with box="content" returns content box dimensions');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let paddingQuads = pseudo.getBoxQuads({ box: 'padding' });
+    assert_equals(paddingQuads.length, 1);
+    let bounds = paddingQuads[0].getBounds();
+    // Padding box: width:50px + 5px*2 = 60px, height:30px + 5px*2 = 40px
+    assert_equals(bounds.width, 60, 'padding box width');
+    assert_equals(bounds.height, 40, 'padding box height');
+  }, 'getBoxQuads with box="padding" returns padding box dimensions');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let marginQuads = pseudo.getBoxQuads({ box: 'margin' });
+    assert_equals(marginQuads.length, 1);
+    let bounds = marginQuads[0].getBounds();
+    // Margin box: border box + margins
+    // Border box: 64x44, margin: 3px*2 = 6px on each axis
+    assert_equals(bounds.width, 70, 'margin box width');
+    assert_equals(bounds.height, 50, 'margin box height');
+  }, 'getBoxQuads with box="margin" returns margin box dimensions');
+
+  test(() => {
+    let pseudo = target.pseudo("::after");
+    let quads = pseudo.getBoxQuads();
+    assert_true(quads.length >= 1, 'should return quads for ::after');
+  }, 'getBoxQuads works for ::after pseudo-element');
+</script>

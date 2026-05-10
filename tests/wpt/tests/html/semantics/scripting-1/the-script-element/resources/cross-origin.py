@@ -14,7 +14,7 @@ def main(request, response):
 
     if milk is None:
         return headers, u"var included = false;"
-    elif milk.value == b"yes":
+    elif milk.value == b"1":
         return headers, u"var included = true;"
 
     return headers, u"var included = false;"

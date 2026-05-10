@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test focus sequential navigation after disabling focused element</title>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#sequential-focus-navigation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<button id="first" tabindex="1">First</button>
+<button id="target" tabindex="2">Target</button>
+<button id="third" tabindex="3">Third</button>
+<script>
+
+promise_test(async t => {
+    const target = document.getElementById("target");
+    const third = document.getElementById("third");
+
+    target.disabled = false;
+    target.focus();
+    assert_equals(document.activeElement, target, "Target button must be focused");
+
+    target.disabled = true;
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    assert_not_equals(document.activeElement, target, "Disabled button must not be focused");
+
+    await test_driver.send_keys(document.body, "\ue004");
+    assert_equals(document.activeElement, third, "Tab should move focus to the next element after the disabled button");
+}, "Tab after disabling a focused button moves focus to the next focusable element");
+
+</script>
+</body>
+</html>

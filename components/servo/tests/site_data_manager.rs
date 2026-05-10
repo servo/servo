@@ -4,13 +4,19 @@
 
 mod common;
 
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
+use cookie::Cookie;
+use http::HeaderValue;
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{Server, make_body, make_server, replace_host_table};
+use net_traits::CookieSource;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use servo::{JSValue, Servo, ServoUrl, SiteData, StorageType, WebView, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -75,7 +81,7 @@ fn run_test_site_data_steps(webview_test: &WebViewTest, steps: &[TestSiteDataSte
             *response.body_mut() = make_body(MESSAGE.to_vec());
         };
 
-    let mut servers: Vec<(Server, ServoUrl)> =
+    let mut servers: Vec<(Server, UrlWithBlobClaim)> =
         (0..steps.len()).map(|_| make_server(handler)).collect();
     servers.sort_by(|(_, a), (_, b)| a.cmp(b));
 
@@ -584,7 +590,7 @@ fn test_clear_cookies() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     servo_test.spin(move || !delegate.url_changed.get());
@@ -608,4 +614,155 @@ fn test_clear_cookies() {
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.cookie");
     assert_eq!(result, Ok(JSValue::String("".into())));
+}
+
+#[test]
+fn test_get_cookie() {
+    let servo_test = ServoTest::new();
+
+    // Serve a minimal page that sets a cookie via Set-Cookie response header.
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            response.headers_mut().insert(
+                http::header::SET_COOKIE,
+                HeaderValue::from_static("foo=bar; Path=/"),
+            );
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.url().into_url())
+        .build();
+
+    // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
+    servo_test.spin(move || !delegate.load_status_changed.get());
+    let _ = server.close();
+
+    let cookies = servo_test
+        .servo()
+        .site_data_manager()
+        .cookies_for_url(url.url().into_url(), CookieSource::NonHTTP);
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo");
+    assert_eq!(cookies[0].value(), "bar");
+}
+
+#[test]
+fn test_set_cookie() {
+    let servo_test = ServoTest::new();
+
+    let received_cookie: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let received_cookie_clone = received_cookie.clone();
+
+    // Serve a minimal page; on the second load, capture the Cookie request header.
+    let handler =
+        move |req: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if let Some(cookie) = req.headers().get(http::header::COOKIE) {
+                *received_cookie_clone.lock().unwrap() = Some(cookie.to_str().unwrap().to_string());
+            }
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let page_url = url.url().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let delegate_clone = delegate.clone();
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url.clone())
+        .build();
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    // Set a cookie via the site data manager.
+    let cookie = Cookie::build(("foo", "bar")).path("/").build();
+    servo_test
+        .servo()
+        .site_data_manager()
+        .set_cookie_for_url(page_url.clone(), cookie);
+
+    // Verify it is returned by get_cookies_for_url.
+    // Don't need sync call because set and get messages are processed in order.
+    let cookies = servo_test
+        .servo()
+        .site_data_manager()
+        .cookies_for_url(page_url.clone(), CookieSource::HTTP);
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo");
+    assert_eq!(cookies[0].value(), "bar");
+
+    // Load the page again and verify the cookie is sent in the request.
+    delegate_clone.reset();
+    delegate_clone.load_status_changed.set(false);
+    webview.load(page_url.into());
+    let delegate_clone2 = delegate_clone.clone();
+    servo_test.spin(move || !delegate_clone2.load_status_changed.get());
+
+    let _ = server.close();
+
+    assert_eq!(
+        *received_cookie.lock().unwrap(),
+        Some("foo=bar".to_string())
+    );
+}
+
+#[test]
+fn test_get_cookie_async() {
+    let servo_test = ServoTest::new();
+
+    // Serve a minimal page that sets a cookie via Set-Cookie response header.
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            response.headers_mut().insert(
+                http::header::SET_COOKIE,
+                HeaderValue::from_static("foo=bar; Path=/"),
+            );
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.url().into_url())
+        .build();
+
+    // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
+    servo_test.spin(move || !delegate.load_status_changed.get());
+    let _ = server.close();
+
+    // Issue an async cookie request and verify it does not block.
+    let result: Rc<RefCell<Option<Vec<Cookie<'static>>>>> = Rc::new(RefCell::new(None));
+    let continued_after_call = Rc::new(Cell::new(false));
+    let continued_clone = continued_after_call.clone();
+    let result_clone = result.clone();
+    servo_test
+        .servo()
+        .site_data_manager()
+        .cookies_for_url_async(
+            url.as_url().clone(),
+            CookieSource::NonHTTP,
+            move |cookies| {
+                assert!(continued_clone.get(), "callback fired synchronously");
+                *result_clone.borrow_mut() = Some(cookies);
+            },
+        );
+    assert!(result.borrow().is_none(), "result available before spin");
+    continued_after_call.set(true);
+
+    // Spin the event loop until the callback fires.
+    let result_clone = result.clone();
+    servo_test.spin(move || result_clone.borrow().is_none());
+
+    let cookies = result.borrow();
+    let cookies = cookies.as_ref().unwrap();
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo");
+    assert_eq!(cookies[0].value(), "bar");
 }

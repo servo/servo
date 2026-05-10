@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.createDataChannel</title>
 <script src=/resources/testharness.js></script>
@@ -7,11 +9,14 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 const stopTracks = (...streams) => {
   streams.forEach(stream => stream.getTracks().forEach(track => track.stop()));
 };
 
+if (rest) {
 // Test is based on the following revision:
 // https://rawgit.com/w3c/webrtc-pc/1cc5bfc3ff18741033d804c4a71f7891242fb5b3/webrtc.html
 
@@ -309,6 +314,9 @@ for (const [description, protocol, expected] of protocols) {
   }, `createDataChannel with protocol ${description} should succeed`);
 }
 
+}
+
+if (interop2026) {
 /*
   6.2.  RTCDataChannel
     createDataChannel
@@ -323,7 +331,9 @@ for (const id of [0, 1, 65534, 65535]) {
     assert_equals(dc.id, null);
   }, `createDataChannel with id ${id} and negotiated not set should succeed, but not set the channel's id`);
 }
+}
 
+if (rest) {
 for (const id of [0, 1, 65534]) {
   test(t => {
     const pc = new RTCPeerConnection();
@@ -756,4 +766,5 @@ breaks the transport.
   Tested in RTCDataChannel-dcep.html
     - Transmission of '.label' and further options
 */
+}
 </script>

@@ -29,6 +29,10 @@ servo.pftrace
 /glfw
 webrender-captures/
 /screenshots
+/etc/notarization/
+
+# Python setuptools
+/servo.egg-info
 
 # Allow CSV files to be used as resources in tests
 !/tests/**/*.csv

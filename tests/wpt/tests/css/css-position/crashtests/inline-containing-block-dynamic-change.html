@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2013423">
+<style>
+*:first-of-type {
+  padding: 0% 712px 434px 35%;
+}
+embed {
+  position: absolute;
+}
+#a {
+  backdrop-filter: invert(100%);
+  text-justify: distribute;
+}
+</style>
+<script>
+function fuzz() {
+  document.styleSheets[0].deleteRule(2)
+}
+</script>
+<body onload="fuzz()">
+<strike id="a">
+<h5></h5>
+<textarea></textarea>
+<embed src="data:audio/mpeg;base64,/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV////////////////////////////////////////////AAAAAExhdmM1Ny4zOAAAAAAAAAAAAAAAACQAAAAAAAAAAAGwU/hwzwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAAMkI7huAhMDGQAndv+H5jfIAPmPzGBGeTAZNN7yjsnqd6Fny79M+o4UifnMu/TlDiIP5Q5l9Z/Kdv6VY0gE3JIAAwE/+MYxAgMYJr6WBhGIivjMy/CEK+zM39VVXjMArKgq6DQdrBV0THlqBp0ShrBp8qGsTPw7lXZFVZZY6GytZZYGChgYIGZaiJI/+MYxBEMUJnAABmMYUigMQLIE1yVpphA1UQMRVVVV000iVu000VVVX///6aaVUxBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVV"/>

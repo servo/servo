@@ -1,4 +1,5 @@
 var MathMLFragments = {
+    "a": "<a class='element mathml-container'></a>",
     "annotation": "\
 <semantics>\
   <mrow></mrow>\

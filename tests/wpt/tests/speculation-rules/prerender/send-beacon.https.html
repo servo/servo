@@ -10,7 +10,7 @@
 <script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   const STORE_URL = '/speculation-rules/prerender/resources/key-value-store.py';

@@ -7,12 +7,12 @@ use std::iter::Iterator;
 
 use dom_struct::dom_struct;
 use rustc_hash::FxBuildHasher;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::custom_properties;
 use stylo_atoms::Atom;
 
 use super::cssstylevalue::CSSStyleValue;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -55,7 +55,7 @@ impl StylePropertyMapReadOnly {
             keys.push(key);
             values.push(Dom::from_ref(&*value));
         }
-        let iter = keys.drain(..).zip(values.iter().cloned());
+        let iter = keys.into_iter().zip(values.iter().cloned());
         reflect_dom_object(
             Box::new(StylePropertyMapReadOnly::new_inherited(iter)),
             global,

@@ -31,6 +31,11 @@
       // https://github.com/webcompat/web-bugs/issues/18902 has more details about why this particularly relevant
       { "csp": "img-src\u00A0'none';", "expected": true, "name": "U+00A0 NBSP  should not be parsed between directive name and value" },
       { "csp": "img-src http://example.com\u00A0http://example2.com;", "expected": true, "name": "U+00A0 NBSP  should not be parsed inside directive value" },
+
+      // Ensure vertical tab (U+000B) is not considered a valid whitespace
+      // ASCII whitespace does not include vertical tab per https://infra.spec.whatwg.org/#ascii-whitespace
+      { "csp": "img-src\u000B'none';", "expected": true, "name": "U+000B VT    should not be parsed between directive name and value" },
+      { "csp": "img-src http://example.com\u000Bhttp://example2.com;", "expected": true, "name": "U+000B VT    should not be parsed inside directive value" },
     ];
 
     tests.forEach(test => {

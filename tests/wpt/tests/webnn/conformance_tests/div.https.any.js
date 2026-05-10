@@ -960,6 +960,34 @@ const divTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'div int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [100, -200, 300, -400, 500, -600, 700, -800, 900, -1000, 1100, -1200],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        },
+        'inputB': {
+          'data': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'div',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [10, -10, 10, -10, 10, -10, 10, -10, 10, -10, 10, -10],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

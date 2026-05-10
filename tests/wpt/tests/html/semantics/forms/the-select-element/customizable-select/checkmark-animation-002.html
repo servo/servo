@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset="utf-8">
+<title>CSS Test: Web Animations on ::checkmark</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#checkmark">
+<link rel="match" href="checkmark-animation-002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-41; totalPixels=0-5">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, ::picker(select) { appearance: base-select; }
+:focus-visible { outline: none; }
+</style>
+
+<p id="start">Click me to start test. PASS if you see a green checkmark.</p>
+
+<select id="target">
+  <option id="opt" selected>option</option>
+</select>
+
+<script>
+const target = document.getElementById("target");
+const opt = document.getElementById("opt");
+
+start.onclick = (async () => {
+  await target.showPicker();
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  opt.animate({
+    color: ["green", "green"],
+  }, {
+    pseudoElement: "::checkmark",
+    duration: Infinity,
+  });
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove("reftest-wait");
+});
+
+window.addEventListener("load", () => {
+  test_driver.click(start);
+});
+</script>

@@ -122,7 +122,6 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
 
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
@@ -142,7 +141,6 @@ class MachCommands(CommandBase):
 
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
-
         build_start = time()
 
         if host != target_triple and "windows" in target_triple:
@@ -219,7 +217,7 @@ class MachCommands(CommandBase):
             # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
             # like Instruments.app.
             try:
-                import Cocoa  # pyrefly: ignore[import-error]
+                import Cocoa  # pyrefly: ignore[missing-import]
 
                 icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                 icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -305,7 +303,7 @@ class MachCommands(CommandBase):
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
-            self.features.append("servo_allocator/use-system-allocator")
+            self.features.append("servo-allocator/use-system-allocator")
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
                 print(

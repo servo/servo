@@ -1,0 +1,18 @@
+<!doctype html>
+<title>::backdrop is supported on checkbox input</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2015488">
+<link rel="match" href="popover-img-backdrop-ref.html">
+<style>
+input:popover-open {
+  visibility: hidden;
+  &::backdrop {
+    visibility: visible;
+    background-color: green;
+  }
+}
+</style>
+<input type=checkbox popover="" id="a" style="direction: rtl"/>
+<script>
+a.showPopover({ modal: true });
+</script>
+

@@ -15,6 +15,7 @@ content_types = utils.invert_dict({
     "image/bmp": ["bmp"],
     "image/gif": ["gif"],
     "image/jpeg": ["jpg", "jpeg"],
+    "image/jxl": ["jxl"],
     "image/png": ["png"],
     "image/svg+xml": ["svg"],
     "text/cache-manifest": ["manifest"],

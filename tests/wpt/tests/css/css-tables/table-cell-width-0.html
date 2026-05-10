@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests if cell with width:'0' uses intrinsic content size for width</title>
+<link rel="help"  href="https://html.spec.whatwg.org/multipage/tables.html">
+<link rel="match" href="table-cell-width-0-ref.html">
+<style>
+table {
+  border-collapse: collapse;
+  border: 2px solid black;
+}
+
+.zero {
+  width: 0;
+  background:lightblue;
+}
+
+.positive-width {
+  width: 2px;
+  background:lightblue;
+}
+
+.big-positive-width {
+  width: 20px;
+  background:lightblue;
+}
+
+.normal {
+ background:lightgreen;
+}
+
+.percent-width {
+  width: 100%;
+}
+
+.fixed-width {
+  width: 100px;
+}
+
+</style>
+</head>
+<body>
+<!-- auto width -->
+<table>
+  <tr>
+    <td class="zero">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<br>
+<table>
+  <tr>
+    <td class="positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<br>
+<table>
+  <tr>
+    <td class="big-positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<br>
+<!-- width:100% -->
+<table class="percent-width">
+  <tr>
+    <td class="zero">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<table class="percent-width">
+  <tr>
+    <td class="positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<table class="percent-width">
+  <tr>
+    <td class="big-positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<br>
+<!-- width:100px -->
+<table class="fixed-width">
+  <tr>
+    <td class="zero">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<table class="fixed-width">
+  <tr>
+    <td class="positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+<table class="fixed-width">
+  <tr>
+    <td class="big-positive-width">1</td>
+    <td class="normal">2</td>
+  </tr>
+</table>
+</body>
+</html>

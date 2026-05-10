@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decoration colors with multiple values
+    and direction.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#gap-decorations">
+<link rel="match" href="multicol-gap-decorations-multi-value-direction-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .multicol {
+        column-count: 4;
+        column-width: 50px;
+        column-height: 50px;
+        column-gap: 10px;
+        row-gap: 10px;
+        column-wrap: wrap;
+        width: 230px;
+        height: 170px;
+        column-rule-color: red, green, blue;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+        row-rule-color: orange, purple;
+        row-rule-style: solid;
+        row-rule-width: 10px;
+        margin-bottom: 20px;
+    }
+    .item {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="multicol" style="direction: ltr;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>
+<div class="multicol" style="direction: rtl;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>

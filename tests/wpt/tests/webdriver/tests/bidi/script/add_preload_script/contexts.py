@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_top_context_with_iframes(
     bidi_session, add_preload_script, new_tab,
@@ -45,7 +46,6 @@ async def test_top_context_with_iframes(
     assert result == {"type": "string", "value": "foo"}
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_page_script_context_isolation(bidi_session, add_preload_script,
                                              top_context, type_hint,
@@ -85,7 +85,6 @@ async def test_page_script_context_isolation(bidi_session, add_preload_script,
     assert result == {"type": "undefined"}
 
 
-@pytest.mark.asyncio
 async def test_identical_contexts(
         bidi_session, add_preload_script, new_tab,
         inline):

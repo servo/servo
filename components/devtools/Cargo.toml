@@ -1,11 +1,13 @@
 [package]
-name = "devtools"
+name = "servo-devtools"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "devtools"
@@ -13,7 +15,6 @@ path = "lib.rs"
 
 [dependencies]
 atomic_refcell = { workspace = true }
-base = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -22,14 +23,18 @@ embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 log = { workspace = true }
-net = { path = "../net" }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+net = { workspace = true }
 net_traits = { workspace = true }
+profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-url = { workspace = true }
 uuid = { workspace = true }
 
 [build-dependencies]

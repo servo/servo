@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Blob navigation test iframe</title>
+</head>
+<body>
+  <div id="content">Test iframe</div>
+  <script>
+    'use strict';
+
+    parent.postMessage({ stage: 'iframe-loaded', fullscreenEnabled: document.fullscreenEnabled}, '*');
+
+    const blobContent = `
+<!DOCTYPE html>
+<html>
+<head><title>Blob Document</title></head>
+<body>
+  <div>Blob content</div>
+  <script>
+    window.addEventListener('message', async (e) => {
+      if (e.data.action === 'check-fullscreen') {
+        window.parent.postMessage({
+          stage: 'blob-loaded',
+          fullscreenEnabled: document.fullscreenEnabled
+        }, '*');
+      }
+    });
+
+    window.parent.postMessage({
+      stage: 'blob-loaded',
+      fullscreenEnabled: document.fullscreenEnabled
+    }, '*');
+  <\/script>
+</body>
+</html>`;
+
+    const blob = new Blob([blobContent], { type: 'text/html' });
+    const blobURL = URL.createObjectURL(blob);
+    window.location.replace(blobURL);
+  </script>
+</body>
+</html>

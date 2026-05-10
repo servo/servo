@@ -8,26 +8,34 @@ mod common;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 
 use dpi::PhysicalSize;
+use embedder_traits::UrlRequest;
 use euclid::{Point2D, Size2D};
+use http::{HeaderMap, HeaderName, HeaderValue};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
+use itertools::Itertools;
 use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo,
-    SimpleDialog, Theme, UserContentManager, WebView, WebViewBuilder, WebViewDelegate,
+    JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder,
+    WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use url::Url;
-use webrender_api::units::{DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntSize, DevicePoint, DeviceVector2D};
 
-use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
+use crate::common::{
+    ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
+    show_webview_and_wait_for_rendering_to_be_ready,
+};
 
 /// Wait for the WebRender scene to reflect the current state of the WebView
 /// by triggering a screenshot, waiting for it to be ready, and then throwing
@@ -40,47 +48,6 @@ fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &Web
         callback_waiting.set(false);
     });
     servo_test.spin(move || waiting.get());
-}
-
-fn show_webview_and_wait_for_rendering_to_be_ready(
-    servo_test: &ServoTest,
-    webview: &WebView,
-    delegate: &Rc<WebViewDelegateImpl>,
-) {
-    let load_webview = webview.clone();
-    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-
-    delegate.reset();
-
-    // Trigger a change to the display of the document, so that we get at last one
-    // new frame after load is complete.
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "requestAnimationFrame(() => { \
-           document.body.style.background = 'red'; \
-           document.body.style.background = 'green'; \
-        });",
-    );
-
-    // Wait for at least one frame after the load completes.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
-}
-
-fn click_at_point(webview: &WebView, point: DevicePoint) {
-    let point = point.into();
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Down,
-        MouseButton::Left,
-        point,
-    )));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Up,
-        MouseButton::Left,
-        point,
-    )));
 }
 
 fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
@@ -129,7 +96,7 @@ fn test_create_webview_http() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     servo_test.spin(move || !delegate.url_changed.get());
@@ -184,91 +151,6 @@ fn test_create_webview_http_custom_host() {
     let url = webview.url();
     assert!(url.is_some());
     assert_eq!(url.unwrap(), custom_url.into_url());
-}
-
-#[test]
-fn test_evaluate_javascript_basic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "undefined");
-    assert_eq!(result, Ok(JSValue::Undefined));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "null");
-    assert_eq!(result, Ok(JSValue::Null));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "42");
-    assert_eq!(result, Ok(JSValue::Number(42.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "3 + 4");
-    assert_eq!(result, Ok(JSValue::Number(7.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "'abc' + 'def'");
-    assert_eq!(result, Ok(JSValue::String("abcdef".into())));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "let foo = {blah: 123}; foo");
-    assert!(matches!(result, Ok(JSValue::Object(_))));
-    if let Ok(JSValue::Object(values)) = result {
-        assert_eq!(values.len(), 1);
-        assert_eq!(values.get("blah"), Some(&JSValue::Number(123.0)));
-    }
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "[1, 2, 3, 4]");
-    let expected = JSValue::Array(vec![
-        JSValue::Number(1.0),
-        JSValue::Number(2.0),
-        JSValue::Number(3.0),
-        JSValue::Number(4.0),
-    ]);
-    assert_eq!(result, Ok(expected));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window");
-    assert!(matches!(result, Ok(JSValue::Window(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body");
-    assert!(matches!(result, Ok(JSValue::Element(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.attachShadow({mode: 'open'})",
-    );
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body.shadowRoot");
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.innerHTML += '<iframe>'; frames[0]",
-    );
-    assert!(matches!(result, Ok(JSValue::Frame(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "lettt badsyntax = 123");
-    assert_eq!(result, Err(JavaScriptEvaluationError::CompilationFailure));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "throw new Error()");
-    assert!(matches!(
-        result,
-        Err(JavaScriptEvaluationError::EvaluationFailure(_))
-    ));
-}
-
-#[test]
-fn test_evaluate_javascript_panic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let input = "location";
-    let result = evaluate_javascript(&servo_test, webview.clone(), input);
-    assert!(matches!(result, Ok(JSValue::Object(..))));
 }
 
 #[test]
@@ -567,32 +449,52 @@ fn test_page_zoom() {
 }
 
 #[test]
-fn test_viewport_meta_tag_initial_zoom() {
+fn test_viewport_meta_tag_initial_scale() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
         builder.preferences(preferences)
     });
+
+    let initial_scale: f64 = 2.0;
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
         .url(
             Url::parse(
-                "data:text/html,\
+                format!(
+                    "data:text/html,\
                     <!DOCTYPE html>\
-                    <meta name=viewport content=\"initial-scale=5\">",
+                    <meta name=viewport content=\"initial-scale={}\">",
+                    initial_scale
+                )
+                .as_str(),
             )
             .unwrap(),
         )
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    // Initially HiDPI should be 1.0
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
 
-    // Wait for at least one frame after the load completes.
-    delegate.reset();
-    servo_test.spin(move || webview.page_zoom() != 5.0);
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // HiDPI should be same after parsing the viewport meta from page.
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
+
+    // devicePixelRatio should be unaffected by Meta Tag.
+    assert_eq!(
+        Ok(JSValue::Number(webview.hidpi_scale_factor().get() as f64)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.devicePixelRatio;")
+    );
+
+    // Meta Tag should affect VisualViewport Scale.
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
 }
 
 #[test]
@@ -612,7 +514,7 @@ fn test_show_and_hide_ime() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(100., 100.));
+    click_at_point(&webview, Point2D::new(150., 150.));
 
     // The form control should be shown.
     let captured_delegate = delegate.clone();
@@ -719,9 +621,15 @@ fn test_simple_context_menu() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
     open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
 
-    // The form control should be shown.
+    // Wait for a context menu to appear.
     let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
 
     let context_menu = {
         let mut controls = delegate.controls_shown.borrow_mut();
@@ -769,6 +677,40 @@ fn test_simple_context_menu() {
 }
 
 #[test]
+fn test_open_context_menu_closes_existing() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
+
+    // Wait for a context menu to appear.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
+
+    assert_eq!(delegate.number_of_controls_hidden.get(), 0);
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 2);
+}
+
+#[test]
 fn test_contextual_context_menu_items() {
     let servo_test = ServoTest::new();
 
@@ -795,9 +737,15 @@ fn test_contextual_context_menu_items() {
          expected_info: ContextMenuElementInformation| {
             assert!(delegate.controls_shown.borrow().is_empty());
 
-            // The form control should be shown.
+            // Wait for a context menu to appear.
             let captured_delegate = delegate.clone();
-            servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+            servo_test.spin(move || {
+                let controls = captured_delegate.controls_shown.borrow();
+                !controls
+                    .iter()
+                    .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+            });
+            assert!(delegate.number_of_controls_shown.get() > 0);
 
             {
                 let mut controls = delegate.controls_shown.borrow_mut();
@@ -928,170 +876,165 @@ fn test_can_go_forward_and_can_go_back() {
 }
 
 #[test]
-fn test_user_content_manager_empty() {
-    let servo_test = ServoTest::new();
-    let user_content_manager = UserContentManager::new(servo_test.servo());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(Rc::new(user_content_manager))
-        .url(Url::parse("data:text/html,Hello World").unwrap())
-        .build();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
-    assert_eq!(result, Ok(JSValue::Undefined));
-}
-
-#[test]
-fn test_user_content_manager() {
-    let servo_test = ServoTest::new();
-
-    // Use a http server instead of a data url to allow the `webview.reload()` call below to reuse
-    // the exisitng script thread. This is necessary to test that mutations on a `UserContentManager`
-    // take effect on script threads created before the mutation.
-    let (_, url) = make_server(move |_, response| {
-        *response.body_mut() = make_body(b"<!DOCTYPE html>\nHello".to_vec());
+fn test_pinch_zoom_update_dom_visual_viewport() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
     });
 
-    let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
-    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
-
+    let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager.clone())
-        .url(url.into_url())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html><body>Hello world!</body>").unwrap())
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
-    assert_eq!(result, Ok(JSValue::Number(42.0)));
-
-    // Add a second user script to the `UserContentManager`.
-    user_content_manager.add_script("window.fromSecondUserContentScript = 32;".into());
-
-    // The second user script must immediately take effect in any new WebViews.
-    let new_webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager)
-        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
-        .build();
-    let load_webview = new_webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(
-        &servo_test,
-        new_webview,
-        "window.fromSecondUserContentScript",
-    );
-    assert_eq!(result, Ok(JSValue::Number(32.0)));
-
-    // The existing page in the first webview must not be affected since we haven't reloaded yet.
-    let result = evaluate_javascript(
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attribute: &str| match evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "window.fromSecondUserContentScript",
+        format!("window.visualViewport.{}", attribute),
+    ) {
+        Ok(JSValue::Number(number)) => Some(number),
+        _ => None,
+    };
+
+    // Default value of the DOM visual viewport is initialized correctly.
+    assert_eq!(eval_visual_viewport("scale"), Some(1.));
+    assert_eq!(eval_visual_viewport("width"), Some(500.));
+    assert_eq!(eval_visual_viewport("height"), Some(500.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(0.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(0.));
+
+    webview.adjust_pinch_zoom(5., DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport size and offset is correct after a pinch zoom.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(80.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(80.));
+
+    // Note that the scroll vector will be affected by the pinch zoom scale.
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(100., 100.))),
+        WebViewPoint::Device(DevicePoint::zero()),
     );
-    assert_eq!(result, Ok(JSValue::Undefined));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
 
-    // Now trigger a reload and ensure the second user script has effect on the page.
-    webview.reload();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
-
-    assert_eq!(result, Ok(JSValue::Number(32.0)));
+    // The visual viewport size and offset is correct after the scroll event.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(100.));
 }
 
 #[test]
-fn test_user_content_manager_for_auxiliary_webviews() {
+fn test_webview_load_with_headers() {
     let servo_test = ServoTest::new();
-    struct WebViewAuxiliaryTestDelegate {
-        servo: Servo,
-        rendering_context: Rc<dyn RenderingContext>,
-        auxiliary_webview: RefCell<Option<WebView>>,
-    }
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let request_count_clone = request_count.clone();
 
-    impl WebViewDelegate for WebViewAuxiliaryTestDelegate {
-        fn request_create_new(&self, _parent_webview: WebView, request: CreateNewWebViewRequest) {
-            let user_content_manager_for_auxiliary_webview = UserContentManager::new(&self.servo);
-            // Add a different user script to the `UserContentManager` of auxiliary webview.
-            user_content_manager_for_auxiliary_webview
-                .add_script("window.fromAuxiliaryUserContentScript = 32;".into());
-            let auxiliary_webview = request
-                .builder(self.rendering_context.clone())
-                .user_content_manager(Rc::new(user_content_manager_for_auxiliary_webview))
-                .build();
-            self.auxiliary_webview
-                .borrow_mut()
-                .replace(auxiliary_webview.clone());
-        }
-    }
+    let mut headers = HeaderMap::new();
+    headers.append(HeaderName::from_static("world"), "hello".parse().unwrap());
+    headers.append(HeaderName::from_static("second"), "header".parse().unwrap());
+    headers.append(
+        HeaderName::from_static("accept-encoding"),
+        "customzip".parse().unwrap(),
+    );
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    let handler =
+        move |req: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if request_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 2 {
+                let headers = req.headers();
+                assert_eq!(
+                    headers.get("world"),
+                    Some(&HeaderValue::from_static("hello"))
+                );
+                assert_eq!(
+                    headers.get("second"),
+                    Some(&HeaderValue::from_static("header"))
+                );
 
-    let delegate = Rc::new(WebViewAuxiliaryTestDelegate {
-        servo: servo_test.servo.clone(),
-        rendering_context: servo_test.rendering_context.clone(),
-        auxiliary_webview: RefCell::new(None),
-    });
+                // headers should be added if they already exist.
+                assert!(
+                    headers
+                        .get_all("accept-encoding")
+                        .iter()
+                        .contains(&HeaderValue::from_static("customzip"))
+                );
+                assert!(headers.get_all("accept-encoding").iter().count() > 1);
+            } else {
+                *response.body_mut() = make_body(MESSAGE.to_vec());
+            }
+        };
+    let (server, url) = make_server(handler);
 
-    let user_content_manager = UserContentManager::new(servo_test.servo());
-    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
+    let delegate = Rc::new(WebViewDelegateImpl::default());
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .user_content_manager(Rc::new(user_content_manager))
+        .url(url.url().into_url())
+        .build();
+
+    {
+        let delegate = delegate.clone();
+        servo_test.spin(move || !delegate.url_changed.get());
+    }
+
+    let urlrequest = UrlRequest::new(url.url().into_url()).headers(headers);
+    webview.load_request(urlrequest);
+    {
+        let request_count = request_count.clone();
+        servo_test.spin(move || request_count.load(std::sync::atomic::Ordering::SeqCst) < 2);
+    }
+    assert_eq!(request_count.load(std::sync::atomic::Ordering::SeqCst), 2);
+    server.close();
+}
+
+#[test]
+fn test_console_log_and_error_ordering() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
         .url(
             Url::parse(
-                "data:text/html,<!DOCTYPE html>\
-                <script>\
-                    onload = () => window.open('data:text/html,<title>Auxiliary WebView</title>')\
+                "data:text/html,<!doctype html><script>\
+                    console.log('Hello');\
+                    DocumentFragment.prototype.querySelector.call(document, 'body');\
                 </script>",
             )
             .unwrap(),
         )
         .build();
 
-    let load_webview = webview.clone();
-    let delegate_clone = delegate.clone();
-    let _ = servo_test.spin(move || {
-        load_webview.load_status() != LoadStatus::Complete ||
-            delegate_clone
-                .auxiliary_webview
-                .borrow()
-                .as_ref()
-                .is_none_or(|auxiliary_webview| {
-                    auxiliary_webview.page_title() != Some("Auxiliary WebView".into())
-                })
-    });
+    // Wait until both messages have arrived through the embedder channel.
+    let captured = delegate.clone();
+    servo_test.spin(move || captured.console_messages.borrow().len() < 2);
 
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
-    );
+    let messages = delegate.console_messages.borrow();
     assert_eq!(
-        result,
-        Ok(JSValue::Array(vec![
-            JSValue::Number(42.0),
-            JSValue::Undefined
-        ]))
+        messages.len(),
+        2,
+        "Expected exactly 2 console messages, got: {messages:?}"
     );
 
-    let auxiliary_webview = delegate
-        .auxiliary_webview
-        .borrow_mut()
-        .take()
-        .expect("Gauranteed by spin");
-
-    let result = evaluate_javascript(
-        &servo_test,
-        auxiliary_webview.clone(),
-        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
+    // The console.log("Hello") must arrive first.
+    assert!(
+        messages[0].1.contains("Hello"),
+        "Expected first message to contain 'Hello', got: {:?}",
+        messages[0].1
     );
 
-    assert_eq!(
-        result,
-        Ok(JSValue::Array(vec![
-            JSValue::Undefined,
-            JSValue::Number(32.0),
-        ]))
+    // The uncaught TypeError must arrive second.
+    assert!(
+        messages[1].1.contains("DocumentFragment") || messages[1].1.contains("querySelector"),
+        "Expected second message to contain error info, got: {:?}",
+        messages[1].1
     );
 }

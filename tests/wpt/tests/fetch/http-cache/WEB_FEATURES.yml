@@ -1,3 +1,9 @@
 features:
+# The classifier for "http-authentication" intentionally overlaps with the
+# below classifier for "fetch" because the boundary between the two features is
+# somewhat subjective.
+- name: http-authentication
+  files:
+  - basic-auth-cache-test.html
 - name: fetch
   files: "**"

@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing stroke-dashoffset with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeDashoffsetProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeDashoffsetProperty"/>
     <h:meta name="assert" content="stroke-dashoffset supports the full grammar 'length-percentage'"/>
   </metadata>
   <g id="target"></g>

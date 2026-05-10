@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
 };
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::types::GlobalScope;
@@ -17,7 +17,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUCompilationMessage {
     reflector_: Reflector,
-    // #[ignore_malloc_size_of = "defined in wgpu-types"]
     message: DOMString,
     mtype: GPUCompilationMessageType,
     line_num: u64,

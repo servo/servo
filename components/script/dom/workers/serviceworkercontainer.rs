@@ -5,24 +5,25 @@
 use std::default::Default;
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
-use constellation_traits::{
-    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
-};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::generic_channel::GenericCallback;
+use servo_constellation_traits::{
+    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
+};
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
-use crate::dom::client::Client;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -34,30 +35,29 @@ use crate::task_source::SendableTaskSource;
 pub(crate) struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableDom<ServiceWorker>,
-    client: Dom<Client>,
 }
 
 impl ServiceWorkerContainer {
-    fn new_inherited(client: &Client) -> ServiceWorkerContainer {
+    fn new_inherited() -> ServiceWorkerContainer {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
-            client: Dom::from_ref(client),
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
-        let client = Client::new(global.as_window(), can_gc);
-        let container = ServiceWorkerContainer::new_inherited(&client);
-        reflect_dom_object(Box::new(container), global, can_gc)
+        reflect_dom_object(
+            Box::new(ServiceWorkerContainer::new_inherited()),
+            global,
+            can_gc,
+        )
     }
 }
 
 impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContainer {
     /// <https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute>
     fn GetController(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.client.get_controller()
+        None
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-register> - A
@@ -70,7 +70,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     ) -> Rc<Promise> {
         let can_gc = CanGc::from_cx(realm);
         // A: Step 2.
-        let global = self.client.global();
+        let global = self.global();
 
         // A: Step 1
         let promise = Promise::new_in_current_realm(InRealm::already(&realm.into()), can_gc);
@@ -82,7 +82,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             Ok(url) => url,
             Err(_) => {
                 // B: Step 1
-                promise.reject_error(Error::Type("Invalid script URL".to_owned()), can_gc);
+                promise.reject_error(Error::Type(c"Invalid script URL".to_owned()), can_gc);
                 return promise;
             },
         };
@@ -94,7 +94,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {
-                        promise.reject_error(Error::Type("Invalid scope URL".to_owned()), can_gc);
+                        promise.reject_error(Error::Type(c"Invalid scope URL".to_owned()), can_gc);
                         return promise;
                     },
                 }
@@ -109,7 +109,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             "https" | "http" => {},
             _ => {
                 promise.reject_error(
-                    Error::Type("Only secure origins are allowed".to_owned()),
+                    Error::Type(c"Only secure origins are allowed".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -120,7 +120,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             script_url.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
-                Error::Type("Script URL contains forbidden characters".to_owned()),
+                Error::Type(c"Script URL contains forbidden characters".to_owned()),
                 can_gc,
             );
             return promise;
@@ -131,7 +131,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             "https" | "http" => {},
             _ => {
                 promise.reject_error(
-                    Error::Type("Only secure origins are allowed".to_owned()),
+                    Error::Type(c"Only secure origins are allowed".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -142,7 +142,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             scope.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
-                Error::Type("Scope URL contains forbidden characters".to_owned()),
+                Error::Type(c"Scope URL contains forbidden characters".to_owned()),
                 can_gc,
             );
             return promise;
@@ -165,13 +165,24 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
 
         // B: Step 8 - 13
+
+        // Step 10: Let storage key be the result of running obtain a storage key given client.
+        let Some(storage_key) = IDBFactory::obtain_storage_key(&global) else {
+            promise.reject_error(
+                Error::Type(c"Failed to obtain a storage key".to_owned()),
+                can_gc,
+            );
+            return promise;
+        };
+
         let job = Job::create_job(
             JobType::Register,
             scope,
             script_url,
             result_handler,
-            self.client.creation_url(),
+            global.creation_url(),
             Some(scope_things),
+            storage_key,
         );
 
         // B: Step 14: schedule job.
@@ -211,12 +222,12 @@ impl RegisterJobResultHandler {
                         match error {
                             JobError::TypeError => {
                                 promise.reject_error(
-                                    Error::Type("Failed to register a ServiceWorker".to_string()),
-                                    CanGc::note(),
+                                    Error::Type(c"Failed to register a ServiceWorker".to_owned()),
+                                    CanGc::deprecated_note(),
                                 );
                             },
                             JobError::SecurityError => {
-                                promise.reject_error(Error::Security(None), CanGc::note());
+                                promise.reject_error(Error::Security(None), CanGc::deprecated_note());
                             },
                         }
 
@@ -252,11 +263,11 @@ impl RegisterJobResultHandler {
                         installing_worker,
                         waiting_worker,
                         active_worker,
-                        CanGc::note()
+                        CanGc::deprecated_note()
                     );
 
                     // Step 1.4
-                    promise.resolve_native(&*registration, CanGc::note());
+                    promise.resolve_native(&*registration, CanGc::deprecated_note());
                 }));
 
                 // TODO: step 2, handle equivalent jobs.

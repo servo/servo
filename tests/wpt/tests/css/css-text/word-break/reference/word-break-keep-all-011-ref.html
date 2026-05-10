@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Richard Tjokroutomo" href="mailto:richard.tjokro2@gmail.com">
+
+<style>
+p {
+  width: min-content;
+  border: 1px solid #000000;
+  overflow: visible;
+  white-space: nowrap;
+}
+</style>
+
+</style>
+<div>
+<h2>word-break: normal:</h2>
+<p>中文<br>english<br>中文<br>english<br>中文<br>english<br>中文<br>english<br>中文<br>english</p>
+
+<h2>word-break: keep-all:</h2>
+<p>中文english中文english中文english中文english中文english</p>
+
+<h2>word-break: keep-all (w/ whitespace):</h2>
+<p>中文english中文english<br>中文english中文english中文english</p>
+
+<h2>word-break: keep-all (w/ whitespace & Chinese comma):</h2>
+<p>中文english中文english<br>中文english中文，<br>english中文english</p>
+</div>

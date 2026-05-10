@@ -19,6 +19,8 @@ interface HTMLScriptElement : HTMLElement {
            attribute boolean async;
   [CEReactions]
            attribute boolean defer;
+  [SameObject, PutForwards=value]
+           readonly attribute DOMTokenList blocking;
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions, SetterThrows]

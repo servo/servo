@@ -1,0 +1,20 @@
+<!doctype html>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2010601">
+<!-- Really a crashtest but since we don't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    border: 10px solid black;
+    width: 300px;
+    height: 300px;
+}
+</style>
+<div class="modal">
+    <object data="/resources/example.pdf" type="application/pdf"></object>
+    <object data="data:text/html,foobar" type="text/html"></object>
+</div>
+<img>
+<div style="height: 30in"></div>

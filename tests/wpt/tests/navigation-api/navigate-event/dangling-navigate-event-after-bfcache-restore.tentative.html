@@ -1,0 +1,78 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+
+<script>
+  promise_test(async (t) => {
+    const pageA = new RemoteContext(token());
+    const pageB = new RemoteContext(token());
+
+    const urlA = executorPath + pageA.context_id;
+    const urlB = originCrossSite + executorPath + pageB.context_id;
+
+    window.open(urlA, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+
+    await pageA.execute_script(() => {
+      window.navigateerror_fired = false;
+      navigation.addEventListener("navigateerror", (e) => {
+        window.navigateerror_fired = true;
+        window.navigateerror_name = e.error?.name;
+      });
+    });
+
+    // Navigate to B using navigation.navigate()
+    await pageA.execute_script(
+      (url) => {
+        prepareNavigation(() => {
+          window.navigation_promise = navigation
+            .navigate(url)
+            .finished.then(() => "successs")
+            .catch(() => "error");
+        });
+      },
+      [urlB],
+    );
+
+    await pageB.execute_script(waitForPageShow);
+
+    // Navigate back to A
+    await pageB.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    await pageA.execute_script(waitForPageShow);
+
+    await assert_bfcached(pageA);
+    await pageA.execute_script(() => {
+      history.pushState(null, "", "#dummy");
+    });
+
+    const fired = await pageA.execute_script(() => window.navigateerror_fired);
+    const error_name = await pageA.execute_script(
+      () => window.navigateerror_name,
+    );
+
+    const result = await pageA.execute_script(
+      async () => {
+      return Promise.race([
+        window.navigation_promise,
+        new Promise((resolve) => requestAnimationFrame(resolve)).then(
+          () => "timeout",
+        ),
+      ]);
+    });
+
+    assert_equals(
+      result,
+      "timeout",
+      "navigation.navigate() should not resolve",
+    );
+    assert_false(fired, "navigateerror shouldn't fire");
+  }, "navigateerror should not fire when calling pushState after restoring from bfcache");
+</script>

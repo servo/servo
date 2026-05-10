@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>border-shape with semi-transparent box-shadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-shadow-semitransparent-ref.html">
+<meta name="assert" content="box-shadow with semi-transparent color should not show double-painting artifacts with border-shape">
+<style>
+body {
+    margin: 0;
+    background: white;
+}
+#target {
+    width: 190px;
+    height: 190px;
+    border-shape: xywh(0% 0% 100% 100%);
+    position: relative;
+    background: green;
+    box-shadow: 10px 20px 0 10px rgba(0, 0, 255, 0.5);
+    border: 10px solid black;
+}
+</style>
+<div id="target">
+</div>

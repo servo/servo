@@ -7,9 +7,9 @@
 <body>
   <fooá>foo</fooá>
 <script>
-test(function() {
+promise_test(async function() {
   assert_true(window.document instanceof Node, "Should be Node");
-  gc(); // ensure that our document rooting works; subsequent accesses should be valid.
+  await TestUtils.gc(); // ensure that our document rooting works; subsequent accesses should be valid.
   assert_true(window.document instanceof Node, "Should be Node");
   assert_equals(window.document.nodeType, Node.DOCUMENT_NODE);
   assert_true(window.document.documentElement instanceof Node, "Should be Node");

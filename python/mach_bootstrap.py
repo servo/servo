@@ -2,12 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import hashlib
 import os
-import runpy
-import subprocess
 import sys
-from os import PathLike
 from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -86,73 +82,7 @@ if TYPE_CHECKING:
     from mach.main import Mach
 
 
-def _process_exec(args: list[str], cwd: PathLike[bytes] | PathLike[str] | bytes | str) -> None:
-    try:
-        subprocess.check_output(args, stderr=subprocess.STDOUT, cwd=cwd)
-    except subprocess.CalledProcessError as exception:
-        print(exception.output.decode(sys.stdout.encoding))
-        print(f"Process failed with return code: {exception.returncode}")
-        sys.exit(1)
-
-
-def install_virtual_env_requirements(project_path: str, marker_path: str) -> None:
-    requirements_paths = [
-        os.path.join(project_path, "python", "requirements.txt"),
-        os.path.join(
-            project_path,
-            WPT_TOOLS_PATH,
-            "requirements_tests.txt",
-        ),
-        os.path.join(
-            project_path,
-            WPT_RUNNER_PATH,
-            "requirements.txt",
-        ),
-    ]
-
-    requirements_hasher = hashlib.sha256()
-    for path in requirements_paths:
-        with open(path, "rb") as file:
-            requirements_hasher.update(file.read())
-
-    try:
-        with open(marker_path, "r") as marker_file:
-            marker_hash = marker_file.read()
-    except FileNotFoundError:
-        marker_hash = None
-
-    requirements_hash = requirements_hasher.hexdigest()
-
-    if marker_hash != requirements_hash:
-        print(" * Installing Python requirements...")
-        pip_install_command = ["uv", "pip", "install"]
-        for requirements in requirements_paths:
-            pip_install_command.extend(["-r", requirements])
-        _process_exec(pip_install_command, cwd=project_path)
-        with open(marker_path, "w") as marker_file:
-            marker_file.write(requirements_hash)
-
-
-def _activate_virtualenv(topdir: str) -> None:
-    virtualenv_path = os.path.join(topdir, ".venv")
-
-    with open(".python-version", "r") as python_version_file:
-        required_python_version = python_version_file.read().strip()
-        marker_path = os.path.join(virtualenv_path, f"requirements.{required_python_version}.sha256")
-
-    if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
-        if not os.path.exists(marker_path):
-            print(" * Setting up virtual environment...")
-            _process_exec(["uv", "venv"], cwd=topdir)
-
-        script_dir = "Scripts" if _is_windows() else "bin"
-        runpy.run_path(os.path.join(virtualenv_path, script_dir, "activate_this.py"))
-        # On NixOS, prepend nix-provided binary paths so they take precedence over .venv/bin
-        if "SERVO_NIX_BIN_DIR" in os.environ:
-            os.environ["PATH"] = os.environ["SERVO_NIX_BIN_DIR"] + os.pathsep + os.environ.get("PATH", "")
-
-    install_virtual_env_requirements(topdir, marker_path)
-
+def filter_warnings() -> None:
     # Turn off warnings about deprecated syntax in our indirect dependencies.
     # TODO: Find a better approach for doing this.
     import warnings
@@ -174,10 +104,6 @@ def _is_windows() -> bool:
 
 
 def bootstrap_command_only(topdir: str) -> int:
-    # we should activate the venv before importing servo.boostrap
-    # because the module requires non-standard python packages
-    _activate_virtualenv(topdir)
-
     # We cannot import these modules until the virtual environment
     # is active because they depend on modules installed via the
     # virtual environment.
@@ -211,7 +137,7 @@ def bootstrap(topdir: str) -> "Mach":
         print("Current path:", topdir)
         sys.exit(1)
 
-    _activate_virtualenv(topdir)
+    filter_warnings()
 
     def populate_context(context: None, key: None | str = None) -> str | None:
         if key is None:

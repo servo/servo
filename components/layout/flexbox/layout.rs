@@ -33,7 +33,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::layout_box_base::CacheableLayoutResult;
+use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
@@ -115,8 +115,13 @@ struct FlexItemLayoutResult {
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
 
-    // Either the first or the last baseline, depending on ‘align-self’.
-    baseline_relative_to_margin_box: Option<Au>,
+    /// Baselines from the item’s content, relative to the item’s margin box.
+    /// Used only for baseline propagation to parent layout contexts.
+    content_baselines_for_parent_relative_to_margin_box: Baselines,
+
+    /// This is the single baseline this item uses for flex alignment.
+    /// Either the first or the last baseline or None, depending on ‘align-self’.
+    flex_alignment_baseline_relative_to_margin_box: Option<Au>,
 
     // The content size of this layout in the block axis. This is known before layout
     // for replaced elements, but for non-replaced it's only known after layout.
@@ -149,7 +154,7 @@ struct FlexLineItem<'a> {
 impl FlexLineItem<'_> {
     fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au) -> Au {
         self.layout_result
-            .baseline_relative_to_margin_box
+            .flex_alignment_baseline_relative_to_margin_box
             .unwrap_or_else(|| {
                 self.item
                     .synthesized_baseline_relative_to_margin_box(cross_size)
@@ -187,7 +192,7 @@ impl FlexLineItem<'_> {
             &item_used_size.cross,
             final_line_cross_size,
             self.layout_result
-                .baseline_relative_to_margin_box
+                .flex_alignment_baseline_relative_to_margin_box
                 .unwrap_or_default(),
             shared_alignment_baseline.unwrap_or_default(),
             flex_context.config.flex_wrap_is_reversed,
@@ -211,13 +216,34 @@ impl FlexLineItem<'_> {
             },
         );
 
-        if let Some(item_baseline) = self.layout_result.baseline_relative_to_margin_box.as_ref() {
-            let item_baseline = *item_baseline + item_content_cross_start_position -
+        let adjust_baseline = |baseline: Au| {
+            baseline + item_content_cross_start_position -
                 self.item.border.cross_start -
                 self.item.padding.cross_start -
-                item_margin.cross_start;
-            all_baselines.first.get_or_insert(item_baseline);
-            all_baselines.last = Some(item_baseline);
+                item_margin.cross_start
+        };
+
+        let baselines = self
+            .layout_result
+            .content_baselines_for_parent_relative_to_margin_box;
+        if flex_context.config.flex_direction_is_reversed {
+            if let Some(last_baseline) = baselines.last {
+                all_baselines
+                    .last
+                    .get_or_insert_with(|| adjust_baseline(last_baseline));
+            }
+            if let Some(first_baseline) = baselines.first {
+                all_baselines.first = Some(adjust_baseline(first_baseline));
+            }
+        } else {
+            if let Some(first_baseline) = baselines.first {
+                all_baselines
+                    .first
+                    .get_or_insert_with(|| adjust_baseline(first_baseline));
+            }
+            if let Some(last_baseline) = baselines.last {
+                all_baselines.last = Some(adjust_baseline(last_baseline));
+            }
         }
 
         let mut fragment_info = self.item.box_.base_fragment_info();
@@ -587,7 +613,7 @@ impl FlexContainer {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
@@ -925,7 +951,7 @@ impl FlexContainer {
         //   This is unlikely because `align-content` defaults to `stretch`.
         let depends_on_block_constraints = true;
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             content_inline_size_for_table: None,
@@ -1101,7 +1127,7 @@ fn item_with_auto_cross_size_stretches_to_line_size(
         !margin.cross_end.is_auto()
 }
 
-/// “Collect flex items into flex lines”
+/// "Collect flex items into flex lines"
 /// <https://drafts.csswg.org/css-flexbox/#algo-line-break>
 fn do_initial_flex_line_layout<'items>(
     flex_context: &mut FlexContext,
@@ -1162,7 +1188,7 @@ fn do_initial_flex_line_layout<'items>(
     if flex_context.layout_context.use_rayon {
         lines.par_drain(..).map(construct_line).collect()
     } else {
-        lines.drain(..).map(construct_line).collect()
+        lines.into_iter().map(construct_line).collect()
     }
 }
 
@@ -1444,12 +1470,11 @@ impl InitialFlexLineLayout<'_> {
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-cross-line>
     fn cross_size<'items>(items: &'items [FlexLineItem<'items>], flex_context: &FlexContext) -> Au {
-        if flex_context.config.container_is_single_line {
-            if let SizeConstraint::Definite(size) =
+        if flex_context.config.container_is_single_line &&
+            let SizeConstraint::Definite(size) =
                 flex_context.container_inner_size_constraint.cross
-            {
-                return size;
-            }
+        {
+            return size;
         }
 
         let mut max_ascent = Au::zero();
@@ -1590,7 +1615,8 @@ impl InitialFlexLineLayout<'_> {
                 shared_alignment_baseline =
                     Some(shared_alignment_baseline.unwrap_or(baseline).max(baseline));
             }
-            item.layout_result.baseline_relative_to_margin_box = Some(baseline);
+            item.layout_result
+                .flex_alignment_baseline_relative_to_margin_box = Some(baseline);
 
             item_margins.push(item.item.resolve_auto_margins(
                 flex_context,
@@ -1748,19 +1774,24 @@ impl FlexItem<'_> {
             let cross_size = match used_cross_size_override {
                 Some(s) => SizeConstraint::Definite(s),
                 None => {
-                    let stretch_size = containing_block
+                    let inline_stretch_size =
+                        Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.main);
+                    let block_stretch_size = containing_block
                         .size
                         .block
                         .to_definite()
                         .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
                     let tentative_block_content_size = independent_formatting_context
-                        .tentative_block_content_size(self.preferred_aspect_ratio);
+                        .tentative_block_content_size(
+                            self.preferred_aspect_ratio,
+                            inline_stretch_size,
+                        );
                     if let Some(block_content_size) = tentative_block_content_size {
                         SizeConstraint::Definite(self.content_cross_sizes.resolve(
                             Direction::Block,
                             Size::FitContent,
                             Au::zero,
-                            stretch_size,
+                            block_stretch_size,
                             || block_content_size,
                             is_table,
                         ))
@@ -1768,7 +1799,7 @@ impl FlexItem<'_> {
                         self.content_cross_sizes.resolve_extrinsic(
                             Size::FitContent,
                             Au::zero(),
-                            stretch_size,
+                            block_stretch_size,
                         )
                     }
                 },
@@ -1790,7 +1821,14 @@ impl FlexItem<'_> {
             // The main size of a flex item is considered to be definite if its flex basis is definite
             // or the flex container has a definite main size.
             // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
-            let main_size = if self.flex_base_size_is_definite ||
+            //
+            // Each grid area’s width and height are considered definite
+            // when laying out the grid items into their respective containing blocks,
+            // after the grid is sized.
+            // <https://drafts.csswg.org/css-grid-1/#layout-algorithm>
+            let is_grid = self.box_.independent_formatting_context.is_grid();
+            let main_size = if is_grid ||
+                self.flex_base_size_is_definite ||
                 flex_context
                     .container_inner_size_constraint
                     .main
@@ -1840,7 +1878,7 @@ impl FlexItem<'_> {
             self.preferred_aspect_ratio,
             &lazy_block_size,
         );
-        let CacheableLayoutResult {
+        let IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             baselines: content_box_baselines,
@@ -1855,36 +1893,48 @@ impl FlexItem<'_> {
             inline_size
         };
 
-        let item_writing_mode_is_orthogonal_to_container_writing_mode =
-            flex_context.config.writing_mode.is_horizontal() !=
-                item_style.writing_mode.is_horizontal();
-        let has_compatible_baseline = match flex_axis {
-            FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
-            FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
+        let item_inline_axis_is_horizontal = item_style.writing_mode.is_horizontal();
+        let container_inline_axis_is_horizontal = flex_context.config.writing_mode.is_horizontal();
+        let container_main_axis_is_horizontal = match flex_axis {
+            FlexAxis::Row => container_inline_axis_is_horizontal,
+            FlexAxis::Column => !container_inline_axis_is_horizontal,
         };
+        let item_inline_axis_parallel_to_container_inline_axis =
+            item_inline_axis_is_horizontal == container_inline_axis_is_horizontal;
+        let item_inline_axis_parallel_to_container_main_axis =
+            item_inline_axis_is_horizontal == container_main_axis_is_horizontal;
 
-        let baselines_relative_to_margin_box = if has_compatible_baseline {
-            content_box_baselines.offset(
-                self.margin.cross_start.auto_is(Au::zero) +
-                    self.padding.cross_start +
-                    self.border.cross_start,
-            )
-        } else {
-            Baselines::default()
-        };
+        let content_baselines_relative_to_margin_box = content_box_baselines.offset(
+            self.margin.cross_start.auto_is(Au::zero) +
+                self.padding.cross_start +
+                self.border.cross_start,
+        );
 
-        let baseline_relative_to_margin_box = match self.align_self.0.value() {
-            // ‘baseline’ computes to ‘first baseline’.
-            AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
-            AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
-            _ => None,
-        };
+        let content_baselines_for_parent_relative_to_margin_box =
+            if item_inline_axis_parallel_to_container_inline_axis {
+                content_baselines_relative_to_margin_box
+            } else {
+                Baselines::default()
+            };
+
+        let flex_alignment_baseline_relative_to_margin_box =
+            if item_inline_axis_parallel_to_container_main_axis {
+                match self.align_self.0.value() {
+                    // ‘baseline’ computes to ‘first baseline’.
+                    AlignFlags::BASELINE => content_baselines_relative_to_margin_box.first,
+                    AlignFlags::LAST_BASELINE => content_baselines_relative_to_margin_box.last,
+                    _ => None,
+                }
+            } else {
+                None
+            };
 
         FlexItemLayoutResult {
             hypothetical_cross_size,
             fragments,
             positioning_context,
-            baseline_relative_to_margin_box,
+            content_baselines_for_parent_relative_to_margin_box,
+            flex_alignment_baseline_relative_to_margin_box,
             content_block_size,
             containing_block_size: item_as_containing_block.size,
             depends_on_block_constraints,
@@ -2114,7 +2164,10 @@ impl FlexItemBox {
         let is_table = self.independent_formatting_context.is_table();
         let tentative_cross_content_size = if cross_axis_is_item_block_axis {
             self.independent_formatting_context
-                .tentative_block_content_size(preferred_aspect_ratio)
+                .tentative_block_content_size(
+                    preferred_aspect_ratio,
+                    stretch_size.main.unwrap_or_default(),
+                )
         } else {
             None
         };

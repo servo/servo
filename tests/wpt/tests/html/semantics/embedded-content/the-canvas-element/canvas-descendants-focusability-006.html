@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Canvas descendant focusability in nested iframes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#being-used-as-relevant-canvas-fallback-content">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focusable-area">
+<meta name="assert" content="Checks that descendants of an iframe inside a canvas that represents fallback content are focusable.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<!-- Use a sandboxed iframe to disable scripting and make the canvas
+     represent its fallback content instead of embedded content. -->
+<iframe id="outer" sandbox="allow-same-origin" allow="focus-without-user-activation *"></iframe>
+<script>
+setup({ explicit_done: true });
+setup(async () => {
+  const outer = document.getElementById("outer");
+  await new Promise(resolve => {
+    outer.addEventListener("load", resolve, {once: true});
+    outer.setAttribute("srcdoc", `
+      <canvas>
+        <iframe id="nested" allow="focus-without-user-activation *"></iframe>
+      </canvas>
+    `);
+  });
+
+  const nested = outer.contentDocument.getElementById("nested");
+  await new Promise(resolve => {
+    nested.addEventListener("load", resolve, {once: true});
+    nested.setAttribute("srcdoc", `
+      <div id="div" tabindex="-1" data-focusable="true"></div>
+      <select>
+        <option id="option" tabindex="-1" data-focusable="false"></option>
+      </select>
+    `);
+  });
+
+  const doc = nested.contentDocument;
+  for (let element of doc.querySelectorAll("[data-focusable]")) {
+    let title = element.cloneNode(false).outerHTML.toLowerCase();
+    title = title.slice(0, title.lastIndexOf("<"));
+    test(function() {
+      assert_true(doc.activeElement !== element, "Not initially focused");
+      element.focus();
+      if (JSON.parse(element.dataset.focusable)) {
+        assert_true(doc.activeElement === element, "Should be focused");
+      } else {
+        assert_true(doc.activeElement !== element, "Shouldn't be focused");
+      }
+    }, title);
+  }
+  done();
+});
+</script>

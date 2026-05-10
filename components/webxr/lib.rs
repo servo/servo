@@ -22,5 +22,5 @@ pub(crate) mod gl_utils;
 
 pub trait WebXrRegistry {
     /// Register services with a WebXR Registry.
-    fn register(&self, _: &mut MainThreadRegistry) {}
+    fn register(&self, _registry: &mut MainThreadRegistry) {}
 }

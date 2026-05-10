@@ -5,22 +5,22 @@
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
-use base::id::{ImageBitmapId, ImageBitmapIndex};
-use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
+use servo_constellation_traits::SerializableImageBitmap;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapMethods, ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
     ResizeQuality,
 };
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -292,7 +292,7 @@ impl ImageBitmap {
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {
             p.reject_error(
-                Error::Range("'sw' must be a non-zero value".to_owned()),
+                Error::Range(c"'sw' must be a non-zero value".to_owned()),
                 can_gc,
             );
             return p;
@@ -300,7 +300,7 @@ impl ImageBitmap {
 
         if sh.is_some_and(|h| h == 0) {
             p.reject_error(
-                Error::Range("'sh' must be a non-zero value".to_owned()),
+                Error::Range(c"'sh' must be a non-zero value".to_owned()),
                 can_gc,
             );
             return p;
@@ -325,11 +325,11 @@ impl ImageBitmap {
                 let trusted_image_bitmap = Trusted::new(image_bitmap);
 
                 global_scope.task_manager().bitmap_task_source().queue(
-                    task!(resolve_promise: move || {
+                    task!(resolve_promise: move |cx| {
                         let promise = trusted_promise.root();
                         let image_bitmap = trusted_image_bitmap.root();
 
-                        promise.resolve_native(&image_bitmap, CanGc::note());
+                        promise.resolve_native(&image_bitmap, CanGc::from_cx(cx));
                     }),
                 );
             };
@@ -339,14 +339,13 @@ impl ImageBitmap {
         let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
             let trusted_promise = TrustedPromise::new(promise.clone());
 
-            global_scope
-                .task_manager()
-                .bitmap_task_source()
-                .queue(task!(reject_promise: move || {
+            global_scope.task_manager().bitmap_task_source().queue(
+                task!(reject_promise: move |cx| {
                     let promise = trusted_promise.root();
 
-                    promise.reject_error(Error::InvalidState(None), CanGc::note());
-                }));
+                    promise.reject_error(Error::InvalidState(None), CanGc::from_cx(cx));
+                }),
+            );
         };
 
         // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,
@@ -665,7 +664,10 @@ impl Transferable for ImageBitmap {
     type Data = SerializableImageBitmap;
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-steps>
-    fn transfer(&self) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
+    fn transfer(
+        &self,
+        _cx: &mut js::context::JSContext,
+    ) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
         // transferable.[[Detached]] is true, then throw a "DataCloneError"
@@ -695,6 +697,7 @@ impl Transferable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         _: ImageBitmapId,
         transferred: SerializableImageBitmap,
@@ -703,7 +706,7 @@ impl Transferable for ImageBitmap {
         Ok(ImageBitmap::new(
             owner,
             transferred.bitmap_data.to_owned(),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         ))
     }
 

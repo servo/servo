@@ -7,25 +7,25 @@ let $$1 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x97\x80\x80\x80\x00\x04\x
 let $1 = instance($$1);
 
 // table_fill64.wast:27
-assert_return(() => call($1, "get", [1]), "table_fill64.wast:27", null);
+assert_return(() => call($1, "get", [1]), "table_fill64.wast:27", "ref.null");
 
 // table_fill64.wast:28
-assert_return(() => call($1, "get", [2]), "table_fill64.wast:28", null);
+assert_return(() => call($1, "get", [2]), "table_fill64.wast:28", "ref.null");
 
 // table_fill64.wast:29
-assert_return(() => call($1, "get", [3]), "table_fill64.wast:29", null);
+assert_return(() => call($1, "get", [3]), "table_fill64.wast:29", "ref.null");
 
 // table_fill64.wast:30
-assert_return(() => call($1, "get", [4]), "table_fill64.wast:30", null);
+assert_return(() => call($1, "get", [4]), "table_fill64.wast:30", "ref.null");
 
 // table_fill64.wast:31
-assert_return(() => call($1, "get", [5]), "table_fill64.wast:31", null);
+assert_return(() => call($1, "get", [5]), "table_fill64.wast:31", "ref.null");
 
 // table_fill64.wast:33
 assert_return(() => call($1, "fill", [2, hostref(1), 3]), "table_fill64.wast:33");
 
 // table_fill64.wast:34
-assert_return(() => call($1, "get", [1]), "table_fill64.wast:34", null);
+assert_return(() => call($1, "get", [1]), "table_fill64.wast:34", "ref.null");
 
 // table_fill64.wast:35
 assert_return(() => call($1, "get", [2]), "table_fill64.wast:35", hostref(1));
@@ -37,7 +37,7 @@ assert_return(() => call($1, "get", [3]), "table_fill64.wast:36", hostref(1));
 assert_return(() => call($1, "get", [4]), "table_fill64.wast:37", hostref(1));
 
 // table_fill64.wast:38
-assert_return(() => call($1, "get", [5]), "table_fill64.wast:38", null);
+assert_return(() => call($1, "get", [5]), "table_fill64.wast:38", "ref.null");
 
 // table_fill64.wast:40
 assert_return(() => call($1, "fill", [4, hostref(2), 2]), "table_fill64.wast:40");
@@ -52,7 +52,7 @@ assert_return(() => call($1, "get", [4]), "table_fill64.wast:42", hostref(2));
 assert_return(() => call($1, "get", [5]), "table_fill64.wast:43", hostref(2));
 
 // table_fill64.wast:44
-assert_return(() => call($1, "get", [6]), "table_fill64.wast:44", null);
+assert_return(() => call($1, "get", [6]), "table_fill64.wast:44", "ref.null");
 
 // table_fill64.wast:46
 assert_return(() => call($1, "fill", [4, hostref(3), 0]), "table_fill64.wast:46");
@@ -70,7 +70,7 @@ assert_return(() => call($1, "get", [5]), "table_fill64.wast:49", hostref(2));
 assert_return(() => call($1, "fill", [8, hostref(4), 2]), "table_fill64.wast:51");
 
 // table_fill64.wast:52
-assert_return(() => call($1, "get", [7]), "table_fill64.wast:52", null);
+assert_return(() => call($1, "get", [7]), "table_fill64.wast:52", "ref.null");
 
 // table_fill64.wast:53
 assert_return(() => call($1, "get", [8]), "table_fill64.wast:53", hostref(4));
@@ -85,25 +85,25 @@ assert_return(() => call($1, "fill-abbrev", [9, null, 1]), "table_fill64.wast:56
 assert_return(() => call($1, "get", [8]), "table_fill64.wast:57", hostref(4));
 
 // table_fill64.wast:58
-assert_return(() => call($1, "get", [9]), "table_fill64.wast:58", null);
+assert_return(() => call($1, "get", [9]), "table_fill64.wast:58", "ref.null");
 
 // table_fill64.wast:60
 assert_return(() => call($1, "fill", [10, hostref(5), 0]), "table_fill64.wast:60");
 
 // table_fill64.wast:61
-assert_return(() => call($1, "get", [9]), "table_fill64.wast:61", null);
+assert_return(() => call($1, "get", [9]), "table_fill64.wast:61", "ref.null");
 
 // table_fill64.wast:63
 assert_trap(() => call($1, "fill", [8, hostref(6), 3]), "table_fill64.wast:63");
 
 // table_fill64.wast:67
-assert_return(() => call($1, "get", [7]), "table_fill64.wast:67", null);
+assert_return(() => call($1, "get", [7]), "table_fill64.wast:67", "ref.null");
 
 // table_fill64.wast:68
 assert_return(() => call($1, "get", [8]), "table_fill64.wast:68", hostref(4));
 
 // table_fill64.wast:69
-assert_return(() => call($1, "get", [9]), "table_fill64.wast:69", null);
+assert_return(() => call($1, "get", [9]), "table_fill64.wast:69", "ref.null");
 
 // table_fill64.wast:71
 assert_trap(() => call($1, "fill", [11, null, 0]), "table_fill64.wast:71");
@@ -112,25 +112,25 @@ assert_trap(() => call($1, "fill", [11, null, 0]), "table_fill64.wast:71");
 assert_trap(() => call($1, "fill", [11, null, 10]), "table_fill64.wast:76");
 
 // table_fill64.wast:83
-assert_return(() => call($1, "get-t64", [1n]), "table_fill64.wast:83", null);
+assert_return(() => call($1, "get-t64", [1n]), "table_fill64.wast:83", "ref.null");
 
 // table_fill64.wast:84
-assert_return(() => call($1, "get-t64", [2n]), "table_fill64.wast:84", null);
+assert_return(() => call($1, "get-t64", [2n]), "table_fill64.wast:84", "ref.null");
 
 // table_fill64.wast:85
-assert_return(() => call($1, "get-t64", [3n]), "table_fill64.wast:85", null);
+assert_return(() => call($1, "get-t64", [3n]), "table_fill64.wast:85", "ref.null");
 
 // table_fill64.wast:86
-assert_return(() => call($1, "get-t64", [4n]), "table_fill64.wast:86", null);
+assert_return(() => call($1, "get-t64", [4n]), "table_fill64.wast:86", "ref.null");
 
 // table_fill64.wast:87
-assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:87", null);
+assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:87", "ref.null");
 
 // table_fill64.wast:89
 assert_return(() => call($1, "fill-t64", [2n, hostref(1), 3n]), "table_fill64.wast:89");
 
 // table_fill64.wast:90
-assert_return(() => call($1, "get-t64", [1n]), "table_fill64.wast:90", null);
+assert_return(() => call($1, "get-t64", [1n]), "table_fill64.wast:90", "ref.null");
 
 // table_fill64.wast:91
 assert_return(() => call($1, "get-t64", [2n]), "table_fill64.wast:91", hostref(1));
@@ -142,7 +142,7 @@ assert_return(() => call($1, "get-t64", [3n]), "table_fill64.wast:92", hostref(1
 assert_return(() => call($1, "get-t64", [4n]), "table_fill64.wast:93", hostref(1));
 
 // table_fill64.wast:94
-assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:94", null);
+assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:94", "ref.null");
 
 // table_fill64.wast:96
 assert_return(() => call($1, "fill-t64", [4n, hostref(2), 2n]), "table_fill64.wast:96");
@@ -157,7 +157,7 @@ assert_return(() => call($1, "get-t64", [4n]), "table_fill64.wast:98", hostref(2
 assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:99", hostref(2));
 
 // table_fill64.wast:100
-assert_return(() => call($1, "get-t64", [6n]), "table_fill64.wast:100", null);
+assert_return(() => call($1, "get-t64", [6n]), "table_fill64.wast:100", "ref.null");
 
 // table_fill64.wast:102
 assert_return(() => call($1, "fill-t64", [4n, hostref(3), 0n]), "table_fill64.wast:102");
@@ -175,7 +175,7 @@ assert_return(() => call($1, "get-t64", [5n]), "table_fill64.wast:105", hostref(
 assert_return(() => call($1, "fill-t64", [8n, hostref(4), 2n]), "table_fill64.wast:107");
 
 // table_fill64.wast:108
-assert_return(() => call($1, "get-t64", [7n]), "table_fill64.wast:108", null);
+assert_return(() => call($1, "get-t64", [7n]), "table_fill64.wast:108", "ref.null");
 
 // table_fill64.wast:109
 assert_return(() => call($1, "get-t64", [8n]), "table_fill64.wast:109", hostref(4));
@@ -190,25 +190,25 @@ assert_return(() => call($1, "fill-t64", [9n, null, 1n]), "table_fill64.wast:112
 assert_return(() => call($1, "get-t64", [8n]), "table_fill64.wast:113", hostref(4));
 
 // table_fill64.wast:114
-assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:114", null);
+assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:114", "ref.null");
 
 // table_fill64.wast:116
 assert_return(() => call($1, "fill-t64", [10n, hostref(5), 0n]), "table_fill64.wast:116");
 
 // table_fill64.wast:117
-assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:117", null);
+assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:117", "ref.null");
 
 // table_fill64.wast:119
 assert_trap(() => call($1, "fill-t64", [8n, hostref(6), 3n]), "table_fill64.wast:119");
 
 // table_fill64.wast:123
-assert_return(() => call($1, "get-t64", [7n]), "table_fill64.wast:123", null);
+assert_return(() => call($1, "get-t64", [7n]), "table_fill64.wast:123", "ref.null");
 
 // table_fill64.wast:124
 assert_return(() => call($1, "get-t64", [8n]), "table_fill64.wast:124", hostref(4));
 
 // table_fill64.wast:125
-assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:125", null);
+assert_return(() => call($1, "get-t64", [9n]), "table_fill64.wast:125", "ref.null");
 
 // table_fill64.wast:127
 assert_trap(() => call($1, "fill-t64", [11n, null, 0n]), "table_fill64.wast:127");

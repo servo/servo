@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/498816844">
+<body onload="start();">
+  <li
+    id="li"
+    style="list-style-image: url(not-exist.gif);"
+    type="NONE"
+    >li_fuzz</li>
+</body>
+<script>
+function start() {
+  const li = document.getElementById("li");
+  li.setAttribute("hidden", "until-found");
+  li.setAttribute("type", "DISC");
+}
+</script>

@@ -13,3 +13,5 @@ pub(crate) mod mediaquerylistevent;
 pub(crate) mod mediasession;
 pub(crate) mod mediastream;
 pub(crate) mod mediastreamtrack;
+pub(crate) mod videotrack;
+pub(crate) mod videotracklist;

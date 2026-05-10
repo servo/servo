@@ -15,11 +15,11 @@
 const properties = ["column-rule-style", "row-rule-style", "rule-style"];
 for (let property of properties) {
     test_invalid_value(property, "auto");
-    test_invalid_value(property, "dashed, dotted, solid");
-    test_invalid_value(property, "repeat(auto, groove, dotted, ridge)");
+    test_invalid_value(property, "dashed dotted solid");
+    test_invalid_value(property, "repeat(auto, groove dotted ridge)");
     test_invalid_value(property, "repeat(0, dotted, solid, double)");
     test_invalid_value(property, "repeat(-1, dotted, dashed, double)");
-    test_invalid_value(property, "repeat(auto, dotted) red repeat(auto, ridge)");
+    test_invalid_value(property, "repeat(auto, dotted), red, repeat(auto, ridge)");
 }
 </script>
 </body>

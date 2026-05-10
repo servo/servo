@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>CSSPseudoElement.pseudo() for scoped view transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    width: 100px;
+    height: 100px;
+    background: blue;
+  }
+  #target {
+    width: 50px;
+    height: 50px;
+    background: red;
+    view-transition-name: target;
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+promise_test(async t => {
+  assert_implements(window.CSSPseudoElement, "CSSPseudoElement interface not supported");
+
+  const container = document.getElementById('container');
+  assert_implements(container.startViewTransition, "Element.startViewTransition not supported");
+
+  const transition = container.startViewTransition();
+  await transition.ready;
+
+  const vt = container.pseudo("::view-transition");
+  assert_true(vt instanceof CSSPseudoElement, "::view-transition works on container");
+  assert_equals(vt.element, container, "Originating element is container");
+
+  const group = container.pseudo("::view-transition-group(target)");
+  assert_true(group instanceof CSSPseudoElement, "::view-transition-group works on container");
+  assert_equals(group.parent, vt, "Hierarchy works for scoped VT");
+
+  const imagePair = container.pseudo("::view-transition-image-pair(target)");
+  assert_equals(imagePair.parent, group, "Hierarchy works for scoped VT");
+
+  const newImage = container.pseudo("::view-transition-new(target)");
+  assert_equals(newImage.parent, imagePair, "Hierarchy works for scoped VT");
+
+  const root = document.documentElement;
+  const rootVt = root.pseudo("::view-transition");
+  assert_not_equals(vt, rootVt, "Proxies for different originating elements must be different instances");
+
+}, "CSSPseudoElement hierarchy works for scoped view transitions");
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  assert_implements(container.startViewTransition, "Element.startViewTransition not supported");
+
+  // First transition
+  const transition1 = container.startViewTransition();
+  await transition1.ready;
+  const vt1 = container.pseudo("::view-transition");
+  const group1 = container.pseudo("::view-transition-group(target)");
+  await transition1.finished;
+
+  // Second transition
+  const transition2 = container.startViewTransition();
+  await transition2.ready;
+  const vt2 = container.pseudo("::view-transition");
+  const group2 = container.pseudo("::view-transition-group(target)");
+  await transition2.finished;
+
+  assert_equals(vt1, vt2, "::view-transition proxy is identity-consistent across multiple transitions");
+  assert_equals(group1, group2, "::view-transition-group proxy is identity-consistent across multiple transitions");
+}, "CSSPseudoElement proxies are identity-consistent across multiple view transitions on the same element");
+</script>

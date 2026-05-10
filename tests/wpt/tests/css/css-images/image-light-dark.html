@@ -1,0 +1,18 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1966890">
+<link rel="match" href="image-light-dark-ref.html">
+<style>
+  div:empty {
+    width: 100px;
+    height: 100px;
+    background-image: light-dark(
+      url("/images/green.png"),
+      url("/images/red.png")
+    );
+  }
+</style>
+<div style="color-scheme: dark"></div>
+<div style="color-scheme: light"></div>
+<div style="color-scheme: dark"><div></div></div>
+<div style="color-scheme: light"><div></div></div>

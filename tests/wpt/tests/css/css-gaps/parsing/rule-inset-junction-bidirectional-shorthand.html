@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: rule-inset-junction shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<meta name="assert"
+    content="rule-inset-junction supports the full grammar '<length-percentage> <length-percentage>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'rule-inset-junction': ['column-rule-inset-junction-start', 'column-rule-inset-junction-end',
+                'row-rule-inset-junction-start', 'row-rule-inset-junction-end']
+        };
+
+        const bidirectionalTestCases = [
+            {
+                input: '0px',
+                expected: {
+                    columnRuleInsetJunctionStart: '0px',
+                    columnRuleInsetJunctionEnd: '0px',
+                    rowRuleInsetJunctionStart: '0px',
+                    rowRuleInsetJunctionEnd: '0px'
+                }
+            },
+            {
+                input: '10px',
+                expected: {
+                    columnRuleInsetJunctionStart: '10px',
+                    columnRuleInsetJunctionEnd: '10px',
+                    rowRuleInsetJunctionStart: '10px',
+                    rowRuleInsetJunctionEnd: '10px'
+                }
+            },
+            {
+                input: '50%',
+                expected: {
+                    columnRuleInsetJunctionStart: '50%',
+                    columnRuleInsetJunctionEnd: '50%',
+                    rowRuleInsetJunctionStart: '50%',
+                    rowRuleInsetJunctionEnd: '50%',
+                }
+            },
+            {
+                input: '10px 20px',
+                expected: {
+                    columnRuleInsetCapStart: '10px',
+                    columnRuleInsetCapEnd: '20px',
+                    columnRuleInsetJunctionStart: '10px',
+                    columnRuleInsetJunctionEnd: '20px',
+                    rowRuleInsetCapStart: '10px',
+                    rowRuleInsetCapEnd: '20px',
+                    rowRuleInsetJunctionStart: '10px',
+                    rowRuleInsetJunctionEnd: '20px',
+                }
+            },
+            {
+                input: 'overlap-join',
+                expected: {
+                    columnRuleInsetJunctionStart: 'overlap-join',
+                    columnRuleInsetJunctionEnd: 'overlap-join',
+                    rowRuleInsetJunctionStart: 'overlap-join',
+                    rowRuleInsetJunctionEnd: 'overlap-join',
+                }
+            },
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = bidirectionalTestCases;
+
+            for (const { input, expected } of test_cases) {
+                const [columnRuleInsetJunctionStart, columnRuleInsetJunctionEnd, rowRuleInsetJunctionStart, rowRuleInsetJunctionEnd] = rule_properties[rule_property];
+
+                test_shorthand_value(rule_property, input, {
+                    [columnRuleInsetJunctionStart]: expected.columnRuleInsetJunctionStart,
+                    [columnRuleInsetJunctionEnd]: expected.columnRuleInsetJunctionEnd,
+                    [rowRuleInsetJunctionStart]: expected.rowRuleInsetJunctionStart,
+                    [rowRuleInsetJunctionEnd]: expected.rowRuleInsetJunctionEnd,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

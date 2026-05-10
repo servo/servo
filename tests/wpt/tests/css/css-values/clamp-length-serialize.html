@@ -42,4 +42,10 @@ test_valid_length('clamp(1px, 1em, 1vh)', 'clamp(1px, 1em, 1vh)');
 test_valid_length('clamp(-18px, 3vw, -3vw)', 'clamp(-18px, 3vw, -3vw)', 'clamp(-18px, 3vw, -3vw)');
 test_valid_length('calc(0px + clamp(1px, 1em, 1vh))', 'calc(0px + clamp(1px, 1em, 1vh))');
 test_valid_length('calc(0px - clamp(1px, 1em, 1vh))', 'calc(0px - clamp(1px, 1em, 1vh))');
+
+// "none" values
+test_valid_length('clamp(none, 33px, 30px)', 'calc(30px)');
+test_valid_length('clamp(33px, 30px, none)', 'calc(33px)');
+test_valid_length('clamp(none, 30px, none)', 'calc(30px)');
+
 </script>

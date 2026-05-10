@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text text-decoration with currentColor</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#selectordef-target-text">
+<link rel="match" href="target-text-text-decoration-currentcolor-ref.html">
+<meta name="assert" content="This test checks that ::target-text text-decoration-color defaults to currentColor.">
+<style>
+  ::target-text {
+    color: green;
+    text-decoration: overline;
+    background-color: transparent;
+  }
+  #target {
+    font-size: 50px;
+  }
+</style>
+<p>The test passes if the text below has a green overline.</p>
+<p id="target">Target text</p>
+<script>
+  location.href = "#:~:text=Target text";
+</script>

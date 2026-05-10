@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>background-clip:text on body after scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-on-body-scroll-ref.html">
+<style>
+
+body {
+  font-size: 50px;
+  background-clip: text;
+  height: 2000px;
+  margin: 0;
+  overflow: hidden;
+}
+</style>
+<script>
+window.addEventListener('load', () => {
+  window.scrollTo(0, 600);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+});
+</script>
+<body>
+This text should become invisible after scrolling. No background artifacts should appear.
+</body>
+</html>

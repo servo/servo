@@ -12,11 +12,11 @@
 </head>
 <body>
 <script>
-test_valid_value("background-size", "1px", ["1px", "1px auto"]);
-test_valid_value("background-size", "1px auto", ["1px", "1px auto"]);
+test_valid_value("background-size", "1px", "1px auto");
+test_valid_value("background-size", "1px auto", "1px auto");
 test_valid_value("background-size", "2% 3%");
-test_valid_value("background-size", "auto", ["auto", "auto auto"]);
-test_valid_value("background-size", "auto auto", ["auto", "auto auto"]);
+test_valid_value("background-size", "auto");
+test_valid_value("background-size", "auto auto", "auto");
 test_valid_value("background-size", "auto 4%");
 test_valid_value("background-size", "contain");
 test_valid_value("background-size", "cover");

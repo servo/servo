@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<datalist id="move">
+  <option dir="rtl">
+    <meter id="meter" value="50" min="0" max="100"></meter>
+  </option>
+</datalist>
+<svg>
+  <tspan id="tspan"/><use href="#tspan"/>
+</svg>
+<script>
+  onload = () => {
+    document.getElementById("meter").appendChild(document.createElement("div"));
+    document.getElementById("tspan").appendChild(move);
+  }
+</script>

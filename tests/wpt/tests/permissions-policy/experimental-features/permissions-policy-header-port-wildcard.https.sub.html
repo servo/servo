@@ -6,9 +6,9 @@
   test(function() {
     var wildcard_origin = 'https://{{domains[]}}:*';
     assert_array_equals(
-      document.featurePolicy.getAllowlistForFeature('fullscreen'),
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen'),
       [wildcard_origin]);
-    assert_true(document.featurePolicy.allowsFeature('fullscreen'));
+    assert_true(document.permissionsPolicy.allowsFeature('fullscreen'));
   }, 'Test wildcard port policy works as expected');
   </script>
 </body>

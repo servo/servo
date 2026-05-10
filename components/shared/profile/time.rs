@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericSender;
 use time::Duration;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -17,15 +17,15 @@ pub struct TimerMetadata {
     pub incremental: TimerMetadataReflowType,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ProfilerChan(pub Option<GenericSender<ProfilerMsg>>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
-        if let Some(sender) = &self.0 {
-            if let Err(e) = sender.send(msg) {
-                warn!("Error communicating with the time profiler thread: {}", e);
-            }
+        if let Some(sender) = &self.0 &&
+            let Err(e) = sender.send(msg)
+        {
+            warn!("Error communicating with the time profiler thread: {}", e);
         }
     }
 }
@@ -110,7 +110,7 @@ pub enum ProfilerCategory {
     ScriptWorkletEvent = 0x7b,
     ScriptGeolocationEvent = 0x7c,
     ScriptPerformanceEvent = 0x7d,
-    ScriptHistoryEvent = 0x7e,
+    ScriptNavigationAndTraversalEvent = 0x7e,
     ScriptPortMessage = 0x7f,
     ScriptWebGPUMsg = 0x80,
 
@@ -162,7 +162,9 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptExitFullscreen => "ScriptExitFullscreen",
             ProfilerCategory::ScriptWorkletEvent => "ScriptWorkletEvent",
             ProfilerCategory::ScriptPerformanceEvent => "ScriptPerformanceEvent",
-            ProfilerCategory::ScriptHistoryEvent => "ScriptHistoryEvent",
+            ProfilerCategory::ScriptNavigationAndTraversalEvent => {
+                "ScriptNavigationAndTraversalEvent"
+            },
             ProfilerCategory::ScriptPortMessage => "ScriptPortMessage",
             ProfilerCategory::ScriptWebGPUMsg => "ScriptWebGPUMsg",
             ProfilerCategory::TimeToFirstPaint => "TimeToFirstPaint",

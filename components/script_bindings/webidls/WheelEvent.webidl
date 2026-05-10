@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://w3c.github.io/uievents/#interface-wheelevent
+// https://w3c.github.io/pointerevents/#interface-wheelevent
 [Exposed=Window]
 interface WheelEvent : MouseEvent {
     [Throws] constructor(DOMString typeArg, optional WheelEventInit wheelEventInitDict = {});
@@ -15,7 +15,7 @@ interface WheelEvent : MouseEvent {
     readonly    attribute unsigned long  deltaMode;
 };
 
-// https://w3c.github.io/uievents/#idl-wheeleventinit
+// https://w3c.github.io/pointerevents/#dom-wheeleventinit
 dictionary WheelEventInit : MouseEventInit {
     double deltaX = 0.0;
     double deltaY = 0.0;

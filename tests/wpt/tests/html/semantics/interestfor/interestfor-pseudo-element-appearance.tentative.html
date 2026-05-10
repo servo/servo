@@ -12,32 +12,47 @@
 </div>
 <div class=example>
   <img src="/images/blue.png" usemap="#map1" width=40 height=40>
-  <map id="map1"><area href="/" shape="default" interestfor=target></map>
+  <map id="map1">
+    <area href="/" shape="default" interestfor=target>
+  </map>
+</div>
+
+<div class="example defaultcontent">
+  <button interestfor=target><span>Button</span></button>
+</div>
+<div class="example defaultcontent">
+  <a href=# interestfor=target><span>Link</span></a>
 </div>
 
 <div id=target></div>
 
 <style>
-  [interestfor]::before {
-    content: "::before";
-    border: 1px solid green;
+  .example:not(.defaultcontent) {
+    & [interestfor]::before {
+      content: "::before";
+      border: 1px solid lime;
+    }
+    & [interestfor]::interest-button {
+      content: "::interest-button";
+    }
+    [interestfor]::after {
+      content: "::after";
+      border: 1px solid lime;
+    }
+    [interestfor]>span {
+      border: 1px solid lime;
+    }
   }
-  [interestfor]::interest-hint {
-    content: "::interest-hint";
-    font-family: arial;
-    font-size: 13px;
-  }
-  [interestfor]::after {
-    content: "::after";
-    border: 1px solid green;
-  }
-  /* Test convenience: */
+
   .example {
-    display:block;
     width: 400px;
     height: 50px;
   }
-  [interestfor]>span {
-    border: 1px solid black;
-  }
 </style>
+<script>
+  const stripWhitespace = node => [...node.childNodes].forEach(c =>
+    c.nodeType === 3 && !c.nodeValue.trim() ? c.remove() : stripWhitespace(c)
+  );
+  document.querySelectorAll('.example').forEach(stripWhitespace);
+</script>
+

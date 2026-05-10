@@ -1,12 +1,23 @@
 features:
+- name: selectors
+  files:
+  - attribute.html
+  - class-id-attr.html
+  - sibling.html
+  - insert-sibling-*
+  - selectorText-dynamic-001.html
+  - sheet-going-away-*
 - name: has
   files:
   - has-*
   - "*-in-has.*"
   - "*-in-has-*"
+- name: link-selectors
+  files:
+  - "any-link-*"
 - name: media-pseudos
   files:
-  - media-loading-pseudo-classes-in-has.html
+  - media-loading-pseudo-classes-in-has.sub.html
   - media-pseudo-classes-in-has.html
 - name: modal
   files:
@@ -38,6 +49,9 @@ features:
 - name: state
   files:
   - state-in-has.html
+- name: placeholder-shown
+  files:
+  - placeholder-shown.html
 - name: shadow-parts
   files:
   - part-dir.html
@@ -54,3 +68,6 @@ features:
 - name: where
   files:
   - where.html
+- name: input-selectors
+  files:
+  - enabled-disabled.html

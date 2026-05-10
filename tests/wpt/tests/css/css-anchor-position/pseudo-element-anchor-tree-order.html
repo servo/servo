@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<title>Tests the ordering of pseudo-element anchors by tree order</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#target">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  main {
+    border: 1px solid black;
+
+    position: relative;
+    width: 500px;
+    height: 200px;
+  }
+
+  .box, .box-before::before, .box-after::after {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    content: "";
+  }
+
+  .box-anchor, .box-before-anchor::before, .box-after-anchor::after { anchor-name: --box; }
+  .box-red, .box-before-red::before, .box-after-red::after { background-color: red; }
+  .box-green, .box-before-green::before, .box-after-green::after { background-color: green; }
+
+  .target {
+    position: absolute;
+    position-anchor: --box;
+    top: calc(anchor(bottom) + 10px);
+    left: anchor(left);
+    width: 50px;
+    height: 50px;
+    background-color: blue;
+  }
+</style>
+
+<script>
+  function inflate(t, template_element) {
+    t.add_cleanup(() => main.replaceChildren());
+    main.append(template_element.content.cloneNode(true));
+  }
+</script>
+
+<main id="main">
+</main>
+
+<template id="one_element_two_pseudo_elements">
+  <style>
+    #anchor1 { inset: 0 }
+    #anchor23::before { top: 0; left: 60px; }
+    #anchor23::after { top: 0; left: 120px; }
+  </style>
+
+  <div class="containing-block">
+    <div class="box box-anchor box-red" id="anchor1"></div>
+    <div class="box-before box-before-anchor box-before-red box-after box-after-anchor box-after-green" id="anchor23"></div>
+    <!-- Anchor used is #anchor23::after -->
+    <div class="target" id="target"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, one_element_two_pseudo_elements);
+
+    const targetComputedStyle = getComputedStyle(main.querySelector("#target"));
+    assert_equals(targetComputedStyle.top, "60px");
+    assert_equals(targetComputedStyle.left, "120px");
+  }, "One element anchor, two pseudo-element anchors (::before, ::after)");
+</script>
+
+<template id="one_pseudo_in_one_host_two_pseudos_in_another_host">
+  <style>
+    #anchor1 { inset: 0 }
+    #anchor23::before { top: 0; left: 60px; }
+    #anchor23::after { top: 0; left: 120px; }
+  </style>
+
+  <div class="containing-block">
+    <div class="box-before box-before-anchor box-before-red" id="anchor1"></div>
+    <div class="box-before box-before-anchor box-before-red box-after box-after-anchor box-after-green" id="anchor23"></div>
+    <!-- Anchor used is #anchor23::after -->
+    <div class="target" id="target" data-offset-x="120" data-offset-y="50"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, one_pseudo_in_one_host_two_pseudos_in_another_host);
+
+    const targetComputedStyle = getComputedStyle(main.querySelector("#target"));
+    assert_equals(targetComputedStyle.top, "60px");
+    assert_equals(targetComputedStyle.left, "120px");
+  }, "One pseudo-element anchor in one host element, two pseudo-element anchors (::before, ::after) in another host element");
+</script>
+
+<template id="two_pseudos_in_same_host">
+  <style>
+    #anchor12::before { inset: 0; }
+    #anchor12::after { top: 0; left: 60px; }
+  </style>
+
+  <div class="containing-block">
+    <div class="box-before box-before-anchor box-before-red box-after box-after-anchor box-after-green" id="anchor12"></div>
+    <!-- Anchor used is #anchor12::after -->
+    <div class="target" id="target"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, two_pseudos_in_same_host);
+
+    const targetComputedStyle = getComputedStyle(main.querySelector("#target"));
+    assert_equals(targetComputedStyle.top, "60px");
+    assert_equals(targetComputedStyle.left, "60px");
+  }, "Two pseudo-element anchors in the same host");
+</script>
+
+<template id="before_and_element_sibling">
+  <style>
+    #anchor1::before { inset: 0 }
+    #anchor2 { top: 0; left: 60px; }
+  </style>
+
+  <div class="containing-block">
+    <div class="box-before box-before-anchor box-before-green" id="anchor1">
+      <div class="box box-anchor box-red" id="anchor2"></div>
+    </div>
+    <!-- Anchor used is #anchor2 -->
+    <div class="target" id="target"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, before_and_element_sibling);
+
+    const targetComputedStyle = getComputedStyle(main.querySelector("#target"));
+    assert_equals(targetComputedStyle.top, "60px");
+    assert_equals(targetComputedStyle.left, "60px");
+  }, "Two sibling anchors, ::before and an element");
+</script>
+
+<template id="element_and_after_sibling">
+  <style>
+    #anchor1 { inset: 0 }
+    #anchor2::after { top: 0; left: 60px; }
+  </style>
+
+  <div class="containing-block">
+    <div class="box-after box-after-anchor box-after-green" id="anchor2">
+      <div class="box box-anchor box-red" id="anchor1"></div>
+    </div>
+    <!-- Anchor used is #anchor2::after -->
+    <div class="target" id="target"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, element_and_after_sibling);
+
+    const targetComputedStyle = getComputedStyle(main.querySelector("#target"));
+    assert_equals(targetComputedStyle.top, "60px");
+    assert_equals(targetComputedStyle.left, "60px");
+  }, "Two sibling anchors, an element and ::after");
+</script>

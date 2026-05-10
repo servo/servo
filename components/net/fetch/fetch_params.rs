@@ -73,7 +73,7 @@ impl ConsumePreloadedResources for RequestClient {
         // Step 1. Let key be a preload key whose URL is url,
         // destination is destination, mode is mode, and credentials mode is credentialsMode.
         let key = PreloadKey {
-            url: request.url().clone(),
+            url: request.url(),
             destination: request.destination,
             mode: request.mode.clone(),
             credentials_mode: request.credentials_mode,

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: margin collapsing, clearance and min-height when clamping by height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-045-ref.html">
+<meta name="assert" content="Checks the interaction of min-height, margin collapsing, and float clearance in boxes inside a by-height line-clamp container.">
+<style>
+  .clamp {
+    line-clamp: auto;
+    max-height: 6lh;
+    background-color: yellow;
+    width: 300px;
+  }
+  .float {
+    float: right;
+    background-color: pink;
+  }
+  .margin {
+    margin: 0.5lh;
+  }
+  .abspos {
+    position: absolute;
+    background-color: green;
+    left: auto;
+    right: auto;
+  }
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  <div class="float">
+    Line A <br>
+    Line B
+  </div>
+  Line 4<br>
+  <div class="margin">
+    <div class="margin" style="min-height: 0.5lh">
+      <div class="margin" style="clear: right;">
+        <div class="abspos">Abspos</div>
+      </div>
+      Line 5
+    </div>
+  </div>
+  Line 6 <br>
+  Line 7
+</div>

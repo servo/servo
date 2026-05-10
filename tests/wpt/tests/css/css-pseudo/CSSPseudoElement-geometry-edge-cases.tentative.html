@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<title>CSS Pseudo Test: CSSPseudoElement GeometryUtils - edge cases</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#extension-to-the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .box {
+    position: absolute;
+    left: 100px;
+    top: 50px;
+    width: 200px;
+    height: 100px;
+  }
+
+  .with-before::before {
+    content: 'before';
+    display: block;
+    width: 50px;
+    height: 30px;
+  }
+
+  .display-none::before {
+    content: 'hidden';
+    display: none;
+  }
+
+  .no-content::before {
+    /* No content property, pseudo-element won't be generated */
+  }
+
+  .empty-content::before {
+    content: '';
+    /* Empty content still creates a pseudo-element */
+  }
+
+  .hidden-visibility::before {
+    content: 'invisible';
+    visibility: hidden;
+    display: block;
+    width: 40px;
+    height: 20px;
+  }
+
+  .zero-size::before {
+    content: '';
+    width: 0;
+    height: 0;
+  }
+
+  .transformed::before {
+    content: 'transformed';
+    display: block;
+    width: 100px;
+    height: 50px;
+    transform: rotate(45deg);
+  }
+
+  .scaled::before {
+    content: 'scaled';
+    display: block;
+    width: 100px;
+    height: 50px;
+    transform: scale(2);
+  }
+
+  .float-before::before {
+    content: 'float';
+    float: left;
+    width: 60px;
+    height: 40px;
+  }
+
+  .inline-before::before {
+    content: 'inline';
+    display: inline;
+  }
+</style>
+
+<div id="with-before" class="box with-before"></div>
+<div id="display-none" class="box display-none"></div>
+<div id="no-content" class="box no-content"></div>
+<div id="empty-content" class="box empty-content"></div>
+<div id="hidden-visibility" class="box hidden-visibility"></div>
+<div id="zero-size" class="box zero-size"></div>
+<div id="transformed" class="box transformed"></div>
+<div id="scaled" class="box scaled"></div>
+<div id="float-before" class="box float-before"></div>
+<div id="inline-before" class="box inline-before"></div>
+<div id="no-pseudo" class="box"></div>
+
+<script>
+  // Test: pseudo() returns null for unsupported pseudo-element types
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::first-line");
+    assert_equals(pseudo, null, 'pseudo() should return null for unsupported types like ::first-line');
+  }, 'pseudo() returns null for unsupported pseudo-element types');
+
+  // Test: pseudo() returns null for invalid pseudo-element syntax
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("before");  // Missing ::
+    assert_equals(pseudo, null, 'pseudo() should return null for invalid syntax');
+  }, 'pseudo() returns null for invalid pseudo-element syntax');
+
+  // Test: pseudo() returns null for non-existent pseudo-elements
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::after");  // Element has ::before but not ::after
+    assert_not_equals(pseudo, null, 'pseudo() should return CSSPseudoElement even if not generated');
+  }, 'pseudo() returns CSSPseudoElement even if pseudo not currently generated');
+
+  // Test: getBoxQuads returns empty array when pseudo-element has no layout
+  test(() => {
+    let el = document.getElementById('no-content');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement (even if not generated)');
+    let quads = pseudo.getBoxQuads();
+    assert_equals(quads.length, 0, 'getBoxQuads should return empty array for non-generated pseudo');
+  }, 'getBoxQuads returns empty array when pseudo-element has no content (not generated)');
+
+  // Test: getBoxQuads returns empty array when pseudo-element has display:none
+  test(() => {
+    let el = document.getElementById('display-none');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for display:none test');
+    let quads = pseudo.getBoxQuads();
+    assert_equals(quads.length, 0, 'getBoxQuads should return empty array for display:none pseudo');
+  }, 'getBoxQuads returns empty array when pseudo-element has display:none');
+
+  // Test: getBoxQuads works with empty content (still has layout)
+  test(() => {
+    let el = document.getElementById('empty-content');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for empty content test');
+    let quads = pseudo.getBoxQuads();
+    // Empty content creates a pseudo-element but it may be empty/zero-size
+    assert_true(Array.isArray(quads), 'getBoxQuads should return array for empty content pseudo');
+  }, 'getBoxQuads works with empty content pseudo-element');
+
+  // Test: getBoxQuads works with visibility:hidden (still has layout)
+  test(() => {
+    let el = document.getElementById('hidden-visibility');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for visibility:hidden test');
+    let quads = pseudo.getBoxQuads();
+    assert_equals(quads.length, 1, 'getBoxQuads should return quads for visibility:hidden pseudo');
+    let bounds = quads[0].getBounds();
+    assert_equals(bounds.width, 40, 'visibility:hidden pseudo should still have dimensions');
+    assert_equals(bounds.height, 20, 'visibility:hidden pseudo should still have dimensions');
+  }, 'getBoxQuads works correctly for visibility:hidden pseudo-element');
+
+  // Test: getBoxQuads with zero-size pseudo-element
+  test(() => {
+    let el = document.getElementById('zero-size');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for zero-size test');
+    let quads = pseudo.getBoxQuads();
+    assert_true(quads.length >= 0, 'getBoxQuads should return an array for zero-size pseudo');
+    let bounds = quads[0].getBounds();
+    assert_equals(bounds.width, 0, 'zero-size pseudo should have width 0');
+    assert_equals(bounds.height, 0, 'zero-size pseudo should have height 0');
+  }, 'getBoxQuads handles zero-size pseudo-element');
+
+  // Test: getBoxQuads with transformed pseudo-element
+  test(() => {
+    let el = document.getElementById('transformed');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for transformed test');
+    let quads = pseudo.getBoxQuads();
+    assert_equals(quads.length, 1, 'transformed pseudo should return quads');
+    // Transformed element might have different bounding box
+    let bounds = quads[0].getBounds();
+    assert_true(bounds.width > 0, 'transformed pseudo should have positive width');
+    assert_true(bounds.height > 0, 'transformed pseudo should have positive height');
+  }, 'getBoxQuads works with transformed pseudo-element');
+
+  // Test: convertPointFromNode with non-existent source pseudo
+  test(() => {
+    let el = document.getElementById('with-before');
+    let targetPseudo = el.pseudo("::before");
+    let noPseudoEl = document.getElementById('no-pseudo');
+    let sourcePseudo = noPseudoEl.pseudo("::before");
+
+    assert_not_equals(targetPseudo, null, 'target pseudo should exist for convertPointFromNode test');
+    assert_not_equals(sourcePseudo, null, 'source pseudo should exist for convertPointFromNode test');
+    let point = targetPseudo.convertPointFromNode({ x: 10, y: 10 }, sourcePseudo);
+    // Should return null or handle gracefully when source has no layout
+    assert_true(point === null || point instanceof DOMPoint,
+      'convertPointFromNode should handle non-generated source gracefully');
+  }, 'convertPointFromNode handles source pseudo with no layout');
+
+  // Test: convertQuadFromNode with valid source and target
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for convertQuadFromNode test');
+    let quad = pseudo.convertQuadFromNode(
+      { p1: { x: 0, y: 0 }, p2: { x: 10, y: 0 }, p3: { x: 10, y: 10 }, p4: { x: 0, y: 10 } },
+      el
+    );
+    assert_not_equals(quad, null, 'convertQuadFromNode should return a DOMQuad');
+    assert_true(quad instanceof DOMQuad, 'convertQuadFromNode should return DOMQuad');
+  }, 'convertQuadFromNode works with element as source');
+
+  // Test: convertRectFromNode with valid source and target
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for convertRectFromNode test');
+    let rect = new DOMRect(0, 0, 20, 20);
+    let result = pseudo.convertRectFromNode(rect, el);
+    assert_not_equals(result, null, 'convertRectFromNode should return a DOMQuad');
+    assert_true(result instanceof DOMQuad, 'convertRectFromNode should return DOMQuad');
+  }, 'convertRectFromNode works with element as source');
+
+  // Test: getBoxQuads with document as relativeTo
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for document relativeTo test');
+    let quads = pseudo.getBoxQuads({ relativeTo: document });
+    assert_equals(quads.length, 1, 'getBoxQuads with document relativeTo should work');
+  }, 'getBoxQuads works with document as relativeTo');
+
+  // Test: getBoxQuads with another element as relativeTo
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    let otherEl = document.getElementById('no-pseudo');
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for element relativeTo test');
+    let quads2 = pseudo.getBoxQuads({ relativeTo: otherEl });
+    assert_equals(quads2.length, 1, 'getBoxQuads with element relativeTo should work');
+  }, 'getBoxQuads works with another element as relativeTo');
+
+  // Test: getBoxQuads with CSSPseudoElement as relativeTo
+  test(() => {
+    let el = document.getElementById('with-before');
+    let beforePseudo = el.pseudo("::before");
+    let floatEl = document.getElementById('float-before');
+    let floatPseudo = floatEl.pseudo("::before");
+
+    assert_not_equals(beforePseudo, null, 'beforePseudo should exist for CSSPseudoElement relativeTo test');
+    assert_not_equals(floatPseudo, null, 'floatPseudo should exist for CSSPseudoElement relativeTo test');
+    let quads3 = beforePseudo.getBoxQuads({ relativeTo: floatPseudo });
+    assert_true(Array.isArray(quads3), 'getBoxQuads with CSSPseudoElement relativeTo should work');
+  }, 'getBoxQuads works with CSSPseudoElement as relativeTo');
+
+  // Test: getBoxQuads returns empty array for element with no ::before content
+  test(() => {
+    let el = document.getElementById('no-pseudo');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for no-pseudo test');
+    let quads_no = pseudo.getBoxQuads();
+    assert_equals(quads_no.length, 0, 'should return empty array when pseudo has no layout');
+  }, 'getBoxQuads returns empty array for pseudo with no generated content');
+
+  // Test: convertPointFromNode preserves z and w values
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for z/w preservation test');
+    let point2 = pseudo.convertPointFromNode({ x: 10, y: 20, z: 30, w: 1.5 }, el);
+    assert_not_equals(point2, null, 'convertPointFromNode should return a DOMPoint');
+    assert_equals(point2.z, 30, 'z coordinate should be preserved');
+    assert_equals(point2.w, 1.5, 'w coordinate should be preserved');
+  }, 'convertPointFromNode preserves z and w coordinates');
+
+  // Test: getBoxQuads for inline pseudo-element
+  test(() => {
+    let el = document.getElementById('inline-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for inline pseudo test');
+    let quads_inline = pseudo.getBoxQuads();
+    // Inline elements might have one or more fragments
+    assert_true(Array.isArray(quads_inline), 'getBoxQuads should work for inline pseudo');
+  }, 'getBoxQuads works for inline display pseudo-element');
+
+  // Test: getBoxQuads for floated pseudo-element
+  test(() => {
+    let el = document.getElementById('float-before');
+    let pseudo = el.pseudo("::before");
+    assert_not_equals(pseudo, null, 'pseudo() should return a CSSPseudoElement for floated pseudo test');
+    let quads_float = pseudo.getBoxQuads();
+    assert_equals(quads_float.length, 1, 'floated pseudo should return quads');
+    let bounds_float = quads_float[0].getBounds();
+    assert_equals(bounds_float.width, 60, 'floated pseudo width');
+    assert_equals(bounds_float.height, 40, 'floated pseudo height');
+  }, 'getBoxQuads works for floated pseudo-element');
+
+  // Test: multiple calls to pseudo() return the same CSSPseudoElement
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo1 = el.pseudo("::before");
+    let pseudo2 = el.pseudo("::before");
+    assert_equals(pseudo1, pseudo2, 'multiple calls to pseudo() should return same object');
+  }, 'pseudo() returns cached CSSPseudoElement instance');
+
+  // Test: getBoxQuads with null options
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    let quads = pseudo.getBoxQuads(null);
+    assert_true(Array.isArray(quads), 'getBoxQuads should accept null options');
+  }, 'getBoxQuads accepts null options');
+
+  // Test: getBoxQuads with undefined options
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    let quads = pseudo.getBoxQuads(undefined);
+    assert_true(Array.isArray(quads), 'getBoxQuads should accept undefined options');
+  }, 'getBoxQuads accepts undefined options');
+
+  // Test: getBoxQuads with empty options object
+  test(() => {
+    let el = document.getElementById('with-before');
+    let pseudo = el.pseudo("::before");
+    let quads = pseudo.getBoxQuads({});
+    assert_true(Array.isArray(quads), 'getBoxQuads should accept empty options');
+  }, 'getBoxQuads accepts empty options object');
+</script>

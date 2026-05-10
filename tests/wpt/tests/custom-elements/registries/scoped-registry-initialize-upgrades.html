@@ -5,6 +5,12 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/custom-elements.html#dom-customelementregistry-initialize">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<div id="declarative-host">
+  <template shadowrootmode="open" shadowrootclonable="true" shadowrootcustomelementregistry>
+    <a-b></a-b>
+  </template>
+</div>
+<div id="imperative-host"></div>
 </head>
 <body>
 <script>
@@ -105,6 +111,47 @@ test(() => {
     assert_true(element instanceof ABElement);
 }, `CustomElementRegistry.prototype.initialize upgrades already initialized elements`);
 
+test(() => {
+    class ABElement extends HTMLElement { }
+    const registry = new CustomElementRegistry;
+
+    const declarativeHost = document.getElementById('declarative-host');
+    const element = declarativeHost.shadowRoot.querySelector('a-b');
+    assert_equals(element.customElementRegistry, null);
+    assert_equals(element.__proto__.constructor.name, 'HTMLElement');
+    assert_false(element instanceof ABElement);
+
+    registry.initialize(declarativeHost.shadowRoot);
+    assert_equals(element.customElementRegistry, registry);
+    assert_equals(element.__proto__.constructor.name, 'HTMLElement');
+    assert_false(element instanceof ABElement);
+
+    registry.define('a-b', ABElement);
+    assert_equals(element.customElementRegistry, registry);
+    assert_equals(element.__proto__.constructor.name, 'ABElement');
+    assert_true(element instanceof ABElement);
+}, 'CustomElementRegistry.prototype.initialize upgrades custom elements in declarative shadow root when initialize() runs before define()');
+
+test(() => {
+    class ABElement extends HTMLElement { }
+    const registry = new CustomElementRegistry;
+
+    const imperativeHost = document.getElementById('imperative-host');
+    imperativeHost.attachShadow({
+        mode: 'open',
+        customElementRegistry: registry,
+    });
+    imperativeHost.shadowRoot.innerHTML = '<a-b></a-b>';
+    const element = imperativeHost.shadowRoot.querySelector('a-b');
+    assert_equals(element.customElementRegistry, registry);
+    assert_equals(element.__proto__.constructor.name, 'HTMLElement');
+    assert_false(element instanceof ABElement);
+
+    registry.define('a-b', ABElement);
+    assert_equals(element.customElementRegistry, registry);
+    assert_equals(element.__proto__.constructor.name, 'ABElement');
+    assert_true(element instanceof ABElement);
+}, 'CustomElementRegistry.prototype.initialize upgrades custom elements in imperative shadow root when inserted before define()');
 </script>
 </body>
 </html>

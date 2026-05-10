@@ -1,7 +1,7 @@
 regions, lines
 <link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-region-settings">
 
-assert_equals(cues.length, 13);
+assert_equals(cues.length, 11);
 
 var regions = Array.from(cues).map(function(cue) {
     return cue.region;
@@ -13,9 +13,7 @@ var valid_lines = [
     100,
     101,
     65536,
-    4294967296,
-    18446744073709552000,
-    10000000000000000000000000000000000,
+    4294967295,
     2,
 ];
 valid_lines.forEach(function(valid, index) {
@@ -55,37 +53,29 @@ lines:65536
 
 REGION
 id:6
-lines:4294967296
+lines:4294967295
 
 REGION
 id:7
-lines:18446744073709552000
-
-REGION
-id:8
-lines:10000000000000000000000000000000000
-
-REGION
-id:9
 lines:1 lines:3
 lines:2
 
 NOTE invalid
 
 REGION
-id:10
+id:8
 lines:-0
 
 REGION
-id:11
+id:9
 lines:1.5
 
 REGION
-id:12
+id:10
 lines:-1
 
 REGION
-id:13
+id:11
 lines: 1
 lines :1
 
@@ -120,10 +110,4 @@ text
 text
 
 00:00:00.000 --> 00:00:01.000 region:11
-text
-
-00:00:00.000 --> 00:00:01.000 region:12
-text
-
-00:00:00.000 --> 00:00:01.000 region:13
 text

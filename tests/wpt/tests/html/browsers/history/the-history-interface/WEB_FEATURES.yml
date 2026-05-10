@@ -2,3 +2,10 @@ features:
 - name: history
   files:
   - "*"
+  # keep exclusions synced with mappings below
+  - "!004.html"
+  - "!history_pushstate_url.html"
+- name: hashchange
+  files:
+  - 004.html
+  - history_pushstate_url.html

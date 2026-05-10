@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="assert" content="Drag a selection that starts in a user-select:text element, should not extend to user-select:none content">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#valdef-user-select-none">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+
+<style>
+#container {
+  user-select: none;
+  -webkit-user-select: none;
+  width: 400px;
+  height: 200px;
+}
+#container div {
+  user-select: text;
+  -webkit-user-select: text;
+  position: absolute;
+}
+</style>
+
+<div id="container">
+    <div id="first" style="top: 20px; left: 20px;"> First: Lorem ipsum <span id="target" style="color: green;"> dolor sit</span> amet</div>
+    <div id="second" style="top: 120px; left: 20px;"> Second: Lorem ipsum dolor sit amet</div>
+</div>
+
+<script>
+function clearSelection() {
+  window.getSelection().removeAllRanges();
+}
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
+  const rect = target.getBoundingClientRect();
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(rect.left + 5, rect.top + 5)
+      .pointerDown()
+      .pointerMove(rect.left + rect.width - 5, rect.top + 5)
+      .pointerUp()
+      .send();
+
+  const selection = window.getSelection();
+  assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
+  assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
+}, 'Text with user-select:text is selectable even if it is inside a user-select:none element.');
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
+  const rect = target.getBoundingClientRect();
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(rect.left + 5, rect.top + 5)
+      .pointerDown()
+      .pointerMove(rect.left + rect.width - 5, rect.top + 5)
+      .pointerMove(rect.left + rect.width - 5, rect.top + 50)
+      .pointerUp()
+      .send();
+
+  const selection = window.getSelection();
+  assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
+  assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
+}, 'Select user-select:text content and then extend selection to user-select:none content.');
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
+  const rect = target.getBoundingClientRect();
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(rect.left + 5, rect.top + 5)
+      .pointerDown()
+      .pointerMove(rect.left + rect.width - 5, rect.top + 5)
+      .pointerMove(rect.left + rect.width - 5, rect.top + 50)
+      .pointerMove(rect.left + rect.width - 5, rect.top + 100)
+      .pointerUp()
+      .send();
+
+  const selection = window.getSelection();
+  assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
+  assert_equals(selection.focusNode, second.firstChild, "Focus node: ");
+}, 'Select user-select:text content and then extend selection to the next user-select:text element by crossing the user-select:none element.');
+</script>
+

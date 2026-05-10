@@ -12,7 +12,6 @@ use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 pub fn main() {
     crate::crash_handler::install();
     crate::init_crypto();
-    crate::resources::init();
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?

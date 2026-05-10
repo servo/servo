@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/470469225">
+<script>
+const iframe = document.createElement('iframe');
+iframe.sandbox = 'allow-top-navigation';
+iframe.srcdoc = 'test';
+iframe.style.position = 'absolute';
+document.documentElement.appendChild(iframe);
+iframe.onload = () => {
+  iframe.style.position = 'initial';
+  iframe.style.float = 'left';
+  iframe.style.zoom = '2';
+};
+</script>

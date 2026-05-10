@@ -134,3 +134,16 @@ promise_test(async t => {
   assert_throws_js(
       TypeError, () => builder.concat(input1, input2, input3));
 }, '[concat] throw if the output tensor byte length exceeds limit');
+
+// TODO(crbug.com/492421926): Add an element count limit to the spec.
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+  if (!context.opSupportLimits().input.dataTypes.includes('int4')) {
+    return;
+  }
+  const operandDescriptor = {dataType: 'int4', shape: [46341, 46340]};
+  const input1 = builder.input('input1', operandDescriptor);
+  const input2 = builder.input('input2', operandDescriptor);
+
+  assert_throws_js(TypeError, () => builder.concat(input1, input2));
+}, '[concat] throw if the output number of elements is too large');

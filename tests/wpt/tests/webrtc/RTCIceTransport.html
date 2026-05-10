@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCIceTransport</title>
 <script src="/resources/testharness.js"></script>
@@ -8,7 +10,10 @@
 <script src='RTCConfiguration-helper.js'></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
@@ -213,7 +218,9 @@
     assert_equals(iceTransport.state, 'new');
     assert_equals(iceTransport.gatheringState, 'new');
   }, 'RTCIceTransport should be in state "new" initially');
+}
 
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -261,7 +268,9 @@
     await pc1.setRemoteDescription(pc2.localDescription);
     assert_equals(pc1.sctp.transport.iceTransport, transceiver.sender.transport.iceTransport);
   }, 'RTCIceTransport should transition to "gathering", then "complete" after sLD (DataChannel case)');
+}
 
+if (rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -495,5 +504,55 @@
 
     assert_equals(sender.transport.iceTransport.getRemoteCandidates().length, 0);
   }, 'RTCIceTransport does not expose remote peer-reflexive candidates.');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    await pc1.setLocalDescription();
+    const {iceTransport: iceTransport1} = sender.transport;
+    assert_equals(iceTransport1.role, 'unknown', 'offerer role should be unknown after setLocalDescription');
+
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    const {iceTransport: iceTransport2} = pc2.getTransceivers()[0].sender.transport;
+    assert_equals(iceTransport2.role, 'controlled', 'answerer role should be controlled after setLocalDescription(answer)');
+    assert_equals(iceTransport1.role, 'unknown', 'offerer role should still be unknown before setRemoteDescription(answer)');
+
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(iceTransport1.role, 'controlling', 'offerer role should be controlling after setRemoteDescription(answer)');
+  }, 'RTCIceTransport.role should be "unknown" before the answer is applied');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    await pc1.setLocalDescription();
+    const {iceTransport: iceTransport1} = sender.transport;
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    const {iceTransport: iceTransport2} = pc2.getTransceivers()[0].sender.transport;
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    assert_equals(iceTransport1.role, 'controlling');
+    assert_equals(iceTransport2.role, 'controlled');
+
+    // ICE restart initiated by the answerer; pc2 becomes the new offerer
+    pc2.restartIce();
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+
+    assert_equals(iceTransport1.role, 'controlling', 'offerer role should not change after answerer-initiated ICE restart');
+    assert_equals(iceTransport2.role, 'controlled', 'answerer role should not change after answerer-initiated ICE restart');
+  }, 'RTCIceTransport.role should not change when the answerer initiates an ICE restart');
+}
 
 </script>

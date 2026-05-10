@@ -13,10 +13,10 @@ assert_return(() => call($1, "get-a", []), "global.wast:204", -2);
 assert_return(() => call($1, "get-b", []), "global.wast:205", -5n);
 
 // global.wast:206
-assert_return(() => call($1, "get-r", []), "global.wast:206", null);
+assert_return(() => call($1, "get-r", []), "global.wast:206", "ref.null");
 
 // global.wast:207
-assert_return(() => call($1, "get-mr", []), "global.wast:207", null);
+assert_return(() => call($1, "get-mr", []), "global.wast:207", "ref.null");
 
 // global.wast:208
 assert_return(() => call($1, "get-x", []), "global.wast:208", -12);
@@ -370,7 +370,7 @@ let $$9 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8e\x80\x80\x80\x00\x03\x
 let $9 = instance($$9);
 
 // global.wast:659
-assert_return(() => call($9, "get-elem", [0]), "global.wast:659", "ref.null");
+assert_return(() => call($9, "get-elem", [0]), "global.wast:659", null);
 
 // global.wast:660
 assert_return(() => call($9, "get-elem", [4]), "global.wast:660", "ref.func");

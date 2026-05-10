@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCPeerConnection BUNDLE</title>
 <script src="/resources/testharness.js"></script>
@@ -7,7 +9,10 @@
 <script src="../RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
 promise_test(async t => {
   const caller = new RTCPeerConnection();
   t.add_cleanup(() => caller.close());
@@ -48,7 +53,9 @@ promise_test(async t => {
   assert_equals(iceTransports.length, 2);
   assert_not_equals(iceTransports[0], iceTransports[1]);
 }, 'not negotiating BUNDLE creates two separate ice and dtls transports');
+}
 
+if (interop2026) {
 promise_test(async t => {
   const caller = new RTCPeerConnection();
   t.add_cleanup(() => caller.close());
@@ -84,7 +91,9 @@ promise_test(async t => {
   assert_not_equals(dtlsTransports[1], secondTransport);
   assert_equals(secondTransport.state, 'closed');
 }, 'bundles on the first transport and closes the second');
+}
 
+if (rest) {
 promise_test(async t => {
   const sdp = `v=0
 o=- 0 3 IN IP4 127.0.0.1
@@ -147,4 +156,5 @@ a=fmtp:100 max-fr=30;max-fs=3600
   t.add_cleanup(() => pc.close());
   await pc.setRemoteDescription({ type: 'offer', sdp });
 }, 'sRD(offer) works with no transport attributes in a bundle-only m-section');
+}
 </script>

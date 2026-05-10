@@ -17,6 +17,7 @@ partial interface DebuggerGlobalScope {
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getpossiblebreakpoints-query>
 dictionary RecommendedBreakpointLocation {
+    required unsigned long scriptId;
     required unsigned long offset;
     required unsigned long lineNumber;
     required unsigned long columnNumber;

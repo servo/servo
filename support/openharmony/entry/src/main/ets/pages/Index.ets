@@ -20,9 +20,38 @@ struct Index {
     libraryname: 'servoshell',
   }
 
+  // The state seem to be required to be on the top.
   @State urlToLoad: string = ""
-  @State tablist: Array<number> = [1];
+  @State tablist: Array<number> = [0];
   @State currentIndex: number = 0;
+
+  @Builder tabBuilder(title: string, index: number) {
+    Row() {
+      Text(String(index))
+        .padding('10pt')
+      Button('X')
+      .backgroundColor('#00000000')
+      .visibility(this.tablist.length>1 && index != 0 ? Visibility.Visible: Visibility.Hidden)
+      .fontColor(Color.Black)
+      .fontWeight(FontWeight.Bolder)
+      .onClick((event) => {
+          this.currentIndex = 0;
+          servoshell.deleteWebview(index, this.tablist);
+          this.tablist.splice(index,1);
+        })
+    }
+    .width(65)
+    .height(40)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(this.currentIndex === index ? '#1B8381': Color.White)
+    .borderRadius(10)
+    .shadow({
+          radius: 10,
+          color: Color.Gray,
+          offsetX: 10,
+          offsetY: 10
+        })
+  }
 
   aboutToAppear(): void {
     console.info("aboutToAppear - registering callbacks!")
@@ -53,8 +82,10 @@ struct Index {
           .fontSize(22)
           .width('12%')
           .onClick((event) => {
-            this.tablist.push(this.tablist[this.tablist.length-1]+1);
-            this.currentIndex = this.tablist.length - 1;
+            const new_id = this.tablist[this.tablist.length-1]+1;
+            // the order is important as setting the new index will automatically create a new surface.
+            servoshell.nextWindowId(new_id);
+            this.currentIndex = this.tablist.push(new_id) - 1;
           })
         Button('⇦')
           .backgroundColor(Color.White)
@@ -87,16 +118,18 @@ struct Index {
       }
 
       Tabs({ barPosition: BarPosition.Start, index: this.currentIndex}) {
-        ForEach(this.tablist, (item: number) => {
+        ForEach(this.tablist, (item: number, index: number) => {
           TabContent() {
             XComponent(this.xComponentAttrs)
               .focusable(true)
-          }.tabBar(String(item))
+          }.tabBar(this.tabBuilder(String(item), index))
         })
-      }.onChange((index: number) => {
-        console.info("Focusing Tab number %d", index)
-        servoshell.focusWebview(index);
+      }.barHeight(40)
+      .onChange((index: number) => {
+        this.currentIndex = index;
+        servoshell.focusWebview(index, this.tablist);
       })
+      .backgroundColor('#e1e1e1')
     }
     .width('100%')
   }

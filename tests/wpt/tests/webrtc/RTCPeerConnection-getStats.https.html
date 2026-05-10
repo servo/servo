@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.getStats</title>
 <script src="/resources/testharness.js"></script>
@@ -7,7 +9,10 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
   // Test is based on the following editor draft:
   // webrtc-pc 20171130
   // webrtc-stats 20171122
@@ -45,7 +50,8 @@
     t.add_cleanup(() => pc.close());
     return pc.getStats(null);
   }, 'getStats(null) should succeed');
-
+}
+if (interop2026) {
   /*
     8.2.  getStats
       4.  If selectorArg is a MediaStreamTrack let selector be an RTCRtpSender
@@ -62,7 +68,8 @@
       return promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(track));
     });
   }, 'getStats() with track not added to connection should reject with InvalidAccessError');
-
+}
+if (rest) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -84,7 +91,8 @@
 
     return pc.getStats(track);
   }, 'getStats() with track added via addTransceiver should succeed');
-
+}
+if (interop2026) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -309,7 +317,9 @@
     pc.addTransceiver(track);
     await promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(track));
   }, `getStats(track) should not work if multiple senders have the same track`);
+}
 
+if (rest) {
   promise_test(async t => {
     const kMinimumTimeElapsedBetweenGetStatsCallsMs = 500;
     const pc = new RTCPeerConnection();
@@ -330,11 +340,14 @@
     assert_less_than_equal(deltaTimestampMs,
                            maximumTimeElapsedBetweenGetStatsCallsMs);
   }, `RTCStats.timestamp increases with time passing`);
+}
 
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     pc1.close();
     await pc1.getStats();
   }, 'getStats succeeds on a closed peerconnection');
+}
 
 </script>

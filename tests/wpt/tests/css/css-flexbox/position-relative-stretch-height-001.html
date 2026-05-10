@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: relative position percentage top with height: stretch containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-top-percentage">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+</style>
+
+<!-- 1. height: stretch against definite parent -->
+<div style="height: 200px;">
+    <div id="t1-item" style="height: stretch;">
+        <div class="green" id="t1" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 2. height: stretch against auto parent (indefinite) -->
+<div>
+    <div id="t2-item" style="height: stretch;">
+        <div class="green" id="t2" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 3. height: stretch inside stretched flex item (definite per 9.8) -->
+<div style="display: flex; height: 200px;">
+    <div>
+        <div id="t3-item" style="height: stretch;">
+            <div class="green" id="t3" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. height: stretch inside auto-height column flex item (indefinite) -->
+<div style="display: flex; flex-direction: column;">
+    <div style="flex-grow: 1;">
+        <div id="t4-item" style="height: stretch;">
+            <div class="green" id="t4" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function offsetFromItem(greenId, itemId) {
+    var green = document.getElementById(greenId);
+    var item = document.getElementById(itemId);
+    return green.getBoundingClientRect().top - item.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(offsetFromItem('t1', 't1-item'), 100);
+}, 'height: stretch against definite parent, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t2', 't2-item'), 0);
+}, 'height: stretch against auto parent, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t3', 't3-item'), 100);
+}, 'height: stretch inside stretched flex item, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t4', 't4-item'), 0);
+}, 'height: stretch inside auto-height column flex item, top: 50%');
+</script>

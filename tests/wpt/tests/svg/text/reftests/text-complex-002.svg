@@ -13,8 +13,7 @@
           title="NAME_OF_REVIEWER"
           href="mailto:EMAIL OR http://CONTACT_PAGE" />
           <!-- YYYY-MM-DD -->
-    <html:link rel="help"
-          href="https://svgwg.org/svg2-draft/text.html#TextShapeInside"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextShapeInside"/>
     <html:link rel="match"  href="text-complex-002-ref.svg" />
     <metadata class="flags">TOKENS</metadata>
     <desc class="assert">TEST ASSERTION</desc>

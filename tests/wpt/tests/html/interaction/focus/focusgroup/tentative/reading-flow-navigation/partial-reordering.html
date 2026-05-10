@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <style>
@@ -82,7 +83,7 @@
       document.getElementById("btn13")
     ];
 
-    await assert_focus_navigation_bidirectional(buttonsInVisualOrder, true);
+    await assert_directional_navigation_bidirectional(buttonsInVisualOrder, true);
   }, "Focusgroup navigation with multiple reading-flow containers should follow visual order from CSS reading-flow properties.");
 
 </script>

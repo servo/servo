@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Gap decorations are painted properly in flexbox with different
+    sized gaps per line due to content distribution. Tests scenario where the row
+    rule breaks at each intersection and `row-rule-inset` is -25%.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-053-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    #flexbox {
+        width: 400px;
+        border: 2px solid #333;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        row-gap: 10px;
+        column-rule: 5px solid gold;
+        row-rule: 5px red solid;
+        row-rule-break: intersection;
+        row-rule-inset: -25%;
+    }
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+</style>
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

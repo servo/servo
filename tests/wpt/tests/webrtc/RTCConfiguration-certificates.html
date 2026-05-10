@@ -1,0 +1,12 @@
+<!doctype html>
+<title>RTCConfiguration certificates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const pc = new RTCPeerConnection({});
+  t.add_cleanup(() => pc.close());
+
+  assert_array_equals(pc.getConfiguration().certificates, []);
+  }, 'getConfiguration returns default empty certificates');
+</script>

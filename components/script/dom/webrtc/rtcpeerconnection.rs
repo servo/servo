@@ -8,6 +8,8 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -18,7 +20,6 @@ use servo_media::webrtc::{
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
@@ -33,7 +34,7 @@ use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, String
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -86,7 +87,7 @@ impl WebRtcSignaller for RTCSignaller {
         let this = self.trusted.clone();
         self.task_source.queue(task!(on_ice_candidate: move || {
             let this = this.root();
-            this.on_ice_candidate(candidate, CanGc::note());
+            this.on_ice_candidate(candidate, CanGc::deprecated_note());
         }));
     }
 
@@ -95,7 +96,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(on_negotiation_needed: move || {
                 let this = this.root();
-                this.on_negotiation_needed(CanGc::note());
+                this.on_negotiation_needed(CanGc::deprecated_note());
             }));
     }
 
@@ -104,7 +105,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_gathering_state: move || {
                 let this = this.root();
-                this.update_gathering_state(state, CanGc::note());
+                this.update_gathering_state(state, CanGc::deprecated_note());
             }));
     }
 
@@ -113,7 +114,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_ice_connection_state: move || {
                 let this = this.root();
-                this.update_ice_connection_state(state, CanGc::note());
+                this.update_ice_connection_state(state, CanGc::deprecated_note());
             }));
     }
 
@@ -122,16 +123,16 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_signaling_state: move || {
                 let this = this.root();
-                this.update_signaling_state(state, CanGc::note());
+                this.update_signaling_state(state, CanGc::deprecated_note());
             }));
     }
 
     fn on_add_stream(&self, id: &MediaStreamId, ty: MediaStreamType) {
         let this = self.trusted.clone();
         let id = *id;
-        self.task_source.queue(task!(on_add_stream: move || {
+        self.task_source.queue(task!(on_add_stream: move |cx| {
             let this = this.root();
-            this.on_add_stream(id, ty, CanGc::note());
+            this.on_add_stream(cx, id, ty, );
         }));
     }
 
@@ -148,7 +149,7 @@ impl WebRtcSignaller for RTCSignaller {
                 let this = this.root();
                 let global = this.global();
                 let _ac = enter_realm(&*global);
-                this.on_data_channel_event(channel, event, CanGc::note());
+                this.on_data_channel_event(channel, event, CanGc::deprecated_note());
             }));
     }
 
@@ -189,24 +190,24 @@ impl RTCPeerConnection {
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));
-        if let Some(ref servers) = config.iceServers {
-            if let Some(server) = servers.first() {
-                let server = match server.urls {
-                    StringOrStringSequence::String(ref s) => Some(s.clone()),
-                    StringOrStringSequence::StringSequence(ref s) => s.first().cloned(),
+        if let Some(ref servers) = config.iceServers &&
+            let Some(server) = servers.first()
+        {
+            let server = match server.urls {
+                StringOrStringSequence::String(ref s) => Some(s.clone()),
+                StringOrStringSequence::StringSequence(ref s) => s.first().cloned(),
+            };
+            if let Some(server) = server {
+                let policy = match config.bundlePolicy {
+                    RTCBundlePolicy::Balanced => BundlePolicy::Balanced,
+                    RTCBundlePolicy::Max_compat => BundlePolicy::MaxCompat,
+                    RTCBundlePolicy::Max_bundle => BundlePolicy::MaxBundle,
                 };
-                if let Some(server) = server {
-                    let policy = match config.bundlePolicy {
-                        RTCBundlePolicy::Balanced => BundlePolicy::Balanced,
-                        RTCBundlePolicy::Max_compat => BundlePolicy::MaxCompat,
-                        RTCBundlePolicy::Max_bundle => BundlePolicy::MaxBundle,
-                    };
-                    this.controller
-                        .borrow()
-                        .as_ref()
-                        .unwrap()
-                        .configure(server.to_string(), policy);
-                }
+                this.controller
+                    .borrow()
+                    .as_ref()
+                    .unwrap()
+                    .configure(server.to_string(), policy);
             }
         }
         this
@@ -261,20 +262,27 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    fn on_add_stream(&self, id: MediaStreamId, ty: MediaStreamType, can_gc: CanGc) {
+    fn on_add_stream(
+        &self,
+        cx: &mut js::context::JSContext,
+        id: MediaStreamId,
+        ty: MediaStreamType,
+    ) {
         if self.closed.get() {
             return;
         }
-        let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
+        let track = MediaStreamTrack::new(cx, &self.global(), id, ty);
         let event = RTCTrackEvent::new(
+            cx,
             self.global().as_window(),
             atom!("track"),
             false,
             false,
             &track,
-            can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast(), can_gc);
+        event
+            .upcast::<Event>()
+            .fire(self.upcast(), CanGc::from_cx(cx));
     }
 
     fn on_data_channel_event(
@@ -463,7 +471,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::note());
+                            promise.resolve_native(&init, CanGc::deprecated_note());
                         }
                     }
                 }));
@@ -492,7 +500,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::note());
+                            promise.resolve_native(&init, CanGc::deprecated_note());
                         }
                     }
                 }));
@@ -558,7 +566,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(
-                Error::Type("one of sdpMid and sdpMLineIndex must be set".to_string()),
+                Error::Type(c"one of sdpMid and sdpMLineIndex must be set".to_owned()),
                 can_gc,
             );
             return p;
@@ -567,7 +575,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
             p.reject_error(
-                Error::Type("servo only supports sdpMLineIndex right now".to_string()),
+                Error::Type(c"servo only supports sdpMLineIndex right now".to_owned()),
                 can_gc,
             );
             return p;
@@ -661,11 +669,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         let desc = RTCSessionDescription::Constructor(
                             this.global().as_window(),
                             None,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::note())
+                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
                     }));
                 }),
             );
@@ -704,11 +712,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         let desc = RTCSessionDescription::Constructor(
                             this.global().as_window(),
                             None,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::note())
+                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
                     }));
                 }),
             );
@@ -777,7 +785,14 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), self, label, init, None, CanGc::note())
+        RTCDataChannel::new(
+            &self.global(),
+            self,
+            label,
+            init,
+            None,
+            CanGc::deprecated_note(),
+        )
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
@@ -786,7 +801,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _track_or_kind: MediaStreamTrackOrString,
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
-        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
+        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::deprecated_note())
     }
 }
 

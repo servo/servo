@@ -259,4 +259,45 @@ promise_test(t => {
   }));
 }, "Test that decodingInfo with type webrtc rejects key system configuration.");
 
+promise_test(async t => {
+  const config = {
+    type: 'file',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      video: {
+        robustness: '',
+        encryptionScheme: 'cenc'  // <- New field being tested
+      }
+    }
+  };
+
+  const result = await navigator.mediaCapabilities.decodingInfo(config);
+
+  // As long as it resolves to an object with `supported` (even if false),
+  // the IDL parser correctly digested `encryptionScheme`.
+  assert_equals(typeof result.supported, 'boolean', "supported should be a boolean");
+  assert_equals(typeof result.smooth, 'boolean', "smooth should be a boolean");
+  assert_equals(typeof result.powerEfficient, 'boolean', "powerEfficient should be a boolean");
+}, "decodingInfo() accepts KeySystemTrackConfiguration with encryptionScheme");
+
+promise_test(async t => {
+  const config = {
+    type: 'file',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      video: {
+        robustness: '',
+        encryptionScheme: null  // <- Explicitly testing nullable
+      }
+    }
+  };
+
+  const result = await navigator.mediaCapabilities.decodingInfo(config);
+  assert_equals(typeof result.supported, 'boolean');
+}, "decodingInfo() accepts KeySystemTrackConfiguration with null encryptionScheme");
+
 </script>

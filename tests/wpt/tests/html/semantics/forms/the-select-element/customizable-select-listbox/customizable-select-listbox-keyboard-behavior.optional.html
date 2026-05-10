@@ -39,17 +39,31 @@ select {
 
 <button id=afterdisabled>button after select disabled</button>
 
+<select multiple id=threeoptions>
+  <option class=one>one</option>
+  <option class=two disabled>two</option>
+  <option class=three>three</option>
+  <option class=four>four</option>
+</select>
+
+<button id=afterthree>button after select with three options</button>
+
 <script>
 const tabKey = '\uE004';
 const enterKey = '\uE007';
+const shiftKey = '\uE008';
 const spaceKey = '\uE00D';
 const arrowUp = '\uE013';
 const arrowDown = '\uE015';
-function pressKey(keyCode) {
-  return (new test_driver.Actions()
-    .keyDown(keyCode)
-    .keyUp(keyCode))
-    .send();
+function pressKey(keyCode1, keyCode2) {
+  const actions = new test_driver.Actions();
+  actions.keyDown(keyCode1);
+  if (keyCode2) {
+    actions.keyDown(keyCode2);
+    actions.keyUp(keyCode2);
+  }
+  actions.keyUp(keyCode1);
+  return actions.send();
 }
 
 promise_test(async () => {
@@ -212,5 +226,43 @@ promise_test(async () => {
   assert_not_equals(document.activeElement, selectSize, '<select size=4>');
 }, 'Base appearance listbox selects should not be focusable.');
 
-// TODO(crbug.com/357649033): Test tab key while focused on an option after deciding behavior.
+promise_test(async () => {
+  const select = document.getElementById('threeoptions');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+  const optionThree = select.querySelector('.three');
+  const optionFour = select.querySelector('.four');
+
+  afterdisabled.focus();
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, optionOne,
+    'First focusable option should be focused when tabbing forwards into select.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, afterthree,
+    'Button after select should be focused after pressing tab inside select.');
+
+  await pressKey(shiftKey, tabKey);
+  assert_equals(document.activeElement, optionOne,
+    'First focusable option should be focused when tabbing backwards into select.');
+
+  await pressKey(shiftKey, tabKey);
+  assert_equals(document.activeElement, afterdisabled,
+    'Button before select should be focused after pressing shift+tab inside select.');
+
+  optionTwo.selected = true;
+  optionThree.selected = true;
+  optionFour.selected = true;
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, optionThree,
+    'First focusable selected option should be focused when tabbing forwards into select.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, afterthree,
+    'Button after select should be focused after pressing tab inside select again.');
+
+  await pressKey(shiftKey, tabKey);
+  assert_equals(document.activeElement, optionThree,
+    'First focusable selected option should be focused when shift+tabbing backwards into select.');
+}, 'Tabbing and shift+tabbing into base appearance listbox.');
 </script>

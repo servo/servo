@@ -7,10 +7,10 @@ use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::{Node, ShadowIncluding};
@@ -89,6 +89,7 @@ impl AbstractRangeMethods<crate::DomTypeHolder> for AbstractRange {
 
     /// <https://dom.spec.whatwg.org/#dom-range-collapsed>
     fn Collapsed(&self) -> bool {
+        // > The collapsed getter steps are to return true if this is collapsed; otherwise false.
         self.start == self.end
     }
 }
@@ -137,8 +138,10 @@ impl PartialOrd for BoundaryPoint {
     }
 }
 
+/// <https://dom.spec.whatwg.org/#range-collapsed>
 impl PartialEq for BoundaryPoint {
     fn eq(&self, other: &Self) -> bool {
+        // > A range is collapsed if its start node is its end node and its start offset is its end offset.
         self.node.get() == other.node.get() && self.offset.get() == other.offset.get()
     }
 }

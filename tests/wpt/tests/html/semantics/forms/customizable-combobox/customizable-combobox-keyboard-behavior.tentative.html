@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+input, datalist {
+  appearance: base;
+}
+
+#datalist2 {
+  /* 3 options tall */
+  height: calc(3 * max(24px, 1lh));
+}
+</style>
+
+<input id=input list=datalist>
+<datalist id=datalist>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</datalist>
+
+<input id=input2 list=datalist2>
+<datalist id=datalist2>
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+  <option>four</option>
+  <option>five</option>
+  <option>six</option>
+</datalist>
+
+<input id=input3 list=datalist3>
+<datalist id=datalist3>
+  <option class=one disabled>one</option>
+  <option class=two>two</option>
+</datalist>
+
+<input id=input4 list=datalist4>
+<datalist id=datalist4>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</datalist>
+
+<script>
+const Enter = '\uE007';
+const Escape = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+const Space = ' ';
+const Tab = '\uE004';
+const Shift = '\uE008';
+const Backspace = '\uE003';
+
+const input = document.getElementById('input');
+const datalist = document.getElementById('datalist');
+const optionOne = document.querySelector('.one');
+const optionTwo = document.querySelector('.two');
+const input2 = document.getElementById('input2');
+const datalist2 = document.getElementById('datalist2');
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
+promise_test(async () => {
+  input.focus();
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after focusing input.');
+
+  await pressKey(ArrowDown);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow down once.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow down once.');
+  await pressKey(ArrowDown);
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not be active after pressing arrow down twice.');
+  assert_true(optionTwo.matches(':active-option'),
+    'Second option should be active after pressing arrow down twice.');
+  await pressKey(ArrowDown);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow down thrice.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow down thrice.');
+
+  await pressKey(ArrowUp);
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not be active after pressing arrow up once.');
+  assert_true(optionTwo.matches(':active-option'),
+    'Second option should be active after pressing arrow up once.');
+  await pressKey(ArrowUp);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow up twice.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow up twice.');
+
+  let changeEventFired = false;
+  input.addEventListener('change', () => {
+    changeEventFired = true;
+  });
+  await pressKey(Enter);
+  assert_equals(input.value, 'one',
+    'input.value should be set to the option text after choosing an option.');
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after choosing an option.');
+  assert_true(changeEventFired,
+    'Choosing an option should fire a change event.');
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not match :active-option after choosing an option.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not match :active-option after choosing an option.');
+  assert_equals(input.selectionStart, 3,
+    'selectionStart should be set to the end of the text after choosing an option.');
+  assert_equals(input.selectionEnd, 3,
+    'selectionEnd should be set to the end of the text after choosing an option.');
+
+  await pressKey(ArrowDown);
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after pressing down arrow.');
+  datalist.hidePopover();
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after calling hidePopover.');
+  await pressKey(ArrowUp);
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after pressing up arrow.');
+  datalist.hidePopover();
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after calling hidePopover.');
+
+  await pressKey(Backspace);
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after pressing backspace.');
+  datalist.hidePopover();
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after calling hidePopover.');
+
+  await pressKey('e');
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after pressing "e".');
+  datalist.hidePopover();
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after calling hidePopover.');
+}, 'Keyboard behavior for customizable combobox.');
+
+promise_test(async () => {
+  input2.focus();
+  await pressKey(ArrowDown);
+  assert_equals(datalist2.querySelector(':active-option').textContent, 'one',
+    'option one should be active after first arrow down.');
+  assert_equals(datalist2.scrollTop, 0,
+    'Datalist should not be scrolled at the start of the test.');
+
+  await pressKey(ArrowDown);
+  await pressKey(ArrowDown);
+  await pressKey(ArrowDown);
+  await pressKey(ArrowDown);
+  assert_equals(datalist2.querySelector(':active-option').textContent, 'five',
+    'option five should be active when pressing arrow down multiple times.');
+  assert_not_equals(datalist2.scrollTop, 0,
+    'Datalist should be scrolled down after arrowing down multiple times.');
+
+  await pressKey(ArrowUp);
+  await pressKey(ArrowUp);
+  await pressKey(ArrowUp);
+  await pressKey(ArrowUp);
+  assert_equals(datalist2.querySelector(':active-option').textContent, 'one',
+    'option one should be active after arrowing up to the top.');
+  assert_equals(datalist2.scrollTop, 0,
+    'Datalist should not be scrolled after arrowing up to the top.');
+}, 'Options should be scrolled into view when arrowed to.');
+
+promise_test(async () => {
+  const input = document.getElementById('input3');
+  const datalist = document.getElementById('datalist3');
+  const optionTwo = datalist.querySelector('.two');
+
+  input.focus();
+  await pressKey(ArrowDown);
+  assert_equals(document.querySelector(':active-option'), optionTwo,
+    'option two should be active after arrow down.');
+}, 'Disabled options should not match :active-option.');
+
+promise_test(async () => {
+  const input = document.getElementById('input4');
+  const datalist = document.getElementById('datalist4');
+  const optionOne = datalist.querySelector('.one');
+  const optionTwo = datalist.querySelector('.two');
+  const optionThree = datalist.querySelector('.three');
+
+  input.addEventListener('beforefilter', event => {
+    event.preventDefault();
+  });
+
+  input.focus();
+  await pressKey('a');
+  assert_equals(datalist.querySelector(':active-option'), null,
+    'Nothing should match :active-option after filtering.');
+
+  await pressKey(ArrowDown);
+  await pressKey(ArrowDown);
+  assert_equals(datalist.querySelector(':active-option').textContent, 'two',
+    'option two should be active after pressing arrow down twice.');
+
+  optionTwo.remove();
+  assert_equals(datalist.querySelector(':active-option'), null,
+    'No option should be active after removing the active option.');
+
+  await pressKey(ArrowDown);
+  assert_equals(datalist.querySelector(':active-option').textContent, 'one',
+    'option one should be active after arrow down after removal.');
+}, 'No active option and removal of active option.');
+
+// TODO(crbug.com/453705243): Add tests for these cases:
+// - Modifier keys
+// - PageUp/PageDown
+// - Re-opening datalist after choosing an option
+</script>

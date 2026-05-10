@@ -1,0 +1,193 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Declarative Shadow DOM: shadowrootslotassignment attribute</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/12267" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="div"></div>
+
+<script>
+  test(() => {
+    const t = document.createElement("template");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      "Missing attribute should map to named",
+    );
+    t.setAttribute("shadowrootslotassignment", "named");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      '"named" should be a valid keyword',
+    );
+    t.setAttribute("shadowrootslotassignment", "manual");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "manual",
+      '"manual" should be a valid keyword',
+    );
+    t.setAttribute("shadowrootslotassignment", "NaMeD");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      "Should be case insensitive",
+    );
+    t.setAttribute("shadowrootslotassignment", "MANUAL");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "manual",
+      "Should be case insensitive",
+    );
+    t.setAttribute("shadowrootslotassignment", "invalid");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      'Invalid values should map to "named" (invalid value default)',
+    );
+    t.setAttribute("shadowrootslotassignment", "");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      'Empty string should map to "named" (invalid value default)',
+    );
+    t.removeAttribute("shadowrootslotassignment");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      "Missing attribute should map to empty string",
+    );
+  }, "shadowrootslotassignment reflection");
+
+  test(() => {
+    const t = document.createElement("template");
+    assert_equals(t.getAttribute("shadowrootslotassignment"), null);
+    t.shadowRootSlotAssignment = "manual";
+    assert_equals(t.getAttribute("shadowrootslotassignment"), "manual");
+    assert_equals(t.shadowRootSlotAssignment, "manual");
+    t.shadowRootSlotAssignment = "named";
+    assert_equals(t.getAttribute("shadowrootslotassignment"), "named");
+    assert_equals(t.shadowRootSlotAssignment, "named");
+    t.shadowRootSlotAssignment = "invalid";
+    assert_equals(t.getAttribute("shadowrootslotassignment"), "invalid");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      'Invalid value should reflect as "named"',
+    );
+    t.shadowRootSlotAssignment = "";
+    assert_equals(t.getAttribute("shadowrootslotassignment"), "");
+    assert_equals(
+      t.shadowRootSlotAssignment,
+      "named",
+      'Empty string should reflect as "named" (invalid value default)',
+    );
+  }, "shadowrootslotassignment reflection, setter");
+
+  test(() => {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootslotassignment="manual">
+      </template>
+    </div>
+    `);
+    var host = div.querySelector("#host");
+    assert_true(!!host.shadowRoot, "No shadow root found");
+    assert_equals(
+      host.shadowRoot.slotAssignment,
+      "manual",
+      'slotAssignment should be "manual"',
+    );
+  }, "Declarative Shadow DOM: shadowrootslotassignment=manual");
+
+  test(() => {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootslotassignment="named">
+      </template>
+    </div>
+    `);
+    var host = div.querySelector("#host");
+    assert_true(!!host.shadowRoot, "No shadow root found");
+    assert_equals(
+      host.shadowRoot.slotAssignment,
+      "named",
+      'slotAssignment should be "named"',
+    );
+  }, "Declarative Shadow DOM: shadowrootslotassignment=named");
+
+  test(() => {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootslotassignment="MANUAL">
+      </template>
+    </div>
+    `);
+    var host = div.querySelector("#host");
+    assert_true(!!host.shadowRoot, "No shadow root found");
+    assert_equals(
+      host.shadowRoot.slotAssignment,
+      "manual",
+      'slotAssignment should be "manual" (case insensitive)',
+    );
+  }, "Declarative Shadow DOM: shadowrootslotassignment is case insensitive");
+
+  test(() => {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootslotassignment="invalid">
+      </template>
+    </div>
+    `);
+    var host = div.querySelector("#host");
+    assert_true(!!host.shadowRoot, "No shadow root found");
+    assert_equals(
+      host.shadowRoot.slotAssignment,
+      "named",
+      'Invalid value should fall back to "named"',
+    );
+  }, "Declarative Shadow DOM: shadowrootslotassignment invalid value defaults to named");
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => div.replaceChildren());
+    customElements.define("expose-shadow", class extends HTMLElement {});
+    div.setHTMLUnsafe(`
+      <expose-shadow id="host">
+        <template shadowrootmode="closed" shadowrootslotassignment="manual">
+        </template>
+      </expose-shadow>
+    `);
+    await Promise.resolve();
+    var host = div.querySelector("#host");
+    let elementInternals = host.attachInternals();
+    assert_true(!!elementInternals, "No internals found");
+    assert_true(!!elementInternals.shadowRoot, "No shadow root found");
+    assert_equals(
+      elementInternals.shadowRoot.slotAssignment,
+      "manual",
+      'slotAssignment should be "manual" (closed root)',
+    );
+  }, "Declarative Shadow DOM: shadowrootslotassignment on closed shadows can be set to manual");
+
+  test((t) => {
+    t.add_cleanup(() => div.replaceChildren());
+    div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open">
+      </template>
+    </div>
+    `);
+    var host = div.querySelector("#host");
+    assert_true(!!host.shadowRoot, "No shadow root found");
+    assert_equals(
+      host.shadowRoot.slotAssignment,
+      "named",
+      'Missing attribute should default to "named"',
+    );
+  }, "Declarative Shadow DOM: missing shadowrootslotassignment defaults to named");
+</script>

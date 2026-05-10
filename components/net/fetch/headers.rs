@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use content_security_policy::Destination;
-use headers::{Error, Header, HeaderMap};
+use headers::{Error, Header};
 use http::{HeaderName, HeaderValue};
-use net_traits::fetch::headers::get_decode_and_split_header_name;
 use net_traits::request::RequestMode;
 
 static SEC_FETCH_DEST: HeaderName = HeaderName::from_static("sec-fetch-dest");
@@ -15,16 +14,6 @@ static SEC_FETCH_MODE: HeaderName = HeaderName::from_static("sec-fetch-mode");
 static SEC_FETCH_SITE: HeaderName = HeaderName::from_static("sec-fetch-site");
 
 static SEC_FETCH_USER: HeaderName = HeaderName::from_static("sec-fetch-user");
-
-/// <https://fetch.spec.whatwg.org/#determine-nosniff>
-pub fn determine_nosniff(headers: &HeaderMap) -> bool {
-    let values = get_decode_and_split_header_name("x-content-type-options", headers);
-
-    match values {
-        None => false,
-        Some(values) => !values.is_empty() && values[0].eq_ignore_ascii_case("nosniff"),
-    }
-}
 
 /// The `sec-fetch-dest` header
 pub struct SecFetchDest(pub Destination);

@@ -243,25 +243,25 @@ impl HstsList {
             return;
         }
 
-        if let Some(header) = headers.typed_get::<StrictTransportSecurity>() {
-            if let Some(host) = url.domain() {
-                let include_subdomains = if header.include_subdomains() {
-                    IncludeSubdomains::Included
-                } else {
-                    IncludeSubdomains::NotIncluded
-                };
+        if let Some(header) = headers.typed_get::<StrictTransportSecurity>() &&
+            let Some(host) = url.domain()
+        {
+            let include_subdomains = if header.include_subdomains() {
+                IncludeSubdomains::Included
+            } else {
+                IncludeSubdomains::NotIncluded
+            };
 
-                if let Some(entry) =
-                    HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age()))
-                {
-                    info!("adding host {} to the strict transport security list", host);
-                    info!("- max-age {}", header.max_age().as_secs());
-                    if header.include_subdomains() {
-                        info!("- includeSubdomains");
-                    }
-
-                    self.push(entry);
+            if let Some(entry) =
+                HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age()))
+            {
+                info!("adding host {} to the strict transport security list", host);
+                info!("- max-age {}", header.max_age().as_secs());
+                if header.include_subdomains() {
+                    info!("- includeSubdomains");
                 }
+
+                self.push(entry);
             }
         }
     }

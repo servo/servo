@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Font being loaded, dialog with ::backdrop display:none, dialog establishes an @container</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/470512590">
+<style>
+  dialog {
+    container-type: size;
+    width: 20em;
+    height: 3em;
+  }
+
+  dialog::backdrop {
+    display: none;
+  }
+
+  @container (width > 1px) {
+    dialog::backdrop {
+      background: hotpink;
+    }
+  }
+</style>
+<style id="sheet"></style>
+<dialog id="dialog"></dialog>
+<script>
+  dialog.showModal();
+  sheet.innerText = "@font-face { font-family: notfound; src: url(notfound.ttf) }";
+</script>

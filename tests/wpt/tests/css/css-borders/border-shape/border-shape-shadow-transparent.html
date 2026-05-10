@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Borders: border-shape with transparent background</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-shadow-transparent-ref.html">
+<meta name="fuzzy" content="maxDifference=0-72;totalPixels=0-500">
+<style>
+  body { padding: 50px; }
+  #target {
+    width: 100px; height: 100px;
+    background: transparent;
+    border-shape: circle(50px at 50% 50%);
+    box-shadow: 0 0 0 20px black;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+</html>

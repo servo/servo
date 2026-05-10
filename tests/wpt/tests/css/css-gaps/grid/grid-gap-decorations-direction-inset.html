@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Grid gap decorations with direction values and asymmetric insets.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<link rel="match" href="grid-gap-decorations-direction-inset-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid {
+        display: grid;
+        grid-template: repeat(3, 100px) / repeat(3, 100px);
+        gap: 20px;
+        width: 340px;
+        column-rule: 6px solid blue;
+        row-rule: 6px solid red;
+        column-rule-break: intersection;
+        row-rule-break: intersection;
+        row-rule-inset-start: 10px;
+        row-rule-inset-end: 0px;
+        column-rule-inset-start: 10px;
+        column-rule-inset-end: 0px;
+        margin-bottom: 20px;
+    }
+    .item {
+        background: lightgray;
+    }
+    .item:first-child {
+        background: salmon;
+    }
+</style>
+<div class="grid" style="direction: ltr;">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+<div class="grid" style="direction: rtl;">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

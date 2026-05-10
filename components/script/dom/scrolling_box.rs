@@ -5,13 +5,13 @@
 use std::cell::Cell;
 
 use app_units::Au;
-use euclid::Vector2D;
-use euclid::default::Rect;
+use euclid::{Rect, Vector2D};
 use layout_api::{AxesOverflow, ScrollContainerQueryFlags};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use style::values::computed::Overflow;
+use style_traits::CSSPixel;
 use webrender_api::units::{LayoutSize, LayoutVector2D};
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPosition;
@@ -190,7 +190,7 @@ impl ScrollingBox {
         &self,
         block: ScrollAxisState,
         inline: ScrollAxisState,
-        target_rect: Rect<Au>,
+        target_rect: Rect<Au, CSSPixel>,
     ) -> LayoutVector2D {
         let device_pixel_ratio = self.node().owner_window().device_pixel_ratio().get();
         let to_pixel = |value: Au| value.to_nearest_pixel(device_pixel_ratio);
@@ -199,7 +199,7 @@ impl ScrollingBox {
         // > Let target bounding border box be the box represented by the return value
         // > of invoking Element’s getBoundingClientRect(), if target is an Element,
         // > or Range’s getBoundingClientRect(), if target is a Range.
-        let target_top_left = target_rect.origin.map(to_pixel).to_untyped();
+        let target_top_left = target_rect.origin.map(to_pixel);
         let target_bottom_right = target_rect.max().map(to_pixel);
 
         // The rest of the steps diverge from the specification here, but essentially try

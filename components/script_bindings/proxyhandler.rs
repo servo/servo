@@ -32,7 +32,7 @@ use js::rust::{
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
-use crate::conversions::{is_dom_proxy, jsid_to_string};
+use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
@@ -222,6 +222,9 @@ pub fn set_property_descriptor(
 
 pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
     unsafe {
+        if js::glue::RUST_JSID_IS_VOID(id) {
+            return None;
+        }
         rooted!(in(*cx) let mut value = UndefinedValue());
         rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
         jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
@@ -230,7 +233,7 @@ pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMStri
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| DOMString::from_string(jsstr_to_string(*cx, jsstr)))
+            .map(|jsstr| jsstr_to_string(*cx, jsstr).into())
     }
 }
 
@@ -366,7 +369,7 @@ pub(crate) fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 /// # Safety
 /// `bp` must point to a valid, non-null bool.
 pub(crate) unsafe fn cross_origin_has_own(
-    cx: SafeJSContext,
+    cx: &mut js::realm::CurrentRealm,
     _proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: RawHandleId,
@@ -375,7 +378,7 @@ pub(crate) unsafe fn cross_origin_has_own(
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
     //       do that.
-    *bp = jsid_to_string(*cx, Handle::from_raw(id)).is_some_and(|key| {
+    *bp = jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
             defined_key.to_bytes() == key.str().as_bytes()
@@ -518,6 +521,19 @@ fn ensure_cross_origin_property_holder(
     true
 }
 
+/// Check if `obj` is a `Location` or `Window` object.
+///
+/// IDL operations on a cross-origin object involve [a security check][1].
+///
+/// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+    unsafe {
+        jsapi::IsWindowProxy(*obj) ||
+            native_from_object::<D::Location>(*obj, *cx).is_ok() ||
+            native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
+    }
+}
+
 /// Report a cross-origin denial for a property, Always returns `false`, so it
 /// can be used as `return report_cross_origin_denial(...);`.
 ///
@@ -529,15 +545,15 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     id: RawHandleId,
     access: &str,
 ) -> bool {
-    debug!(
-        "permission denied to {} property {} on cross-origin object",
-        access,
-        id_to_source(cx.into(), id)
-            .as_ref()
-            .map(|source| source.str())
-            .as_deref()
-            .unwrap_or("< error >"),
-    );
+    if let Some(id) = id_to_source(cx.into(), id) {
+        debug!(
+            "permission denied to {} property {} on cross-origin object",
+            access,
+            &*id.str(),
+        );
+    } else {
+        debug!("permission denied to {} on cross-origin object", access);
+    }
     unsafe {
         if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
@@ -546,7 +562,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
                 cx.into(),
                 &global,
                 Error::Security(None),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
         }
     }
@@ -616,7 +632,11 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     cx: &mut CurrentRealm,
     proxy: RawHandleObject,
-    get_proto_object: fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
+    get_proto_object: fn(
+        cx: &mut js::context::JSContext,
+        global: HandleObject,
+        rval: MutableHandleObject,
+    ),
     proto: RawMutableHandleObject,
 ) -> bool {
     let proxy = unsafe { Handle::from_raw(proxy) };
@@ -625,11 +645,9 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
         let mut realm = AutoRealm::new_from_handle(cx, proxy);
         let mut realm = realm.current_realm();
         let global = D::GlobalScope::from_current_realm(&realm);
-        get_proto_object(
-            unsafe { SafeJSContext::from_ptr(realm.raw_cx()) },
-            global.reflector().get_jsobject(),
-            unsafe { MutableHandleObject::from_raw(proto) },
-        );
+        get_proto_object(&mut realm, global.reflector().get_jsobject(), unsafe {
+            MutableHandleObject::from_raw(proto)
+        });
         return !proto.is_null();
     }
 

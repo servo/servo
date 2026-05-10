@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test: background-clip:border-area with border-shape</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="clip-border-area-border-shape-ref.html">
+<meta name="assert" content="background-clip:border-area clips image-backed backgrounds to the same painted area as single-shape and double-shape border-shape values.">
+<meta name="fuzzy" content="maxDifference=0-50; totalPixels=0-500">
+<style>
+  .test {
+    display: inline-block;
+    margin: 20px;
+    width: 160px;
+    height: 120px;
+    box-sizing: border-box;
+    border: 24px solid transparent;
+    background-image: linear-gradient(blue, blue);
+    background-clip: border-area;
+  }
+
+  .single-shape {
+    border-shape: polygon(50% -8%, 108% 50%, 50% 108%, -8% 50%);
+  }
+
+  .double-shape {
+    border-shape: circle(50%) circle(35%);
+  }
+</style>
+</head>
+<body>
+
+<div class="test single-shape"></div>
+<div class="test double-shape"></div>
+
+</body>
+</html>

@@ -292,17 +292,17 @@ partial interface SubtleCrypto {
     BufferSource ciphertext
   );
 
-  // Promise<CryptoKey> getPublicKey(
-  //   CryptoKey key,
-  //   sequence<KeyUsage> keyUsages
-  // );
+  Promise<CryptoKey> getPublicKey(
+    CryptoKey key,
+    sequence<KeyUsage> keyUsages
+  );
 
-  // static boolean supports(DOMString operation,
-  //                  AlgorithmIdentifier algorithm,
-  //                  optional unsigned long? length = null);
-  // static boolean supports(DOMString operation,
-  //                  AlgorithmIdentifier algorithm,
-  //                  AlgorithmIdentifier additionalAlgorithm);
+  static boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   optional unsigned long? length = null);
+  static boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   AlgorithmIdentifier additionalAlgorithm);
 };
 
 // https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat
@@ -332,9 +332,16 @@ dictionary AeadParams : Algorithm {
 // https://wicg.github.io/webcrypto-modern-algos/#cshake-params
 
 dictionary CShakeParams : Algorithm {
-  required [EnforceRange] unsigned long length;
+  required [EnforceRange] unsigned long outputLength;
   BufferSource functionName;
   BufferSource customization;
+};
+
+// https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams
+
+dictionary TurboShakeParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  [EnforceRange] octet domainSeparation;
 };
 
 // https://wicg.github.io/webcrypto-modern-algos/#argon2-params

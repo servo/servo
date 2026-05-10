@@ -2,15 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg(not(target_os = "windows"))]
-
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use content_security_policy as csp;
 use cookie::Cookie as CookiePair;
 use crossbeam_channel::{Receiver, unbounded};
@@ -37,19 +34,21 @@ use net::fetch::methods::{self};
 use net::http_loader::{determine_requests_referrer, serialize_origin};
 use net::resource_thread::AuthCacheEntry;
 use net::test::DECODER_BUFFER_SIZE;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
     TraversableForUserPrompts, create_request_body_with_content,
 };
 use net_traits::response::{Response, ResponseBody};
-use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
+use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy, get_current_locale};
 use parking_lot::{Mutex, RwLock};
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 
 use crate::{
-    create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
+    create_generic_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
     make_ssl_server, mock_origin, new_fetch_context, receive_credential_prompt_msgs,
     replace_host_table, spawn_blocking_task,
 };
@@ -203,10 +202,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
@@ -364,10 +360,7 @@ fn test_request_and_response_data_with_network_messages() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
@@ -395,7 +388,7 @@ fn test_request_and_response_data_with_network_messages() {
     );
 
     let httprequest = DevtoolsHttpRequest {
-        url: url,
+        url: url.url(),
         method: Method::GET,
         headers: headers,
         body: Some(vec![].into()),
@@ -437,7 +430,6 @@ fn test_request_and_response_data_with_network_messages() {
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -510,7 +502,7 @@ fn test_redirected_request_to_devtools() {
     let first_response = expect_response(&mut events);
 
     assert_eq!(first_request.method, Method::POST);
-    assert_eq!(first_request.url, pre_url);
+    assert_eq!(first_request.url, pre_url.url());
     assert_eq!(
         first_response.status,
         HttpStatus::from(StatusCode::MOVED_PERMANENTLY)
@@ -523,7 +515,7 @@ fn test_redirected_request_to_devtools() {
     let second_response = expect_response(&mut events);
 
     assert_eq!(second_request.method, Method::GET);
-    assert_eq!(second_request.url, post_url);
+    assert_eq!(second_request.url, post_url.url());
     assert_eq!(second_response.status, HttpStatus::default());
     assert_eq!(second_request.method, second_request_update.method);
     assert_eq!(second_request.url, second_request_update.url);
@@ -880,7 +872,6 @@ fn test_load_sends_cookie_if_nonhttp() {
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -934,7 +925,6 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -1205,7 +1195,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.url());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1259,7 +1249,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.url());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1275,7 +1265,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let _ = server_b.close();
 
     let response = response.to_actual();
-    assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
+    assert_eq!(response.url_list, [url_a.url(), url_b.url(), url_a.url()]);
     assert_eq!(
         *response.body.lock(),
         ResponseBody::Done(b"Success".to_vec())
@@ -1391,14 +1381,18 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
 
-    let request = RequestBuilder::new(None, url_x.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .destination(Destination::Document)
-        .origin(mock_origin())
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .credentials_mode(CredentialsMode::Include)
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url_x.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .method(Method::GET)
+    .destination(Destination::Document)
+    .origin(mock_origin())
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .credentials_mode(CredentialsMode::Include)
+    .policy_container(Default::default())
+    .build();
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1443,14 +1437,18 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let url = url.join("/initial/").unwrap();
 
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .destination(Destination::Document)
-        .origin(mock_origin())
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .credentials_mode(CredentialsMode::Include)
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .method(Method::GET)
+    .destination(Destination::Document)
+    .origin(mock_origin())
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .credentials_mode(CredentialsMode::Include)
+    .policy_container(Default::default())
+    .build();
 
     let response = fetch(request, None);
 
@@ -1609,7 +1607,6 @@ fn test_fetch_compressed_response_update_count() {
     }
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
-        fn process_request_eof(&mut self, _: &Request) {}
         fn process_response(&mut self, _: &Request, _: &Response) {}
         fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {
             self.update_count += 1;
@@ -1642,7 +1639,7 @@ fn test_fetch_compressed_response_update_count() {
 fn test_origin_serialization_compatibility() {
     let ensure_serialiations_match = |url_string| {
         let url = Url::parse(url_string).unwrap();
-        let origin = ImmutableOrigin::new(url.origin());
+        let origin = ImmutableOrigin::new(&url);
         let serialized = format!("{}", serialize_origin(&origin));
         assert_eq!(serialized, origin.ascii_serialization());
     };
@@ -1691,7 +1688,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
     request.traversable_for_user_prompts =
         TraversableForUserPrompts::TraversableNavigable(Default::default());
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1749,7 +1746,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1796,19 +1793,19 @@ fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authe
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let handle = std::thread::spawn(move || {
         loop {
             let Ok(msg) = embedder_receiver.recv() else {
                 return;
             };
             match msg {
-                embedder_traits::EmbedderMsg::RequestAuthentication(..) => {
+                net::embedder::NetToEmbedderMsg::RequestAuthentication(..) => {
                     panic!(
                         "Should not have requested authentication as there's no www-authenticate header"
                     );
                 },
-                embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
+                net::embedder::NetToEmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),
             }
         }
@@ -1858,7 +1855,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(embedder_receiver, None);
     let mut context = new_fetch_context(None, Some(embedder_proxy));
 
@@ -1905,7 +1902,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1958,7 +1955,7 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {

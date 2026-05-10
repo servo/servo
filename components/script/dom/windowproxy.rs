@@ -3,21 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::ptr;
+use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
-use base::generic_channel;
-use base::generic_channel::GenericSend;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use constellation_traits::{
-    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptToConstellationMessage,
-};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
-use ipc_channel::ipc;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{
     CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
@@ -33,31 +25,42 @@ use js::jsapi::{
     ObjectOpResult, PropertyDescriptor,
 };
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::{
+    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptToConstellationMessage, TargetSnapshotParams,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::{AsVoidPtr, get_array_index_from_id};
+use crate::dom::bindings::utils::get_array_index_from_id;
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::navigation::navigate;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -121,10 +124,6 @@ pub(crate) struct WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     delaying_load_events_mode: Cell<bool>,
 
-    /// The creator browsing context's base url.
-    #[no_trace]
-    creator_base_url: Option<ServoUrl>,
-
     /// The creator browsing context's url.
     #[no_trace]
     creator_url: Option<ServoUrl>,
@@ -164,7 +163,6 @@ impl WindowProxy {
             parent: parent.map(Dom::from_ref),
             delaying_load_events_mode: Cell::new(false),
             opener,
-            creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
             script_window_proxies: ScriptThread::window_proxies(),
@@ -215,7 +213,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((*window_proxy).as_void_ptr()),
+                &PrivateValue(&raw const (*window_proxy) as *const libc::c_void),
             );
 
             // Notify the JS engine about the new window proxy binding.
@@ -227,13 +225,16 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(js_proxy.get());
+            window_proxy
+                .reflector
+                .init_reflector::<WindowProxy>(js_proxy.get());
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
 
     #[expect(unsafe_code)]
     pub(crate) fn new_dissimilar_origin(
+        cx: &mut js::context::JSContext,
         global_to_clone_from: &GlobalScope,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
@@ -243,8 +244,6 @@ impl WindowProxy {
     ) -> DomRoot<WindowProxy> {
         unsafe {
             let handler = WindowProxyHandler::x_origin_proxy_handler();
-
-            let cx = GlobalScope::get_cx();
 
             // Create a new browsing context.
             let window_proxy = Box::new(WindowProxy::new_inherited(
@@ -258,17 +257,18 @@ impl WindowProxy {
             ));
 
             // Create a new dissimilar-origin window.
-            let window = DissimilarOriginWindow::new(global_to_clone_from, &window_proxy);
+            let window = DissimilarOriginWindow::new(cx, global_to_clone_from, &window_proxy);
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert_ne!(
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
+            let mut realm = AutoRealm::new(cx, NonNull::new(window_jsobject.get()).unwrap());
+            let cx = &mut realm;
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            rooted!(&in(cx) let js_proxy = handler.new_window_proxy(&cx.into(), window_jsobject));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -276,11 +276,11 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((*window_proxy).as_void_ptr()),
+                &PrivateValue(&raw const (*window_proxy) as *const libc::c_void),
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(*cx, window_jsobject, js_proxy.handle());
+            SetWindowProxy(cx.raw_cx(), window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -288,7 +288,9 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(js_proxy.get());
+            window_proxy
+                .reflector
+                .init_reflector::<WindowProxy>(js_proxy.get());
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
@@ -299,7 +301,7 @@ impl WindowProxy {
         name: DOMString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
-        let (response_sender, response_receiver) = ipc::channel().unwrap();
+        let (response_sender, response_receiver) = generic_channel::channel().unwrap();
         let window = self
             .currently_active
             .get()
@@ -312,10 +314,28 @@ impl WindowProxy {
             .get()
             .and_then(ScriptThread::find_document)
             .expect("A WindowProxy creating an auxiliary to have an active document");
+
+        // <https://html.spec.whatwg.org/multipage/#navigable-target-names>
+        // > If the user agent has been configured such that in this instance it
+        // > will create a new top-level traversable
+        // >
+        // Step 9. If sandboxingFlagSet's sandbox propagates to auxiliary browsing
+        //   contexts flag is set, then all the flags that are set in sandboxingFlagSet
+        // must be set in chosen's active browsing context's popup sandboxing flag set.
+        let sandboxing_flag_set = document.active_sandboxing_flag_set();
+        let propagate_sandbox = sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOX_PROPOGATES_TO_AUXILIARY_BROWSING_CONTEXTS_FLAG);
+        let sandboxing_flag_set = if propagate_sandbox {
+            sandboxing_flag_set
+        } else {
+            SandboxingFlagSet::empty()
+        };
+
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
+            LoadOrigin::Script(document.origin().snapshot()),
             blank_url,
+            Some(document.base_url()),
             // This has the effect of ensuring that the new `about:blank` URL has the
             // same origin as the `Document` that is creating the new browsing context.
             Some(window.pipeline_id()),
@@ -324,8 +344,7 @@ impl WindowProxy {
             None, // Doesn't inherit secure context
             None,
             false,
-            // There are no sandboxing restrictions when creating auxiliary browsing contexts.
-            SandboxingFlagSet::empty(),
+            sandboxing_flag_set,
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -350,6 +369,10 @@ impl WindowProxy {
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
             theme: window.theme(),
+            target_snapshot_params: TargetSnapshotParams {
+                sandboxing_flags: sandboxing_flag_set,
+                iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
+            },
         };
 
         with_script_thread(|script_thread| {
@@ -395,10 +418,10 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
-            }
+        if let Some(document) = self.document() &&
+            !document.loader().events_inhibited()
+        {
+            ScriptThread::mark_document_with_no_blocked_loads(&document);
         }
     }
 
@@ -418,19 +441,8 @@ impl WindowProxy {
         self.is_closing.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#creator-base-url>
-    pub(crate) fn creator_base_url(&self) -> Option<ServoUrl> {
-        self.creator_base_url.clone()
-    }
-
-    #[expect(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub(crate) fn opener(
-        &self,
-        cx: *mut JSContext,
-        in_realm_proof: InRealm,
-        mut retval: MutableHandleValue,
-    ) {
+    pub(crate) fn opener(&self, cx: &mut CurrentRealm, mut retval: MutableHandleValue) {
         if self.disowned.get() {
             return retval.set(NullValue());
         }
@@ -449,11 +461,11 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let global_to_clone_from =
-                            unsafe { GlobalScope::from_context(cx, in_realm_proof) };
+                        let global_to_clone_from = GlobalScope::from_current_realm(cx);
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
+                            cx,
                             &global_to_clone_from,
                             opener_id,
                             opener_top_id,
@@ -469,16 +481,16 @@ impl WindowProxy {
         if opener_proxy.is_browsing_context_discarded() {
             return retval.set(NullValue());
         }
-        unsafe { opener_proxy.to_jsval(cx, retval) };
+        opener_proxy.safe_to_jsval(cx, retval);
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
     pub(crate) fn open(
         &self,
+        cx: &mut js::context::JSContext,
         url: USVString,
         target: DOMString,
         features: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Note: this does not map to the spec,
         // but it does prevent a panic at the constellation because the browsing context
@@ -550,16 +562,17 @@ impl WindowProxy {
             } else {
                 target_window.as_global_scope().get_referrer()
             };
-            // Propagate CSP list from opener to new document
-            let csp_list = existing_document.get_csp_list();
+            // Propagate CSP list and about-base-url from opener to new document
+            let csp_list = existing_document.get_csp_list().clone();
             target_document.set_csp_list(csp_list);
 
             // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
             // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
             // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
             let mut load_data = LoadData::new(
-                LoadOrigin::Script(existing_document.origin().immutable().clone()),
+                LoadOrigin::Script(existing_document.origin().snapshot()),
                 url,
+                target_document.about_base_url(),
                 Some(target_window.pipeline_id()),
                 referrer,
                 target_document.get_referrer_policy(),
@@ -576,10 +589,11 @@ impl WindowProxy {
 
                 // Check CSP and report violations to the source (existing) window
                 if !ScriptThread::can_navigate_to_javascript_url(
+                    cx,
                     &existing_global,
+                    target_window.as_global_scope(),
                     &mut load_data,
                     None,
-                    can_gc,
                 ) {
                     // CSP blocked the navigation, don't proceed
                     return Ok(target_document.browsing_context());
@@ -591,7 +605,7 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-            target_window.load_url(history_handling, false, load_data, can_gc);
+            navigate(cx, target_window, history_handling, false, load_data);
         }
         // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {
@@ -682,21 +696,17 @@ impl WindowProxy {
         result
     }
 
-    /// Run [the focusing steps] with this browsing context.
-    ///
-    /// [the focusing steps]: https://html.spec.whatwg.org/multipage/#focusing-steps
-    pub fn focus(&self) {
-        debug!(
-            "Requesting the constellation to initiate a focus operation for \
-            browsing context {}",
-            self.browsing_context_id()
-        );
+    pub fn document_origin(&self) -> Option<String> {
+        let pipeline_id = self.currently_active()?;
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
         self.global()
             .script_to_constellation_chan()
-            .send(ScriptToConstellationMessage::FocusRemoteDocument(
-                self.browsing_context_id(),
+            .send(ScriptToConstellationMessage::GetDocumentOrigin(
+                pipeline_id,
+                result_sender,
             ))
-            .unwrap();
+            .ok()?;
+        result_receiver.recv().ok()?
     }
 
     #[expect(unsafe_code)]
@@ -738,7 +748,11 @@ impl WindowProxy {
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
-            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));
+            SetProxyReservedSlot(
+                new_js_proxy.get(),
+                0,
+                &PrivateValue(self as *const _ as *const libc::c_void),
+            );
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
@@ -754,12 +768,12 @@ impl WindowProxy {
     }
 
     pub(crate) fn set_currently_active(&self, window: &Window, can_gc: CanGc) {
-        if let Some(pipeline_id) = self.currently_active() {
-            if pipeline_id == window.pipeline_id() {
-                return debug!(
-                    "Attempt to set the currently active window to the currently active window."
-                );
-            }
+        if let Some(pipeline_id) = self.currently_active() &&
+            pipeline_id == window.pipeline_id()
+        {
+            return debug!(
+                "Attempt to set the currently active window to the currently active window."
+            );
         }
 
         let global_scope = window.as_global_scope();
@@ -767,18 +781,18 @@ impl WindowProxy {
         self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
-    pub(crate) fn unset_currently_active(&self, can_gc: CanGc) {
+    pub(crate) fn unset_currently_active(&self, cx: &mut js::context::JSContext) {
         if self.currently_active().is_none() {
             return debug!(
                 "Attempt to unset the currently active window on a windowproxy that does not have one."
             );
         }
         let globalscope = self.global();
-        let window = DissimilarOriginWindow::new(&globalscope, self);
+        let window = DissimilarOriginWindow::new(cx, &globalscope, self);
         self.set_window(
             window.upcast(),
             WindowProxyHandler::x_origin_proxy_handler(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         self.currently_active.set(None);
     }
@@ -812,9 +826,6 @@ pub(crate) struct CreatorBrowsingContextInfo {
     /// Creator document URL.
     url: Option<ServoUrl>,
 
-    /// Creator document base URL.
-    base_url: Option<ServoUrl>,
-
     /// Creator document origin.
     origin: Option<ImmutableOrigin>,
 }
@@ -830,17 +841,12 @@ impl CreatorBrowsingContextInfo {
             (None, None) => None,
         };
 
-        let base_url = creator.as_deref().map(|document| document.base_url());
         let url = creator.as_deref().map(|document| document.url());
         let origin = creator
             .as_deref()
             .map(|document| document.origin().immutable().clone());
 
-        CreatorBrowsingContextInfo {
-            base_url,
-            url,
-            origin,
-        }
+        CreatorBrowsingContextInfo { url, origin }
     }
 }
 
@@ -950,7 +956,7 @@ unsafe fn GetSubframeWindowProxy(
         let script_window_proxies = ScriptThread::window_proxies();
         if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
-            let (result_sender, result_receiver) = ipc::channel().unwrap();
+            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
 
             let _ = win.as_global_scope().script_to_constellation_chan().send(
                 ScriptToConstellationMessage::GetChildBrowsingContextId(
@@ -969,7 +975,7 @@ unsafe fn GetSubframeWindowProxy(
             root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
         {
             let browsing_context_id = win.window_proxy().browsing_context_id();
-            let (result_sender, result_receiver) = ipc::channel().unwrap();
+            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
 
             let _ = win.global().script_to_constellation_chan().send(
                 ScriptToConstellationMessage::GetChildBrowsingContextId(
@@ -1252,7 +1258,7 @@ impl Drop for WindowProxyHandler {
 fn throw_security_error(cx: SafeJSContext, realm: InRealm) -> bool {
     if !unsafe { JS_IsExceptionPending(*cx) } {
         let global = unsafe { GlobalScope::from_context(*cx, realm) };
-        throw_dom_exception(cx, &global, Error::Security(None), CanGc::note());
+        throw_dom_exception(cx, &global, Error::Security(None), CanGc::deprecated_note());
     }
     false
 }
@@ -1402,12 +1408,15 @@ unsafe extern "C" fn finalize(_fop: *mut GCContext, obj: *mut JSObject) {
         // GC during obj creation or after transplanting.
         return;
     }
-    let jsobject = unsafe { (*this).reflector.get_jsobject().get() };
-    debug!(
-        "WindowProxy finalize: {:p}, with reflector {:p} from {:p}.",
-        this, jsobject, obj
-    );
-    let _ = unsafe { Box::from_raw(this) };
+    unsafe {
+        (*this).reflector.drop_memory(&*this);
+        let jsobject = (*this).reflector.get_jsobject().get();
+        debug!(
+            "WindowProxy finalize: {:p}, with reflector {:p} from {:p}.",
+            this, jsobject, obj
+        );
+        let _ = Box::from_raw(this);
+    }
 }
 
 #[expect(unsafe_code)]

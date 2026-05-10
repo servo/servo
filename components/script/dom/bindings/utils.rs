@@ -14,8 +14,8 @@ use js::jsapi::{
 };
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::{DomHelpers, Interface};
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -25,7 +25,6 @@ use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
@@ -60,7 +59,12 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     mut rval: MutableHandleValue,
     can_gc: CanGc,
 ) {
-    convertibles.safe_to_jsval(cx, rval.reborrow(), can_gc);
+    script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
+        convertibles,
+        cx,
+        rval.reborrow(),
+        can_gc,
+    );
 
     rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
@@ -156,7 +160,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         args: &CallArgs,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool {
         call_html_constructor::<T>(cx, args, global, proto_id, creator)
     }
@@ -180,8 +184,8 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn push_new_element_queue() {
         ScriptThread::custom_element_reaction_stack().push_new_element_queue()
     }
-    fn pop_current_element_queue(can_gc: CanGc) {
-        ScriptThread::custom_element_reaction_stack().pop_current_element_queue(can_gc)
+    fn pop_current_element_queue(cx: &mut js::context::JSContext) {
+        ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 
     fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
@@ -192,12 +196,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(
-        cx: SafeJSContext,
-        dispatch_event: bool,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
-        report_pending_exception(cx, dispatch_event, realm, can_gc)
+    fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
+        report_pending_exception(cx, realm, can_gc)
     }
 }

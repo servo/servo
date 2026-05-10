@@ -58,3 +58,14 @@ interface mixin ARIAMixin {
 [CEReactions, Reflect="aria-valuetext"] attribute DOMString? ariaValueText;
   };
   Element includes ARIAMixin;
+
+enum AriaNotifyPriority { "normal", "high" };
+
+dictionary AriaNotificationOptions {
+  AriaNotifyPriority priority = "normal";
+};
+interface mixin ARIANotifyMixin {
+  undefined ariaNotify(DOMString announcement, optional AriaNotificationOptions options = {});
+};
+Element includes ARIANotifyMixin;
+Document includes ARIANotifyMixin;

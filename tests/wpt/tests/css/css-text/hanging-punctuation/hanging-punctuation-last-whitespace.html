@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation last with trailing whitespace</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-last-whitespace-ref.html">
+<meta name="assert" content="hanging-punctuation: last causes closing punctuation to hang even when followed by collapsible whitespace. The whitespace is removed and the punctuation hangs as if it were at the end of the line.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { hanging-punctuation: last; margin:1em }
+</style>
+<div style="float:left;" class="hang">(Hang test)  </div>
+<div style="clear:both">
+<div class="hang" style="width:4em">No.<br>Yes.)  </div>
+<div class="hang" style="text-align:justify; width:4em;">Yes <span>) </span></div>
+<div class="hang" style="text-align:justify; width:4em;">No. <span style="border-right:1em solid blue">) </span>  </div>

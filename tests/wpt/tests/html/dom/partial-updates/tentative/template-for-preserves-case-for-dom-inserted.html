@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - DOM-inserted markers</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder"></div>
+<script>
+  const placeholder = document.getElementById("placeholder");
+  placeholder.append(
+    document.createProcessingInstruction("Start", "name=a"),
+    document.createProcessingInstruction("End", ""),
+    document.createProcessingInstruction("MARKER", "name=b"),
+    document.createProcessingInstruction("marKER", "name=c"),
+    document.createProcessingInstruction("marker", "name=d"),
+    document.createProcessingInstruction("start", "name=e"),
+    document.createProcessingInstruction("end", ""),
+    "f"
+  );
+</script>
+<template for="a">a</template>
+<template for="b">b</template>
+<template for="c">c</template>
+<template for="d">d</template>
+<template for="e">e</template>
+<script>
+  test(() => {
+    assert_equals(
+      document.getElementById("placeholder").innerHTML,
+      "<?Start name=a?><?End ?><?MARKER name=b?><?marKER name=c?>def",
+    );
+    assert_equals(document.querySelectorAll("template[for]").length, 3);
+  }, "marker/end/start PI targets are parsed as lower case");
+</script>

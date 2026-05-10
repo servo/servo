@@ -1,1 +1,0 @@
-Feature-Policy: fullscreen 'self' https://{{domains[www]}}:{{ports[https][0]}} https://www.example.com;

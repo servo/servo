@@ -10,30 +10,30 @@ use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_attribute};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
-use crate::dom::node::{BindContext, Node};
+use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
-use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
 pub enum Area {
@@ -287,17 +287,17 @@ impl HTMLAreaElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLAreaElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -343,10 +343,15 @@ impl VirtualMethods for HTMLAreaElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("href") => self
@@ -359,15 +364,6 @@ impl VirtualMethods for HTMLAreaElement {
             _ => {},
         }
     }
-
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
-        }
-
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
-    }
 }
 
 impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
@@ -375,21 +371,22 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_getter!(Target, "target");
 
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
-    make_setter!(SetTarget, "target");
+    make_setter!(cx, SetTarget, "target");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
+    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
+            .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-area-rellist>
-    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("rel"),
                 Some(vec![
@@ -397,7 +394,6 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                can_gc,
             )
         })
     }
@@ -408,7 +404,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
-    make_setter!(SetReferrerPolicy, "referrerpolicy");
+    make_setter!(cx, SetReferrerPolicy, "referrerpolicy");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn Href(&self) -> USVString {
@@ -416,8 +412,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn SetHref(&self, value: USVString, can_gc: CanGc) {
-        self.set_href(value, can_gc);
+    fn SetHref(&self, cx: &mut JSContext, value: USVString) {
+        self.set_href(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
@@ -431,8 +427,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
-    fn SetProtocol(&self, value: USVString, can_gc: CanGc) {
-        self.set_protocol(value, can_gc);
+    fn SetProtocol(&self, cx: &mut JSContext, value: USVString) {
+        self.set_protocol(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
@@ -441,8 +437,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
-    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
-        self.set_password(value, can_gc);
+    fn SetPassword(&self, cx: &mut JSContext, value: USVString) {
+        self.set_password(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
@@ -451,8 +447,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
-    fn SetHash(&self, value: USVString, can_gc: CanGc) {
-        self.set_hash(value, can_gc);
+    fn SetHash(&self, cx: &mut JSContext, value: USVString) {
+        self.set_hash(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
@@ -461,8 +457,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
-    fn SetHost(&self, value: USVString, can_gc: CanGc) {
-        self.set_host(value, can_gc);
+    fn SetHost(&self, cx: &mut JSContext, value: USVString) {
+        self.set_host(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
@@ -471,8 +467,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
-    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
-        self.set_hostname(value, can_gc);
+    fn SetHostname(&self, cx: &mut JSContext, value: USVString) {
+        self.set_hostname(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
@@ -481,8 +477,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
-    fn SetPort(&self, value: USVString, can_gc: CanGc) {
-        self.set_port(value, can_gc);
+    fn SetPort(&self, cx: &mut JSContext, value: USVString) {
+        self.set_port(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
@@ -491,8 +487,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
-    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
-        self.set_pathname(value, can_gc);
+    fn SetPathname(&self, cx: &mut JSContext, value: USVString) {
+        self.set_pathname(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
@@ -501,8 +497,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
-    fn SetSearch(&self, value: USVString, can_gc: CanGc) {
-        self.set_search(value, can_gc);
+    fn SetSearch(&self, cx: &mut JSContext, value: USVString) {
+        self.set_search(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
@@ -511,9 +507,15 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
-    fn SetUsername(&self, value: USVString, can_gc: CanGc) {
-        self.set_username(value, can_gc);
+    fn SetUsername(&self, cx: &mut JSContext, value: USVString) {
+        self.set_username(cx, value);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-area-nohref
+    make_bool_getter!(NoHref, "nohref");
+
+    // https://html.spec.whatwg.org/multipage/#dom-area-nohref
+    make_bool_setter!(cx, SetNoHref, "nohref");
 }
 
 impl Activatable for HTMLAreaElement {
@@ -526,7 +528,12 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
         follow_hyperlink(self.as_element(), self.relations.get(), None);
     }
 }

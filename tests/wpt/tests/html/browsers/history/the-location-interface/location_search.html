@@ -15,6 +15,17 @@
       assert_equals(search, "?x=1", "search");
 
     }, "location search");
+
+    promise_test(async function() {
+      var iframe = document.createElement("iframe");
+      iframe.src = "about:blank?foo";
+      document.body.appendChild(iframe);
+      assert_equals(iframe.contentWindow.location.search, "?foo");
+
+      iframe.contentWindow.location.search = "?bar";
+      await new Promise(res => iframe.addEventListener("load", res));
+      assert_equals(iframe.contentWindow.location.search, "?bar");
+    }, "location.search on about:blank");
     </script>
   </body>
 </html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Highlights using viewport sizes update on viewport changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-styling">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<link rel="match" href="custom-highlight-dynamic-viewport-metrics-001-ref.html">
+<meta name="assert" value="lengths depending on viewport take the correct values in a highlight when the viewport size changes">
+<script src="/common/reftest-wait.js"></script>
+<head>
+  <style>
+    iframe {
+      width: 200px;
+      height: 100px;
+    }
+
+    iframe.resize {
+      width: 400px;
+      height: 200px;
+    }
+</style>
+</head>
+<iframe id="iframe" src="resources/iframe-viewport.html"></iframe>
+<script>
+  function runtest() {
+    iframe.classList.add('resize');
+    requestAnimationFrame(() => takeScreenshot());
+  }
+  iframe.onload = runtest;
+</script>
+</html>

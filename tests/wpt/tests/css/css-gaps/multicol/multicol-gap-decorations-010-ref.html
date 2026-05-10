@@ -26,14 +26,16 @@
     }
 
     .row-gap {
+        display: flex;
         position: absolute;
         column-gap: 10px;
         height: 10px;
         left: 2px;
-        right: 2px;
+        width: 196px;
+        gap: 14px;
     }
     .row-gap > div {
-        width: 100%;
+        width: 56px;
         height: 100%;
         background: gold;
     }
@@ -84,8 +86,12 @@
     <div class="column-gap" style="top:142px; left:130px; height:56px;"></div>
     <div class="row-gap" style="top:60px;">
       <div></div>
+      <div></div>
+      <div></div>
     </div>
     <div class="row-gap" style="top:130px;">
+      <div></div>
+      <div></div>
       <div></div>
     </div>
     <div class="spanner"></div>

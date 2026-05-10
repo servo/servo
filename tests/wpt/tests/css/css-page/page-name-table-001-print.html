@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Table on named page</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/390333886">
+<link rel="match" href="page-name-table-001-print-ref.html">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  @page {
+    background: red;
+  }
+  @page square {
+    size: 5in;
+    background: #eee;
+  }
+</style>
+<table style="page:square;">
+  <caption>This should all be on one page.</caption>
+  <thead>
+    <tr>
+      <td>The width and height of the page should be 5in.</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        I.e. it should be a square.<br>
+        There should also be no red.
+      </td>
+    </tr>
+  </tbody>
+</table>

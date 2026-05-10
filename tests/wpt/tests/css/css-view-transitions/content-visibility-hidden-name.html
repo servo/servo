@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="help" href="https://bugzil.la/2030776">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13831">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+span {
+  view-transition-name: hidden;
+}
+</style>
+<div style="content-visibility: hidden">
+  <span>Hidden</span>
+</div>
+<script>
+promise_test(async function() {
+  let vt = await document.startViewTransition(() => {});
+  await vt.ready;
+  await vt.finished;
+}, "Ready and finished promises don't reject because of hidden content");
+</script>
+

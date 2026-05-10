@@ -38,7 +38,7 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
         args[key] = value
 
 
-def run_tests(default_binary_path: str, **kwargs: Any) -> int:
+def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
     os.environ["RUST_BACKTRACE"] = "1"
@@ -49,7 +49,12 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     # makes CI logs unreadable.
     github_context = os.environ.pop("GITHUB_CONTEXT", None)
 
-    set_if_none(kwargs, "product", "servodriver")
+    # Allow to run with the legacy Servo WPT configuration. This is required
+    # until necessary improvements are made to the debugging experience with
+    # servodriver. See https://github.com/servo/servo/issues/40751
+    product = "servo_legacy" if kwargs.get("legacy") else "servo"
+
+    set_if_none(kwargs, "product", product)
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
     set_if_none(kwargs, "manifest_update", False)
@@ -72,24 +77,29 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
-    kwargs.setdefault("binary_args", [])
+    if multiprocess:
+        kwargs.setdefault("binary_args", ["-M"])
 
     given_http_proxy_uri = False
+    given_https_proxy_uri = False
     if prefs:
         for pref in prefs:
             kwargs["binary_args"].append("--pref=" + pref)
             given_http_proxy_uri |= "network_http_proxy_uri" in pref
+            given_https_proxy_uri |= "network_https_proxy_uri" in pref
     # We clearly dictates no proxy unless users know what they are doing.
     # This is to override potential default http_proxy/https_proxy.
     if not given_http_proxy_uri:
         kwargs["binary_args"].append("--pref=network_http_proxy_uri=")
 
+    if not given_https_proxy_uri:
+        kwargs["binary_args"].append("--pref=network_https_proxy_uri=")
+
     if not kwargs.get("no_default_test_types"):
         test_types = {
             "servo": ["testharness", "reftest", "wdspec", "crashtest"],
-            "servodriver": ["testharness", "reftest", "wdspec", "crashtest"],
+            "servo_legacy": ["testharness", "reftest", "wdspec", "crashtest"],
         }
-        product = kwargs.get("product") or "servo"
         kwargs["test_types"] = test_types[product]
 
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)
@@ -108,7 +118,7 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
-        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py"]:
+        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py", ".svg"]:
             use_mach_logging = True
 
     # Enable headless mode by default, unless `--no-headless` is explicitly passed, in
@@ -126,6 +136,9 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
 
     with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:
         kwargs["binary_args"] += ["--config-dir", config_dir]
+        # Temporary workaround to avoid shared storage across parallel processes.
+        # Can be removed once per-process config dirs are supported.
+        kwargs["binary_args"] += ["--temporary-storage"]
 
         wptrunner.run_tests(**kwargs)
 

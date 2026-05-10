@@ -26,19 +26,25 @@
   [null, "", "foo-bar", "showpopover", "show-modal", "show-picker", "open", "close"].forEach((command) => {
     test(function (t) {
       t.add_cleanup(resetState);
+      let command_event_fired = false;
+      invokee.addEventListener("command", () => (command_event_fired = true), { signal: t.get_signal() });
       invokerbutton.command = command;
       assert_false(invokee.matches(":popover-open"));
       invokerbutton.click();
       assert_false(invokee.matches(":popover-open"));
+      assert_false(command_event_fired, "command event fired");
     }, `invoking (as ${command}) on popover does nothing`);
 
     test(function (t) {
       t.add_cleanup(resetState);
+      let command_event_fired = false;
+      invokee.addEventListener("command", () => (command_event_fired = true), { signal: t.get_signal() });
       invokerbutton.command = command;
       invokee.showPopover();
       assert_true(invokee.matches(":popover-open"));
       invokerbutton.click();
       assert_true(invokee.matches(":popover-open"));
+      assert_false(command_event_fired, "command event fired");
     }, `invoking (as ${command}) on open popover does nothing`);
   });
 </script>

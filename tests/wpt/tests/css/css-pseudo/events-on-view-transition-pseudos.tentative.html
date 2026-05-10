@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Pseudo Test: Events on View Transition PseudoElements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  html {
+    view-transition-name: none;
+  }
+
+  #target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    contain: paint;
+    view-transition-name: target;
+  }
+
+  #underneath {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+  }
+
+  ::view-transition {
+    pointer-events: auto;
+    padding: 20px;
+    background: rgba(255, 0, 0, 0.5);
+    /* red */
+  }
+
+  ::view-transition-group(*) {
+    animation-duration: 300s;
+  }
+</style>
+<div id="target"></div>
+<div id="underneath"></div>
+<script>
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+    let clickPseudoTarget = null;
+    let clickTarget = null;
+    const clickHandler = (e) => {
+      clickPseudoTarget = e.pseudoTarget;
+      clickTarget = e.target;
+    };
+    document.documentElement.addEventListener("click", clickHandler);
+    t.add_cleanup(() => document.documentElement.removeEventListener("click", clickHandler));
+
+    // Ensure we have a frame before starting the transition.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    let transition = document.startViewTransition(() => {
+      document.getElementById("target").style.background = "purple";
+    });
+
+    await transition.ready;
+
+    let html = document.documentElement;
+    let vt = html.pseudo("::view-transition");
+
+    // Wait for the pseudo-elements to be fully generated and visible.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    let computedStyle = window.getComputedStyle(document.documentElement, "::view-transition");
+    assert_equals(computedStyle.pointerEvents, "auto", "pointer-events should be auto");
+
+    let vtRect = vt.getBoxQuads()[0].getBounds();
+    const x = vtRect.x + vtRect.width / 2;
+    const y = vtRect.y + vtRect.height / 2;
+
+    await new test_driver.Actions()
+      .pointerMove(Math.round(x), Math.round(y))
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    // Check if the underneath div was hit, which means the pseudo element didn't intercept it.
+    let underneath = document.getElementById("underneath");
+    let hitDescription = clickTarget ? (clickTarget.id || clickTarget.tagName) : "null";
+    assert_not_equals(clickTarget, underneath, "event.target should NOT be the underneath div. Pseudo element should intercept the click. Hit target was: " + hitDescription);
+    assert_equals(clickTarget, html, "event.target should be the document element");
+    assert_equals(clickPseudoTarget, vt, "click on ::view-transition sets pseudoTarget");
+
+    transition.skipTransition();
+  }, "Clicking on view transition pseudo elements sets event.pseudoTarget correctly");
+</script>
+
+</html>

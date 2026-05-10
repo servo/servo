@@ -11,21 +11,6 @@
 
 use std::fmt;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
-use base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
-    ScriptEventLoopId, WebViewId,
-};
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::CrossProcessPaintApi;
-use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
-use constellation_traits::{
-    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    StructuredSerializedData, WindowSizeType,
-};
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
@@ -36,16 +21,31 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use fonts_traits::SystemFontServiceProxySender;
-use ipc_channel::ipc::IpcReceiver;
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
+use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
+use servo_base::id::{
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
+    ScriptEventLoopId, WebViewId,
+};
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth_traits::BluetoothRequest;
+use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::prefs::PrefValue;
+use servo_constellation_traits::{
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, RemoteFocusOperation,
+    ScriptToConstellationSender, ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams,
+    WindowSizeType,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
@@ -54,8 +54,8 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
-use webrender_api::units::{DevicePixel, LayoutVector2D};
-use webrender_api::{ExternalScrollId, ImageKey};
+use webrender_api::ImageKey;
+use webrender_api::units::DevicePixel;
 
 /// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -79,6 +79,8 @@ pub struct NewPipelineInfo {
     pub user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] of the new layout.
     pub theme: Theme,
+    /// A snapshot of the navigation parameters of the target of this navigation.
+    pub target_snapshot_params: TargetSnapshotParams,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -108,7 +110,7 @@ pub enum DocumentActivity {
 }
 
 /// Type of recorded progressive web metric
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProgressiveWebMetricType {
     /// Time to first Paint
     FirstPaint,
@@ -118,8 +120,8 @@ pub enum ProgressiveWebMetricType {
     LargestContentfulPaint {
         /// The pixel area of the largest contentful element.
         area: usize,
-        /// The type of the largest contentful paint element.
-        lcp_type: LargestContentfulPaintType,
+        /// The URL of the largest contentful element, if any.
+        url: Option<ServoUrl>,
     },
     /// Time to interactive
     TimeToInteractive,
@@ -178,6 +180,9 @@ pub enum ScriptThreadMessage {
     RefreshCursor(PipelineId),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
+    /// Retrieve the origin of a document for a pipeline, in case a child needs to retrieve the
+    /// origin of a parent in a different script thread.
+    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
     /// Set whether to use less resources by running timers at a heavily limited rate.
@@ -191,6 +196,7 @@ pub enum ScriptThreadMessage {
         BrowsingContextId,
         LoadData,
         NavigationHistoryBehavior,
+        TargetSnapshotParams,
     ),
     /// Post a message to a given window.
     PostMessage {
@@ -222,24 +228,28 @@ pub enum ScriptThreadMessage {
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
     RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
-    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    FocusIFrame(PipelineId, BrowsingContextId, FocusSequenceNumber),
-    /// Focus the document. Used when the container gains focus.
-    FocusDocument(PipelineId, FocusSequenceNumber),
-    /// Notifies that the document's container (e.g., an iframe) is not included
-    /// in the top-level browsing context's focus chain (not considering system
-    /// focus) anymore.
-    ///
-    /// Obviously, this message is invalid for a top-level document.
-    Unfocus(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` as part of the focusing steps which focuses all parent `Document`s of a
+    /// newly focused `<iframe>`. Note that this is not used for the `Document` and `Element` that
+    /// is gaining focus as that is handled locally in the originating `ScriptThread`.
+    FocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber, Option<BrowsingContextId>),
+    /// Unfocus a `Document` as part of the focusing steps which unfocuses all parent `Document`s of an
+    /// `<iframe>` losing focus. This does not do anything for a top-level `Document`, which can never
+    /// lose focus (apart from losing system focus, which is a separate concept).
+    UnfocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` and run the focusing steps. This is used in two situations:
+    /// - When calling the DOM `focus()` API on a remote `Window` as well as from
+    ///   WebDriver. The difference between this and `FocusDocumentAsPartOfFocusingSteps` is that this
+    ///   version actually does run the focusing steps and may result in blur and focus events firing
+    ///   up the frame tree.
+    /// - When doing sequential focus navigation into and out of frames.
+    FocusDocument(PipelineId, RemoteFocusOperation),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(Vec<WebViewId>),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
-    WebFontLoaded(PipelineId, bool /* success */),
+    WebFontLoaded(PipelineId),
     /// Cause a `load` event to be dispatched at the appropriate iframe element.
     DispatchIFrameLoadEvent {
         /// The frame that has been marked as loaded.
@@ -274,10 +284,10 @@ pub enum ScriptThreadMessage {
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
     #[cfg(feature = "webgpu")]
-    SetWebGPUPort(IpcReceiver<WebGPUMsg>),
+    SetWebGPUPort(GenericReceiver<WebGPUMsg>),
     /// `Paint` scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
-    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, ScrollStateUpdate),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
@@ -305,6 +315,20 @@ pub enum ScriptThreadMessage {
     /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
     /// `user_contents_for_manager_id` map.
     DestroyUserContentManager(UserContentManagerId),
+    /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
+    /// instance that gets updated according to the changes from the `Compositor``.
+    UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
+    /// Activate or deactivate accessibility features for the given pipeline, assuming it represents
+    /// a document.
+    ///
+    /// Why only one pipeline? In the Servo API, accessibility is activated on a per-webview basis,
+    /// and webviews have a simple one-to-many mapping to pipelines that represent documents. But
+    /// those pipelines run in script threads, which complicates things: the pipelines in a webview
+    /// may be split across multiple script threads, and the pipelines in a script thread may belong
+    /// to multiple webviews. So the simplest approach is to activate it for one pipeline at a time.
+    SetAccessibilityActive(PipelineId, bool, Epoch),
+    /// Force a garbage collection in this script thread.
+    TriggerGarbageCollection,
 }
 
 impl fmt::Debug for ScriptThreadMessage {

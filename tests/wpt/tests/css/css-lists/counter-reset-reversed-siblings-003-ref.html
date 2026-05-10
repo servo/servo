@@ -1,0 +1,12 @@
+<!doctype html>
+<title>CSS Lists Reference: sibling elements with counter-reset: reversed()</title>
+<style>
+  .item1::before { content: "4"; }
+  .item2::before { content: "2"; }
+</style>
+<div class="list">
+  <div class="list">
+    <div class="item1"></div>
+  </div>
+  <div class="item2"></div>
+</div>

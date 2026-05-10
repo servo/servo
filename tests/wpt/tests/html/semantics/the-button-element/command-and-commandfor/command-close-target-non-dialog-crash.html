@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>button command=close targeting non-dialog should not crash</title>
+<meta name="author" title="Peng Zhou" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element">
+<link rel="help" href="https://crbug.com/490727227">
+<p>Pass if no crash.</p>
+<input type="text" id="target">
+<button id="button" commandfor="target" command="close">Click me</button>
+<script>
+  document.getElementById('button').click();
+</script>

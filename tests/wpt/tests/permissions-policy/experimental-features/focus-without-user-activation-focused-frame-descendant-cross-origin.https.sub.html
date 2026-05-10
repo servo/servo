@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>focus-without-user-activation: cross-origin inclusive descendant tests</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./resources/common.js"></script>
+  <input id="top-input" />
+
+  <script>
+    "use strict";
+
+    const same_origin_helper =
+      "/permissions-policy/experimental-features/resources/" +
+      "focus-without-user-activation-focused-frame-helper.html";
+    const cross_origin_helper =
+      "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_helper;
+
+    // Test 1: Cross-origin iframe with focus can focus its own elements.
+    promise_test(async (t) => {
+      const iframe = createIframe(document.body, {
+        src: cross_origin_helper,
+        allow: "focus-without-user-activation 'none'"
+      });
+      await wait_for_load(iframe);
+      t.add_cleanup(() => iframe.remove());
+
+      iframe.focus();
+
+      const result = await sendAndReceive(iframe, {action: "focus-input1"});
+      assert_true(result.focused,
+        "Cross-origin frame with focus should be able to focus its own " +
+        "elements");
+    }, "Cross-origin iframe with policy denied and focus can call " +
+       "element.focus() on its own elements");
+
+    // Test 2: Cross-origin iframe cannot steal focus -- neither from
+    // the parent frame nor from a focused sibling.
+    promise_test(async (t) => {
+      const topInput = document.getElementById("top-input");
+      const iframeB = createIframe(document.body, {
+        src: cross_origin_helper,
+        allow: "focus-without-user-activation 'none'"
+      });
+      const iframeC = createIframe(document.body, {
+        src: cross_origin_helper,
+        allow: "focus-without-user-activation 'none'"
+      });
+      await Promise.all([wait_for_load(iframeB), wait_for_load(iframeC)]);
+      t.add_cleanup(() => { iframeB.remove(); iframeC.remove(); });
+
+      // Parent has focus -- iframe B cannot steal it.
+      topInput.focus();
+      const r1 = await sendAndReceive(iframeB, {action: "focus-input1"});
+      assert_false(r1.focused,
+        "Cross-origin frame should not steal focus from parent");
+      assert_equals(document.activeElement, topInput,
+        "Top frame input should still have focus");
+
+      // Sibling B has focus -- iframe C cannot steal it.
+      iframeB.focus();
+      const r2 = await sendAndReceive(iframeC, {action: "focus-input1"});
+      assert_false(r2.focused,
+        "Cross-origin sibling C should not steal focus from B");
+    }, "Cross-origin iframe with policy denied cannot steal focus from " +
+       "parent or sibling");
+  </script>
+</body>

@@ -15,23 +15,31 @@
 </body>
 <script>
 
-  var img = document.createElement("img");
-  document.body.appendChild(img);
+  var img1 = document.createElement("img");
+  document.body.appendChild(img1);
+  var img2 = document.createElement("img");
+  document.body.appendChild(img2);
 
   const frame = document.createElement("iframe");
   frame.addEventListener("load", () => {
-    load_image(label, img);
+    load_image(label, img1, "blue.png");
   });
+  frame.onload = () => {
+    load_image(label, img2, "red.png");
+  };
   frame.src = "../resources/green.html";
   document.body.appendChild(frame);
 
 
   const label = "initiator_url_eventhandler";
-  const resource = "/images/blue.png?"+label;
+  const resource1 = "/images/blue.png?"+label;
+  const resource2 = "/images/red.png?"+label;
   const hostInfo = get_host_info();
   const expectedInitiatorUrl = hostInfo["ORIGIN"] +
     "/resource-timing/tentative/initiator-url/event-handler.html";
 
-  initiator_url_test(resource, expectedInitiatorUrl, resource +
-    " initiatorUrl from event handlers", resource + " timeout");
+  initiator_url_test(resource1, expectedInitiatorUrl, resource1 +
+    " initiatorUrl from event handlers", resource1 + " timeout");
+  initiator_url_test(resource2, expectedInitiatorUrl, resource2 +
+    " initiatorUrl from event handlers", resource2 + " timeout");
 </script>

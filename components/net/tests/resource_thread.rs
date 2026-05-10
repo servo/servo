@@ -4,7 +4,6 @@
 
 use std::net::IpAddr;
 
-use base::generic_channel;
 use net::connector::CACertificates;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_core_resource_thread;
@@ -12,8 +11,9 @@ use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
+use servo_base::generic_channel;
 
-use crate::create_embedder_proxy;
+use crate::create_generic_embedder_proxy;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
@@ -28,7 +28,7 @@ fn test_exit() {
         None,
         ProfilerChan(Some(tx)),
         MemProfilerChan(mtx),
-        create_embedder_proxy(),
+        create_generic_embedder_proxy(),
         None,
         CACertificates::Default,
         false, /* ignore_certificate_errors */

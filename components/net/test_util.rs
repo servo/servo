@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex};
 
 use crossbeam_channel::unbounded;
-use embedder_traits::{EmbedderProxy, EventLoopWaker};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EventLoopWaker, GenericEmbedderProxy};
 use futures::future::ready;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
@@ -20,8 +20,10 @@ use hyper::service::service_fn;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net_traits::AsyncRuntime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use rustls_pki_types::pem::PemObject;
 use rustls_pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use servo_default_resources as _;
 use servo_url::ServoUrl;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{self, TlsAcceptor};
@@ -35,6 +37,10 @@ static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
 
 pub fn create_embedder_proxy() -> EmbedderProxy {
+    create_generic_embedder_proxy::<EmbedderMsg>()
+}
+
+pub fn create_generic_embedder_proxy<T>() -> GenericEmbedderProxy<T> {
     if !async_runtime_initialized() {
         let _init = ASYNC_RUNTIME.clone();
     }
@@ -56,7 +62,7 @@ pub fn create_embedder_proxy() -> EmbedderProxy {
         Box::new(DummyEventLoopWaker::new())
     };
 
-    EmbedderProxy {
+    GenericEmbedderProxy {
         sender: sender,
         event_loop_waker: event_loop_waker(),
     }
@@ -74,7 +80,7 @@ impl Server {
     }
 }
 
-pub fn make_server<H>(handler: H) -> (Server, ServoUrl)
+pub fn make_server<H>(handler: H) -> (Server, UrlWithBlobClaim)
 where
     H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>)
         + Send
@@ -94,7 +100,7 @@ where
         );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
-    let url = ServoUrl::parse(&url_string).unwrap();
+    let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
 
     let graceful = hyper_util::server::graceful::GracefulShutdown::new();
 
@@ -170,7 +176,7 @@ fn load_private_key_from_file(
     }
 }
 
-pub fn make_ssl_server<H>(handler: H) -> (Server, ServoUrl)
+pub fn make_ssl_server<H>(handler: H) -> (Server, UrlWithBlobClaim)
 where
     H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>)
         + Send
@@ -189,7 +195,7 @@ where
         );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
-    let url = ServoUrl::parse(&url_string).unwrap();
+    let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
 
     let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
         .canonicalize()

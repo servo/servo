@@ -7,28 +7,116 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender};
-use base::id::TEST_PIPELINE_ID;
-use devtools_traits::EvaluateJSReply::{
-    ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
+use devtools_traits::{
+    ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError, StackFrame,
+    get_time_stamp,
 };
-use devtools_traits::{ConsoleResource, DevtoolScriptControlMsg};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{self, Map, Number, Value};
+use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::TEST_PIPELINE_ID;
 use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::ObjectActor;
-use crate::actors::worker::WorkerActor;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::actors::worker::WorkerTargetActor;
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, StreamId, UniqueId};
+use crate::{EmptyReplyMsg, StreamId, UniqueId, debugger_value_to_json};
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DevtoolsConsoleMessage {
+    #[serde(flatten)]
+    fields: ConsoleMessageFields,
+    #[ignore_malloc_size_of = "Currently no way to have serde_json::Value"]
+    arguments: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+}
+
+impl DevtoolsConsoleMessage {
+    pub(crate) fn new(message: ConsoleMessage, registry: &ActorRegistry) -> Self {
+        Self {
+            fields: message.fields,
+            arguments: message
+                .arguments
+                .into_iter()
+                .map(|argument| debugger_value_to_json(registry, argument))
+                .collect(),
+            stacktrace: message.stacktrace,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+struct DevtoolsPageError {
+    #[serde(flatten)]
+    page_error: PageError,
+    category: String,
+    error: bool,
+    warning: bool,
+    info: bool,
+    private: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+    // has_exception
+    // exception
+}
+
+impl From<PageError> for DevtoolsPageError {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error,
+            category: "script".to_string(),
+            error: true,
+            warning: false,
+            info: false,
+            private: false,
+            stacktrace: None,
+        }
+    }
+}
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageErrorWrapper {
+    page_error: DevtoolsPageError,
+}
+
+impl From<PageError> for PageErrorWrapper {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error: page_error.into(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(untagged)]
+pub(crate) enum ConsoleResource {
+    ConsoleMessage(DevtoolsConsoleMessage),
+    PageError(PageErrorWrapper),
+}
+
+impl ConsoleResource {
+    pub fn resource_type(&self) -> String {
+        match self {
+            ConsoleResource::ConsoleMessage(_) => "console-message".into(),
+            ConsoleResource::PageError(_) => "error-message".into(),
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub struct ConsoleClearMessage {
@@ -52,6 +140,7 @@ struct EvaluateJSReply {
     timestamp: u64,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -68,6 +157,7 @@ struct EvaluateJSEvent {
     result_id: String,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -84,45 +174,58 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) enum Root {
     BrowsingContext(String),
     DedicatedWorker(String),
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ConsoleActor {
-    pub name: String,
-    pub root: Root,
-    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
+    name: String,
+    root: Root,
+    cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
     /// Used to control whether to send resource array messages from
     /// `handle_console_resource`. It starts being false, and it only gets
     /// activated after the client requests `console-message` or `error-message`
     /// resources for the first time. Otherwise we would be sending messages
     /// before the client is ready to receive them.
-    pub client_ready_to_receive_messages: AtomicBool,
+    client_ready_to_receive_messages: AtomicBool,
 }
 
 impl ConsoleActor {
+    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> String {
+        let actor = Self {
+            name: name.clone(),
+            root,
+            cached_events: Default::default(),
+            client_ready_to_receive_messages: false.into(),
+        };
+        registry.register(actor);
+        name
+    }
+
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
-            Root::BrowsingContext(browsing_context) => registry
-                .find::<BrowsingContextActor>(browsing_context)
-                .script_chan
+            Root::BrowsingContext(browsing_context_name) => registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .script_chan(),
+            Root::DedicatedWorker(worker_name) => registry
+                .find::<WorkerTargetActor>(worker_name)
+                .script_sender
                 .clone(),
-            Root::DedicatedWorker(worker) => {
-                registry.find::<WorkerActor>(worker).script_chan.clone()
-            },
         }
     }
 
     fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
         match &self.root {
-            Root::BrowsingContext(browsing_context) => UniqueId::Pipeline(
+            Root::BrowsingContext(browsing_context_name) => UniqueId::Pipeline(
                 registry
-                    .find::<BrowsingContextActor>(browsing_context)
+                    .find::<BrowsingContextActor>(browsing_context_name)
                     .pipeline_id(),
             ),
-            Root::DedicatedWorker(worker) => {
-                UniqueId::Worker(registry.find::<WorkerActor>(worker).worker_id)
+            Root::DedicatedWorker(worker_name) => {
+                UniqueId::Worker(registry.find::<WorkerTargetActor>(worker_name).worker_id)
             },
         }
     }
@@ -133,85 +236,39 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let frame_actor_id = msg
+            .get("frameActor")
+            .and_then(|v| v.as_str())
+            .map(String::from);
         let (chan, port) = generic_channel::channel().unwrap();
-        // FIXME: Redesign messages so we don't have to fake pipeline ids when
-        //        communicating with workers.
+        // FIXME: Redesign messages so we don't have to fake pipeline ids when communicating with workers.
         let pipeline = match self.current_unique_id(registry) {
             UniqueId::Pipeline(p) => p,
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
         };
         self.script_chan(registry)
-            .send(DevtoolScriptControlMsg::EvaluateJS(
-                pipeline,
+            .send(DevtoolScriptControlMsg::Eval(
                 input.clone(),
+                pipeline,
+                frame_actor_id,
                 chan,
             ))
             .unwrap();
 
-        // TODO: Extract conversion into protocol module or some other useful place
-        let result = match port.recv().map_err(|_| ())? {
-            VoidValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("undefined".to_owned()));
-                Value::Object(m)
-            },
-            NullValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("null".to_owned()));
-                Value::Object(m)
-            },
-            BooleanValue(val) => Value::Bool(val),
-            NumberValue(val) => {
-                if val.is_nan() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("NaN".to_owned()));
-                    Value::Object(m)
-                } else if val.is_infinite() {
-                    let mut m = Map::new();
-                    if val < 0. {
-                        m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
-                    } else {
-                        m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
-                    }
-                    Value::Object(m)
-                } else if val == 0. && val.is_sign_negative() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("-0".to_owned()));
-                    Value::Object(m)
-                } else {
-                    Value::Number(Number::from_f64(val).unwrap())
-                }
-            },
-            StringValue(s) => Value::String(s),
-            ActorValue { class, uuid } => {
-                // TODO: Make initial ActorValue message include these properties?
-                let mut m = Map::new();
-                let actor = ObjectActor::register(registry, uuid);
+        let eval_result = port.recv().map_err(|_| ())?;
+        let has_exception = eval_result.has_exception;
 
-                m.insert("type".to_owned(), Value::String("object".to_owned()));
-                m.insert("class".to_owned(), Value::String(class));
-                m.insert("actor".to_owned(), Value::String(actor));
-                m.insert("extensible".to_owned(), Value::Bool(true));
-                m.insert("frozen".to_owned(), Value::Bool(false));
-                m.insert("sealed".to_owned(), Value::Bool(false));
-                Value::Object(m)
-            },
-        };
-
-        // TODO: Catch and return exception values from JS evaluation
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
-            result,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            result: debugger_value_to_json(registry, eval_result.value),
+            timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,
+            has_exception,
             helper_result: Value::Null,
         };
-        std::result::Result::Ok(reply)
+        Ok(reply)
     }
 
     pub(crate) fn handle_console_resource(
@@ -219,7 +276,7 @@ impl ConsoleActor {
         resource: ConsoleResource,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
         self.cached_events
             .borrow_mut()
@@ -233,27 +290,32 @@ impl ConsoleActor {
             return;
         }
         let resource_type = resource.resource_type();
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(browsing_context_name) = &self.root
+        {
+            registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .resource_array(
                     resource,
                     resource_type,
                     ResourceArrayType::Available,
                     stream,
                 )
-            };
-        }
+        };
     }
 
     pub(crate) fn send_clear_message(
         &self,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(browsing_context_name) = &self.root
+        {
+            registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .resource_array(
                     ConsoleClearMessage {
                         level: "clear".to_owned(),
                     },
@@ -261,8 +323,7 @@ impl ConsoleActor {
                     ResourceArrayType::Available,
                     stream,
                 )
-            };
-        }
+        };
     }
 
     pub(crate) fn get_cached_messages(
@@ -334,7 +395,7 @@ impl Actor for ConsoleActor {
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
-                let stream = request.reply(&early_reply)?;
+                let mut stream = request.reply(&early_reply)?;
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
                     // We don't support the side-effect free evaluation that eager evaluation
@@ -352,6 +413,7 @@ impl Actor for ConsoleActor {
                     result_id,
                     exception: reply.exception,
                     exception_message: reply.exception_message,
+                    has_exception: reply.has_exception,
                     helper_result: reply.helper_result,
                 };
                 // Send the data from evaluateJS along with a resultID

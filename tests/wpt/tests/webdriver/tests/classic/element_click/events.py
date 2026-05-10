@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 from tests.support.helpers import filter_dict
 
 def get_events(session):

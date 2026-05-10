@@ -3,32 +3,41 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64::Engine as _;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
-use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
-use style::str::char_is_whitespace;
+use style::attr::AttrValue;
+use style::parser::ParserContext;
+use style::stylesheets::Origin;
+use style::values::specified::LengthPercentage;
+use style_traits::ParsingMode;
+use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, ShadowIncluding};
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::node::{
+    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
+    UnbindContext,
+};
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
+    uuid: String,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
@@ -44,34 +53,39 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
+            uuid: Uuid::new_v4().to_string(),
             cached_serialized_data_url: Default::default(),
         }
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGSVGElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn serialize_and_cache_subtree(&self) {
-        let can_gc = CanGc::note();
-        let cloned_nodes = self.process_use_elements(can_gc);
+        // TODO: https://github.com/servo/servo/issues/43142
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+        let cloned_nodes = self.process_use_elements(cx);
 
         let serialize_result = self
             .upcast::<Node>()
             .xml_serialize(TraversalScope::IncludeNode);
 
-        self.cleanup_cloned_nodes(&cloned_nodes, can_gc);
+        self.cleanup_cloned_nodes(cx, &cloned_nodes);
 
         let Ok(xml_source) = serialize_result else {
             *self.cached_serialized_data_url.borrow_mut() = Some(Err(()));
@@ -87,17 +101,16 @@ impl SVGSVGElement {
         };
     }
 
-    fn process_use_elements(&self, can_gc: CanGc) -> Vec<DomRoot<Node>> {
+    fn process_use_elements(&self, cx: &mut JSContext) -> Vec<DomRoot<Node>> {
         let mut cloned_nodes = Vec::new();
         let root_node = self.upcast::<Node>();
 
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
-            if let Some(element) = node.downcast::<Element>() {
-                if element.local_name() == &local_name!("use") {
-                    if let Some(cloned) = self.process_single_use_element(element, can_gc) {
-                        cloned_nodes.push(cloned);
-                    }
-                }
+            if let Some(element) = node.downcast::<Element>() &&
+                element.local_name() == &local_name!("use") &&
+                let Some(cloned) = self.process_single_use_element(cx, element)
+            {
+                cloned_nodes.push(cloned);
             }
         }
 
@@ -106,8 +119,8 @@ impl SVGSVGElement {
 
     fn process_single_use_element(
         &self,
+        cx: &mut JSContext,
         use_element: &Element,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Node>> {
         let href = use_element.get_string_attribute(&local_name!("href"));
         let href_view = href.str();
@@ -123,26 +136,26 @@ impl SVGSVGElement {
             return None;
         }
         let cloned_node = Node::clone(
+            cx,
             referenced_node,
             None,
             CloneChildrenFlag::CloneChildren,
             None,
-            can_gc,
         );
         let root_node = self.upcast::<Node>();
-        let _ = root_node.AppendChild(&cloned_node, can_gc);
+        let _ = root_node.AppendChild(cx, &cloned_node);
 
         Some(cloned_node)
     }
 
-    fn cleanup_cloned_nodes(&self, cloned_nodes: &[DomRoot<Node>], can_gc: CanGc) {
+    fn cleanup_cloned_nodes(&self, cx: &mut JSContext, cloned_nodes: &[DomRoot<Node>]) {
         if cloned_nodes.is_empty() {
             return;
         }
         let root_node = self.upcast::<Node>();
 
         for cloned_node in cloned_nodes {
-            let _ = root_node.RemoveChild(cloned_node, can_gc);
+            let _ = root_node.RemoveChild(cx, cloned_node);
         }
     }
 
@@ -152,46 +165,14 @@ impl SVGSVGElement {
     }
 }
 
-pub(crate) trait LayoutSVGSVGElementHelpers {
-    fn data(self) -> SVGElementData;
-}
-
-fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
-    let mut iter = view_box.chars();
-    let _min_x = parse_integer(&mut iter).ok()?;
-    let _min_y = parse_integer(&mut iter).ok()?;
-    let width = parse_unsigned_integer(&mut iter).ok()?;
-    if width == 0 {
-        return None;
-    }
-    let height = parse_unsigned_integer(&mut iter).ok()?;
-    if height == 0 {
-        return None;
-    }
-    let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
-    iter.next().is_none().then(|| width as f32 / height as f32)
-}
-
-impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
+impl<'dom> LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
-    fn data(self) -> SVGElementData {
+    pub(crate) fn data(self) -> SVGElementData<'dom> {
+        let svg_id = self.unsafe_get().uuid.clone();
         let element = self.upcast::<Element>();
-        let get_size = |attr| {
-            element
-                .get_attr_for_layout(&ns!(), &attr)
-                .map(|val| val.as_int())
-                .filter(|val| *val >= 0)
-        };
-        let width = get_size(local_name!("width"));
-        let height = get_size(local_name!("height"));
-        let ratio = match (width, height) {
-            (Some(width), Some(height)) if width != 0 && height != 0 => {
-                Some(width as f32 / height as f32)
-            },
-            _ => element
-                .get_attr_for_layout(&ns!(), &local_name!("viewBox"))
-                .and_then(ratio_from_view_box),
-        };
+        let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
+        let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
+        let view_box = element.get_attr_for_layout(&ns!(), &local_name!("viewBox"));
         SVGElementData {
             source: unsafe {
                 self.unsafe_get()
@@ -201,7 +182,8 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
             },
             width,
             height,
-            ratio,
+            view_box,
+            svg_id,
         }
     }
 }
@@ -211,15 +193,20 @@ impl VirtualMethods for SVGSVGElement {
         Some(self.upcast::<SVGGraphicsElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self
@@ -231,8 +218,30 @@ impl VirtualMethods for SVGSVGElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            // TODO: This should accept lengths in arbitrary units instead of assuming px.
-            local_name!("width") | local_name!("height") => AttrValue::from_i32(value.into(), -1),
+            local_name!("width") | local_name!("height") => {
+                let value = &value.str();
+                let parser_input = &mut ParserInput::new(value);
+                let parser = &mut Parser::new(parser_input);
+                let doc = self.owner_document();
+                let url = doc.url().into_url().into();
+                let context = ParserContext::new(
+                    Origin::Author,
+                    &url,
+                    None,
+                    ParsingMode::ALLOW_UNITLESS_LENGTH,
+                    doc.quirks_mode(),
+                    /* namespaces = */ Default::default(),
+                    None,
+                    None,
+                    /* attr_taint = */ Default::default(),
+                );
+                let val = LengthPercentage::parse_quirky(
+                    &context,
+                    parser,
+                    style::values::specified::AllowQuirks::Always,
+                );
+                AttrValue::LengthPercentage(value.to_string(), val.ok())
+            },
             _ => self
                 .super_type()
                 .unwrap()
@@ -240,11 +249,31 @@ impl VirtualMethods for SVGSVGElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(super_type) = self.super_type() {
-            super_type.children_changed(mutation, can_gc);
+            super_type.children_changed(cx, mutation);
         }
 
+        self.invalidate_cached_serialized_subtree();
+    }
+
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(cx, context);
+        }
+        let owner_window = self.owner_window();
+        self.owner_window()
+            .image_cache()
+            .evict_rasterized_image(&self.uuid);
+        let data_url = self.cached_serialized_data_url.borrow().clone();
+        if let Some(Ok(url)) = data_url {
+            owner_window.layout_mut().remove_cached_image(&url);
+            owner_window.image_cache().evict_completed_image(
+                &url,
+                owner_window.origin().immutable(),
+                &None,
+            );
+        }
         self.invalidate_cached_serialized_subtree();
     }
 }

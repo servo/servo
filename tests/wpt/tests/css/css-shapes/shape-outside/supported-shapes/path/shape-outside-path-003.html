@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Test: left float, path() with curve commands approximating a circle</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#funcdef-basic-shape-path">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<link rel="match" href="reference/shape-outside-path-003-ref.html">
+<meta name="assert" content="The test verifies that text wraps around a
+                             left float with a shape-outside defined as
+                             a path() using cubic bezier curves to approximate
+                             a circle.">
+<meta name="fuzzy" content="maxDifference=255;totalPixels=0-200">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    margin: 0;
+  }
+  #test-container {
+    font: 20px/1 Ahem;
+    width: 200px;
+    height: 200px;
+    color: green;
+  }
+  #test-shape {
+    float: left;
+    width: 200px;
+    height: 200px;
+    /* circle(45px at 45px 100px) approximated with cubic bezier curves */
+    shape-outside: path('M 45 55 C 69.8528 55 90 75.1472 90 100 C 90 124.8528 69.8528 145 45 145 C 20.1472 145 0 124.8528 0 100 C 0 75.1472 20.1472 55 45 55 Z');
+  }
+</style>
+<p>The test passes if there is no red.</p>
+<div id="test-container">
+  <div id="test-shape"></div>
+  XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX
+</div>

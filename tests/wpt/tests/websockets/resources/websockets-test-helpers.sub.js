@@ -4,9 +4,19 @@
 // Opens a new WebSocket connection.
 async function openWebSocket(remoteContextHelper) {
   let return_value = await remoteContextHelper.executeScript((domain) => {
+    window.wsErrorOccurred = false;
+    window.wsCloseOccurred = false;
+
     return new Promise((resolve) => {
       var webSocketInNotRestoredReasonsTests = new WebSocket(domain + '/echo');
       webSocketInNotRestoredReasonsTests.onopen = () => { resolve(42); };
+
+      webSocketInNotRestoredReasonsTests.onerror = () => {
+        window.wsErrorOccurred = true;
+      };
+      webSocketInNotRestoredReasonsTests.onclose = () => {
+        window.wsCloseOccurred = true;
+      };
     });
   }, [SCHEME_DOMAIN_PORT]);
   assert_equals(return_value, 42);
@@ -15,10 +25,19 @@ async function openWebSocket(remoteContextHelper) {
 // Opens a new WebSocket connection and then close it.
 async function openThenCloseWebSocket(remoteContextHelper) {
   let return_value = await remoteContextHelper.executeScript((domain) => {
+    window.wsErrorOccurred = false;
+    window.wsCloseOccurred = false;
+
     return new Promise((resolve) => {
       var testWebSocket = new WebSocket(domain + '/echo');
       testWebSocket.onopen = () => { testWebSocket.close() };
-      testWebSocket.onclose = () => { resolve(42) };
+      testWebSocket.onclose = () => {
+        window.wsCloseOccurred = true;
+        resolve(42);
+      };
+      testWebSocket.onerror = () => {
+        window.wsErrorOccurred = true;
+      };
     });
   }, [SCHEME_DOMAIN_PORT]);
   assert_equals(return_value, 42);

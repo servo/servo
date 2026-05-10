@@ -4,7 +4,17 @@
     "script": "run",
     "parser": "get_parser",
     "help": "Run wptserve server",
-    "virtualenv": false
+    "virtualenv": true,
+    "conditional_requirements": {
+      "commandline_flag": {
+        "webtransport_h3": [
+          "../webtransport/requirements.txt"
+        ],
+        "dns": [
+          "requirements_dns.txt"
+        ]
+      }
+    }
   },
   "serve-wave": {
     "path": "wave.py",

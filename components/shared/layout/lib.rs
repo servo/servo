@@ -9,81 +9,88 @@
 #![deny(unsafe_code)]
 
 mod layout_damage;
-pub mod wrapper_traits;
+mod layout_dom;
+mod layout_element;
+mod layout_node;
+mod pseudo_element_chain;
 
 use std::any::Any;
+use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
-use base::Epoch;
-use base::generic_channel::GenericSender;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
-use compositing_traits::CrossProcessPaintApi;
-use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
-use euclid::Point2D;
-use euclid::default::Rect;
-use fonts::{FontContext, WebFontDocumentContext};
+use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
+use euclid::{Point2D, Rect};
+use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
+pub use layout_dom::{
+    DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
+    LayoutNodeOf,
+};
+pub use layout_element::{DangerousStyleElement, LayoutElement};
+pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
+use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
+pub use pseudo_element_chain::PseudoElementChain;
 use rustc_hash::FxHashMap;
 use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
+use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::context::QuirksMode;
-use style::data::ElementData;
+use style::data::ElementDataWrapper;
+use style::device::Device;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::stylesheets::{Stylesheet, UrlExtraData};
+use style::str::char_is_whitespace;
+use style::stylesheets::{DocumentStyleSheet, Stylesheet};
+use style::stylist::Stylist;
+use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
-pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
+pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 }
 
-pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
+pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
+pub type GenericLayoutData = dyn GenericLayoutDataTrait;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    pub element_data: AtomicRefCell<ElementData>,
+    pub element_data: ElementDataWrapper,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
-}
-
-impl Default for StyleData {
-    fn default() -> Self {
-        Self {
-            element_data: AtomicRefCell::new(ElementData::default()),
-            parallel: DomParallelInfo::default(),
-        }
-    }
 }
 
 /// Information that we need stored in each DOM node.
@@ -126,18 +133,55 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
+/// A selection shared between script and layout. This selection is managed by the DOM
+/// node that maintains it, and can be modified from script. Once modified, layout is
+/// expected to reflect the new selection visual on the next display list update.
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct ScriptSelection {
+    /// The range of this selection in the DOM node that manages it.
+    pub range: TextByteRange,
+    /// The character range of this selection in the DOM node that manages it.
+    pub character_range: Range<usize>,
+    /// Whether or not this selection is enabled. Selections may be disabled
+    /// when their node loses focus.
+    pub enabled: bool,
+}
+
+pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,
     pub height: u32,
 }
 
-pub struct SVGElementData {
+pub struct SVGElementData<'dom> {
     /// The SVG's XML source represented as a base64 encoded `data:` url.
     pub source: Option<Result<ServoUrl, ()>>,
-    pub width: Option<i32>,
-    pub height: Option<i32>,
-    pub ratio: Option<f32>,
+    pub width: Option<&'dom AttrValue>,
+    pub height: Option<&'dom AttrValue>,
+    pub svg_id: String,
+    pub view_box: Option<&'dom AttrValue>,
+}
+
+impl SVGElementData<'_> {
+    pub fn ratio_from_view_box(&self) -> Option<f32> {
+        let mut iter = self.view_box?.chars();
+        let _min_x = parse_integer(&mut iter).ok()?;
+        let _min_y = parse_integer(&mut iter).ok()?;
+
+        let width = parse_unsigned_integer(&mut iter).ok()?;
+        if width == 0 {
+            return None;
+        }
+
+        let height = parse_unsigned_integer(&mut iter).ok()?;
+        if height == 0 {
+            return None;
+        }
+
+        let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
+        iter.next().is_none().then(|| width as f32 / height as f32)
+    }
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
@@ -211,25 +255,9 @@ pub struct LayoutConfig {
     pub time_profiler_chan: time::ProfilerChan,
     pub paint_api: CrossProcessPaintApi,
     pub viewport_details: ViewportDetails,
+    pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
-}
-
-pub struct PropertyRegistration {
-    pub name: String,
-    pub syntax: String,
-    pub initial_value: Option<String>,
-    pub inherits: bool,
-    pub url_data: UrlExtraData,
-}
-
-#[derive(Debug)]
-pub enum RegisterPropertyError {
-    InvalidName,
-    AlreadyRegistered,
-    InvalidSyntax,
-    InvalidInitialValue,
-    InitialValueNotComputationallyIndependent,
-    NoInitialValue,
+    pub embedder_chan: ScriptToEmbedderChan,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -282,6 +310,9 @@ pub trait Layout {
     /// Removes a stylesheet from the Layout.
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
 
+    /// Removes an image from the Layout image resolver cache.
+    fn remove_cached_image(&mut self, image_url: &ServoUrl);
+
     /// Requests a reflow.
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
 
@@ -313,15 +344,24 @@ pub trait Layout {
     /// Marks that this layout needs to produce a new display list for rendering updates.
     fn set_needs_new_display_list(&self);
 
+    /// Returns the [`NodeRenderingType`] for this node and pseudo. This is used to determine
+    /// if a node is being rendered, delegating its rendering, or not being rendered at all.
+    fn node_rendering_type(
+        &self,
+        node: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+    ) -> NodeRenderingType;
+
+    fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
     fn query_box_area(
         &self,
         node: TrustedNodeAddress,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
-    ) -> Option<Rect<Au>>;
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
-    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
+    ) -> Option<Rect<Au, CSSPixel>>;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator;
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel>;
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
@@ -347,7 +387,8 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel>;
+    /// Find the character offset of the point in the given node, if it has text content.
     fn query_text_index(
         &self,
         node: TrustedNodeAddress,
@@ -358,10 +399,27 @@ pub trait Layout {
         point: LayoutPoint,
         flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult>;
-    fn register_custom_property(
-        &mut self,
-        property_registration: PropertyRegistration,
-    ) -> Result<(), RegisterPropertyError>;
+    fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
+    fn stylist_mut(&mut self) -> &mut Stylist;
+
+    /// Set whether the accessibility tree should be constructed for this Layout.
+    /// This should be called by the embedder when accessibility is requested by the user.
+    fn set_accessibility_active(&self, enabled: bool, epoch: Epoch);
+
+    /// Whether the accessibility tree needs updating. This is set to true when
+    /// - accessibility is activated; or
+    /// - a page is loaded after accesibility is activated.
+    ///
+    /// In future, this should be set to true if DOM or style have changed in a way that
+    /// impacts the accessibility tree.
+    ///
+    /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
+    /// should force a reflow, and handle_reflow() to determine whether to update the
+    /// accessibility tree during reflow.
+    fn needs_accessibility_update(&self) -> bool;
+
+    /// See [Self::needs_accessibility_update()].
+    fn set_needs_accessibility_update(&self);
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -386,6 +444,21 @@ pub enum BoxAreaType {
     Border,
 }
 
+pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
+
+/// Whether or not this node is being rendered or delegates rendering according
+/// to the HTML standard.
+#[derive(Copy, Clone)]
+pub enum NodeRenderingType {
+    /// <https://html.spec.whatwg.org/multipage/#being-rendered>
+    Rendered,
+    /// <https://html.spec.whatwg.org/multipage/#delegating-its-rendering-to-its-children>
+    DelegatesRendering,
+    /// If neither of the other two cases are true, this is. The node is effectively not
+    /// taking part in the final layout of the page.
+    NotRendered,
+}
+
 #[derive(Default)]
 pub struct PhysicalSides {
     pub left: Au,
@@ -397,7 +470,7 @@ pub struct PhysicalSides {
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {
     pub node_address: Option<UntrustedNodeAddress>,
-    pub rect: Rect<Au>,
+    pub rect: Rect<Au, CSSPixel>,
 }
 
 bitflags! {
@@ -441,6 +514,13 @@ impl AxesOverflow {
             y: self.y.to_scrollable(),
         }
     }
+
+    /// Whether or not the `overflow` value establishes a scroll container.
+    pub fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
+        self.x.is_scrollable()
+    }
 }
 
 #[derive(Clone)]
@@ -455,6 +535,7 @@ pub enum QueryMsg {
     BoxAreas,
     ClientRectQuery,
     CurrentCSSZoomQuery,
+    EffectiveOverflow,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,
@@ -527,6 +608,7 @@ impl RestyleReason {
 pub struct ReflowResult {
     /// The phases that were run during this reflow.
     pub reflow_phases_run: ReflowPhasesRun,
+    pub reflow_statistics: ReflowStatistics,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
@@ -556,6 +638,7 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
+        const UpdatedAccessibilityTree = 1 << 6;
     }
 }
 
@@ -565,6 +648,17 @@ impl ReflowPhasesRun {
             Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedImageData,
         )
     }
+}
+
+#[derive(Debug, Default)]
+pub struct ReflowStatistics {
+    /// A count of the number of fragments that have been completely rebuilt.
+    pub rebuilt_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but have had their style change.
+    pub restyle_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but may have had their final
+    /// position change.
+    pub possibly_moved_fragment_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
@@ -594,8 +688,6 @@ pub struct ReflowRequest {
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
-    /// The number of objects in the dom #10110
-    pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
     /// The current animation timeline value.
@@ -635,8 +727,8 @@ pub struct PendingRestyle {
 /// The type of fragment that a scroll root is created for.
 ///
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
-/// into the lower 2 bits of the `ScrollRootId`, which otherwise contains a 32-bit-aligned
-/// heap address.
+/// into the lower 2 bits of the `OpaqueNodeId`, which otherwise contains a 32-bit-aligned
+/// or 64-bit-aligned heap address depending on the machine.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
     /// A StackingContext for the fragment body itself.
@@ -657,41 +749,18 @@ impl From<Option<PseudoElement>> for FragmentType {
     }
 }
 
-/// The next ID that will be used for a special scroll root id.
-///
-/// A special scroll root is a scroll root that is created for generated content.
-static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
-
-/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
-/// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
-
-/// Returns a new scroll root ID for a scroll root.
-fn next_special_id() -> u64 {
-    // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-        SPECIAL_SCROLL_ROOT_ID_MASK
-}
-
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
     debug_assert_eq!(id & (fragment_type as usize), 0);
-    if fragment_type == FragmentType::FragmentBody {
-        id as u64
-    } else {
-        next_special_id() | (fragment_type as u64)
-    }
+    (id as u64) | (fragment_type as u64)
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
-    }
-    None
+pub fn node_id_from_scroll_id(id: usize) -> usize {
+    id & !3
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
     frame_start_time: f64,
@@ -827,6 +896,39 @@ impl AnimatingImages {
     pub fn is_empty(&self) -> bool {
         self.node_to_state_map.is_empty()
     }
+}
+
+struct ThreadStateRestorer;
+
+impl ThreadStateRestorer {
+    fn new() -> Self {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::SCRIPT);
+            thread_state::enter(ThreadState::LAYOUT);
+        }
+        Self
+    }
+}
+
+impl Drop for ThreadStateRestorer {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::LAYOUT);
+            thread_state::enter(ThreadState::SCRIPT);
+        }
+    }
+}
+
+/// Set up the thread-local state to reflect that layout code is about to run,
+/// then call the provided function.
+/// This must be used when running code that will interact with the DOM tree
+/// through types like `ServoLayoutNode`, `ServoLayoutElement`, and `LayoutDom`,
+/// which have rules about how they must be used from layout worker threads.
+pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
+    let _guard = ThreadStateRestorer::new();
+    f()
 }
 
 #[cfg(test)]

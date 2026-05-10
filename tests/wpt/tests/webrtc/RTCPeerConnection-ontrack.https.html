@@ -305,5 +305,6 @@ a=ssrc:1001 cname:some
     pc.ontrack = t.unreached_func('ontrack event should not fire for track in a rejected media section');
 
     await pc.setRemoteDescription({type: 'offer', sdp});
+    assert_equals(pc.getTransceivers().length, 1);
   }, `ontrack should not fire for rejected media sections`);
 </script>

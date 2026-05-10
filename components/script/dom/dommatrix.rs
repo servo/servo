@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{DomMatrixId, DomMatrixIndex};
-use constellation_traits::DomMatrix;
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::str::DOMString;
+use servo_base::id::{DomMatrixId, DomMatrixIndex};
+use servo_constellation_traits::DomMatrix;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequenc
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -93,7 +93,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {
                 if !global.is::<Window>() {
                     return Err(error::Error::Type(
-                        "String constructor is only supported in the main thread.".to_owned(),
+                        c"String constructor is only supported in the main thread.".to_owned(),
                     ));
                 }
                 if s.is_empty() {

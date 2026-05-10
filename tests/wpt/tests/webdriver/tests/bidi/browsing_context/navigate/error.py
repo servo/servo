@@ -2,7 +2,7 @@ import asyncio
 import pytest
 from webdriver.bidi.error import UnknownErrorException
 
-from . import navigate_and_assert
+from .. import navigate_and_assert
 
 pytestmark = pytest.mark.asyncio
 
@@ -207,9 +207,9 @@ async def test_close_iframe(
     new_tab,
     wait_for_event,
     wait_for_future_safe,
+    iframe
 ):
-    iframe_url = inline("<div>foo</div>")
-    page_url = inline(f"<iframe src={iframe_url}></iframe")
+    page_url = inline(iframe("<div>foo</div>"))
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page_url, wait="complete"

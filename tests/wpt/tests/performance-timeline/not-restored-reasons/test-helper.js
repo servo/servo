@@ -43,15 +43,18 @@ function ReasonsInclude(reasons, targetReason) {
   return false;
 }
 
-// Requires:
-// - /websockets/constants.sub.js in the test file and pass the domainPort
-// constant here.
-async function useWebSocket(remoteContextHelper) {
-  let return_value = await remoteContextHelper.executeScript((domain) => {
+const BFCACHE_BLOCKING_REASON = "rtc";
+
+async function useBFCacheBlockingFeature(remoteContextHelper) {
+  let return_value = await remoteContextHelper.executeScript(() => {
     return new Promise((resolve) => {
-      var webSocketInNotRestoredReasonsTests = new WebSocket(domain + '/echo');
-      webSocketInNotRestoredReasonsTests.onopen = () => { resolve(42); };
+      const webRTCInNotRestoredReasonsTests = new RTCPeerConnection();
+      webRTCInNotRestoredReasonsTests
+          .addIceCandidate({candidate: 'test', sdpMLineIndex: 0})
+          .finally(() => {
+            resolve(42);
+          });
     });
-  }, [SCHEME_DOMAIN_PORT]);
+  });
   assert_equals(return_value, 42);
 }

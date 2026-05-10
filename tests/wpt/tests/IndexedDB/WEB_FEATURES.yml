@@ -1,3 +1,10 @@
 features:
 - name: indexeddb
-  files: "**"
+  files:
+  - "*"
+  - "!idbindex_getAllRecords.any.js"
+  - "!idbobjectstore_getAllRecords.any.js"
+- name: getallrecords
+  files:
+    - idbindex_getAllRecords.any.js
+    - idbobjectstore_getAllRecords.any.js

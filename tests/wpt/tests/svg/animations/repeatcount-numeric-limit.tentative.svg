@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>A huge 'repeatCount' (1e+309) is treated as unspecified</title>
-  <h:link rel="help" href="https://svgwg.org/specs/animations/#TimingAttributes"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#TimingAttributes"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
 

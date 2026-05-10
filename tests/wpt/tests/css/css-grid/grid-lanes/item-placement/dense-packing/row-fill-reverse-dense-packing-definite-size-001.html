@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Fill-reverse with dense-packing</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+  <link rel="match" href="row-fill-reverse-dense-packing-definite-size-001-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-rows: repeat(4, 100px);
+      grid-lanes-direction: row fill-reverse;
+      grid-auto-flow: dense;
+      grid-lanes-pack: dense;
+      gap: 10px;
+      margin-left: 100px;
+      border: solid 2px blue;
+      width: 500px;
+      font-family: Ahem;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes">
+    <div style="background-color: lightcoral; width: 100px;">block</div>
+    <div style="grid-row: span 4; background-color: lightcoral; width: 10px;">spanner</div>
+    <div style="background-color: lightgreen; width: 30px;">Item 1</div>
+    <div style="background-color: lightblue; width: 100px;">Item 2</div>
+    <div style="background-color: lightgreen; width: 30px;">Item 3</div>
+    <div style="background-color: lightblue; width: 90px; grid-row: 3;">Item 4</div>
+    <div style="background-color: lightgreen; width: 30px;">Item 5</div>
+    <div style="background-color: lightblue; width: 100px;">Item 6</div>
+    <div style="background-color: lightcoral; width: 100px;">block</div>
+    <div style="grid-row: span 4; background-color: lightcoral; width: 10px;">spanner</div>
+    <div style="background-color: lightgreen; width: 30px;">Item 7</div>
+    <div style="background-color: lightblue; width: 15px;">Item 8</div>
+    <div style="background-color: lightblue; grid-row: 2; width: 40px;">Item 9</div>
+    <div style="background-color: steelblue; grid-row: 2; width: 45px;">Item 10</div>
+  </div>
+</body>
+</html>

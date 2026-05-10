@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+<body>
+
+<script>
+  async_test(t => {
+    const video = document.createElement("video");
+    video.id = "below_viewport";
+    video.className = "below-viewport";
+    video.src = "/media/A4.webm?pipe=trickle(d2)";
+    video.loading = "eager";
+
+    video.addEventListener("loadeddata", () => {
+      t.done();
+    });
+
+    document.body.appendChild(video);
+
+    t.step_timeout(() => {
+      assert_unreached("Eager video should load data immediately");
+    }, 5000);
+  }, "Videos with loading='eager' load immediately regardless of viewport position");
+</script>
+</body>

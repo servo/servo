@@ -657,7 +657,7 @@ var browserTests = [
     {"stylewithcss":[false,true,"",false,false,""],"underline":[false,true,"",false,false,""]}],
 ["foo<u>ba[r</u>]baz",
     [["stylewithcss","true"],["underline",""]],
-    "foo<span style=\"text-decoration:underline\">ba</span>[r]baz",
+    "foo<u>ba</u>rbaz",
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"underline":[false,true,"",false,false,""]}],
 ["foo<u>ba[r</u>]baz",

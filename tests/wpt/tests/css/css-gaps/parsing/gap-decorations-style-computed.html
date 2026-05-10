@@ -25,18 +25,18 @@ for (let property of properties) {
     test_computed_value(property, "ridge");
     test_computed_value(property, "inset");
 
-    test_computed_value(property, "dotted dashed solid");
+    test_computed_value(property, "dotted, dashed, solid");
     test_computed_value(property, "repeat(10, double)");
-    test_computed_value(property, "repeat(3, groove) repeat(4, ridge)");
+    test_computed_value(property, "repeat(3, groove), repeat(4, ridge)");
     test_computed_value(property, "repeat(auto, solid)");
-    test_computed_value(property, "repeat(auto, dotted solid inset)");
-    test_computed_value(property, "repeat(4, none ridge solid) repeat(auto, hidden)");
-    test_computed_value(property, "inset repeat(auto, solid ridge) repeat(4, none groove hidden)");
+    test_computed_value(property, "repeat(auto, dotted, solid, inset)");
+    test_computed_value(property, "repeat(4, none, ridge, solid), repeat(auto, hidden)");
+    test_computed_value(property, "inset, repeat(auto, solid, ridge), repeat(4, none, groove, hidden)");
     test_computed_value(property, "repeat(calc(5 + 3), ridge)", "repeat(8, ridge)");
-    test_computed_value(property, "repeat(4, dotted double dashed) repeat(auto, solid) ridge");
-    test_computed_value(property, "repeat(4, dotted double dashed) repeat(auto, solid) repeat(4, none groove hidden)");
-    test_computed_value(property, "ridge repeat(auto, solid)");
-    test_computed_value(property, "ridge repeat(auto, solid) ridge");
+    test_computed_value(property, "repeat(4, dotted, double, dashed), repeat(auto, solid), ridge");
+    test_computed_value(property, "repeat(4, dotted, double, dashed), repeat(auto, solid), repeat(4, none, groove, hidden)");
+    test_computed_value(property, "ridge, repeat(auto, solid)");
+    test_computed_value(property, "ridge, repeat(auto, solid), ridge");
 }
 </script>
 </body>

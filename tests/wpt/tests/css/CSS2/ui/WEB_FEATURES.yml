@@ -2,3 +2,11 @@ features:
 - name: system-color
   files:
   - "system-colors-*"
+- name: outlines
+  files:
+  - outline-width-*
+  - outline-style-*
+  - outline-color-*
+- name: cursor
+  files:
+  - "cursor-*"

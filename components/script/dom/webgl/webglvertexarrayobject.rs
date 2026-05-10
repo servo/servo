@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 use dom_struct::dom_struct;
+use script_bindings::cell::Ref;
+use script_bindings::reflector::reflect_dom_object;
+use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
-use crate::dom::bindings::cell::Ref;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
@@ -14,7 +15,7 @@ use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLVertexArrayObject {
     webgl_object_: WebGLObject,
     array_object: VertexArrayObject,

@@ -8,13 +8,13 @@ use std::fmt;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
+use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_dom::ElementState;
 
 use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -107,7 +107,7 @@ impl ValidityState {
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
     pub(crate) fn set_custom_error_message(&self, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
-        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::note());
+        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::deprecated_note());
     }
 
     /// Given a set of [ValidationFlags], recalculate their value by performing
@@ -157,10 +157,10 @@ impl ValidityState {
             self.element.set_state(ElementState::INVALID, false);
         }
 
-        if let Some(form_control) = self.element.as_maybe_form_control() {
-            if let Some(form_owner) = form_control.form_owner() {
-                form_owner.update_validity(can_gc);
-            }
+        if let Some(form_control) = self.element.as_maybe_form_control() &&
+            let Some(form_owner) = form_control.form_owner()
+        {
+            form_owner.update_validity(can_gc);
         }
 
         if let Some(fieldset) = self

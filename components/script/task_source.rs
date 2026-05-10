@@ -4,8 +4,8 @@
 
 use std::fmt;
 
-use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_base::id::PipelineId;
 use strum::VariantArray;
 use stylo_atoms::Atom;
 
@@ -18,8 +18,7 @@ use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_manager::TaskManager;
 
 /// The names of all task sources, used to differentiate TaskCancellers. Note: When adding a task
-/// source, update this enum. Note: The HistoryTraversalTaskSource is not part of this, because it
-/// doesn't implement TaskSource.
+/// source, update this enum.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
 pub(crate) enum TaskSourceName {
     /// <https://html.spec.whatwg.org/multipage/#bitmap-task-source>
@@ -35,7 +34,8 @@ pub(crate) enum TaskSourceName {
     FileReading,
     /// <https://drafts.csswg.org/css-font-loading/#task-source>
     FontLoading,
-    HistoryTraversal,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-and-traversal-task-source>
+    NavigationAndTraversal,
     Networking,
     PerformanceTimeline,
     PortMessage,
@@ -52,6 +52,8 @@ pub(crate) enum TaskSourceName {
     Geolocation,
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-task-source>
     IntersectionObserver,
+    /// <https://storage.spec.whatwg.org/#storage-task-source>
+    Storage,
     /// <https://www.w3.org/TR/webgpu/#-webgpu-task-source>
     WebGPU,
 }
@@ -69,7 +71,9 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,
             TaskSourceName::Geolocation => ScriptThreadEventCategory::GeolocationEvent,
-            TaskSourceName::HistoryTraversal => ScriptThreadEventCategory::HistoryEvent,
+            TaskSourceName::NavigationAndTraversal => {
+                ScriptThreadEventCategory::NavigationAndTraversalEvent
+            },
             TaskSourceName::Networking => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::PerformanceTimeline => {
                 ScriptThreadEventCategory::PerformanceTimelineTask
@@ -83,6 +87,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::Timer => ScriptThreadEventCategory::TimerEvent,
             TaskSourceName::Gamepad => ScriptThreadEventCategory::InputEvent,
             TaskSourceName::IntersectionObserver => ScriptThreadEventCategory::ScriptEvent,
+            TaskSourceName::Storage => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::WebGPU => ScriptThreadEventCategory::ScriptEvent,
         }
     }

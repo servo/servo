@@ -5,6 +5,8 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::import_rule::ImportLayer;
@@ -14,15 +16,13 @@ use style_traits::ToCss;
 use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding::CSSImportRuleMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSImportRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     import_rule: RefCell<Arc<Locked<ImportRule>>>,
@@ -34,21 +34,21 @@ impl CSSImportRule {
         import_rule: Arc<Locked<ImportRule>>,
     ) -> Self {
         CSSImportRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
             import_rule: RefCell::new(import_rule),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         import_rule: Arc<Locked<ImportRule>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -63,7 +63,7 @@ impl SpecificCSSRule for CSSImportRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         self.import_rule
             .borrow()
             .read_with(&guard)
@@ -75,11 +75,11 @@ impl SpecificCSSRule for CSSImportRule {
 impl CSSImportRuleMethods<crate::DomTypeHolder> for CSSImportRule {
     /// <https://drafts.csswg.org/cssom-1/#dom-cssimportrule-layername>
     fn GetLayerName(&self) -> Option<DOMString> {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         match &self.import_rule.borrow().read_with(&guard).layer {
             ImportLayer::None => None,
             ImportLayer::Anonymous => Some(DOMString::new()),
-            ImportLayer::Named(name) => Some(DOMString::from_string(name.to_css_string())),
+            ImportLayer::Named(name) => Some(name.to_css_string().into()),
         }
     }
 }

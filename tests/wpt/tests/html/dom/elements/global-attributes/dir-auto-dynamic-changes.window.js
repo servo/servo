@@ -443,3 +443,106 @@ test(() => {
   textarea.value = "a";
   assert_equals(html_direction(textarea), "rtl", "direction of textarea dir=rtl with LTR contents");
 }, 'text input and textarea value changes should only be reflected in :dir() when dir=auto (value changes)');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root dir=rtl>
+      </div>
+    </div>
+  `,`
+    <div dir=auto id=container>
+      <slot></slot>
+    </div>
+  `);
+  let div = shadow.querySelector("#container");
+  assert_equals(html_direction(div), 'rtl', 'rtl inherited from host through slot child');
+  div.querySelector("slot").remove();
+  assert_equals(html_direction(div), 'ltr', 'dir reset to default ltr once slot is removed');
+  tree.remove();
+}, "slot removal resets parent's dependency on host directionality");
+
+test(() => {
+  /*
+  <div>
+  ├─ <div id="root" dir="rtl">
+  │  ├─ #shadow-root
+  │  │   ├─ <div id="root2">
+  │  │   │   ├─ #shadow-root
+  │  │   │   │   ├─ <slot dir="auto">
+  │  │   │   │   │    <!-- root3 -->
+  │  │   │   │   └   </slot>
+  │  │   │   │
+  │  │   │   ├─ <div id="root3">
+  │  │   │   │   ├─ #shadow-root
+  │  │   │   │   │   ├─ <slot dir="auto">
+  │  │   │   │   │   │    <!-- div slot1 -->
+  │  │   │   │   │   └  </slot>
+  │  │   │   │   │
+  │  │   │   │   ├─ <div>
+  │  │   │   │   │   ├─ <slot id="slot1">
+  │  │   │   │   │   │    <!-- elm1 -->
+  │  │   │   │   │   │  </slot>
+  │  │   │   │   │   </div>
+  │  │   │   │   </div>
+  │  │   └   </div>
+  │  │
+  │  ├─ <div id="elm1"></div>
+  │  │
+  │  </div>
+  </div>
+  */
+  // slot2 and slot3 determine their auto dir through slot1 as the dir of root
+  let [tree1, shadow1] = setup_tree(`
+    <div>
+      <div id=root dir=rtl>
+       <div id=elm1></div>
+      </div>
+    </div>
+  `,`
+    <div id=root2>
+      <div id=root3>
+       <div><slot id=slot1><!--slots elm1--></slot></div>
+      </div>
+    </div>
+  `);
+  let slot1 = shadow1.querySelector("slot");
+  let tree2 = shadow1.querySelector("#root2");
+  let shadow2 = tree2.attachShadow({mode: 'open'});
+  shadow2.innerHTML = "<slot dir=auto><!--slot2 slots root3--></slot>";
+  let slot2 = shadow2.querySelector("slot");
+  let tree3 = shadow1.querySelector("#root3");
+  let shadow3 = tree3.attachShadow({mode: 'open'});
+  shadow3.innerHTML = "<slot dir=auto><!--slot3 slots slot1--></slot>";
+  let slot3 = shadow3.querySelector("slot");
+
+  assert_equals(html_direction(slot1), "rtl", "Expect parent dir rtl (crossing shadow to host)")
+  assert_equals(html_direction(slot2), "rtl", "Expect rtl as assigned node root3 contains slot1 which provides host dir=rtl");
+  // Note: slot1 must be in a div for slot3 to be rtl, as only descendants of
+  // assigned elements are considered for the auto directionality of a slot.
+  // The assigned elements aren't considered, only assigned text nodes are.
+  assert_equals(html_direction(slot3), "rtl", "Expect rtl as assigned node slot1 provides host dir=rtl");
+
+  slot1.remove();
+
+  assert_equals(html_direction(slot2), "ltr", "Expect ltr as assigned node root3 contains no bidirectional character");
+  assert_equals(html_direction(slot3), "ltr", "Expect ltr as slot has no assigned or fallback content");
+
+  tree1.remove();
+}, "slot removal can impact multiple dir=auto nodes");
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root dir=rtl>
+      </div>
+    </div>
+  `,`
+    <div dir=auto id=container></div>
+  `);
+  let div = shadow.querySelector("#container");
+  assert_equals(html_direction(div), 'ltr');
+  div.innerHTML = "<slot></slot>";
+  assert_equals(html_direction(div), 'rtl');
+  tree.remove();
+}, "slot insertion makes parent dependent on host directionality");

@@ -5,6 +5,7 @@
 use std::f32;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_media::audio::node::AudioNodeType;
 use servo_media::audio::param::{ParamDir, ParamType};
 
@@ -16,7 +17,6 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

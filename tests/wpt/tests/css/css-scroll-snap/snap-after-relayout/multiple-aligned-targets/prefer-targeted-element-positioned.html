@@ -40,7 +40,7 @@
               /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
               /*axis=*/"y",
               /*expected_target_x*/null,
-              /*expected_target_x*/box(target_number));
+              /*expected_target_y*/box(target_number));
 
             // Let scroller no longer be a scroll container.
             scroller.style.overflow = "visible";
@@ -55,7 +55,7 @@
               /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
               /*axis=*/"y",
               /*expected_target_x*/null,
-              /*expected_target_x*/box(target_number));
+              /*expected_target_y*/box(target_number));
             finish();
           };
           iframe.src = `positioned-target-iframe.html#target${target_number}`;

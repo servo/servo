@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Historical iframe helper</title>
+<script>
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", document.location.href, false);
+    xhr.send();
+    window.parent.postMessage({ result: "allowed" }, "*");
+  } catch (e) {
+    window.parent.postMessage({ result: "blocked", error: e.name }, "*");
+  }
+</script>

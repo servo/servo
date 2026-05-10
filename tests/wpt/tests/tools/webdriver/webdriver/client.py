@@ -21,7 +21,7 @@ class Timeouts:
         return timeouts
 
     def _set(self, key, secs):
-        body = {key: secs * 1000}
+        body = {key: secs * 1000 if secs is not None else secs}
         self.session.send_session_command("POST", "timeouts", body)
         return None
 
@@ -208,6 +208,12 @@ class ActionSequence:
                        Default: 0, which represents main device button.
         """
         self._pointer_action("pointerUp", button=button)
+        return self
+
+    def pointer_cancel(self):
+        """Queue a pointerCancel action.
+        """
+        self._pointer_action("pointerCancel")
         return self
 
     def pointer_down(
@@ -472,6 +478,8 @@ class Session:
         self.find = Find(self)
         self.alert = UserPrompt(self)
         self.actions = Actions(self)
+
+        self.web_authn = WebAuthn(self)
         self.web_extensions = WebExtensions(self)
 
     def __repr__(self):
@@ -954,6 +962,50 @@ class WebElement:
             raise TypeError("name must be a str")
 
         return self.send_element_command("GET", "property/%s" % name)
+
+
+class WebAuthn:
+    def __init__(self, session):
+        self.session = session
+
+    def add_credential(self, authenticator_id, credential):
+        return self.session.send_session_command(
+            "POST",
+            "webauthn/authenticator/%s/credential" % authenticator_id,
+            credential,
+        )
+
+    def add_virtual_authenticator(self, config):
+        return self.session.send_session_command(
+            "POST", "webauthn/authenticator", config
+        )
+
+    def get_credentials(self, authenticator_id):
+        return self.session.send_session_command(
+            "GET", "webauthn/authenticator/%s/credentials" % authenticator_id
+        )
+
+    def remove_all_credentials(self, authenticator_id):
+        return self.session.send_session_command(
+            "DELETE", "webauthn/authenticator/%s/credentials" % authenticator_id
+        )
+
+    def remove_credential(self, authenticator_id, credential_id):
+        return self.session.send_session_command(
+            "DELETE",
+            "webauthn/authenticator/%s/credentials/%s"
+            % (authenticator_id, credential_id),
+        )
+
+    def remove_virtual_authenticator(self, authenticator_id):
+        return self.session.send_session_command(
+            "DELETE", "webauthn/authenticator/%s" % authenticator_id
+        )
+
+    def set_user_verified(self, authenticator_id, uv):
+        return self.session.send_session_command(
+            "POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv
+        )
 
 
 class WebExtensions:

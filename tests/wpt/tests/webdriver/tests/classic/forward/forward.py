@@ -1,7 +1,7 @@
 import pytest
 from webdriver import error
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def forward(session):
@@ -27,6 +27,21 @@ def test_no_top_browsing_context(session, closed_window):
 def test_no_browsing_context(session, closed_frame):
     response = forward(session)
     assert_success(response)
+
+
+def test_timeout_page_load_null(session, inline):
+    first_page = inline("<div id=foo>")
+    second_page = inline("<div id=bar>")
+
+    session.url = first_page
+    session.url = second_page
+    session.back()
+
+    session.timeouts.page_load = None
+
+    forward(session)
+
+    assert session.url == second_page
 
 
 def test_basic(session, inline):

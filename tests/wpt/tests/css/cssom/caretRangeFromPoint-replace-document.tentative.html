@@ -10,8 +10,8 @@
     document.replaceChild(textarea, document.documentElement);
     let range = document.caretRangeFromPoint(0, 0);
     assert_true(range instanceof Range);
-    assert_equals(range.startOffset, 1);
-    assert_equals(range.endOffset, 1);
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
     assert_equals(range.startContainer, textarea);
     assert_equals(range.endContainer, textarea);
   }, "document.caretRangeFromPoint(0, 0)");

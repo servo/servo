@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 120px;
+  border: 2px solid blue;
+  margin-bottom: 10px;
+  font: 10px/normal Ahem;
+}
+
+.target:first-line {
+  color: gray;
+}
+</style>
+<body>
+<div class="target" style="width:122px; font-size:20px">AB<span style="border:1px solid lime">CD</span>EF</div>
+
+<div class="target"><span style="font-size:30px">GHIJ</span>
+<span style="font-size:40px">KLM</span></div>
+
+<!-- Fixed line-height -->
+<div class="target"><span style="display:inline-block; font-size:40px; line-height:80px; color:gray">ABC</span>
+<span style="display:inline-block; font-size:20px; line-height:40px">DEFGHI</span></div>
+</body>

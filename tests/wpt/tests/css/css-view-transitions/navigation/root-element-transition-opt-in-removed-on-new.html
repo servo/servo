@@ -1,32 +1,38 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
-<title>View transitions: basic cross-document navigation</title>
+<title>View transitions: basic cross-document navigation opt-in removed on new page</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
-<link rel="match" href="root-element-transition-no-opt-in-ref.html">
-<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <style id="vt-style">
 @view-transition { navigation: auto; }
 </style>
-<style>
-html {
-  background: blue;
-}
-.hidden {
-  width: 10px;
-  height: 10px;
-  view-transition-name: hidden;
-  background: green;
-  contain: layout;
-}
-</style>
-<div class="hidden"></div>
 <script>
-function runTest() {
-  document.querySelector("#vt-style").remove();
-  const url = "resources/root-element-transition-opt-in-removed.html";
-  window.location.replace(new URL(url, window.location));
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector("#vt-style").remove();
+    location.replace("?mode=new");
+  }));
+  break;
+case "new":
+  addEventListener('pagereveal', e => {
+    window.opener.did_reveal(e.viewTransition ? "fail" : "pass");
+  });
+  break;
 }
-onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
 </script>
-</html>

@@ -5,7 +5,7 @@
   <title>CSS Grid Lanes: parsing grid-lanes-direction with valid values</title>
   <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3">
-  <meta name="assert" content="grid-lanes-direction supports the full grammar 'row | row-reverse | column | column-reverse'.">
+  <meta name="assert" content="grid-lanes-direction supports the full grammar 'grid-lanes-direction: normal | [ row | column ] [ fill-reverse || track-reverse ]?'.">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/parsing-testcommon.js"></script>
@@ -14,9 +14,15 @@
   <div id="target"></div>
   <script>
     test_valid_value("grid-lanes-direction", "row");
-    test_valid_value("grid-lanes-direction", "row-reverse");
+    test_valid_value("grid-lanes-direction", "row track-reverse");
+    test_valid_value("grid-lanes-direction", "row fill-reverse");
+    test_valid_value("grid-lanes-direction", "row track-reverse fill-reverse");
+    test_valid_value("grid-lanes-direction", "row fill-reverse track-reverse");
     test_valid_value("grid-lanes-direction", "column");
-    test_valid_value("grid-lanes-direction", "column-reverse");
+    test_valid_value("grid-lanes-direction", "column track-reverse");
+    test_valid_value("grid-lanes-direction", "column fill-reverse");
+    test_valid_value("grid-lanes-direction", "column track-reverse fill-reverse");
+    test_valid_value("grid-lanes-direction", "column fill-reverse track-reverse");
     test_valid_value("grid-lanes-direction", "normal");
   </script>
 </body>

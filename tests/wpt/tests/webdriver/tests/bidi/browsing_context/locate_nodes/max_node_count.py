@@ -2,6 +2,8 @@ import pytest
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.parametrize("type,value,max_count,expected", [
     ("css", "div", 1, [
@@ -237,7 +239,6 @@ from ... import any_string, recursive_compare
     "accessibility_name_multiple",
     "accessibility_role_name_multiple",
 ])
-@pytest.mark.asyncio
 async def test_find_by_locator_limit_return_count(bidi_session, inline, top_context, type, value, max_count, expected):
     url = inline("""
         <div data-class="one" role="banner" aria-label="bar">foo</div>
@@ -256,7 +257,6 @@ async def test_find_by_locator_limit_return_count(bidi_session, inline, top_cont
     recursive_compare(expected, result["nodes"])
 
 
-@pytest.mark.asyncio
 async def test_several_context_nodes(bidi_session, inline, top_context):
     url = inline(
         """

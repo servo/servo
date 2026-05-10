@@ -1,7 +1,13 @@
 <!DOCTYPE html>
+
+<html class="reftest-wait">
+
 <title>Scrolling further up shouldn't trigger the anchored element to grow.</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-try-fallbacks">
 <link rel="match" href="anchor-scroll-position-try-015-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
 <style>
   #anchor {
     anchor-name: --a;
@@ -31,11 +37,15 @@
 </div>
 
 <script>
-scroller.scrollTop = 150;
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    scroller.scrollTop = 200;
-    document.documentElement.classList.remove('reftest-wait');
-  });
+window.addEventListener("load", async () => {
+  scroller.scrollTop = 150;
+  await waitForAtLeastOneFrame();
+
+  scroller.scrollTop = 200;
+  await waitForAtLeastOneFrame();
+
+  takeScreenshot();
 });
 </script>
+
+</html>

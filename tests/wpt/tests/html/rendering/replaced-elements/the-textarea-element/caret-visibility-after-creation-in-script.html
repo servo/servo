@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/42231">
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="match" href="caret-visibility-after-creation-in-script-ref.html">
+<title>A cursor should be shown when a textarea element is created and focused immediately</title>
+<body></body>
+<script>
+  const target = document.createElement('textarea');
+  document.body.appendChild(target);
+  target.focus();
+</script>

@@ -5,26 +5,26 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
-use compositing_traits::rendering_context::RenderingContext;
-use constellation_traits::EmbedderToConstellationMessage;
-#[cfg(feature = "gamepad")]
-use embedder_traits::GamepadHapticEffectType;
 use embedder_traits::{
-    AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ConsoleLogLevel,
-    ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
-    EmbedderControlResponse, FilePickerRequest, FilterPattern, InputEventId, InputEventResult,
-    InputMethodType, LoadStatus, MediaSessionEvent, NewWebViewDetails, Notification,
-    PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
-    WebResourceResponseMsg,
+    AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
+    ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
+    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
+    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
+    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
+    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
+use paint_api::rendering_context::RenderingContext;
+use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
+use servo_base::id::PipelineId;
+use servo_constellation_traits::EmbedderToConstellationMessage;
+use tokio::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::sync::oneshot::Sender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
-use crate::responders::{IpcResponder, ServoErrorSender};
+use crate::responders::{IpcResponder, OneshotSender, ServoErrorSender};
 use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -104,6 +104,17 @@ impl AllowOrDenyRequest {
         )
     }
 
+    pub(crate) fn new_from_callback(
+        callback: GenericCallback<AllowOrDeny>,
+        default_response: AllowOrDeny,
+        error_sender: ServoErrorSender,
+    ) -> Self {
+        Self(
+            IpcResponder::new_same_process(Box::new(callback), default_response),
+            error_sender,
+        )
+    }
+
     pub fn allow(mut self) {
         if let Err(error) = self.0.send(AllowOrDeny::Allow) {
             self.1.raise_response_send_error(error);
@@ -124,6 +135,39 @@ pub struct ProtocolHandlerRegistration {
     pub register_or_unregister: RegisterOrUnregister,
 }
 
+/// A request to let the user chose a Bluetooth device.
+pub struct BluetoothDeviceSelectionRequest {
+    devices: Vec<BluetoothDeviceDescription>,
+    responder: IpcResponder<Option<String>>,
+}
+
+impl BluetoothDeviceSelectionRequest {
+    pub(crate) fn new(
+        devices: Vec<BluetoothDeviceDescription>,
+        responder: GenericSender<Option<String>>,
+    ) -> Self {
+        Self {
+            devices,
+            responder: IpcResponder::new(responder, None),
+        }
+    }
+
+    /// Set the device chosen by the user.
+    pub fn pick_device(mut self, device: &BluetoothDeviceDescription) -> Result<(), SendError> {
+        self.responder.send(Some(device.address.clone()))
+    }
+
+    /// Cancel this request.
+    pub fn cancel(mut self) -> Result<(), SendError> {
+        self.responder.send(None)
+    }
+
+    /// The set of devices that the user can chose from.
+    pub fn devices(&self) -> &Vec<BluetoothDeviceDescription> {
+        &self.devices
+    }
+}
+
 /// A request to authenticate a [`WebView`] navigation. Embedders may choose to prompt
 /// the user to enter credentials or simply ignore this request (in which case credentials
 /// will not be used).
@@ -138,13 +182,16 @@ impl AuthenticationRequest {
     pub(crate) fn new(
         url: Url,
         for_proxy: bool,
-        response_sender: GenericSender<Option<AuthenticationResponse>>,
+        response_sender: Sender<Option<AuthenticationResponse>>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             url,
             for_proxy,
-            responder: IpcResponder::new(response_sender, None),
+            responder: IpcResponder::new_same_process(
+                Box::new(OneshotSender::from(response_sender)),
+                None,
+            ),
             error_sender,
         }
     }
@@ -180,12 +227,15 @@ pub struct WebResourceLoad {
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
-        response_sender: GenericSender<WebResourceResponseMsg>,
+        response_sender: TokioSender<WebResourceResponseMsg>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             request: web_resource_request,
-            responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+            responder: IpcResponder::new_same_process(
+                Box::new(response_sender),
+                WebResourceResponseMsg::DoNotIntercept,
+            ),
             error_sender,
         }
     }
@@ -194,6 +244,7 @@ impl WebResourceLoad {
     pub fn request(&self) -> &WebResourceRequest {
         &self.request
     }
+
     /// Intercept this [`WebResourceLoad`] and control the response via the returned
     /// [`InterceptedWebResourceLoad`].
     pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
@@ -202,7 +253,7 @@ impl WebResourceLoad {
         }
         InterceptedWebResourceLoad {
             request: self.request.clone(),
-            response_sender: self.responder.into_inner(),
+            response_sender: self.responder,
             finished: false,
             error_sender: self.error_sender,
         }
@@ -216,7 +267,7 @@ impl WebResourceLoad {
 /// this interception will automatically be finished when dropped.
 pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) response_sender: GenericSender<WebResourceResponseMsg>,
+    pub(crate) response_sender: IpcResponder<WebResourceResponseMsg>,
     pub(crate) finished: bool,
     pub(crate) error_sender: ServoErrorSender,
 }
@@ -224,7 +275,7 @@ pub struct InterceptedWebResourceLoad {
 impl InterceptedWebResourceLoad {
     /// Send a chunk of response body data. It's possible to make subsequent calls to
     /// this method when streaming body data.
-    pub fn send_body_data(&self, data: Vec<u8>) {
+    pub fn send_body_data(&mut self, data: Vec<u8>) {
         if let Err(error) = self
             .response_sender
             .send(WebResourceResponseMsg::SendBodyData(data))
@@ -256,13 +307,12 @@ impl InterceptedWebResourceLoad {
 
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
-        if !self.finished {
-            if let Err(error) = self
+        if !self.finished &&
+            let Err(error) = self
                 .response_sender
                 .send(WebResourceResponseMsg::FinishLoad)
-            {
-                self.error_sender.raise_response_send_error(error);
-            }
+        {
+            self.error_sender.raise_response_send_error(error);
         }
     }
 }
@@ -372,10 +422,9 @@ impl Drop for ContextMenu {
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElement {
     pub(crate) id: EmbedderControlId,
-    pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
-    pub(crate) selected_option: Option<usize>,
     pub(crate) position: DeviceIntRect,
     pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) select_element_request: SelectElementRequest,
     pub(crate) response_sent: bool,
 }
 
@@ -393,30 +442,34 @@ impl SelectElement {
     }
 
     /// Consecutive `<option>` elements outside of an `<optgroup>` will be combined
-    /// into a single anonymous group, whose [`label`](SelectElementGroup::label) is `None`.
+    /// into a single anonymous group without a label.
     pub fn options(&self) -> &[SelectElementOptionOrOptgroup] {
-        &self.options
+        &self.select_element_request.options
     }
 
-    /// Mark a single option as selected.
+    /// Set the options that are selected.
     ///
-    /// If there is already a selected option and the `<select>` element does not
-    /// support selecting multiple options, then the previous option will be unselected.
-    pub fn select(&mut self, id: Option<usize>) {
-        self.selected_option = id;
+    /// If other options have previously been selected, this set of options
+    /// will replace them.
+    pub fn select(&mut self, selected_options: Vec<usize>) {
+        self.select_element_request.selected_options = selected_options
     }
 
-    pub fn selected_option(&self) -> Option<usize> {
-        self.selected_option
+    pub fn selected_options(&self) -> Vec<usize> {
+        self.select_element_request.selected_options.clone()
     }
 
-    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    pub fn allow_select_multiple(&self) -> bool {
+        self.select_element_request.allow_select_multiple
+    }
+
+    /// Resolve the prompt with the options that have been selected by calling [`Self::select`] previously.
     pub fn submit(mut self) {
         self.response_sent = true;
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                EmbedderControlResponse::SelectElement(self.selected_option()),
+                EmbedderControlResponse::SelectElement(self.selected_options()),
             ));
     }
 }
@@ -427,7 +480,7 @@ impl Drop for SelectElement {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    EmbedderControlResponse::SelectElement(self.selected_option()),
+                    EmbedderControlResponse::SelectElement(self.selected_options()),
                 ));
         }
     }
@@ -465,7 +518,7 @@ impl ColorPicker {
         self.current_color = color;
     }
 
-    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    /// Resolve the prompt with the options that have been selected by calling [`Self::select`] previously.
     pub fn submit(mut self) {
         self.response_sent = true;
         self.constellation_proxy
@@ -492,8 +545,7 @@ impl Drop for ColorPicker {
 pub struct FilePicker {
     pub(crate) id: EmbedderControlId,
     pub(crate) file_picker_request: FilePickerRequest,
-    pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
-    pub(crate) response_sent: bool,
+    pub(crate) response_sender: Option<Sender<Option<Vec<PathBuf>>>>,
 }
 
 impl FilePicker {
@@ -520,25 +572,27 @@ impl FilePicker {
         self.file_picker_request.current_paths = paths.to_owned();
     }
 
-    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    /// Resolve the prompt with the options that have been selected by calling [`Self::select`] previously.
     pub fn submit(mut self) {
-        let _ = self.response_sender.send(Some(std::mem::take(
-            &mut self.file_picker_request.current_paths,
-        )));
-        self.response_sent = true;
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(Some(std::mem::take(
+                &mut self.file_picker_request.current_paths,
+            )));
+        }
     }
 
     /// Tell Servo that the file picker was dismissed with no selection.
     pub fn dismiss(mut self) {
-        let _ = self.response_sender.send(None);
-        self.response_sent = true;
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(None);
+        }
     }
 }
 
 impl Drop for FilePicker {
     fn drop(&mut self) {
-        if !self.response_sent {
-            let _ = self.response_sender.send(None);
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(None);
         }
     }
 }
@@ -551,9 +605,15 @@ pub struct InputMethodControl {
     pub(crate) insertion_point: Option<u32>,
     pub(crate) position: DeviceIntRect,
     pub(crate) multiline: bool,
+    pub(crate) allow_virtual_keyboard: bool,
 }
 
 impl InputMethodControl {
+    /// Return the [`EmbedderControlId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
     /// Return the type of input method that initated this request.
     pub fn input_method_type(&self) -> InputMethodType {
         self.input_method_type
@@ -581,6 +641,13 @@ impl InputMethodControl {
     /// Whether or not this field is a multiline field.
     pub fn multiline(&self) -> bool {
         self.multiline
+    }
+
+    /// Whether the virtual keyboard should be shown for this input method event.
+    /// This is currently true for input method events that happen after the user has
+    /// interacted with page contents via an input event.
+    pub fn allow_virtual_keyboard(&self) -> bool {
+        self.allow_virtual_keyboard
     }
 }
 
@@ -741,7 +808,7 @@ impl Drop for ConfirmDialog {
 /// The prompt dialog is expected to be represented by a mesage, a text entry field, and
 /// an "Ok" and "Cancel" buttons. When "Ok" is selected the current prompt value is sent
 /// as the response to the DOM API. A default value may be sent with the [`PromptDialog`],
-/// which be be retrieved by calling [`Self::current_value`]. Before calling [`Self::ok`]
+/// which be be retrieved by calling [`Self::current_value`]. Before calling [`Self::confirm`]
 /// or as the prompt field changes, the embedder is expected to call
 /// [`Self::set_current_value`].
 pub struct PromptDialog {
@@ -829,9 +896,9 @@ pub trait WebViewDelegate {
     fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {}
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
     /// cursor can accessed via [`WebView::cursor`].
-    fn notify_cursor_changed(&self, _webview: WebView, _: Cursor) {}
+    fn notify_cursor_changed(&self, _webview: WebView, _cursor: Cursor) {}
     /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
-    /// favicon [`Image`] can accessed via [`WebView::favicon`].
+    /// favicon [`Image`](embedder_traits::Image) can accessed via [`WebView::favicon`].
     fn notify_favicon_changed(&self, _webview: WebView) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
@@ -840,7 +907,7 @@ pub trait WebViewDelegate {
     /// back navigation, and forward navigation modify this index.
     fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {}
     /// A history traversal operation is complete.
-    fn notify_traversal_complete(&self, _webview: WebView, _: TraversalId) {}
+    fn notify_traversal_complete(&self, _webview: WebView, _traversal_id: TraversalId) {}
     /// Page content has closed this [`WebView`] via `window.close()`. It's the embedder's
     /// responsibility to remove the [`WebView`] from the interface when this notification
     /// occurs.
@@ -849,7 +916,13 @@ pub trait WebViewDelegate {
     /// An input event passed to this [`WebView`] via [`WebView::notify_input_event`] has been handled
     /// by Servo. This allows post-procesing of input events, such as chaining up unhandled events
     /// to parent UI elements.
-    fn notify_input_event_handled(&self, _webview: WebView, _: InputEventId, _: InputEventResult) {}
+    fn notify_input_event_handled(
+        &self,
+        _webview: WebView,
+        _event_id: InputEventId,
+        _result: InputEventResult,
+    ) {
+    }
     /// A pipeline in the webview panicked. First string is the reason, second one is the backtrace.
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {}
     /// Notifies the embedder about media session events
@@ -860,7 +933,7 @@ pub trait WebViewDelegate {
     /// mode and to show or hide extra UI elements. Regardless of how the notification is handled,
     /// the page will enter or leave fullscreen state internally according to the [Fullscreen
     /// API](https://fullscreen.spec.whatwg.org/).
-    fn notify_fullscreen_state_changed(&self, _webview: WebView, _: bool) {}
+    fn notify_fullscreen_state_changed(&self, _webview: WebView, _is_fullscreen: bool) {}
 
     /// Whether or not to allow a [`WebView`] to load a URL in its main frame or one of its
     /// nested `<iframe>`s. [`NavigationRequest`]s are accepted by default.
@@ -869,7 +942,7 @@ pub trait WebViewDelegate {
     /// of its nested `<iframe>`s. By default, unloads are allowed.
     fn request_unload(&self, _webview: WebView, _unload_request: AllowOrDenyRequest) {}
     /// Move the window to a point.
-    fn request_move_to(&self, _webview: WebView, _: DeviceIntPoint) {}
+    fn request_move_to(&self, _webview: WebView, _point: DeviceIntPoint) {}
     /// Whether or not to allow a [`WebView`] to (un)register a protocol handler (e.g. `mailto:`).
     /// Typically an embedder application will show a permissions prompt when this happens
     /// to confirm a protocol handler is allowed. By default, requests are denied.
@@ -907,11 +980,11 @@ pub trait WebViewDelegate {
     /// it will be immediately destroyed.
     ///
     /// [`window.open`]: https://developer.mozilla.org/en-US/docs/Web/API/Window/open
-    fn request_create_new(&self, _parent_webview: WebView, _: CreateNewWebViewRequest) {}
+    fn request_create_new(&self, _parent_webview: WebView, _request: CreateNewWebViewRequest) {}
     /// Content in a [`WebView`] is requesting permission to access a feature requiring
     /// permission from the user. The embedder should allow or deny the request, either by
     /// reading a cached value or querying the user for permission via the user interface.
-    fn request_permission(&self, _webview: WebView, _: PermissionRequest) {}
+    fn request_permission(&self, _webview: WebView, _request: PermissionRequest) {}
 
     fn request_authentication(
         &self,
@@ -921,14 +994,11 @@ pub trait WebViewDelegate {
     }
 
     /// Open dialog to select bluetooth device.
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
     fn show_bluetooth_device_dialog(
         &self,
         _webview: WebView,
-        _: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        _request: BluetoothDeviceSelectionRequest,
     ) {
-        let _ = response_sender.send(None);
     }
 
     /// Request that the embedder show UI elements for form controls that are not integrated
@@ -940,24 +1010,6 @@ pub trait WebViewDelegate {
     ///
     /// After this point, any further responses to that request will be ignored.
     fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
-
-    /// Request to play a haptic effect on a connected gamepad. The embedder is expected to
-    /// call the provided callback when the effect is complete with `true` for success
-    /// and `false` for failure.
-    #[cfg(feature = "gamepad")]
-    fn play_gamepad_haptic_effect(
-        &self,
-        _webview: WebView,
-        _: usize,
-        _: GamepadHapticEffectType,
-        _: Box<dyn FnOnce(bool)>,
-    ) {
-    }
-    /// Request to stop a haptic effect on a connected gamepad. The embedder is expected to
-    /// call the provided callback when the effect is complete with `true` for success
-    /// and `false` for failure.
-    #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: Box<dyn FnOnce(bool)>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
@@ -974,6 +1026,19 @@ pub trait WebViewDelegate {
     /// A console message was logged by content in this [`WebView`].
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     fn show_console_message(&self, _webview: WebView, _level: ConsoleLogLevel, _message: String) {}
+
+    /// There is a new accessibility tree update from this [`WebView`].
+    ///
+    /// Generally the impl should send this update to an AccessKit adapter, but it may need to queue
+    /// the update for later, if the [graft node] for this [`WebView`] has not yet been created
+    /// *and* your impl is unable to create it (and send that update to AccessKit) before sending
+    /// this update to AccessKit. For more details, see [`WebView::set_accessibility_active`].
+    fn notify_accessibility_tree_update(
+        &self,
+        _webview: WebView,
+        _tree_update: accesskit::TreeUpdate,
+    ) {
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;
@@ -985,7 +1050,7 @@ mod test {
 
     #[test]
     fn test_allow_deny_request() {
-        use base::generic_channel;
+        use servo_base::generic_channel;
 
         use crate::responders::ServoErrorChannel;
 
@@ -1051,15 +1116,13 @@ mod test {
 
     #[test]
     fn test_authentication_request() {
-        use base::generic_channel;
-
         use crate::responders::ServoErrorChannel;
 
         let url = Url::parse("https://example.com").expect("Guaranteed by argument");
 
         // Explicit response yields that response and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         request.authenticate("diffie".to_owned(), "hunter2".to_owned());
         assert_eq!(
@@ -1074,7 +1137,7 @@ mod test {
 
         // No response yields None response and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(request);
         assert_eq!(receiver.try_recv().ok(), Some(None));
@@ -1083,7 +1146,7 @@ mod test {
 
         // Explicit response when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
         request.authenticate("diffie".to_owned(), "hunter2".to_owned());
@@ -1091,7 +1154,7 @@ mod test {
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
         drop(request);
@@ -1100,7 +1163,6 @@ mod test {
 
     #[test]
     fn test_web_resource_load() {
-        use base::generic_channel;
         use http::{HeaderMap, Method, StatusCode};
 
         use crate::responders::ServoErrorChannel;
@@ -1109,6 +1171,8 @@ mod test {
             method: Method::GET,
             headers: HeaderMap::default(),
             url: Url::parse("https://example.com").expect("Guaranteed by argument"),
+            destination: content_security_policy::Destination::Document,
+            referrer_url: None,
             is_for_main_frame: false,
             is_redirect: false,
         };
@@ -1121,7 +1185,7 @@ mod test {
 
         // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         request.intercept(web_resource_response()).cancel();
         assert!(matches!(
@@ -1137,7 +1201,7 @@ mod test {
 
         // Explicit intercept with no further action yields Start and FinishLoad and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(request.intercept(web_resource_response()));
         assert!(matches!(
@@ -1153,7 +1217,7 @@ mod test {
 
         // No response yields DoNotIntercept and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(request);
         assert!(matches!(
@@ -1165,7 +1229,7 @@ mod test {
 
         // Explicit intercept with explicit cancel when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         request.intercept(web_resource_response()).cancel();
@@ -1173,7 +1237,7 @@ mod test {
 
         // Explicit intercept with no further action when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         drop(request.intercept(web_resource_response()));
@@ -1181,7 +1245,7 @@ mod test {
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         drop(request);

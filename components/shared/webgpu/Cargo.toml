@@ -1,11 +1,13 @@
 [package]
-name = "webgpu_traits"
+name = "servo-webgpu-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "webgpu_traits"
@@ -13,11 +15,11 @@ path = "lib.rs"
 
 [dependencies]
 arrayvec = { workspace = true }
-base = { workspace = true }
-ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
-pixels = { path = "../../pixels" }
+malloc_size_of_derive = { workspace = true }
+pixels = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }

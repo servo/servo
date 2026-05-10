@@ -14,7 +14,6 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// An HTML comment.
 #[dom_struct]
@@ -30,16 +29,16 @@ impl Comment {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         text: DOMString,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Comment> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(Comment::new_inherited(text, document)),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -47,12 +46,12 @@ impl Comment {
 impl CommentMethods<crate::DomTypeHolder> for Comment {
     /// <https://dom.spec.whatwg.org/#dom-comment-comment>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         data: DOMString,
     ) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
-        Ok(Comment::new(data, &document, proto, can_gc))
+        Ok(Comment::new(cx, data, &document, proto))
     }
 }

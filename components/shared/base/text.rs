@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -65,10 +65,6 @@ macro_rules! unicode_length_type {
 
             pub fn one() -> Self {
                 Self(1)
-            }
-
-            pub fn unwrap_range(byte_range: Range<Self>) -> Range<usize> {
-                byte_range.start.0..byte_range.end.0
             }
 
             pub fn saturating_sub(self, value: Self) -> Self {

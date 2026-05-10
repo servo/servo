@@ -1,0 +1,19 @@
+<!doctype html>
+<title>location.ancestorOrigins new object semantics</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+test(() => {
+  assert_implements(location.ancestorOrigins);
+  const iframe = document.querySelector('iframe');
+  const iframeLoc = iframe.contentWindow.location;
+  assert_array_equals(iframeLoc.ancestorOrigins, [window.origin]);
+  assert_equals(iframeLoc.ancestorOrigins, iframeLoc.ancestorOrigins, 'should return the same object before removing the iframe');
+  const ancestorOriginsBeforeRemoval = iframeLoc.ancestorOrigins;
+  iframe.remove();
+  assert_array_equals(iframeLoc.ancestorOrigins, []);
+  assert_not_equals(iframeLoc.ancestorOrigins, ancestorOriginsBeforeRemoval, 'should return a new object after removing the iframe');
+  assert_equals(iframeLoc.ancestorOrigins, iframeLoc.ancestorOrigins, 'should return the same object on subsequent access');
+});
+</script>

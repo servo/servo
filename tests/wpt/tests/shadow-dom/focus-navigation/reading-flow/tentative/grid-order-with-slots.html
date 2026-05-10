@@ -4,6 +4,7 @@
 <title>CSS Display: reading-flow with value grid-order in Shadow DOM</title>
 <link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
 <link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<link rel="author" title="Peng Zhou" href="mailto:pengzhou@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -55,7 +56,7 @@
 </span>
 <br>
 
-<span id="host3" class="test-case" data-expect="o1,o3,o5,host3/o2,host3/o4"
+<span id="host3" class="test-case" data-expect="o1,host3/o2,o3,host3/o4,o5"
       data-description="Slot is inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -77,7 +78,7 @@
 <br>
 
 <span id="host4" class="test-case"
-      data-expect="b4,a4,d42,d41,d43,c4,host4/after,host4/before"
+      data-expect="b4,host4/after,a4,host4/before,d42,d41,d43,c4"
       data-description="Slot is a grid with reading-flow inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -120,7 +121,7 @@
 </span>
 <br>
 
-<span id="host6" class="test-case" data-expect="b6,a6,host6/after,host6/before"
+<span id="host6" class="test-case" data-expect="b6,host6/after,host6/before,a6"
       data-description="Slot is a display contents inside a grid container.">
   <template shadowrootmode="open">
     <style>

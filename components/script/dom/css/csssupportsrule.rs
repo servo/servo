@@ -5,6 +5,8 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
@@ -13,18 +15,16 @@ use style_traits::ToCss;
 use super::cssconditionrule::CSSConditionRule;
 use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSSupportsRule {
-    cssconditionrule: CSSConditionRule,
+    css_condition_rule: CSSConditionRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    supportsrule: RefCell<Arc<SupportsRule>>,
+    supports_rule: RefCell<Arc<SupportsRule>>,
 }
 
 impl CSSSupportsRule {
@@ -34,30 +34,30 @@ impl CSSSupportsRule {
     ) -> CSSSupportsRule {
         let list = supportsrule.rules.clone();
         CSSSupportsRule {
-            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            supportsrule: RefCell::new(supportsrule),
+            css_condition_rule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            supports_rule: RefCell::new(supportsrule),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSSupportsRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSSupportsRule::new_inherited(
                 parent_stylesheet,
                 supportsrule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
     pub(crate) fn get_condition_text(&self) -> DOMString {
-        self.supportsrule.borrow().condition.to_css_string().into()
+        self.supports_rule.borrow().condition.to_css_string().into()
     }
 
     pub(crate) fn update_rule(
@@ -65,9 +65,9 @@ impl CSSSupportsRule {
         supportsrule: Arc<SupportsRule>,
         guard: &SharedRwLockReadGuard,
     ) {
-        self.cssconditionrule
+        self.css_condition_rule
             .update_rules(supportsrule.rules.clone(), guard);
-        *self.supportsrule.borrow_mut() = supportsrule;
+        *self.supports_rule.borrow_mut() = supportsrule;
     }
 }
 
@@ -77,7 +77,7 @@ impl SpecificCSSRule for CSSSupportsRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssconditionrule.shared_lock().read();
-        self.supportsrule.borrow().to_css_string(&guard).into()
+        let guard = self.css_condition_rule.shared_lock().read();
+        self.supports_rule.borrow().to_css_string(&guard).into()
     }
 }

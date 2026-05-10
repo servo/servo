@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Linked Parameters Module Level 1: parsing link-parameters with valid values</title>
+<link rel="author" title="Tyler Thrailkill" href="mailto:tyler@programming.dev">
+<link rel="help" href="https://drafts.csswg.org/css-link-params-1/#link-param-prop">
+<meta name="assert" content="link-parameters supports only the grammar 'none | <param()>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+    test_invalid_value("link-parameters", "non");
+
+    test_invalid_value("link-parameters", "param(--a, red) param(--b, blue)");
+
+    test_invalid_value("link-parameters", "param(-a)");
+    test_invalid_value("link-parameters", "param(-a, )");
+    test_invalid_value("link-parameters", "param(-a, blue)");
+    test_invalid_value("link-parameters", "param--a)");
+    test_invalid_value("link-parameters", "para(--a)");
+
+    test_invalid_value("link-parameters", "param(--a red)");
+</script>
+</body>
+</html>

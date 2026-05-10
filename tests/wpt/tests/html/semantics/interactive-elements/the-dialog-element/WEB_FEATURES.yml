@@ -1,10 +1,28 @@
 features:
 - name: dialog
-  files: "**"
+  files:
+  - "*"
+  # keep exclusions synced with mappings below
+  - "!dialog-cancel-events.html"
+  - "!dialog-canceling.html"
+  - "!dialog-closedby.html"
+  - "!dialog-closedby-*"
+  - "!dialog-popover-closedby-*"
+  - "!dialog-requestclose.html"
+  - "!dialog-requestclose-*"
+  - "!backdrop-*"
+  - "!dialogs-with-no-backdrop.html"
+  - "!modal-dialog-backdrop.html"
+  - "!modal-dialog-backdrop-opacity.html"
+  - "!modal-dialog-display-contents.html"
+  - "!modal-dialog-generated-content.html"
+  - "!dialog-open-pseudo-invalidation.html"
+  - "!dialog-toggle-source.html"
+# keep subsequent mappings synced with exclusions above
 - name: closewatcher
   files:
-  - "dialog-cancel-events.html"
-  - "dialog-canceling.html"
+  - dialog-cancel-events.html
+  - dialog-canceling.html
 - name: dialog-closedby
   files:
   - dialog-closedby.html
@@ -25,3 +43,6 @@ features:
 - name: open-pseudo
   files:
   - dialog-open-pseudo-invalidation.html
+- name: toggleevent-source
+  files:
+  - dialog-toggle-source.html

@@ -4,24 +4,22 @@
 
 use std::borrow::Cow;
 
-use fonts::TextByteRange;
-use html5ever::LocalName;
-use layout_api::wrapper_traits::{
-    PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+use layout_api::{
+    LayoutElement, LayoutElementType, LayoutNode, LayoutNodeType, PseudoElementChain,
 };
-use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
-use script::layout_dom::ServoThreadSafeLayoutNode;
-use selectors::Element as SelectorsElement;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
+use web_atoms::LocalName;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::flow::inline::SharedInlineStyles;
+use crate::lists::generate_counter_representation;
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -30,22 +28,13 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<'dom> {
-    pub node: ServoThreadSafeLayoutNode<'dom>,
+    pub node: ServoLayoutNode<'dom>,
     pub style: ServoArc<ComputedValues>,
-    pub damage: LayoutDamage,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
-    pub(crate) fn new(
-        node: ServoThreadSafeLayoutNode<'dom>,
-        style: ServoArc<ComputedValues>,
-        damage: LayoutDamage,
-    ) -> Self {
-        Self {
-            node,
-            style,
-            damage,
-        }
+    pub(crate) fn new(node: ServoLayoutNode<'dom>, style: ServoArc<ComputedValues>) -> Self {
+        Self { node, style }
     }
 
     pub(crate) fn pseudo_element_chain(&self) -> PseudoElementChain {
@@ -62,12 +51,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         Some(NodeAndStyleInfo {
             node: element.as_node(),
             style,
-            damage: self.damage,
         })
-    }
-
-    pub(crate) fn get_selection_range(&self) -> Option<TextByteRange> {
-        self.node.selection()
     }
 }
 
@@ -113,10 +97,10 @@ pub(super) trait TraversalHandler<'dom> {
     );
 
     /// Notify the handler that we are about to recurse into a `display: contents` element.
-    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+    fn enter_display_contents(&mut self, _: SharedInlineStyles);
 
     /// Notify the handler that we have finished a `display: contents` element.
-    fn leave_display_contents(&mut self) {}
+    fn leave_display_contents(&mut self);
 }
 
 fn traverse_children_of<'dom>(
@@ -133,13 +117,9 @@ fn traverse_children_of<'dom>(
         traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
     }
 
-    for child in parent_element_info.node.children() {
+    for child in parent_element_info.node.flat_tree_children() {
         if child.is_text_node() {
-            let info = NodeAndStyleInfo::new(
-                child,
-                child.style(&context.style_context),
-                child.take_restyle_damage(),
-            );
+            let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
             handler.handle_text(&info, child.text_content());
         } else if child.is_element() {
             traverse_element(child, context, handler);
@@ -152,27 +132,23 @@ fn traverse_children_of<'dom>(
 }
 
 fn traverse_element<'dom>(
-    element: ServoThreadSafeLayoutNode<'dom>,
+    element: ServoLayoutNode<'dom>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
-    let damage = element.take_restyle_damage();
-    if damage.has_box_damage() {
-        element.unset_all_pseudo_boxes();
-    }
-
     let style = element.style(&context.style_context);
-    let info = NodeAndStyleInfo::new(element, style, damage);
+    let info = NodeAndStyleInfo::new(element, style);
 
     match Display::from(info.style.get_box().display) {
-        Display::None => element.unset_all_boxes(),
+        Display::None => {},
         Display::Contents => {
             if ReplacedContents::for_element(element, context).is_some() {
                 // `display: content` on a replaced element computes to `display: none`
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
             } else {
-                let shared_inline_styles: SharedInlineStyles = (&info).into();
+                let shared_inline_styles =
+                    SharedInlineStyles::from_info_and_context(&info, context);
                 element
                     .box_slot()
                     .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
@@ -214,7 +190,8 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::Contents => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
             let box_slot = pseudo_element_info.node.box_slot();
-            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
+            let shared_inline_styles =
+                SharedInlineStyles::from_info_and_context(&pseudo_element_info, context);
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
             handler.enter_display_contents(shared_inline_styles);
@@ -273,13 +250,7 @@ impl Contents {
         matches!(self, Contents::Replaced(_))
     }
 
-    pub(crate) fn for_element(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Self {
-        if let Some(replaced) = ReplacedContents::for_element(node, context) {
-            return Self::Replaced(replaced);
-        }
+    pub(crate) fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Self {
         let is_widget = matches!(
             node.type_id(),
             Some(LayoutNodeType::Element(
@@ -290,6 +261,8 @@ impl Contents {
         );
         if is_widget {
             Self::Widget(NonReplacedContents::OfElement)
+        } else if let Some(replaced) = ReplacedContents::for_element(node, context) {
+            Self::Replaced(replaced)
         } else {
             Self::NonReplaced(NonReplacedContents::OfElement)
         }
@@ -335,7 +308,7 @@ where
 }
 
 /// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
-fn generate_pseudo_element_content(
+pub(crate) fn generate_pseudo_element_content(
     pseudo_element_info: &NodeAndStyleInfo,
     context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem> {
@@ -376,7 +349,7 @@ fn generate_pseudo_element_content(
                             .node
                             .set_uses_content_attribute_with_attr(true);
                         let attr_val =
-                            element.get_attr(&attr.namespace_url, &LocalName::from(attr_name));
+                            element.attribute(&attr.namespace_url, &LocalName::from(attr_name));
                         vec.push(PseudoElementContentItem::Text(
                             attr_val.map_or("".to_string(), |s| s.to_string()),
                         ));
@@ -410,12 +383,13 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Text(quote));
                         }
                     },
-                    ContentItem::Counter(_, _) |
-                    ContentItem::Counters(_, _, _) |
-                    ContentItem::NoOpenQuote |
-                    ContentItem::NoCloseQuote => {
-                        // TODO: Add support for counters and quotes.
+                    ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
+                        // TODO: Add support for counters, this assumes a value of 0.
+                        vec.push(PseudoElementContentItem::Text(
+                            generate_counter_representation(style).to_string(),
+                        ));
                     },
+                    ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => {},
                 }
             }
             vec

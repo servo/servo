@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericReceiver;
 use euclid::{Point2D, Rect, RigidTransform3D, Transform3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericReceiver;
 
 use crate::{
     DiscoveryAPI, Display, EntityType, Error, Floor, Handedness, Input, InputId, InputSource,

@@ -27,6 +27,11 @@
 promise_test(async t => {
   assert_implements(document.startViewTransition, "View Transitions are not supported");
 
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "block");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").width, "auto");
+  assert_equals(document.activeViewTransition, null);
+
   const transition = document.startViewTransition(() => {});
 
   // When we're ready, we request a new animation frame (in which the vt should be finished),
@@ -36,8 +41,8 @@ promise_test(async t => {
     await new Promise(resolve => {
       requestAnimationFrame(() => {
         t.step_timeout(() => {
-          assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "block");
-          assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
+          assert_equals(document.activeViewTransition, transition);
+          assert_not_equals(getComputedStyle(document.documentElement, "::view-transition").width, "auto");
           resolve();
         }, 0);
       });
@@ -52,8 +57,8 @@ promise_test(async t => {
   // have a rAF between the timeout function and here.
   transition.finished.then(t.step_func(() => {
     assert_true(success);
-    assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "inline");
-    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "static");
+    assert_equals(document.activeViewTransition, null);
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").width, "auto");
   }));
 }, "View transition cleanup is deferred until after the frame where `finished` promise resolves");
 </script>

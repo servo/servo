@@ -14,10 +14,9 @@ use std::time::{Duration, Instant, SystemTime};
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
-use http::header::HeaderValue;
 use http::{HeaderMap, Method, StatusCode, header};
 use log::{debug, error};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
@@ -55,11 +54,15 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub struct CachedResource {
+    #[conditional_malloc_size_of]
     request_headers: Arc<ParkingLotMutex<HeaderMap>>,
+    #[conditional_malloc_size_of]
     body: Arc<ParkingLotMutex<ResponseBody>>,
+    #[conditional_malloc_size_of]
     aborted: Arc<AtomicBool>,
+    #[conditional_malloc_size_of]
     awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
@@ -70,27 +73,11 @@ pub struct CachedResource {
     last_validated: Instant,
 }
 
-impl MallocSizeOf for CachedResource {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // TODO: self.request_headers.unconditional_size_of(ops) +
-        self.body.unconditional_size_of(ops) +
-            self.aborted.unconditional_size_of(ops) +
-            self.awaiting_body.unconditional_size_of(ops) +
-            self.metadata.size_of(ops) +
-            self.location_url.size_of(ops) +
-            self.https_state.size_of(ops) +
-            self.status.size_of(ops) +
-            self.url_list.size_of(ops) +
-            self.expires.size_of(ops) +
-            self.last_validated.size_of(ops)
-    }
-}
-
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, MallocSizeOf)]
 struct CachedMetadata {
     /// Headers
-    #[ignore_malloc_size_of = "Defined in `http` and has private members"]
+    #[conditional_malloc_size_of]
     pub headers: Arc<ParkingLotMutex<HeaderMap>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -180,10 +167,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             return true;
         }
     }
-    if let Some(pragma) = headers.typed_get::<Pragma>() {
-        if pragma.is_no_cache() {
-            return false;
-        }
+    if let Some(pragma) = headers.typed_get::<Pragma>() &&
+        pragma.is_no_cache()
+    {
+        return false;
     }
     is_cacheable
 }
@@ -260,10 +247,10 @@ fn get_response_expiry(response: &Response) -> Duration {
             return heuristic_freshness;
         }
         // Other status codes can only use heuristic freshness if the public cache directive is present.
-        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-            if directives.public() {
-                return heuristic_freshness;
-            }
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() &&
+            directives.public()
+        {
+            return heuristic_freshness;
         }
     }
     // Requires validation upon first use as default.
@@ -647,7 +634,7 @@ pub(crate) fn construct_response(
 
 /// Freshening Stored Responses upon Validation.
 /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
-pub async fn refresh(
+pub fn refresh(
     request: &Request,
     response: Response,
     done_chan: &mut DoneChannel,
@@ -711,36 +698,7 @@ pub async fn refresh(
     constructed_response
 }
 
-/// Invalidation.
-/// <https://tools.ietf.org/html/rfc7234#section-4.4>
-pub(crate) async fn invalidate(
-    request: &Request,
-    response: &Response,
-    cached_resources: &mut [CachedResource],
-) {
-    // TODO(eijebong): Once headers support typed_get, update this to use them
-    if let Some(Ok(location)) = response
-        .headers
-        .get(header::LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    if let Some(Ok(content_location)) = response
-        .headers
-        .get(header::CONTENT_LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(content_location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    invalidate_cached_resources(cached_resources).await;
-}
-
-async fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
+pub(crate) fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     for cached_resource in cached_resources.iter_mut() {
         cached_resource.expires = Duration::ZERO;
     }
@@ -762,7 +720,7 @@ impl HttpCache {
     /// Wake-up consumers of cached resources
     /// whose response body was still receiving data when the resource was constructed,
     /// and whose response has now either been completed or cancelled.
-    pub async fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
+    pub(crate) async fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
         let entry_key = CacheKey::new(request);
 
         let cached_resources = match self.entries.get(&entry_key) {
@@ -808,7 +766,7 @@ impl HttpCache {
     }
 
     /// Returns descriptors for cache entries currently stored in this cache.
-    pub fn cache_entry_descriptors(&self) -> Vec<CacheEntryDescriptor> {
+    pub(crate) fn cache_entry_descriptors(&self) -> Vec<CacheEntryDescriptor> {
         self.entries
             .iter()
             .map(|(key, _)| CacheEntryDescriptor::new(key.url.to_string()))
@@ -816,14 +774,14 @@ impl HttpCache {
     }
 
     /// Clear the contents of this cache.
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.entries.clear();
     }
 
     /// Insert a response for `request` into the cache (used by tests that need direct access).
     pub async fn store(&self, request: &Request, response: &Response) {
         let guard = self.get_or_guard(CacheKey::new(request)).await;
-        guard.insert(request, response).await;
+        guard.insert(request, response);
     }
 
     /// Try to construct a cached response for `request`.
@@ -839,7 +797,7 @@ impl HttpCache {
     }
 
     /// Invalidate cache entries referenced by Location/Content-Location headers.
-    pub async fn invalidate_related_urls(
+    pub(crate) async fn invalidate_related_urls(
         &self,
         request: &Request,
         response: &Response,
@@ -859,7 +817,7 @@ impl HttpCache {
     async fn invalidate_entry(&self, key: &CacheKey) {
         if let Some(entry) = self.entries.get(key) {
             let mut guarded_resources = entry.write().await;
-            invalidate_cached_resources(guarded_resources.as_mut_slice()).await;
+            invalidate_cached_resources(guarded_resources.as_mut_slice());
         }
     }
 
@@ -884,7 +842,7 @@ pub enum CachedResourcesOrGuard<'a> {
 
 impl<'a> CachedResourcesOrGuard<'a> {
     /// Insert into the cache according to http spec
-    pub async fn insert(self, request: &Request, response: &Response) {
+    pub fn insert(self, request: &Request, response: &Response) {
         if pref!(network_http_cache_disabled) {
             return;
         }
