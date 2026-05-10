@@ -151,6 +151,9 @@ impl GlyphShapingResult for HarfbuzzGlyphShapingResult {
         if self.count == 0 {
             return false;
         }
+        // SAFETY: We assume self.glyph_infos is a valid non-zero ptr
+        // to an array of self.count items. We checked self.count != 0
+        // and hence both calculated pointers are within the bounds.
         unsafe {
             let first_glyph_info = self.glyph_infos.add(0);
             let last_glyph_info = self.glyph_infos.add(self.count - 1);
