@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>executeTool() in detached frame</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await load_promise;
+
+  const iDOMException = iframe.contentWindow.DOMException;
+  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+
+  // Register a dummy tool so we have a valid tool object before detaching the frame.
+  const toolchange_promise = new Promise(resolve => {
+    iframe_modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  iframe_modelContext.registerTool({
+    name: 'dummy_tool',
+    description: 'Dummy tool',
+    execute: async () => {}
+  });
+
+  await toolchange_promise;
+
+  const tools = await iframe_modelContext.getTools();
+  const tool = tools.find(t => t.name === 'dummy_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  // Detach the iframe context.
+  iframe.remove();
+
+  // Calling executeTool() should reject with InvalidStateError.
+  await promise_rejects_dom(t, 'InvalidStateError', iDOMException, iframe_modelContext.executeTool(tool, '{}'));
+}, 'executeTool() throws `InvalidStateError` in detached frame');
+</script>
+</body>
+</html>

@@ -5,11 +5,11 @@
 use std::slice::Iter;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
 
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;

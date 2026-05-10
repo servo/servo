@@ -2,19 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::default::Default;
-
 use dom_struct::dom_struct;
+use script_bindings::reflector::Reflector;
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::serviceworker::ServiceWorker;
-use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Client {
@@ -25,39 +21,6 @@ pub(crate) struct Client {
     frame_type: FrameType,
     #[no_trace]
     id: Uuid,
-}
-
-impl Client {
-    fn new_inherited(url: ServoUrl) -> Client {
-        Client {
-            reflector_: Reflector::new(),
-            active_worker: Default::default(),
-            url,
-            frame_type: FrameType::None,
-            id: Uuid::new_v4(),
-        }
-    }
-
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Client> {
-        reflect_dom_object(
-            Box::new(Client::new_inherited(window.get_url())),
-            window,
-            can_gc,
-        )
-    }
-
-    pub(crate) fn creation_url(&self) -> ServoUrl {
-        self.url.clone()
-    }
-
-    pub(crate) fn get_controller(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.active_worker.get()
-    }
-
-    #[expect(dead_code)]
-    pub(crate) fn set_controller(&self, worker: &ServiceWorker) {
-        self.active_worker.set(Some(worker));
-    }
 }
 
 impl ClientMethods<crate::DomTypeHolder> for Client {

@@ -8,6 +8,7 @@ use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerRegistrationId;
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;

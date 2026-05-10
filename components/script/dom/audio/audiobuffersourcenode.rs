@@ -7,6 +7,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::buffer_source_node::{
     AudioBufferSourceNodeMessage, AudioBufferSourceNodeOptions,
 };
@@ -26,7 +27,6 @@ use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::Au
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -159,16 +159,16 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         self.buffer.set(new_buffer);
 
         // Step 5.
-        if self.source_node.has_start() {
-            if let Some(buffer) = self.buffer.get() {
-                let buffer = buffer.get_channels();
-                if buffer.is_some() {
-                    self.source_node
-                        .node()
-                        .message(AudioNodeMessage::AudioBufferSourceNode(
-                            AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
-                        ));
-                }
+        if self.source_node.has_start() &&
+            let Some(buffer) = self.buffer.get()
+        {
+            let buffer = buffer.get_channels();
+            if buffer.is_some() {
+                self.source_node
+                    .node()
+                    .message(AudioNodeMessage::AudioBufferSourceNode(
+                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                    ));
             }
         }
 
@@ -234,20 +234,20 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         offset: Option<Finite<f64>>,
         duration: Option<Finite<f64>>,
     ) -> Fallible<()> {
-        if let Some(offset) = offset {
-            if *offset < 0. {
-                return Err(Error::Range(
-                    c"'offset' must be a positive value".to_owned(),
-                ));
-            }
+        if let Some(offset) = offset &&
+            *offset < 0.
+        {
+            return Err(Error::Range(
+                c"'offset' must be a positive value".to_owned(),
+            ));
         }
 
-        if let Some(duration) = duration {
-            if *duration < 0. {
-                return Err(Error::Range(
-                    c"'duration' must be a positive value".to_owned(),
-                ));
-            }
+        if let Some(duration) = duration &&
+            *duration < 0.
+        {
+            return Err(Error::Range(
+                c"'duration' must be a positive value".to_owned(),
+            ));
         }
 
         if let Some(buffer) = self.buffer.get() {

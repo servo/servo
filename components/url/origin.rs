@@ -181,10 +181,10 @@ impl ImmutableOrigin {
             // * origin’s host is "localhost" or "localhost."
             // * origin’s host ends with ".localhost" or ".localhost."
             // then return "Potentially Trustworthy".
-            if let Host::Domain(domain) = host {
-                if domain == "localhost" || domain.ends_with(".localhost") {
-                    return true;
-                }
+            if let Host::Domain(domain) = host &&
+                (domain == "localhost" || domain.ends_with(".localhost"))
+            {
+                return true;
             }
         }
 

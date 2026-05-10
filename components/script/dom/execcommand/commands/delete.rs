@@ -52,13 +52,13 @@ pub(crate) fn execute_delete_command(
     loop {
         // Step 4.1. If offset is zero and node's previousSibling is an editable invisible node,
         // remove node's previousSibling from its parent.
-        if offset == 0 {
-            if let Some(sibling) = node.GetPreviousSibling() {
-                if sibling.is_editable() && sibling.is_invisible() {
-                    sibling.remove_self(cx);
-                    continue;
-                }
-            }
+        if offset == 0 &&
+            let Some(sibling) = node.GetPreviousSibling() &&
+            sibling.is_editable() &&
+            sibling.is_invisible()
+        {
+            sibling.remove_self(cx);
+            continue;
         }
         // Step 4.2. Otherwise, if node has a child with index offset − 1 and that child is an editable invisible node,
         // remove that child from node, then subtract one from offset.
@@ -67,12 +67,13 @@ pub(crate) fn execute_delete_command(
                 .children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
-            if let Some(child) = child {
-                if child.is_editable() && child.is_invisible() {
-                    child.remove_self(cx);
-                    offset -= 1;
-                    continue;
-                }
+            if let Some(child) = child &&
+                child.is_editable() &&
+                child.is_invisible()
+            {
+                child.remove_self(cx);
+                offset -= 1;
+                continue;
             }
         }
         // Step 4.3. Otherwise, if offset is zero and node is an inline node, or if node is an invisible node,
@@ -208,12 +209,13 @@ pub(crate) fn execute_delete_command(
             .children_unrooted(cx.no_gc())
             .nth(start_offset as usize - 1)
             .map(|node| node.as_rooted());
-        if let Some(child) = child {
-            if child.is_editable() && child.is_invisible() {
-                child.remove_self(cx);
-                start_offset -= 1;
-                continue;
-            }
+        if let Some(child) = child &&
+            child.is_editable() &&
+            child.is_invisible()
+        {
+            child.remove_self(cx);
+            start_offset -= 1;
+            continue;
         }
         // Step 9.3. Otherwise, break from this loop.
         break;

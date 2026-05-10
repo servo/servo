@@ -138,6 +138,8 @@ jobs:
           ./mach bootstrap --yes --skip-lints --skip-nextest
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: "-D warnings"
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-macos

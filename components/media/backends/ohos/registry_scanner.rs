@@ -34,10 +34,10 @@ impl OhosRegistryScanner {
         codecs.iter().all(|codec| {
             supported_codecs.contains(codec) || {
                 supported_codecs.iter().any(|supported_codec| {
-                    if let Some(stripped) = supported_codec.strip_suffix('*') {
-                        if codec.starts_with(stripped) {
-                            return true;
-                        }
+                    if let Some(stripped) = supported_codec.strip_suffix('*') &&
+                        codec.starts_with(stripped)
+                    {
+                        return true;
                     }
                     false
                 })

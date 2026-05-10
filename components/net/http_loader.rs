@@ -1047,10 +1047,10 @@ fn location_url_for_response(
         });
 
     // Step 4. If location is a URL whose fragment is null, then set location’s fragment to requestFragment.
-    if let Some(Ok(ref mut location)) = location {
-        if location.fragment().is_none() {
-            location.set_fragment(request_fragment);
-        }
+    if let Some(Ok(ref mut location)) = location &&
+        location.fragment().is_none()
+    {
+        location.set_fragment(request_fragment);
     }
     // Step 5. Return location.
     location
@@ -1314,42 +1314,42 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
-    if http_request.keep_alive {
-        if let Some(content_length) = content_length {
-            // Step 8.10.1. Let inflightKeepaliveBytes be 0.
-            // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
-            // Step 8.10.3. Let inflightRecords be the set of fetch records
-            // in group whose request’s keepalive is true and done flag is unset.
-            let in_flight_keep_alive_bytes: u64 = context
-                .in_flight_keep_alive_records
-                .lock()
-                .get(
-                    &http_request
-                        .pipeline_id
-                        .expect("Must always set a pipeline ID for keep-alive requests"),
-                )
-                .map(|records| {
-                    // Step 8.10.4. For each fetchRecord of inflightRecords:
-                    // Step 8.10.4.1. Let inflightRequest be fetchRecord’s request.
-                    // Step 8.10.4.2. Increment inflightKeepaliveBytes by inflightRequest’s body’s length.
-                    records
-                        .iter()
-                        .map(|record| {
-                            if record.request_id == http_request.id {
-                                // Don't double count for this request. We have already added it in
-                                // `fetch::methods::fetch_with_cors_cache`
-                                0
-                            } else {
-                                record.keep_alive_body_length
-                            }
-                        })
-                        .sum()
-                })
-                .unwrap_or_default();
-            // Step 8.10.5. If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
-            if content_length + in_flight_keep_alive_bytes > 64 * 1024 {
-                return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
-            }
+    if http_request.keep_alive &&
+        let Some(content_length) = content_length
+    {
+        // Step 8.10.1. Let inflightKeepaliveBytes be 0.
+        // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
+        // Step 8.10.3. Let inflightRecords be the set of fetch records
+        // in group whose request’s keepalive is true and done flag is unset.
+        let in_flight_keep_alive_bytes: u64 = context
+            .in_flight_keep_alive_records
+            .lock()
+            .get(
+                &http_request
+                    .pipeline_id
+                    .expect("Must always set a pipeline ID for keep-alive requests"),
+            )
+            .map(|records| {
+                // Step 8.10.4. For each fetchRecord of inflightRecords:
+                // Step 8.10.4.1. Let inflightRequest be fetchRecord’s request.
+                // Step 8.10.4.2. Increment inflightKeepaliveBytes by inflightRequest’s body’s length.
+                records
+                    .iter()
+                    .map(|record| {
+                        if record.request_id == http_request.id {
+                            // Don't double count for this request. We have already added it in
+                            // `fetch::methods::fetch_with_cors_cache`
+                            0
+                        } else {
+                            record.keep_alive_body_length
+                        }
+                    })
+                    .sum()
+            })
+            .unwrap_or_default();
+        // Step 8.10.5. If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
+        if content_length + in_flight_keep_alive_bytes > 64 * 1024 {
+            return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
         }
     }
 
@@ -1380,10 +1380,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
-    if http_request.initiator == Initiator::Prefetch {
-        if let Ok(value) = HeaderValue::from_str("prefetch") {
-            http_request.headers.insert("Sec-Purpose", value);
-        }
+    if http_request.initiator == Initiator::Prefetch &&
+        let Ok(value) = HeaderValue::from_str("prefetch")
+    {
+        http_request.headers.insert("Sec-Purpose", value);
     }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
@@ -1399,10 +1399,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
-    if http_request.headers.contains_key(header::RANGE) {
-        if let Ok(value) = HeaderValue::from_str("identity") {
-            http_request.headers.insert("Accept-Encoding", value);
-        }
+    if http_request.headers.contains_key(header::RANGE) &&
+        let Ok(value) = HeaderValue::from_str("identity")
+    {
+        http_request.headers.insert("Accept-Encoding", value);
     }
 
     // Step 8.20: Modify httpRequest’s header list per HTTP. Do not append a given header if
@@ -1431,10 +1431,10 @@ async fn http_network_or_cache_fetch(
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
-                if !http_request.use_url_credentials || !has_credentials(&current_url) {
-                    authorization_value = Some(basic);
-                }
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) &&
+                (!http_request.use_url_credentials || !has_credentials(&current_url))
+            {
+                authorization_value = Some(basic);
             }
 
             // Substep 5
@@ -2059,11 +2059,11 @@ async fn http_network_fetch(
             .host_str()
             .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
 
-        if url.scheme() == "https" {
-            if let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>() {
-                // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
-                hsts_enabled = sts.max_age().as_secs() > 0;
-            }
+        if url.scheme() == "https" &&
+            let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>()
+        {
+            // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
+            hsts_enabled = sts.max_age().as_secs() > 0;
         }
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
@@ -2097,10 +2097,10 @@ async fn http_network_fetch(
     *res_body.lock() = ResponseBody::Receiving(vec![]);
     let res_body2 = res_body.clone();
 
-    if let Some(ref sender) = devtools_sender {
-        if let Some(m) = msg {
-            send_request_to_devtools(m, sender);
-        }
+    if let Some(ref sender) = devtools_sender &&
+        let Some(m) = msg
+    {
+        send_request_to_devtools(m, sender);
     }
 
     let done_sender2 = done_sender.clone();
@@ -2561,10 +2561,11 @@ fn append_a_request_origin_header(request: &mut Request) {
                 ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
-                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
-                        if scheme == "https" && request.current_url().scheme() != "https" {
-                            serialized_origin = headers::Origin::NULL;
-                        }
+                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin &&
+                        scheme == "https" &&
+                        request.current_url().scheme() != "https"
+                    {
+                        serialized_origin = headers::Origin::NULL;
                     }
                 },
                 ReferrerPolicy::SameOrigin => {

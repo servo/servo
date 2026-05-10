@@ -9,6 +9,7 @@ use std::string::String;
 use dom_struct::dom_struct;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
@@ -22,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -316,7 +317,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .take()
             .ok_or(Error::Operation(None))?;
 
-        let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
+        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;

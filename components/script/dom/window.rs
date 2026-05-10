@@ -69,6 +69,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
+use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
@@ -129,7 +130,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
@@ -851,7 +852,7 @@ impl Window {
         self.set_ongoing_navigation();
 
         // 3. Abort a document and its descendants given document.
-        doc.abort(cx);
+        doc.abort_a_document_and_its_descendants(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
@@ -2475,10 +2476,10 @@ impl Window {
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
             let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() {
-                if currently_active == pipeline_id {
-                    self.window_proxy.set(None);
-                }
+            if let Some(currently_active) = proxy.currently_active() &&
+                currently_active == pipeline_id
+            {
+                self.window_proxy.set(None);
             }
         }
 
@@ -3886,11 +3887,10 @@ impl Window {
             let document = this.Document();
 
             // Step 7.1.
-            if let Some(ref target_origin) = target_origin {
-                if !target_origin.same_origin(&*document.origin()) {
+            if let Some(ref target_origin) = target_origin
+                && !target_origin.same_origin(&*document.origin()) {
                     return;
                 }
-            }
 
             // Steps 7.2.-7.5.
             let obj = this.reflector().get_jsobject();

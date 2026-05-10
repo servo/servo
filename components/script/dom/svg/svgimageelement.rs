@@ -78,11 +78,10 @@ impl VirtualMethods for SVGImageElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("href") &&
-            matches!(attr.namespace(), &ns!() | &ns!(xlink))
+            matches!(attr.namespace(), &ns!() | &ns!(xlink)) &&
+            let AttributeMutation::Set(..) = mutation
         {
-            if let AttributeMutation::Set(..) = mutation {
-                self.fetch_image_resource();
-            }
+            self.fetch_image_resource();
         }
     }
 

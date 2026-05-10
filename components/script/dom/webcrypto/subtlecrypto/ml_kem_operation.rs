@@ -1210,19 +1210,19 @@ fn convert_seed_to_handles(
     let handles = match algorithm_name {
         CryptoAlgorithm::MlKem512 => {
             let (decapsulation_key, encapsulation_key) = MlKem512::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != decapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
             }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != encapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
             }
 
             (
@@ -1232,19 +1232,19 @@ fn convert_seed_to_handles(
         },
         CryptoAlgorithm::MlKem768 => {
             let (decapsulation_key, encapsulation_key) = MlKem768::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != decapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
             }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != encapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
             }
 
             (
@@ -1254,19 +1254,19 @@ fn convert_seed_to_handles(
         },
         CryptoAlgorithm::MlKem1024 => {
             let (decapsulation_key, encapsulation_key) = MlKem1024::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The expanded private key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(private_key_bytes) = private_key_bytes &&
+                private_key_bytes != decapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The expanded private key does not match the seed".to_string(),
+                )));
             }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
-                    return Err(Error::Data(Some(
-                        "The public key does not match the seed".to_string(),
-                    )));
-                }
+            if let Some(public_key_bytes) = public_key_bytes &&
+                public_key_bytes != encapsulation_key.as_bytes().as_slice()
+            {
+                return Err(Error::Data(Some(
+                    "The public key does not match the seed".to_string(),
+                )));
             }
 
             (

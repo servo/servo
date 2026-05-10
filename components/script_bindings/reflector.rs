@@ -8,10 +8,12 @@ use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociated
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
 use crate::realms::InRealm;
 use crate::root::{Dom, DomRoot, Root};
+use crate::script_runtime::{CanGc, temp_cx};
 use crate::{DomTypes, JSTraceable};
 
 pub trait AssociatedMemorySize: Default {
@@ -249,4 +251,66 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
         Option<HandleObject>,
         Box<IterableIterator<D, Self>>,
     ) -> Root<Dom<IterableIterator<D, Self>>>;
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
+}
+
+pub fn reflect_dom_object_with_proto<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    _can_gc: CanGc,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object_with_cx<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    cx: &mut js::context::JSContext,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, None, obj) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object_with_proto_and_cx<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    cx: &mut js::context::JSContext,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, proto, obj) }
 }

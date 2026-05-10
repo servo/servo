@@ -3,6 +3,18 @@
 // (https://github.com/w3c/webref)
 // Source: HTML Sanitizer API (https://wicg.github.io/sanitizer-api/)
 
+partial interface Element {
+  [CEReactions] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
+};
+
+partial interface ShadowRoot {
+  [CEReactions] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
+};
+
+partial interface Document {
+  static Document parseHTML(DOMString html, optional SetHTMLOptions options = {});
+};
+
 enum SanitizerPresets { "default" };
 dictionary SetHTMLOptions {
   (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = "default";

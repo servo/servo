@@ -13,6 +13,9 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{
+    Reflector, reflect_dom_object_with_proto, reflect_dom_object_with_proto_and_cx,
+};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
@@ -22,9 +25,7 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{
-    DomGlobal, Reflector, reflect_dom_object_with_proto, reflect_dom_object_with_proto_and_cx,
-};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
@@ -148,34 +149,117 @@ impl Serializable for Blob {
     }
 }
 
-/// Extract bytes from BlobParts, used by Blob and File constructor
-/// <https://w3c.github.io/FileAPI/#constructorBlob>
+/// <https://w3c.github.io/FileAPI/#convert-line-endings-to-native>
+fn convert_line_endings_to_native(s: &[u8]) -> Vec<u8> {
+    let native_line_ending: &[u8] = if cfg!(target_os = "windows") {
+        // Step 2. If the underlying platform’s conventions are to represent newlines
+        // as a carriage return and line feed sequence,
+        // set native line ending to the code point U+000D CR followed by the code point U+000A LF.
+        b"\r\n"
+    } else {
+        // Step 1. Let native line ending be the code point U+000A LF.
+        b"\n"
+    };
+
+    let len = s.len();
+    // Step 3. Set result to the empty string.
+    let mut result = Vec::with_capacity(len);
+
+    // Step 4. Let position be a position variable for s, initially pointing at the start of s.
+    let mut position = 0;
+
+    // <https://infra.spec.whatwg.org/#collect-a-sequence-of-code-points>
+    let collect_a_sequence_of_code_points = |position: &mut usize| -> &[u8] {
+        let start = *position;
+        while *position < len && s[*position] != b'\r' && s[*position] != b'\n' {
+            *position += 1;
+        }
+        &s[start..*position]
+    };
+
+    // Step 5: Let token be the result of collecting a sequence of code points
+    // that are not equal to U+000A LF or U+000D CR from s given position.
+    // Step 6: Append token to result.
+    result.extend_from_slice(collect_a_sequence_of_code_points(&mut position));
+
+    // Step 7: While position is not past the end of s:
+    while position < len {
+        let byte = s[position];
+        // Step 7.1: If the code point at position within s equals U+000D CR:
+        if byte == b'\r' {
+            // Step 7.1.1: Append native line ending to result.
+            result.extend_from_slice(native_line_ending);
+            // Step 7.1.2: Advance position by 1.
+            position += 1;
+            // Step 7.1.3: If position is not past the end of s and the code point
+            // at position within s equals U+000A LF, advance position by 1.
+            if position < len && s[position] == b'\n' {
+                position += 1;
+            }
+        }
+        // Step 7.2: Otherwise, if the code point at position within s equals U+000A LF:
+        else if byte == b'\n' {
+            // Advance position by 1 and append native line ending to result.
+            position += 1;
+            result.extend_from_slice(native_line_ending);
+        }
+
+        // Step 7.3: Let token be the result of collecting a sequence of code points
+        // that are not equal to U+000A LF or U+000D CR from s given position.
+        // Step 7.4: Append token to result.
+        result.extend_from_slice(collect_a_sequence_of_code_points(&mut position));
+    }
+
+    // Step 8: Return result.
+    result
+}
+
+/// <https://w3c.github.io/FileAPI/#process-blob-parts>
 #[expect(unsafe_code)]
-pub(crate) fn blob_parts_to_bytes(
+pub(crate) fn process_blob_parts(
     mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
+    endings: BlobBinding::EndingType,
 ) -> Result<Vec<u8>, ()> {
-    let mut ret = vec![];
+    // Step 1. Let bytes be an empty sequence of bytes.
+    let mut bytes = vec![];
+    // Step 2. For each blobpart in blobparts:
     for blobpart in &mut blobparts {
         match blobpart {
+            // Step 2.1. If blobpart is a USVString, run the following substeps:
             ArrayBufferOrArrayBufferViewOrBlobOrString::String(s) => {
-                ret.extend_from_slice(&s.as_bytes());
+                // Step 2.1.1. Let s be blobpart.
+                // Step 2.1.2. If the endings member of options is "native",
+                // set s to the result of converting line endings to native of blobpart.
+                if endings == BlobBinding::EndingType::Native {
+                    let converted = convert_line_endings_to_native(&s.as_bytes());
+                    // Step 2.1.3. Append the result of UTF-8 encoding s to bytes.
+                    bytes.extend(converted);
+                } else {
+                    // Step 2.1.3: Append the result of UTF-8 encoding s to bytes.
+                    bytes.extend_from_slice(&s.as_bytes());
+                }
             },
-            ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
-                let bytes = b.get_bytes().unwrap_or(vec![]);
-                ret.extend(bytes);
-            },
+            // Step 2.2. If element is a BufferSource,
+            // get a copy of the bytes held by the buffer source,
+            // and append those bytes to bytes.
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(a) => unsafe {
-                let bytes = a.as_slice();
-                ret.extend(bytes);
+                let array_bytes = a.as_slice();
+                bytes.extend(array_bytes);
             },
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(a) => unsafe {
-                let bytes = a.as_slice();
-                ret.extend(bytes);
+                let view_bytes = a.as_slice();
+                bytes.extend(view_bytes);
+            },
+            // Step 2.3. If element is a Blob, append the bytes it represents to bytes.
+            ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
+                let blob_bytes = b.get_bytes().unwrap_or(vec![]);
+                bytes.extend(blob_bytes);
             },
         }
     }
 
-    Ok(ret)
+    // Step 3. Return bytes.
+    Ok(bytes)
 }
 
 impl BlobMethods<crate::DomTypeHolder> for Blob {
@@ -190,7 +274,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     ) -> Fallible<DomRoot<Blob>> {
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
-            Some(blobparts) => match blob_parts_to_bytes(blobparts) {
+            Some(blobparts) => match process_blob_parts(blobparts, blobPropertyBag.endings) {
                 Ok(bytes) => bytes,
                 Err(_) => return Err(Error::InvalidCharacter(None)),
             },

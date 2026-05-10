@@ -654,16 +654,14 @@ impl HoistedAbsolutelyPositionedBox {
             hoisted_absolutes_from_children.extend(positioning_context.absolutes);
         };
 
-        if is_cached {
-            if let Some(Fragment::Box(old_fragment)) = context.base.fragments().first() {
-                let old_fragment_borrowed = old_fragment.borrow();
-                if content_rect == old_fragment_borrowed.content_rect() {
-                    // Drain the nested absolutes for which we are a containing block.
-                    // However, we are reusing the fragment, so no need to lay them out again.
-                    positioning_context.forget_unhoisted_boxes(&old_fragment_borrowed);
-                    adjust_hoisted_boxes(positioning_context);
-                    return Fragment::Box(old_fragment.clone());
-                }
+        if is_cached && let Some(Fragment::Box(old_fragment)) = context.base.fragments().first() {
+            let old_fragment_borrowed = old_fragment.borrow();
+            if content_rect == old_fragment_borrowed.content_rect() {
+                // Drain the nested absolutes for which we are a containing block.
+                // However, we are reusing the fragment, so no need to lay them out again.
+                positioning_context.forget_unhoisted_boxes(&old_fragment_borrowed);
+                adjust_hoisted_boxes(positioning_context);
+                return Fragment::Box(old_fragment.clone());
             }
         }
 

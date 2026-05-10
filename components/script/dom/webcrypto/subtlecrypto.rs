@@ -43,6 +43,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
@@ -63,7 +64,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -1652,12 +1653,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //
                 // Otherwise:
                 //     Let key be bytes.
-                if format == KeyFormat::Jwk {
-                    if let Err(error) = JsonWebKey::parse(cx, &bytes) {
+                if format == KeyFormat::Jwk
+                    && let Err(error) = JsonWebKey::parse(cx, &bytes) {
                         subtle.reject_promise_with_error(promise, error);
                         return;
                     }
-                }
                 let key = bytes;
 
                 // Step 16. Let result be the result of performing the import key operation
@@ -4124,10 +4124,10 @@ impl JsonWebKeyExt for JsonWebKey {
             }
             // 2. The "use" and "key_ops" JWK members SHOULD NOT be used together; however, if both
             //    are used, the information they convey MUST be consistent.
-            if let Some(ref use_) = self.use_ {
-                if key_ops.iter().any(|op| op != use_) {
-                    return Err(Error::Data(None));
-                }
+            if let Some(ref use_) = self.use_ &&
+                key_ops.iter().any(|op| op != use_)
+            {
+                return Err(Error::Data(None));
             }
 
             // or does not contain all of the specified usages values

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with AbortSignal</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const controller = new AbortController();
+
+  // Register a dummy tool so we have something to execute.
+  navigator.modelContext.registerTool({
+    name: 'dummy_tool',
+    description: 'Dummy tool',
+    execute: async () => 'hello'
+  });
+
+  // Wait for toolchange to be sure it's registered.
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'dummy_tool');
+  const promise = navigator.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+
+  controller.abort();
+  await promise_rejects_dom(t, 'AbortError', promise, 'Promise should be rejected with AbortError');
+}, 'executeTool() rejects with AbortError when signal is aborted');
+</script>
+</body>
+</html>

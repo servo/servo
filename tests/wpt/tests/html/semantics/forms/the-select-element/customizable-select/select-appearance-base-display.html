@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS display is honored on select with appearance: base-select</title>
+<link rel=author title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel=help href="https://drafts.csswg.org/css-ui-4/#valdef-appearance-base-select">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2023450">
+<link rel=match href="select-appearance-base-display-ref.html">
+
+<style>
+select {
+  width: 200px;
+  display: flex;
+  justify-content: end;
+  border-radius: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid;
+  padding: 0;
+  min-height: 0;
+}
+.base {
+  appearance: base-select;
+  appearance: base;
+}
+.none {
+  appearance: none;
+}
+select::picker-icon {
+  display: none;
+}
+</style>
+
+<select class="base">
+  <option>XXX</option>
+</select>
+
+<select class="none">
+  <option>XXX</option>
+</select>

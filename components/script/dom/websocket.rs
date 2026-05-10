@@ -24,6 +24,7 @@ use net_traits::{
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -35,7 +36,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;
@@ -448,11 +449,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 return Err(Error::InvalidAccess(None));
             }
         }
-        if let Some(ref reason) = reason {
-            if reason.0.len() > 123 {
-                // reason cannot be larger than 123 bytes
-                return Err(Error::Syntax(Some("Reason too long".to_string())));
-            }
+        if let Some(ref reason) = reason &&
+            reason.0.len() > 123
+        {
+            // reason cannot be larger than 123 bytes
+            return Err(Error::Syntax(Some("Reason too long".to_string())));
         }
 
         match self.ready_state.get() {

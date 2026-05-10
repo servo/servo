@@ -375,10 +375,11 @@ pub(crate) fn get_element_target(
         }
     });
     // Step 2. If target is not null, and contains an ASCII tab or newline and a U+003C (<), then set target to "_blank".
-    if let Some(ref target) = target {
-        if target.contains_tab_or_newline() && target.contains("\u{003C}") {
-            return Some("_blank".into());
-        }
+    if let Some(ref target) = target &&
+        target.contains_tab_or_newline() &&
+        target.contains("\u{003C}")
+    {
+        return Some("_blank".into());
     }
     // Step 3. Return target.
     target

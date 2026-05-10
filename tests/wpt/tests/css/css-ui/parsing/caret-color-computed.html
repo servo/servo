@@ -2,8 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS UI Level 3: getComputedStyle().caretColor</title>
-<link rel="help" href="https://drafts.csswg.org/css-ui-3/#caret-color">
+<title>CSS UI Level 4: getComputedStyle().caretColor</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -18,9 +18,31 @@
 <script>
 'use strict';
 const currentColor = "rgb(0, 0, 255)";
+
+// Single-value form.
 test_computed_value("caret-color", "auto", currentColor);
 test_computed_value("caret-color", "currentColor", currentColor);
 test_computed_value("caret-color", "red", "rgb(255, 0, 0)");
+test_computed_value("caret-color", "transparent", "rgba(0, 0, 0, 0)");
+
+// Two-value form: the optional second <color> sets the text color overlapping
+// with a block caret. When the second value is auto or absent, only the first
+// value is serialized.
+test_computed_value("caret-color", "red rgb(0, 255, 0)",
+                    "rgb(255, 0, 0) rgb(0, 255, 0)");
+test_computed_value("caret-color", "auto rgb(0, 255, 0)",
+                    currentColor + " rgb(0, 255, 0)");
+test_computed_value("caret-color", "currentcolor red",
+                    currentColor + " rgb(255, 0, 0)");
+test_computed_value("caret-color", "auto auto", currentColor);
+test_computed_value("caret-color", "rgb(0, 255, 0) auto",
+                    "rgb(0, 255, 0)");
+test_computed_value("caret-color", "currentcolor currentcolor",
+                    currentColor + " " + currentColor);
+test_computed_value("caret-color", "auto currentcolor",
+                    currentColor + " " + currentColor);
+test_computed_value("caret-color", "red transparent",
+                    "rgb(255, 0, 0) rgba(0, 0, 0, 0)");
 </script>
 </body>
 </html>

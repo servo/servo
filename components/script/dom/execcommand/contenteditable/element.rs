@@ -101,12 +101,11 @@ impl Element {
         }
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
         // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
-        if self.is::<HTMLFontElement>() {
-            if let Some(font_size) = self.get_attribute(&local_name!("size")) {
-                if let AttrValue::UInt(_, value) = *font_size.value() {
-                    return Some(font_size_to_css_font(&value).into());
-                }
-            }
+        if self.is::<HTMLFontElement>() &&
+            let Some(font_size) = self.get_attribute(&local_name!("size")) &&
+            let AttrValue::UInt(_, value) = *font_size.value()
+        {
+            return Some(font_size_to_css_font(&value).into());
         }
 
         // Step 12. If element is in the following list, and property is equal to the CSS property name listed for it,

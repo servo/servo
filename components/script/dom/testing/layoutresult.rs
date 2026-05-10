@@ -4,11 +4,10 @@
 use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use script_bindings::domstring::DOMString;
-use script_bindings::reflector::Reflector;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::LayoutResultMethods;
 use crate::dom::bindings::import::base::SafeJSContext;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;

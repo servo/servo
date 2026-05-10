@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{BaseSpace, Frame, InputId, Joint, JointFrame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::XRHandJoint;
 use crate::dom::bindings::codegen::Bindings::XRJointSpaceBinding::XRJointSpaceMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::{ApiPose, XRSession};

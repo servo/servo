@@ -258,24 +258,23 @@ impl DocumentEmbedderControls {
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
         {
-            if anchor_element.is_none() {
-                if let Some(candidate_anchor_element) = node.downcast::<HTMLAnchorElement>() {
-                    if candidate_anchor_element.is_instance_activatable() {
-                        anchor_element = Some(DomRoot::from_ref(candidate_anchor_element));
-                    }
-                }
+            if anchor_element.is_none() &&
+                let Some(candidate_anchor_element) = node.downcast::<HTMLAnchorElement>() &&
+                candidate_anchor_element.is_instance_activatable()
+            {
+                anchor_element = Some(DomRoot::from_ref(candidate_anchor_element));
             }
 
-            if image_element.is_none() {
-                if let Some(candidate_image_element) = node.downcast::<HTMLImageElement>() {
-                    image_element = Some(DomRoot::from_ref(candidate_image_element))
-                }
+            if image_element.is_none() &&
+                let Some(candidate_image_element) = node.downcast::<HTMLImageElement>()
+            {
+                image_element = Some(DomRoot::from_ref(candidate_image_element))
             }
 
-            if text_input_element.is_none() {
-                if let Some(candidate_text_input_element) = node.as_text_input() {
-                    text_input_element = Some(candidate_text_input_element);
-                }
+            if text_input_element.is_none() &&
+                let Some(candidate_text_input_element) = node.as_text_input()
+            {
+                text_input_element = Some(candidate_text_input_element);
             }
         }
 

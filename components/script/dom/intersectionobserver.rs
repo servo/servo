@@ -13,6 +13,7 @@ use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_geometry::f32_rect_to_au_rect;
 use style::parser::Parse;
@@ -32,7 +33,6 @@ use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementO
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -939,27 +939,25 @@ fn compute_the_intersection(
         // >      by applying container’s clip.
         // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
         // Additionally, handle css `clip-path` as well.
-        if IntersectionObserver::has_content_clip(&containing_element) {
-            if let Some(container_padding_box) = containing_element
+        if IntersectionObserver::has_content_clip(&containing_element) &&
+            let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
                 .padding_box_without_reflow()
-            {
-                let container_padding_box = if containing_element.establishes_scroll_container() {
-                    let margin = IntersectionObserver::resolve_percentages_with_basis(
-                        scroll_margin,
-                        container_padding_box,
-                    );
-                    container_padding_box.outer_rect(margin)
-                } else {
-                    container_padding_box
-                };
+        {
+            let container_padding_box = if containing_element.establishes_scroll_container() {
+                let margin = IntersectionObserver::resolve_percentages_with_basis(
+                    scroll_margin,
+                    container_padding_box,
+                );
+                container_padding_box.outer_rect(margin)
+            } else {
+                container_padding_box
+            };
 
-                if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box)
-                {
-                    intersection_rect = rect;
-                } else {
-                    return None;
-                }
+            if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
+                intersection_rect = rect;
+            } else {
+                return None;
             }
         }
 

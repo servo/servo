@@ -24,7 +24,7 @@ publish = false
 # Please also note, that the **default** Rust version in rust-toolchain.toml may be
 # bumped freely.
 # Skip 1.90 which causes mis-compilation: https://github.com/rust-lang/rust/issues/147265
-rust-version = "1.86.0"
+rust-version = "1.88.0"
 
 [workspace.dependencies]
 accesskit = { version = "0.24.0", features = ["serde"] }
@@ -139,7 +139,7 @@ objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
-openxr = "0.20"
+openxr = "0.21"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
@@ -156,7 +156,7 @@ raw-window-handle = "0.6"
 rayon = "1"
 read-fonts = "0.35.0"
 regex = "1.12"
-resvg = "0.45.0"
+resvg = "0.47.0"
 rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
 rustc-hash = "2.1.2"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }

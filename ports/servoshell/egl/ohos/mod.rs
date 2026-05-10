@@ -143,6 +143,7 @@ pub(crate) fn get_raw_window_handle(
 #[derive(Debug)]
 struct NativeValues {
     cache_dir: String,
+    #[expect(dead_code)]
     display_density: f32,
     device_type: ohos_deviceinfo::OhosDeviceType,
     os_full_name: String,

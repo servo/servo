@@ -4,12 +4,11 @@
 
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::GeolocationPositionBinding::GeolocationPositionMethods;
-use script_bindings::reflector::Reflector;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::geolocationcoordinates::GeolocationCoordinates;
 use crate::dom::globalscope::GlobalScope;
 

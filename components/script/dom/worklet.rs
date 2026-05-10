@@ -29,6 +29,7 @@ use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -43,7 +44,7 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
@@ -584,12 +585,12 @@ impl WorkletThread {
                     self.process_control(control, cx);
                 }
                 self.gc(cx);
-            } else if self.control_buffer.is_none() {
-                if let Ok(control) = self.control_receiver.try_recv() {
-                    self.control_buffer = Some(control);
-                    let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
-                    let _ = self.cold_backup_sender.send(msg);
-                }
+            } else if self.control_buffer.is_none() &&
+                let Ok(control) = self.control_receiver.try_recv()
+            {
+                self.control_buffer = Some(control);
+                let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
+                let _ = self.cold_backup_sender.send(msg);
             }
             // If we are tight on memory, and we're a backup then perform a gc.
             // If we are tight on memory, and we're the primary then try to become the hot backup.

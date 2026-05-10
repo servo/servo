@@ -5,7 +5,7 @@ from .base import require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from .chrome_android import ChromeAndroidBrowserBase
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorchrome import (ChromeDriverPrintRefTestExecutor,  # noqa: F401
                                         ChromeDriverTestharnessExecutor)  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverCrashtestExecutor,  # noqa: F401
@@ -18,7 +18,7 @@ __wptrunner__ = {"product": "android_webview",
                  "executor": {"testharness": "ChromeDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
                               "print-reftest": "ChromeDriverPrintRefTestExecutor",
-                              "wdspec": "WdspecExecutor",
+                              "wdspec": "PytestExecutor",
                               "crashtest": "WebDriverCrashtestExecutor",
                               "test262": "ChromeDriverTestharnessExecutor"},
                  "browser_kwargs": "browser_kwargs",

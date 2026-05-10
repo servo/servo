@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-option-element">
+<link rel=match href="option-label-in-shadow-tree-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id="host"></div>
+
+<script>
+const host = document.getElementById("host");
+host.attachShadow({ mode: "open" }).innerHTML = `
+  <style>
+    select, ::picker(select) {
+      appearance: base-select;
+    }
+    select:focus-visible {
+      outline: none;
+    }
+  </style>
+  <select>
+    <option label="one"></option>
+    <option label="two"></option>
+  </select>
+`;
+
+(async () => {
+  const select = host.shadowRoot.querySelector('select');
+  await new test_driver.Actions()
+    .pointerMove(1, 1, { origin: select })
+    .pointerDown()
+    .pointerUp()
+    .send();
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

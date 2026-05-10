@@ -583,10 +583,10 @@ impl HTMLInputElement {
             // Step 4. If the element has a minimum and a maximum and there is no value greater than or equal to the
             // element's minimum and less than or equal to the element's maximum that, when subtracted from the step
             // base, is an integral multiple of the allowed value step, then return.
-            if let Some(stepped_minimum) = self.stepped_minimum() {
-                if stepped_minimum > max {
-                    return Ok(());
-                }
+            if let Some(stepped_minimum) = self.stepped_minimum() &&
+                stepped_minimum > max
+            {
+                return Ok(());
             }
         }
 
@@ -635,19 +635,19 @@ impl HTMLInputElement {
         // Step 8. If the element has a minimum, and value is less than that minimum, then set value to the smallest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is more than or equal to that minimum.
-        if let Some(min) = minimum {
-            if value < min {
-                value = self.stepped_minimum().unwrap_or(value);
-            }
+        if let Some(min) = minimum &&
+            value < min
+        {
+            value = self.stepped_minimum().unwrap_or(value);
         }
 
         // Step 9. If the element has a maximum, and value is greater than that maximum, then set value to the largest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is less than or equal to that maximum.
-        if let Some(max) = maximum {
-            if value > max {
-                value = self.stepped_maximum().unwrap_or(value);
-            }
+        if let Some(max) = maximum &&
+            value > max
+        {
+            value = self.stepped_maximum().unwrap_or(value);
         }
 
         // Step 10. If either the method invoked was the stepDown() method and value is greater than
@@ -810,16 +810,16 @@ impl HTMLInputElement {
             }
         } else {
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-underflow-2
-            if let Some(min_value) = min_value {
-                if value_as_number < min_value {
-                    failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
-                }
+            if let Some(min_value) = min_value &&
+                value_as_number < min_value
+            {
+                failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
             }
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-overflow-2
-            if let Some(max_value) = max_value {
-                if value_as_number > max_value {
-                    failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
-                }
+            if let Some(max_value) = max_value &&
+                value_as_number > max_value
+            {
+                failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
             }
         }
 

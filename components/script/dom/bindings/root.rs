@@ -36,11 +36,11 @@ use js::rust::HandleValue;
 use layout_api::TrustedNodeAddress;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::assert::{assert_in_layout, assert_in_script};
+use script_bindings::reflector::DomObject;
 pub(crate) use script_bindings::root::*;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
 

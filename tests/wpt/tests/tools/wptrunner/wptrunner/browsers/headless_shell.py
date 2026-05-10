@@ -5,7 +5,7 @@ from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import ChromeBrowser  # noqa: F401
 from .chrome import browser_kwargs as browser_kwargs  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorchrome import (  # noqa: F401
     ChromeDriverCrashTestExecutor,
     ChromeDriverPrintRefTestExecutor,
@@ -23,7 +23,7 @@ __wptrunner__ = {"product": "headless_shell",
                      "reftest": "ChromeDriverRefTestExecutor",
                      "test262": "ChromeDriverTestharnessExecutor",
                      "testharness": "ChromeDriverTestharnessExecutor",
-                     "wdspec": "WdspecExecutor",
+                     "wdspec": "PytestExecutor",
                  },
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",

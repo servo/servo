@@ -971,20 +971,20 @@ impl WGPU {
                     },
                     WebGPURequest::UnmapBuffer { buffer_id, mapping } => {
                         let global = &self.global;
-                        if let Some(mapping) = mapping {
-                            if let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
+                        if let Some(mapping) = mapping &&
+                            let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
                                 buffer_id,
                                 mapping.range.start,
                                 Some(mapping.range.end - mapping.range.start),
-                            ) {
-                                unsafe {
-                                    slice::from_raw_parts_mut(
-                                        slice_pointer.as_ptr(),
-                                        range_size as usize,
-                                    )
-                                }
-                                .copy_from_slice(&mapping.data);
+                            )
+                        {
+                            unsafe {
+                                slice::from_raw_parts_mut(
+                                    slice_pointer.as_ptr(),
+                                    range_size as usize,
+                                )
                             }
+                            .copy_from_slice(&mapping.data);
                         }
                         // Ignore result because this operation always succeed from user perspective
                         let _result = global.buffer_unmap(buffer_id);

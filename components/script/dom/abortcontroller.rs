@@ -5,10 +5,10 @@
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortControllerMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;

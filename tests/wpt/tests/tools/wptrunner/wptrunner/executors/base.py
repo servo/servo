@@ -17,7 +17,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 from . import pytestrunner
 from .actions import actions
 from .asyncactions import async_actions
-from .protocol import Protocol, WdspecProtocol, merge_dicts
+from .protocol import Protocol, PytestProtocol, merge_dicts
 
 
 here = os.path.dirname(__file__)
@@ -47,7 +47,7 @@ def executor_kwargs(test_type, test_environment, run_info_data, subsuite, **kwar
         executor_kwargs["screenshot_cache"] = screenshot_cache
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
 
-    if test_type == "wdspec":
+    if test_type in ("wdspec", "aamtest"):
         executor_kwargs["binary"] = kwargs["binary"]
         executor_kwargs["binary_args"] = kwargs["binary_args"].copy()
         executor_kwargs["webdriver_binary"] = kwargs["webdriver_binary"]
@@ -674,9 +674,9 @@ class RefTestImplementation:
         return success, data
 
 
-class WdspecExecutor(TestExecutor):
+class PytestExecutor(TestExecutor):
     convert_result = pytest_result_converter
-    protocol_cls: ClassVar[Type[Protocol]] = WdspecProtocol
+    protocol_cls: ClassVar[Type[Protocol]] = PytestProtocol
 
     def __init__(
         self,
@@ -743,7 +743,7 @@ class WdspecExecutor(TestExecutor):
     def do_test(self, test):
         timeout = test.timeout * self.timeout_multiplier + self.extra_timeout
 
-        success, data = WdspecRun(self.do_wdspec,
+        success, data = PytestRun(self.do_pytest,
                                   test.abs_path,
                                   timeout).run()
 
@@ -752,7 +752,7 @@ class WdspecExecutor(TestExecutor):
 
         return (test.make_result(*data), [])
 
-    def do_wdspec(self, path, timeout):
+    def do_pytest(self, path, timeout):
         session_config = {
             "host": self.browser.host,
             "port": self.browser.port,
@@ -775,7 +775,7 @@ class WdspecExecutor(TestExecutor):
                                 timeout=timeout)
 
 
-class WdspecRun:
+class PytestRun:
     def __init__(self, func, path, timeout):
         self.func = func
         self.result = (None, None)

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>SVG Filter: Same-Origin Frame Reload as Sandbox</title>
+<link rel="match" href="svg-filter-render-same-origin-frame-reload-as-sandbox-ref.tentative.html">
+<svg width="0" height="0" display="none">
+    <filter id="svg-filter">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+    </filter>
+</svg>
+<style type="text/css">
+.svg-filter {
+    filter: url(#svg-filter);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        const iframe = document.getElementById('iframe');
+        iframe.setAttribute('sandbox', '');
+        await navigateAndWaitForLoad(iframe, iframe.src);
+        takeScreenshot();
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the same-origin frame marked as sandbox.
+    </div>
+    <br />
+    <div>
+        <iframe id="iframe" width="100px" height="100px" frameBorder="0" class="svg-filter" src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+    </div>
+</body>
+</html>

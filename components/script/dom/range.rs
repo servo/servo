@@ -13,6 +13,7 @@ use js::context::JSContext;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style_traits::CSSPixel;
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
@@ -26,7 +27,6 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -616,18 +616,18 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(cdata) = start_node.downcast::<CharacterData>() {
-                // Steps 4.1-2.
-                let data = cdata
-                    .SubstringData(start_offset, end_offset - start_offset)
-                    .unwrap();
-                let clone = cdata.clone_with_data(cx, data, &start_node.owner_doc());
-                // Step 4.3.
-                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
-                // Step 4.4
-                return Ok(fragment);
-            }
+        if end_node == start_node &&
+            let Some(cdata) = start_node.downcast::<CharacterData>()
+        {
+            // Steps 4.1-2.
+            let data = cdata
+                .SubstringData(start_offset, end_offset - start_offset)
+                .unwrap();
+            let clone = cdata.clone_with_data(cx, data, &start_node.owner_doc());
+            // Step 4.3.
+            fragment.upcast::<Node>().AppendChild(cx, &clone)?;
+            // Step 4.4
+            return Ok(fragment);
         }
 
         // Steps 5-12.
@@ -728,23 +728,23 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(end_data) = end_node.downcast::<CharacterData>() {
-                // Step 4.1.
-                let clone = end_node.CloneNode(cx, /* deep */ true)?;
-                // Step 4.2.
-                let text = end_data.SubstringData(start_offset, end_offset - start_offset);
-                clone
-                    .downcast::<CharacterData>()
-                    .unwrap()
-                    .SetData(text.unwrap());
-                // Step 4.3.
-                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
-                // Step 4.4.
-                end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
-                // Step 4.5.
-                return Ok(fragment);
-            }
+        if end_node == start_node &&
+            let Some(end_data) = end_node.downcast::<CharacterData>()
+        {
+            // Step 4.1.
+            let clone = end_node.CloneNode(cx, /* deep */ true)?;
+            // Step 4.2.
+            let text = end_data.SubstringData(start_offset, end_offset - start_offset);
+            clone
+                .downcast::<CharacterData>()
+                .unwrap()
+                .SetData(text.unwrap());
+            // Step 4.3.
+            fragment.upcast::<Node>().AppendChild(cx, &clone)?;
+            // Step 4.4.
+            end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
+            // Step 4.5.
+            return Ok(fragment);
         }
 
         // Steps 5-12.
@@ -965,17 +965,17 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 3. If originalStartNode is originalEndNode and it is a CharacterData node:
-        if start_node == end_node {
-            if let Some(text) = start_node.downcast::<CharacterData>() {
-                if end_offset > start_offset {
-                    self.report_change();
-                }
-
-                // Step 3.1. Replace data of originalStartNode with originalStartOffset,
-                // originalEndOffset − originalStartOffset, and the empty string.
-                // Step 3.2. Return.
-                return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
+        if start_node == end_node &&
+            let Some(text) = start_node.downcast::<CharacterData>()
+        {
+            if end_offset > start_offset {
+                self.report_change();
             }
+
+            // Step 3.1. Replace data of originalStartNode with originalStartOffset,
+            // originalEndOffset − originalStartOffset, and the empty string.
+            // Step 3.2. Return.
+            return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
         }
 
         // Step 4. Let nodesToRemove be a list of all the nodes that are contained in this,

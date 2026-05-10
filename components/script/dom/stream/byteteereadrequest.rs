@@ -11,11 +11,12 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::error::Fallible;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -152,10 +153,10 @@ impl ByteTeeReadRequest {
 
         // Prepare per branch chunks ahead of the spec enqueue steps.
         let chunk1_view = if !self.canceled_1.get() {
-            Some(HeapBufferSource::<ArrayBufferViewU8>::new(
-                BufferSource::ArrayBufferView(RootedTraceableBox::from_box(Heap::boxed(
-                    chunk1.get().to_object(),
-                ))),
+            Some(RootedTraceableBox::new(
+                HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
+                    Heap::boxed(chunk1.get().to_object()),
+                )),
             ))
         } else {
             None
@@ -167,8 +168,8 @@ impl ByteTeeReadRequest {
         if !self.canceled_1.get() && !self.canceled_2.get() {
             // Let cloneResult be CloneAsUint8Array(chunk).
             let chunk2_source =
-                HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-                    RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
+                RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(Heap::boxed(chunk2.get().to_object())),
                 ));
             let clone_result = chunk2_source.clone_as_uint8_array(cx);
 
@@ -183,8 +184,8 @@ impl ByteTeeReadRequest {
         } else if !self.canceled_2.get() {
             // Only branch2 needs data; clone once for it.
             let chunk2_source =
-                HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-                    RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
+                RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(Heap::boxed(chunk2.get().to_object())),
                 ));
             match chunk2_source.clone_as_uint8_array(cx) {
                 Ok(clone) => chunk2_view = Some(clone),

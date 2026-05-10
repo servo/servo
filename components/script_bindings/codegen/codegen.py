@@ -9314,7 +9314,7 @@ class GlobalGenRoots():
                    CGGeneric("use script_bindings::codegen::InheritTypes::*;\n"),
                    CGGeneric("use crate::dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
                    CGGeneric("use crate::dom::bindings::inheritance::Castable;\n"),
-                   CGGeneric("use crate::dom::bindings::reflector::DomObject;\n\n")]
+                   CGGeneric("use script_bindings::reflector::DomObject;\n\n")]
         allprotos = []
         topTypes = []
         hierarchy = defaultdict(list)

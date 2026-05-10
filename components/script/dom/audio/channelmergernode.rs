@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::channel_node::ChannelNodeOptions;
 use servo_media::audio::node::AudioNodeInit;
 
@@ -17,7 +18,6 @@ use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
     ChannelMergerNodeMethods, ChannelMergerOptions,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

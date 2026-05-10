@@ -13,6 +13,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -21,7 +22,6 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::RenderingUpdateReason;
 use crate::dom::domrectreadonly::DOMRectReadOnly;

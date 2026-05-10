@@ -214,6 +214,7 @@ class MachCommands(CommandBase):
             "servo-storage",
             "servo-storage-traits",
             "servo-xpath",
+            "servo-deny-public-fields",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])

@@ -89,10 +89,10 @@ impl FileInputType {
             // element's selected files."
             //
             // Note: This is annoying.
-            if input.Multiple() {
-                if let Some(filelist) = self.get_files() {
-                    files = filelist.iter_files().map(|file| file.as_rooted()).collect();
-                }
+            if input.Multiple() &&
+                let Some(filelist) = self.get_files()
+            {
+                files = filelist.iter_files().map(|file| file.as_rooted()).collect();
             }
 
             let number_files_selected = response.as_ref().map(Vec::len).unwrap_or_default();

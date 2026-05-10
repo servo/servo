@@ -32,7 +32,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::MutDomObject;
+use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel;
@@ -50,7 +50,7 @@ use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobje
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
@@ -418,10 +418,10 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
-            }
+        if let Some(document) = self.document() &&
+            !document.loader().events_inhibited()
+        {
+            ScriptThread::mark_document_with_no_blocked_loads(&document);
         }
     }
 
@@ -768,12 +768,12 @@ impl WindowProxy {
     }
 
     pub(crate) fn set_currently_active(&self, window: &Window, can_gc: CanGc) {
-        if let Some(pipeline_id) = self.currently_active() {
-            if pipeline_id == window.pipeline_id() {
-                return debug!(
-                    "Attempt to set the currently active window to the currently active window."
-                );
-            }
+        if let Some(pipeline_id) = self.currently_active() &&
+            pipeline_id == window.pipeline_id()
+        {
+            return debug!(
+                "Attempt to set the currently active window to the currently active window."
+            );
         }
 
         let global_scope = window.as_global_scope();

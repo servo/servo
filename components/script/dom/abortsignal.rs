@@ -16,6 +16,7 @@ use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
@@ -23,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;

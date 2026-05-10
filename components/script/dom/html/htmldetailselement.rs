@@ -520,12 +520,10 @@ impl VirtualMethods for HTMLDetailsElement {
         }
 
         let was_already_in_shadow_tree = context.is_shadow_tree == IsShadowTree::Yes;
-        if !was_already_in_shadow_tree {
-            if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root
-                    .details_name_groups()
-                    .register_details_element(self);
-            }
+        if !was_already_in_shadow_tree && let Some(shadow_root) = self.containing_shadow_root() {
+            shadow_root
+                .details_name_groups()
+                .register_details_element(self);
         }
 
         // Step 1. Ensure details exclusivity by closing the given element if needed given insertedNode.
@@ -541,14 +539,14 @@ impl VirtualMethods for HTMLDetailsElement {
                 .unregister_details_element(self.Name(), self);
         }
 
-        if !self.upcast::<Node>().is_in_a_shadow_tree() {
-            if let Some(old_shadow_root) = self.containing_shadow_root() {
-                // If we used to be in a shadow root, but aren't anymore, then unregister this details
-                // element.
-                old_shadow_root
-                    .details_name_groups()
-                    .unregister_details_element(self.Name(), self);
-            }
+        if !self.upcast::<Node>().is_in_a_shadow_tree() &&
+            let Some(old_shadow_root) = self.containing_shadow_root()
+        {
+            // If we used to be in a shadow root, but aren't anymore, then unregister this details
+            // element.
+            old_shadow_root
+                .details_name_groups()
+                .unregister_details_element(self.Name(), self);
         }
     }
 }

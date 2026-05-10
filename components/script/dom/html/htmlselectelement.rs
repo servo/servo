@@ -237,10 +237,10 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(true);
-        } else if self.display_size() == 1 {
-            if let Some(first_enabled) = first_enabled {
-                first_enabled.set_selectedness(true);
-            }
+        } else if self.display_size() == 1 &&
+            let Some(first_enabled) = first_enabled
+        {
+            first_enabled.set_selectedness(true);
         }
     }
 
@@ -499,10 +499,10 @@ impl HTMLSelectElement {
 
             if let Some(first_selected) = first_selected {
                 first_selected.set_selectedness(true);
-            } else if self.display_size() == 1 {
-                if let Some(first_enabled) = first_enabled {
-                    first_enabled.set_selectedness(true);
-                }
+            } else if self.display_size() == 1 &&
+                let Some(first_enabled) = first_enabled
+            {
+                first_enabled.set_selectedness(true);
             }
 
             self.update_shadow_tree(cx);
@@ -897,12 +897,12 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         self.super_type().unwrap().handle_event(cx, event);
-        if let Some(event) = event.downcast::<FocusEvent>() {
-            if *event.upcast::<Event>().type_() != *"blur" {
-                self.owner_document()
-                    .embedder_controls()
-                    .hide_embedder_control(self.upcast());
-            }
+        if let Some(event) = event.downcast::<FocusEvent>() &&
+            *event.upcast::<Event>().type_() != *"blur"
+        {
+            self.owner_document()
+                .embedder_controls()
+                .hide_embedder_control(self.upcast());
         }
     }
 }

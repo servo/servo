@@ -243,24 +243,23 @@ impl Render for RenderUnix {
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
-            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view() {
-                if let Some(el) = msg
+            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view() &&
+                let Some(el) = msg
                     .src()
                     .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
-                {
-                    let context_type = ctxt.context_type();
-                    if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
-                        let ctxt = gstreamer::Context::new(context_type, true);
-                        ctxt.set_gl_display(&display_);
-                        el.set_context(&ctxt);
-                    } else if context_type == "gst.gl.app_context" {
-                        let mut ctxt = gstreamer::Context::new(context_type, true);
-                        {
-                            let s = ctxt.get_mut().unwrap().structure_mut();
-                            s.set_value("context", context_.to_send_value());
-                        }
-                        el.set_context(&ctxt);
+            {
+                let context_type = ctxt.context_type();
+                if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
+                    let ctxt = gstreamer::Context::new(context_type, true);
+                    ctxt.set_gl_display(&display_);
+                    el.set_context(&ctxt);
+                } else if context_type == "gst.gl.app_context" {
+                    let mut ctxt = gstreamer::Context::new(context_type, true);
+                    {
+                        let s = ctxt.get_mut().unwrap().structure_mut();
+                        s.set_value("context", context_.to_send_value());
                     }
+                    el.set_context(&ctxt);
                 }
             }
 

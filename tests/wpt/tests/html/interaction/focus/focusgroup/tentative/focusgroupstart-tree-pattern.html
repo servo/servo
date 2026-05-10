@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - focusgroupstart in slotted tree pattern</title>
+<meta name="assert" content="Tab and Shift+Tab should enter a tree focusgroup at the slotted focusgroupstart element.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!-- Tree pattern with slotted focusgroupstart on a child treeitem. The
+     focusgroupstart entry lives in tree3's "item" slot. -->
+<button id="tree_before">tree_before</button>
+<div focusgroup="menu nomemory" role="tree">
+  <div role="treeitem" tabindex="0" id="tree1">
+    <template shadowrootmode="open">
+      <slot></slot>
+      <div role="group"><slot name="item"></slot></div>
+    </template>
+    item 1
+  </div>
+  <div role="treeitem" tabindex="0" id="tree2">
+    <template shadowrootmode="open">
+      <slot></slot>
+      <div role="group"><slot name="item"></slot></div>
+    </template>
+    item 2
+  </div>
+  <div role="treeitem" tabindex="0" id="tree3">
+    <template shadowrootmode="open">
+      <slot></slot>
+      <div role="group"><slot name="item"></slot></div>
+    </template>
+    item 3
+    <div role="treeitem" tabindex="0" slot="item" focusgroupstart id="tree3_1">
+      <template shadowrootmode="open">
+        <slot></slot>
+        <div role="group"><slot name="item"></slot></div>
+      </template>
+      item 3.1
+    </div>
+    <div role="treeitem" tabindex="0" slot="item" id="tree3_2">
+      <template shadowrootmode="open">
+        <slot></slot>
+        <div role="group"><slot name="item"></slot></div>
+      </template>
+      item 3.2
+    </div>
+  </div>
+</div>
+<button id="tree_after">tree_after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      tree_before,
+      tree3_1,
+      tree_after,
+    ]);
+  }, "Slotted focusgroupstart in tree: Tab enters at start element");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      tree_after,
+      tree3_1,
+    ]);
+  }, "Slotted focusgroupstart in tree: Shift+Tab enters at start element");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(tree3_1, kUp);
+    assert_equals(document.activeElement.id, "tree3",
+      "ArrowUp from tree3_1 should move to tree3");
+  }, "Slotted focusgroupstart in tree: arrow navigation works");
+</script>

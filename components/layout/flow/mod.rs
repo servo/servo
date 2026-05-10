@@ -977,16 +977,16 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
 ) -> ArcRefCell<BoxFragment> {
     let mut allows_caching = sequential_layout_state.is_none();
 
-    if allows_caching {
-        if let Some(cached_result) = base.cached_same_formatting_context_block_if_applicable(
+    if allows_caching &&
+        let Some(cached_result) = base.cached_same_formatting_context_block_if_applicable(
             containing_block,
             collapsible_with_parent_start_margin,
             ignore_block_margins_for_stretch,
             has_inline_parent,
-        ) {
-            return cached_result;
-        };
-    }
+        )
+    {
+        return cached_result;
+    };
 
     let positioning_context_length = positioning_context.len();
     let fragment = ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(

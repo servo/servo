@@ -10,6 +10,7 @@ use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
 use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
@@ -465,10 +466,10 @@ impl IDBTransaction {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
         // NOTE: Implementors need to keep in mind that the value "null" is considered an error, as it is set from abort()
-        if self.error.get().is_none() {
-            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
-                self.error.set(Some(&exception));
-            }
+        if self.error.get().is_none() &&
+            let Ok(exception) = create_dom_exception(&self.global(), error, can_gc)
+        {
+            self.error.set(Some(&exception));
         }
     }
 

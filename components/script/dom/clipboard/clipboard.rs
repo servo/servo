@@ -11,6 +11,7 @@ use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_constellation_traits::BlobImpl;
 
 use super::clipboarditem::Representation;
@@ -19,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;

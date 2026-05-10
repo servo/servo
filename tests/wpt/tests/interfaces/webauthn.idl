@@ -435,3 +435,17 @@ dictionary AuthenticationExtensionsLargeBlobOutputsJSON {
     Base64URLString blob;
     boolean written;
 };
+
+partial dictionary AuthenticationExtensionsClientInputs {
+    DOMString remoteClientDataJSON;
+};
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+    DOMString remoteClientDataJSON;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean remoteClientDataJson;
+};
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+  boolean remoteClientDataJson;
+};

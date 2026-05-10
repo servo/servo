@@ -20,7 +20,7 @@ from .base import (CallbackHandler,
                    RefTestImplementation,
                    TestharnessExecutor,
                    TimedRunner,
-                   WdspecExecutor,
+                   PytestExecutor,
                    get_pages,
                    strip_server)
 from .protocol import (AccessibilityProtocolPart,
@@ -1469,7 +1469,7 @@ class MarionettePrintRefTestExecutor(MarionetteRefTestExecutor):
         return screenshots
 
 
-class MarionetteWdspecExecutor(WdspecExecutor):
+class MarionettePytestExecutor(PytestExecutor):
     def __init__(self, logger, browser, *args, **kwargs):
         super().__init__(logger, browser, *args, **kwargs)
 

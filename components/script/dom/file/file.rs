@@ -7,6 +7,7 @@ use std::time::SystemTime;
 use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::id::{FileId, FileIndex};
 use servo_constellation_traits::{BlobImpl, SerializableFile};
 use time::{Duration, OffsetDateTime};
@@ -16,12 +17,11 @@ use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
+use crate::dom::blob::{Blob, normalize_type_string, process_blob_parts};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -170,7 +170,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
         filename: DOMString,
         filePropertyBag: &FileBinding::FilePropertyBag,
     ) -> Fallible<DomRoot<File>> {
-        let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
+        let bytes: Vec<u8> = match process_blob_parts(fileBits, filePropertyBag.parent.endings) {
             Ok(bytes) => bytes,
             Err(_) => return Err(Error::InvalidCharacter(None)),
         };

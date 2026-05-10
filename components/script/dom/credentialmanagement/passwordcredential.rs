@@ -6,11 +6,11 @@ use dom_struct::dom_struct;
 use js::gc::HandleObject;
 use script_bindings::codegen::GenericBindings::PasswordCredentialBinding::PasswordCredentialData;
 use script_bindings::error::{Error, Fallible};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::str::USVString;
 
 use crate::dom::bindings::codegen::Bindings::PasswordCredentialBinding::PasswordCredentialMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;

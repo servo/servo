@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use servo_base::id::{DomExceptionId, DomExceptionIndex};
 use servo_constellation_traits::DomException;
 
@@ -13,9 +14,6 @@ use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
     DOMExceptionConstants, DOMExceptionMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{
-    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
-};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;

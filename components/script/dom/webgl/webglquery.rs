@@ -5,13 +5,14 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
@@ -97,10 +98,10 @@ impl WebGLQuery {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
-                return Err(InvalidOperation);
-            }
+        if let Some(current_target) = self.gl_target.get() &&
+            current_target != target
+        {
+            return Err(InvalidOperation);
         }
         match target {
             constants::ANY_SAMPLES_PASSED |
@@ -122,10 +123,10 @@ impl WebGLQuery {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
-                return Err(InvalidOperation);
-            }
+        if let Some(current_target) = self.gl_target.get() &&
+            current_target != target
+        {
+            return Err(InvalidOperation);
         }
         match target {
             constants::ANY_SAMPLES_PASSED |

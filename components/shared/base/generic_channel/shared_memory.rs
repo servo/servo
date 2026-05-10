@@ -67,6 +67,17 @@ impl GenericSharedMemory {
             ])))
         }
     }
+
+    /// Free operation in single process mode.
+    /// If multiple `GenericSharedmemory` point to the same value this is safe to use and only effects the value currently hold.
+    pub fn into_arc_vec(self) -> Arc<Vec<u8>> {
+        match self.0 {
+            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
+                Arc::new(ipc_shared_memory.to_vec())
+            },
+            GenericSharedMemoryVariant::InProcess(arc) => arc,
+        }
+    }
 }
 
 impl fmt::Debug for GenericSharedMemory {

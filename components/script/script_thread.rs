@@ -1728,19 +1728,20 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if opts::get()
-                        .debug
-                        .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
-                    {
-                        println!(
-                            "Task took longer than max allowed ({category:?}) {:?}",
-                            task_duration.as_nanos()
-                        );
-                    }
-                    doc.start_tti();
+            if let Some(pipeline_id) = pipeline_id &&
+                pipeline_id == doc_id &&
+                task_duration.as_nanos() > MAX_TASK_NS
+            {
+                if opts::get()
+                    .debug
+                    .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
+                {
+                    println!(
+                        "Task took longer than max allowed ({category:?}) {:?}",
+                        task_duration.as_nanos()
+                    );
                 }
+                doc.start_tti();
             }
             doc.record_tti_if_necessary();
         }
@@ -3922,20 +3923,19 @@ impl ScriptThread {
             // we need to register an iframe entry to the performance timeline if present
             if let Some(window_proxy) = context
                 .get_document()
-                .and_then(|document| document.browsing_context())
+                .and_then(|document| document.browsing_context()) &&
+                let Some(frame_element) = window_proxy.frame_element()
             {
-                if let Some(frame_element) = window_proxy.frame_element() {
-                    let iframe_ctx = IframeContext::new(
-                        frame_element
-                            .downcast::<HTMLIFrameElement>()
-                            .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
-                    );
+                let iframe_ctx = IframeContext::new(
+                    frame_element
+                        .downcast::<HTMLIFrameElement>()
+                        .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
+                );
 
-                    // submit_timing will only accept timing that is of type ResourceTimingType::Resource
-                    let mut resource_timing = timing.clone();
-                    resource_timing.timing_type = ResourceTimingType::Resource;
-                    submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
-                }
+                // submit_timing will only accept timing that is of type ResourceTimingType::Resource
+                let mut resource_timing = timing.clone();
+                resource_timing.timing_type = ResourceTimingType::Resource;
+                submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
             }
 
             context.process_response_eof(cx, request_id, eof, timing);
@@ -4126,17 +4126,17 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            if window.live_devtools_updates() {
-                let css_error = CSSError {
-                    filename,
-                    line,
-                    column,
-                    msg,
-                };
-                let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
-                sender.send(message).unwrap();
-            }
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) &&
+            window.live_devtools_updates()
+        {
+            let css_error = CSSError {
+                filename,
+                line,
+                column,
+                msg,
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 

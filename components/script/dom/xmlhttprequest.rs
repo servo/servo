@@ -36,6 +36,7 @@ use net_traits::{
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_constellation_traits::BlobImpl;
@@ -54,7 +55,7 @@ use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOr
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};
@@ -340,10 +341,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 1. If this’s relevant global object is a Window object and its associated
         // Document is not fully active, then throw an "InvalidStateError" DOMException.
         let global = self.global();
-        if let Some(window) = global.downcast::<Window>() {
-            if !window.Document().is_fully_active() {
-                return Err(Error::InvalidState(None));
-            }
+        if let Some(window) = global.downcast::<Window>() &&
+            !window.Document().is_fully_active()
+        {
+            return Err(Error::InvalidState(None));
         }
 
         // Step 5
@@ -751,35 +752,35 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
             if !content_type_set {
                 let ct = request.headers.typed_get::<ContentType>();
-                if let Some(ct) = ct {
-                    if let Some(encoding) = encoding {
-                        let mime: Mime = ct.to_string().parse().unwrap();
-                        for param in mime.parameters.iter() {
-                            if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
-                                let params_iter = mime.parameters.iter();
-                                let new_params: Vec<(String, String)> = params_iter
-                                    .filter(|p| p.0 != CHARSET)
-                                    .map(|p| (p.0.clone(), p.1.clone()))
-                                    .collect();
+                if let Some(ct) = ct &&
+                    let Some(encoding) = encoding
+                {
+                    let mime: Mime = ct.to_string().parse().unwrap();
+                    for param in mime.parameters.iter() {
+                        if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
+                            let params_iter = mime.parameters.iter();
+                            let new_params: Vec<(String, String)> = params_iter
+                                .filter(|p| p.0 != CHARSET)
+                                .map(|p| (p.0.clone(), p.1.clone()))
+                                .collect();
 
-                                let new_mime = format!(
-                                    "{}/{};charset={}{}{}",
-                                    mime.type_,
-                                    mime.subtype,
-                                    encoding,
-                                    if new_params.is_empty() { "" } else { "; " },
-                                    new_params
-                                        .iter()
-                                        .map(|p| format!("{}={}", p.0, p.1))
-                                        .collect::<Vec<String>>()
-                                        .join("; ")
-                                );
+                            let new_mime = format!(
+                                "{}/{};charset={}{}{}",
+                                mime.type_,
+                                mime.subtype,
+                                encoding,
+                                if new_params.is_empty() { "" } else { "; " },
+                                new_params
+                                    .iter()
+                                    .map(|p| format!("{}={}", p.0, p.1))
+                                    .collect::<Vec<String>>()
+                                    .join("; ")
+                            );
 
-                                request.headers.insert(
-                                    header::CONTENT_TYPE,
-                                    HeaderValue::from_str(&new_mime).unwrap(),
-                                );
-                            }
+                            request.headers.insert(
+                                header::CONTENT_TYPE,
+                                HeaderValue::from_str(&new_mime).unwrap(),
+                            );
                         }
                     }
                 }

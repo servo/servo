@@ -321,7 +321,7 @@ class WebDriverBrowser(Browser):
         self._supports_pac = supports_pac
 
         self.base_path = base_path
-        self.env = os.environ.copy() if env is None else env
+        self.env = {**os.environ, **env} if env else os.environ.copy()
         self.webdriver_args = webdriver_args if webdriver_args is not None else []
 
         self.init_deadline: Optional[float] = None

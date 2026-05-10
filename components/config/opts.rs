@@ -186,10 +186,10 @@ impl DiagnosticsLogging {
         #[cfg(debug_assertions)]
         {
             let mut config: DiagnosticsLogging = Default::default();
-            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") {
-                if let Err(error) = config.extend_from_string(&diagnostics_var) {
-                    eprintln!("Could not parse debug logging option: {error}");
-                }
+            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") &&
+                let Err(error) = config.extend_from_string(&diagnostics_var)
+            {
+                eprintln!("Could not parse debug logging option: {error}");
             };
             config
         }

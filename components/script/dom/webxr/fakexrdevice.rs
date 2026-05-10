@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::fakexrinputcontroller::{FakeXRInputController, init_to_mock_buttons};
 use crate::dom::globalscope::GlobalScope;

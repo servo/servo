@@ -650,14 +650,14 @@ impl HeadedWindow {
 
         if !consumed {
             // Make sure to handle early resize events even when there are no webviews yet
-            if let WindowEvent::Resized(new_inner_size) = event {
-                if self.inner_size.get() != new_inner_size {
-                    self.inner_size.set(new_inner_size);
-                    // This should always be set to inner size
-                    // because we are resizing `SurfmanRenderingContext`.
-                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
-                    self.window_rendering_context.resize(new_inner_size);
-                }
+            if let WindowEvent::Resized(new_inner_size) = event &&
+                self.inner_size.get() != new_inner_size
+            {
+                self.inner_size.set(new_inner_size);
+                // This should always be set to inner size
+                // because we are resizing `SurfmanRenderingContext`.
+                // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                self.window_rendering_context.resize(new_inner_size);
             }
 
             if let Some(webview) = window.active_webview() {

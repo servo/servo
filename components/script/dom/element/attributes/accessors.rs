@@ -192,16 +192,16 @@ impl Element {
     /// 2. It also avoids the CSP checks when cloning (it shouldn't run any when cloning
     ///    existing valid attributes)
     fn compute_attribute_value_with_style_fast_path(&self, attr: AttrRef<'_>) -> AttrValue {
-        if *attr.local_name() == local_name!("style") {
-            if let Some(ref pdb) = *self.style_attribute().borrow() {
-                let document = self.owner_document();
-                let shared_lock = document.style_shared_lock();
-                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
-                return AttrValue::Declaration(
-                    (**attr.value()).to_owned(),
-                    ServoArc::new(shared_lock.wrap(new_pdb)),
-                );
-            }
+        if *attr.local_name() == local_name!("style") &&
+            let Some(ref pdb) = *self.style_attribute().borrow()
+        {
+            let document = self.owner_document();
+            let shared_lock = document.style_shared_lock();
+            let new_pdb = pdb.read_with(&shared_lock.read()).clone();
+            return AttrValue::Declaration(
+                (**attr.value()).to_owned(),
+                ServoArc::new(shared_lock.wrap(new_pdb)),
+            );
         }
 
         attr.value().clone()

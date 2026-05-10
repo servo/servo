@@ -13,6 +13,7 @@ use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_url::ServoUrl;
 use url::Position;
 
@@ -26,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString, serialize_jsval_to_json_utf8};
 use crate::dom::globalscope::GlobalScope;
@@ -461,17 +462,16 @@ fn initialize_response(
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
-        if let Some(content_type_contents) = &body.content_type {
-            if !response
+        if let Some(content_type_contents) = &body.content_type &&
+            !response
                 .Headers(CanGc::from_cx(cx))
                 .Has(ByteString::new(b"Content-Type".to_vec()))
                 .unwrap()
-            {
-                response.Headers(CanGc::from_cx(cx)).Append(
-                    ByteString::new(b"Content-Type".to_vec()),
-                    ByteString::new(content_type_contents.as_bytes().to_vec()),
-                )?;
-            }
+        {
+            response.Headers(CanGc::from_cx(cx)).Append(
+                ByteString::new(b"Content-Type".to_vec()),
+                ByteString::new(content_type_contents.as_bytes().to_vec()),
+            )?;
         };
     } else {
         // Reset FetchResponse to an in-memory stream with empty byte sequence here for

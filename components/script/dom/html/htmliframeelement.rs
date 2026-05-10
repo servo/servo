@@ -462,14 +462,14 @@ impl HTMLIFrameElement {
         // Note: the spec says to set the name 'when the nested browsing context is created'.
         // The current implementation sets the name on the window,
         // when the iframe attributes are first processed.
-        if mode == ProcessingMode::FirstTime {
-            if let Some(window) = self.GetContentWindow() {
-                window.set_name(
-                    element
-                        .get_name()
-                        .map_or(DOMString::from(""), |n| DOMString::from(&*n)),
-                );
-            }
+        if mode == ProcessingMode::FirstTime &&
+            let Some(window) = self.GetContentWindow()
+        {
+            window.set_name(
+                element
+                    .get_name()
+                    .map_or(DOMString::from(""), |n| DOMString::from(&*n)),
+            );
         }
 
         // Step 2.1. Let url be the result of running the shared attribute processing steps
@@ -513,17 +513,16 @@ impl HTMLIFrameElement {
         // against simple typo self-includes but nothing more elaborate.
         let mut ancestor = window.GetParent();
         while let Some(a) = ancestor {
-            if let Some(ancestor_url) = a.document().map(|d| d.url()) {
-                if ancestor_url.scheme() == url.scheme() &&
-                    ancestor_url.username() == url.username() &&
-                    ancestor_url.password() == url.password() &&
-                    ancestor_url.host() == url.host() &&
-                    ancestor_url.port() == url.port() &&
-                    ancestor_url.path() == url.path() &&
-                    ancestor_url.query() == url.query()
-                {
-                    return;
-                }
+            if let Some(ancestor_url) = a.document().map(|d| d.url()) &&
+                ancestor_url.scheme() == url.scheme() &&
+                ancestor_url.username() == url.username() &&
+                ancestor_url.password() == url.password() &&
+                ancestor_url.host() == url.host() &&
+                ancestor_url.port() == url.port() &&
+                ancestor_url.path() == url.path() &&
+                ancestor_url.query() == url.query()
+            {
+                return;
             }
             ancestor = a.parent().map(DomRoot::from_ref);
         }

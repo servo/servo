@@ -12,6 +12,7 @@ use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::generic_channel::GenericSend;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
@@ -19,7 +20,7 @@ use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -207,18 +208,17 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = global.origin().immutable();
 
-        if let Ok(url) = ServoUrl::parse(&url.str()) {
-            if url.fragment().is_none() && *origin == url.origin() {
-                if let Ok((id, _)) = parse_blob_url(&url) {
-                    let resource_threads = global.resource_threads();
-                    let (tx, rx) =
-                        generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
-                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
-                    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+        if let Ok(url) = ServoUrl::parse(&url.str()) &&
+            url.fragment().is_none() &&
+            *origin == url.origin() &&
+            let Ok((id, _)) = parse_blob_url(&url)
+        {
+            let resource_threads = global.resource_threads();
+            let (tx, rx) = generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
+            let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
+            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
-                    let _ = rx.recv().unwrap();
-                }
-            }
+            let _ = rx.recv().unwrap();
         }
     }
 

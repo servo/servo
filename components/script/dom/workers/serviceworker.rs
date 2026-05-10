@@ -9,6 +9,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerId;
 use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;

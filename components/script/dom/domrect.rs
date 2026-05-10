@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
 use servo_base::id::{DomRectId, DomRectIndex};
 use servo_constellation_traits::DomRect;
 
@@ -14,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
     DOMRectInit, DOMRectReadOnlyMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;

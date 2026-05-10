@@ -7,12 +7,12 @@ use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMethods;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::globalscope::GlobalScope;
 use crate::indexeddb::{convert_value_to_key, key_type_to_jsval};
 

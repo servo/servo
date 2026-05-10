@@ -6,7 +6,7 @@ from .base import get_timeout_multiplier   # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorchrome import ChromeDriverPrintRefTestExecutor  # noqa: F401
 
 
@@ -16,7 +16,8 @@ __wptrunner__ = {"product": "chromium",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
                               "print-reftest": "ChromeDriverPrintRefTestExecutor",
-                              "wdspec": "WdspecExecutor",
+                              "wdspec": "PytestExecutor",
+                              "aamtest": "PytestExecutor",
                               "crashtest": "WebDriverCrashtestExecutor",
                               "test262": "WebDriverTestharnessExecutor"},
                  "browser_kwargs": "browser_kwargs",

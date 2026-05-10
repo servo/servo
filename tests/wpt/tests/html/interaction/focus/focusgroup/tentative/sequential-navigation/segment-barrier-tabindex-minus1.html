@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - segment barriers with tabindex=-1 elements</title>
+<meta name="assert" content="Focused tabindex=-1 elements in opted-out subtrees create segment barriers. Tab from tabindex=-1 focusgroup items enters the next segment.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Direct opt-out on the tabindex=-1 element itself. -->
+<button id="direct_before">before</button>
+<div focusgroup="menu nomemory">
+  <button id="direct_first">first</button>
+  <button id="direct_middle" tabindex="-1" focusgroup="none">middle</button>
+  <button id="direct_last">last</button>
+</div>
+<button id="direct_after">after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      direct_middle,
+      direct_last,
+    ]);
+  }, "Direct opt-out tabindex=-1: Tab enters next segment");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      direct_middle,
+      direct_first,
+    ]);
+  }, "Direct opt-out tabindex=-1: Shift+Tab enters previous segment");
+</script>
+
+<!-- Opt-out on a wrapper around the focused tabindex=-1 element. -->
+<button id="nested_before">before</button>
+<div focusgroup="menu nomemory">
+  <button id="nested_first">first</button>
+  <div focusgroup="none">
+    <button id="nested_middle" tabindex="-1">middle</button>
+  </div>
+  <button id="nested_last">last</button>
+</div>
+<button id="nested_after">after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      nested_middle,
+      nested_last,
+    ]);
+  }, "Nested opt-out tabindex=-1: Tab enters next segment");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      nested_middle,
+      nested_first,
+    ]);
+  }, "Nested opt-out tabindex=-1: Shift+Tab enters previous segment");
+</script>
+
+<!-- Focused element is several layers deep inside the opt-out subtree, so the
+     barrier check must walk past intermediate non-focused descendants. -->
+<button id="deep_before">before</button>
+<div focusgroup="menu nomemory">
+  <button id="deep_first">first</button>
+  <div focusgroup="none">
+    <div>
+      <div>
+        <button id="deep_grandchild" tabindex="-1">grandchild</button>
+      </div>
+    </div>
+  </div>
+  <button id="deep_last">last</button>
+</div>
+<button id="deep_after">after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      deep_grandchild,
+      deep_last,
+    ]);
+  }, "Deeply nested opt-out tabindex=-1: Tab enters next segment");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      deep_grandchild,
+      deep_first,
+    ]);
+  }, "Deeply nested opt-out tabindex=-1: Shift+Tab enters previous segment");
+</script>

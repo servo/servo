@@ -9,6 +9,7 @@ use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32, Float32Array, HeapFloat32Array};
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -61,6 +61,7 @@ pub(crate) struct AudioBuffer {
 }
 
 impl AudioBuffer {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         number_of_channels: u32,
         length: u32,
@@ -287,10 +288,10 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             {
                 return Err(Error::IndexSize(None));
             }
-        } else if let Some(ref shared_channels) = *self.shared_channels.borrow() {
-            if let Some(shared_channel) = shared_channels.buffers.get(channel_number) {
-                dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
-            }
+        } else if let Some(ref shared_channels) = *self.shared_channels.borrow() &&
+            let Some(shared_channel) = shared_channels.buffers.get(channel_number)
+        {
+            dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
         }
 
         destination.update(&dest);

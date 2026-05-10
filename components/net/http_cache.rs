@@ -167,10 +167,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             return true;
         }
     }
-    if let Some(pragma) = headers.typed_get::<Pragma>() {
-        if pragma.is_no_cache() {
-            return false;
-        }
+    if let Some(pragma) = headers.typed_get::<Pragma>() &&
+        pragma.is_no_cache()
+    {
+        return false;
     }
     is_cacheable
 }
@@ -247,10 +247,10 @@ fn get_response_expiry(response: &Response) -> Duration {
             return heuristic_freshness;
         }
         // Other status codes can only use heuristic freshness if the public cache directive is present.
-        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-            if directives.public() {
-                return heuristic_freshness;
-            }
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() &&
+            directives.public()
+        {
+            return heuristic_freshness;
         }
     }
     // Requires validation upon first use as default.

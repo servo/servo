@@ -150,14 +150,10 @@ pub(crate) enum ReplacedContentKind {
 
 impl ReplacedContents {
     pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
-        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
-            if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
-                return Self::from_image_url(
-                    node,
-                    context,
-                    &ComputedUrl::Valid(ServoArc::new(url)),
-                );
-            }
+        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() &&
+            let Some(url) = try_to_parse_image_data_url(data_attribute_string)
+        {
+            return Self::from_image_url(node, context, &ComputedUrl::Valid(ServoArc::new(url)));
         }
 
         let (kind, natural_size) = {
@@ -317,15 +313,14 @@ impl ReplacedContents {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
-            node.style(&context.style_context).clone_content()
+            node.style(&context.style_context).clone_content() &&
+            let [GenericContentItem::Image(image)] = items.as_slice()
         {
-            if let [GenericContentItem::Image(image)] = items.as_slice() {
-                // Invalid images are treated as zero-sized.
-                return Some(
-                    Self::from_image(node, context, image)
-                        .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
-                );
-            }
+            // Invalid images are treated as zero-sized.
+            return Some(
+                Self::from_image(node, context, image)
+                    .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
+            );
         }
         None
     }

@@ -7,6 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::reflector::reflect_dom_object;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -19,7 +20,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     BooleanOrMediaTrackConstraints, ClampedUnsignedLongOrConstrainULongRange as ConstrainULong,
     DoubleOrConstrainDoubleRange as ConstrainDouble,
 };
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -56,19 +57,17 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
         let stream = MediaStream::new(cx, &self.global());
-        if let Some(constraints) = convert_constraints(&constraints.audio) {
-            if let Some(audio) = media.create_audioinput_stream(constraints) {
-                let track =
-                    MediaStreamTrack::new(cx, &self.global(), audio, MediaStreamType::Audio);
-                stream.add_track(&track);
-            }
+        if let Some(constraints) = convert_constraints(&constraints.audio) &&
+            let Some(audio) = media.create_audioinput_stream(constraints)
+        {
+            let track = MediaStreamTrack::new(cx, &self.global(), audio, MediaStreamType::Audio);
+            stream.add_track(&track);
         }
-        if let Some(constraints) = convert_constraints(&constraints.video) {
-            if let Some(video) = media.create_videoinput_stream(constraints) {
-                let track =
-                    MediaStreamTrack::new(cx, &self.global(), video, MediaStreamType::Video);
-                stream.add_track(&track);
-            }
+        if let Some(constraints) = convert_constraints(&constraints.video) &&
+            let Some(video) = media.create_videoinput_stream(constraints)
+        {
+            let track = MediaStreamTrack::new(cx, &self.global(), video, MediaStreamType::Video);
+            stream.add_track(&track);
         }
 
         p.resolve_native(&stream, CanGc::from_cx(cx));

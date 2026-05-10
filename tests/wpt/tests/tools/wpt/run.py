@@ -947,6 +947,10 @@ def setup_wptrunner(venv, **kwargs):
     if not venv.skip_virtualenv_setup:
         requirements = [os.path.join(wpt_root, "tools", "wptrunner", "requirements.txt")]
         requirements.extend(setup_cls.requirements())
+
+        if "aamtest" in kwargs["test_types"]:
+            requirements.append(os.path.join(wpt_root, "tools", "wptrunner", "requirements_platform_accessibility.txt"))
+
         venv.install_requirements(*requirements)
 
     affected_revish = kwargs.get("affected")

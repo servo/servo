@@ -6,10 +6,10 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::AudioTrackMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
@@ -116,10 +116,10 @@ impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled>
     fn SetEnabled(&self, value: bool) {
-        if let Some(list) = self.track_list.borrow().as_ref() {
-            if let Some(idx) = list.find(self) {
-                list.set_enabled(idx, value);
-            }
+        if let Some(list) = self.track_list.borrow().as_ref() &&
+            let Some(idx) = list.find(self)
+        {
+            list.set_enabled(idx, value);
         }
         self.set_enabled(value);
     }

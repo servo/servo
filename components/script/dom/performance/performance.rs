@@ -14,6 +14,7 @@ use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -31,7 +32,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -691,30 +692,31 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // Step 1. If startOrMeasureOptions is a PerformanceMeasureOptions object and at least one of start,
         // end, duration, and detail exist, run the following checks:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
-            &start_or_measure_options
-        {
-            if options.start.is_some() ||
+            &start_or_measure_options &&
+            (options.start.is_some() ||
                 options.duration.is_some() ||
                 options.end.is_some() ||
-                options.detail.get().is_object_or_null()
-            {
-                // Step 1.1 If endMark is given, throw a TypeError.
-                if end_mark.is_some() {
-                    return Err(Error::Type(
-                        c"Must not provide endMark if PerformanceMeasureOptions is also provided"
-                            .to_owned(),
-                    ));
-                }
+                options.detail.get().is_object_or_null())
+        {
+            // Step 1.1 If endMark is given, throw a TypeError.
+            if end_mark.is_some() {
+                return Err(Error::Type(
+                    c"Must not provide endMark if PerformanceMeasureOptions is also provided"
+                        .to_owned(),
+                ));
+            }
 
-                // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
-                if options.start.is_none() && options.end.is_none() {
-                    return Err(Error::Type(c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided".to_owned()));
-                }
+            // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
+            if options.start.is_none() && options.end.is_none() {
+                return Err(Error::Type(
+                    c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided"
+                        .to_owned(),
+                ));
+            }
 
-                // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
-                if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
-                    return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
-                }
+            // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
+            if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
+                return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
             }
         }
 
@@ -819,20 +821,19 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         rooted!(&in(cx) let mut detail = NullValue());
         // Step 9.1. If startOrMeasureOptions is a PerformanceMeasureOptions object and startOrMeasureOptions’s detail member exists:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
-            &start_or_measure_options
+            &start_or_measure_options &&
+            !options.detail.get().is_null_or_undefined()
         {
-            if !options.detail.get().is_null_or_undefined() {
-                // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
-                let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
+            // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
+            let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
 
-                // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-                structuredclone::read(
-                    &self.global(),
-                    record,
-                    detail.handle_mut(),
-                    CanGc::from_cx(cx),
-                )?;
-            }
+            // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
+            structuredclone::read(
+                &self.global(),
+                record,
+                detail.handle_mut(),
+                CanGc::from_cx(cx),
+            )?;
         }
         // Step 9.2. Otherwise, set it to null.
         //

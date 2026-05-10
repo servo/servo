@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
@@ -20,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domstringlist::DOMStringList;
@@ -274,10 +275,10 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5. If keyPath is not null and is not a valid key path, throw a
         // "SyntaxError" DOMException.
-        if let Some(path) = key_path {
-            if !is_valid_key_path(cx, path)? {
-                return Err(Error::Syntax(None));
-            }
+        if let Some(path) = key_path &&
+            !is_valid_key_path(cx, path)?
+        {
+            return Err(Error::Syntax(None));
         }
 
         // Step 6. If an object store named name already exists in database throw

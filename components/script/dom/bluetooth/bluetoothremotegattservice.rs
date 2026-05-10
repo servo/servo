@@ -6,12 +6,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_bluetooth_traits::{BluetoothResponse, GATTType};
 
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};

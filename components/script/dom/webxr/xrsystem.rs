@@ -11,6 +11,7 @@ use ipc_channel::router::ROUTER;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -23,7 +24,7 @@ use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertib
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
@@ -88,13 +89,13 @@ impl XRSystem {
     /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
     pub(crate) fn end_session(&self, session: &XRSession) {
         // Step 3
-        if let Some(active) = self.active_immersive_session.get() {
-            if Dom::from_ref(&*active) == Dom::from_ref(session) {
-                self.active_immersive_session.set(None);
-                // Dirty the canvas, since it has been skipping this step whilst in immersive
-                // mode
-                session.dirty_layers();
-            }
+        if let Some(active) = self.active_immersive_session.get() &&
+            Dom::from_ref(&*active) == Dom::from_ref(session)
+        {
+            self.active_immersive_session.set(None);
+            // Dirty the canvas, since it has been skipping this step whilst in immersive
+            // mode
+            session.dirty_layers();
         }
         self.active_inline_sessions
             .borrow_mut()

@@ -11,20 +11,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout WPT repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: wpt
       - name: Checkout Wasm repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: WebAssembly/spec
           path: wasm-spec
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 4.14.x
+          ocaml-compiler: 5.04.x
       - name: Setup OCaml tools
-        run: opam install --yes ocamlfind.1.9.5 js_of_ocaml.4.0.0 js_of_ocaml-ppx.4.0.0
+        run: opam install --yes ocamlfind js_of_ocaml js_of_ocaml-ppx
       - name: Build interpreter
         run: cd wasm-spec/interpreter && opam exec make
       - name: Convert WAST tests to WPT

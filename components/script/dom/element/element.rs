@@ -28,6 +28,7 @@ use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, w
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
+use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
@@ -91,7 +92,6 @@ use crate::dom::bindings::domname::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::create::create_element;
@@ -522,36 +522,35 @@ impl Element {
 
         // " - body’s parent element’s computed value of the overflow-x or
         //     overflow-y properties is neither visible nor clip."
-        if let Some(parent) = node.GetParentElement() {
-            if let Some(style) = parent.style() {
-                let mut overflow_x = style.get_box().clone_overflow_x();
-                let mut overflow_y = style.get_box().clone_overflow_y();
+        if let Some(parent) = node.GetParentElement() &&
+            let Some(style) = parent.style()
+        {
+            let mut overflow_x = style.get_box().clone_overflow_x();
+            let mut overflow_y = style.get_box().clone_overflow_y();
 
-                // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
-                // from the document.scrollingElement specification.
-                if treat_overflow_clip_on_parent_as_hidden {
-                    if overflow_x == Overflow::Clip {
-                        overflow_x = Overflow::Hidden;
-                    }
-                    if overflow_y == Overflow::Clip {
-                        overflow_y = Overflow::Hidden;
-                    }
+            // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
+            // from the document.scrollingElement specification.
+            if treat_overflow_clip_on_parent_as_hidden {
+                if overflow_x == Overflow::Clip {
+                    overflow_x = Overflow::Hidden;
                 }
+                if overflow_y == Overflow::Clip {
+                    overflow_y = Overflow::Hidden;
+                }
+            }
 
-                if !overflow_x.is_scrollable() && !overflow_y.is_scrollable() {
-                    return false;
-                }
-            };
-        }
+            if !overflow_x.is_scrollable() && !overflow_y.is_scrollable() {
+                return false;
+            }
+        };
 
         // " - body’s computed value of the overflow-x or overflow-y properties
         //     is neither visible nor clip."
-        if let Some(style) = self.style() {
-            if !style.get_box().clone_overflow_x().is_scrollable() &&
-                !style.get_box().clone_overflow_y().is_scrollable()
-            {
-                return false;
-            }
+        if let Some(style) = self.style() &&
+            !style.get_box().clone_overflow_x().is_scrollable() &&
+            !style.get_box().clone_overflow_y().is_scrollable()
+        {
+            return false;
         };
 
         true
@@ -773,10 +772,10 @@ impl Element {
                 _ => {},
             }
         }
-        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
-            if let Some(elem) = parent.downcast::<Element>() {
-                return elem.is_translate_enabled();
-            }
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() &&
+            let Some(elem) = parent.downcast::<Element>()
+        {
+            return elem.is_translate_enabled();
         }
         true
     }
@@ -1177,18 +1176,14 @@ impl<'dom> LayoutDom<'dom, Element> {
         if is_element_affected_by_legacy_background_presentational_hint(
             self.namespace(),
             self.local_name(),
-        ) {
-            if let Some(url) = self
-                .get_attr_for_layout(&ns!(), &local_name!("background"))
-                .and_then(AttrValue::as_resolved_url)
-                .cloned()
-            {
-                push(PropertyDeclaration::BackgroundImage(
-                    background_image::SpecifiedValue(
-                        vec![specified::Image::for_cascade(url)].into(),
-                    ),
-                ));
-            }
+        ) && let Some(url) = self
+            .get_attr_for_layout(&ns!(), &local_name!("background"))
+            .and_then(AttrValue::as_resolved_url)
+            .cloned()
+        {
+            push(PropertyDeclaration::BackgroundImage(
+                background_image::SpecifiedValue(vec![specified::Image::for_cascade(url)].into()),
+            ));
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -1352,20 +1347,18 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         // Aspect ratio when providing both width and height.
         // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
-        if self.downcast::<HTMLImageElement>().is_some() ||
-            self.downcast::<HTMLVideoElement>().is_some()
+        if (self.downcast::<HTMLImageElement>().is_some() ||
+            self.downcast::<HTMLVideoElement>().is_some()) &&
+            let LengthOrPercentageOrAuto::Length(width) = width &&
+            let LengthOrPercentageOrAuto::Length(height) = height
         {
-            if let LengthOrPercentageOrAuto::Length(width) = width {
-                if let LengthOrPercentageOrAuto::Length(height) = height {
-                    let width_value = NonNegative(specified::Number::new(width.to_f32_px()));
-                    let height_value = NonNegative(specified::Number::new(height.to_f32_px()));
-                    let aspect_ratio = specified::position::AspectRatio {
-                        auto: true,
-                        ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
-                    };
-                    push(PropertyDeclaration::AspectRatio(aspect_ratio));
-                }
-            }
+            let width_value = NonNegative(specified::Number::new(width.to_f32_px()));
+            let height_value = NonNegative(specified::Number::new(height.to_f32_px()));
+            let aspect_ratio = specified::position::AspectRatio {
+                auto: true,
+                ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
+            };
+            push(PropertyDeclaration::AspectRatio(aspect_ratio));
         }
 
         let cols = self
@@ -1831,10 +1824,10 @@ impl Element {
         {
             let element = node.downcast::<Element>()?;
             // Step 1.
-            if *element.namespace() == namespace {
-                if let Some(prefix) = element.GetPrefix() {
-                    return Some(prefix);
-                }
+            if *element.namespace() == namespace &&
+                let Some(prefix) = element.GetPrefix()
+            {
+                return Some(prefix);
             }
 
             // Step 2.
@@ -2384,10 +2377,10 @@ impl Element {
 
         // Step 2. If attr’s element is neither null nor element,
         // throw an "InUseAttributeError" DOMException.
-        if let Some(owner) = attr.GetOwnerElement() {
-            if &*owner != self {
-                return Err(Error::InUseAttribute(None));
-            }
+        if let Some(owner) = attr.GetOwnerElement() &&
+            &*owner != self
+        {
+            return Err(Error::InUseAttribute(None));
         }
 
         let vtable = vtable_for(self.upcast());
@@ -4539,10 +4532,10 @@ impl VirtualMethods for Element {
                 doc.register_element_id(self, id.clone(), CanGc::from_cx(cx));
             }
         }
-        if let Some(ref name) = self.name_attribute() {
-            if self.containing_shadow_root().is_none() {
-                doc.register_element_name(self, name.clone());
-            }
+        if let Some(ref name) = self.name_attribute() &&
+            self.containing_shadow_root().is_none()
+        {
+            doc.register_element_name(self, name.clone());
         }
     }
 
@@ -4577,10 +4570,10 @@ impl VirtualMethods for Element {
                 doc.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
             }
         }
-        if let Some(ref value) = self.name_attribute() {
-            if self.containing_shadow_root().is_none() {
-                doc.unregister_element_name(self, value.clone());
-            }
+        if let Some(ref value) = self.name_attribute() &&
+            self.containing_shadow_root().is_none()
+        {
+            doc.unregister_element_name(self, value.clone());
         }
     }
 
@@ -4594,19 +4587,19 @@ impl VirtualMethods for Element {
             // All children of this node need to be restyled when any child changes.
             self.upcast::<Node>().dirty(NodeDamage::Other);
         } else {
-            if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
-                if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings_unrooted(cx.no_gc()) {
-                        if child.is::<Element>() {
-                            child.dirty(NodeDamage::Other);
-                        }
+            if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) &&
+                let Some(next_child) = mutation.next_child()
+            {
+                for child in next_child.inclusively_following_siblings_unrooted(cx.no_gc()) {
+                    if child.is::<Element>() {
+                        child.dirty(NodeDamage::Other);
                     }
                 }
             }
-            if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
-                if let Some(child) = mutation.modified_edge_element(cx.no_gc()) {
-                    child.dirty(NodeDamage::Other);
-                }
+            if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) &&
+                let Some(child) = mutation.modified_edge_element(cx.no_gc())
+            {
+                child.dirty(NodeDamage::Other);
             }
         }
     }
@@ -4652,11 +4645,10 @@ impl Element {
             .rare_data()
             .as_ref()
             .and_then(|data| data.client_rect.as_ref())
-            .and_then(|rect| rect.get().ok())
+            .and_then(|rect| rect.get().ok()) &&
+            doc.restyle_reason().is_empty()
         {
-            if doc.restyle_reason().is_empty() {
-                return rect;
-            }
+            return rect;
         }
 
         let mut rect = self.upcast::<Node>().client_rect();
@@ -4975,13 +4967,12 @@ impl Element {
             return;
         }
         let node = self.upcast::<Node>();
-        if let Some(ref parent) = node.GetParentNode() {
-            if parent.is::<HTMLOptGroupElement>() &&
-                parent.downcast::<Element>().unwrap().disabled_state()
-            {
-                self.set_disabled_state(true);
-                self.set_enabled_state(false);
-            }
+        if let Some(ref parent) = node.GetParentNode() &&
+            parent.is::<HTMLOptGroupElement>() &&
+            parent.downcast::<Element>().unwrap().disabled_state()
+        {
+            self.set_disabled_state(true);
+            self.set_enabled_state(false);
         }
     }
 

@@ -11,7 +11,7 @@ interface ServiceWorkerContainer : EventTarget {
   [NewObject] Promise<ServiceWorkerRegistration> register(USVString scriptURL,
                                                           optional RegistrationOptions options = {});
 
-  //[NewObject] Promise<any> getRegistration(optional USVString clientURL = "");
+  //[NewObject] Promise<(ServiceWorkerRegistration or undefined)> getRegistration(optional USVString clientURL = "");
   //[NewObject] Promise<FrozenArray<ServiceWorkerRegistration>> getRegistrations();
 
   //void startMessages();

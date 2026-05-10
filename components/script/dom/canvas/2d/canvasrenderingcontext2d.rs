@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
-use script_bindings::reflector::AssociatedMemory;
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use servo_url::ServoUrl;
@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;

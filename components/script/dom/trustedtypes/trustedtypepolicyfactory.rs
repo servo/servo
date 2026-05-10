@@ -8,6 +8,7 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use js::jsval::NullValue;
 use js::rust::HandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
@@ -19,7 +20,7 @@ use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrust
 use crate::dom::bindings::conversions::root_from_handlevalue;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;

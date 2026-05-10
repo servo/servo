@@ -3,7 +3,7 @@
 
 idl_test(
   ['sanitizer-api'],
-  ['html'],
+  ['html', 'dom'],
   idl_array => {
     idl_array.add_objects({
       Sanitizer: ['new Sanitizer({})']

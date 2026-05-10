@@ -11,6 +11,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
+<div id="testContent">
 <style>
 :root {
   /* Ensure clicks during the transition fall through the pseudo tree root to
@@ -47,33 +48,39 @@
 
 <div id="clicktarget"></div>
 <div id="transition"></div>
+</div>
+
+<iframe id="subframe"></iframe>
 
 <script>
-const target = document.getElementById("clicktarget");
 
-async function sendAndWaitForClick() {
+// Click at (x, y) in top-level window and wait for click in doc
+async function sendAndWaitForClick(x, y, doc) {
   return new Promise(async (resolve) => {
 
     function eventHandler(ev) {
       resolve(ev);
     }
 
-    document.documentElement.addEventListener("click", eventHandler);
+    doc.documentElement.addEventListener("click", eventHandler);
 
     await new test_driver.Actions()
              .setContext(window)
              .addPointer("mousePointer1", "mouse")
-             .pointerMove(10, 10, {origin: 'viewport', sourceName: "mousePointer1"})
+             .pointerMove(x, y, {origin: 'viewport', sourceName: "mousePointer1"})
              .pointerDown({sourceName: "mousePointer1"})
              .pointerUp({sourceName: "mousePointer1"})
              .send();
 
-    document.documentElement.removeEventListener("click", eventHandler);
+    doc.documentElement.removeEventListener("click", eventHandler);
   });
 }
 
-promise_test(async t => {
-  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+// Test that input targets doc root while doc is render blocked due to VT
+async function test_input_target_during_transition(x, y, doc) {
+  assert_implements(doc.startViewTransition, "Missing document.startViewTransition");
+
+  const target = doc.getElementById("clicktarget");
   assert_not_equals(target, null, "PRECONDITION: target element is valid");
 
   // Ensure input is initialized before blocking rendering.
@@ -85,21 +92,31 @@ promise_test(async t => {
 
   let clickEvent = null;
 
-  let transition = document.startViewTransition(async () => {
-    clickEvent = await sendAndWaitForClick();
+  const transition = doc.startViewTransition(async () => {
+    clickEvent = await sendAndWaitForClick(x, y, doc);
   });
 
   await transition.ready;
 
-  assert_equals(clickEvent.target, document.documentElement,
-      "Events must target the transition root while render blocked");
+  assert_equals(clickEvent.target, doc.documentElement,
+      "Events must target the document element while render blocked");
   clickEvent = null;
 
-  clickEvent = await sendAndWaitForClick();
+  clickEvent = await sendAndWaitForClick(x, y, doc);
 
   // This just ensures we're not passing the above check by accident.
   assert_equals(clickEvent.target, target,
-      "During transition, event should hit real DOM");
+      "Events must target real DOM during transition");
+}
 
-}, "Input when rendering suppressed targets root");
+promise_test(async t => {
+  await test_input_target_during_transition(10, 10, document);
+}, "Input in render-blocked document targets root");
+
+promise_test(async t => {
+  const iframeDoc = subframe.contentDocument;
+  iframeDoc.documentElement.innerHTML = testContent.innerHTML;
+  const rect = subframe.getBoundingClientRect();
+  await test_input_target_during_transition(rect.left + 10, rect.top + 10, iframeDoc);
+}, "Input in render-blocked subframe targets subframe root");
 </script>

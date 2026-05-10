@@ -25,6 +25,7 @@ use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTim
 use pixels::RasterImage;
 use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
@@ -44,7 +45,6 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -685,7 +685,7 @@ fn validate_and_normalize_vibration_pattern(
 
     // If the length of the pattern is even and not zero then the last entry in the pattern will
     // have no effect so an implementation can remove it from the pattern at this point.
-    if pattern.len() % 2 == 0 && !pattern.is_empty() {
+    if pattern.len().is_multiple_of(2) && !pattern.is_empty() {
         pattern.pop();
     }
 
@@ -853,34 +853,34 @@ impl Notification {
     /// <https://notifications.spec.whatwg.org/#fetch-steps>
     fn fetch_resources_and_show_when_ready(&self) {
         let mut pending_requests: Vec<(RequestBuilder, ResourceType)> = vec![];
-        if let Some(image_url) = &self.image {
-            if let Ok(url) = ServoUrl::parse(image_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Image));
-            }
+        if let Some(image_url) = &self.image &&
+            let Ok(url) = ServoUrl::parse(image_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Image));
         }
-        if let Some(icon_url) = &self.icon {
-            if let Ok(url) = ServoUrl::parse(icon_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Icon));
-            }
+        if let Some(icon_url) = &self.icon &&
+            let Ok(url) = ServoUrl::parse(icon_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Icon));
         }
-        if let Some(badge_url) = &self.badge {
-            if let Ok(url) = ServoUrl::parse(badge_url) {
-                let request = self.build_resource_request(&url);
-                self.pending_request_ids.borrow_mut().insert(request.id);
-                pending_requests.push((request, ResourceType::Badge));
-            }
+        if let Some(badge_url) = &self.badge &&
+            let Ok(url) = ServoUrl::parse(badge_url)
+        {
+            let request = self.build_resource_request(&url);
+            self.pending_request_ids.borrow_mut().insert(request.id);
+            pending_requests.push((request, ResourceType::Badge));
         }
         for action in self.actions.iter() {
-            if let Some(icon_url) = &action.icon_url {
-                if let Ok(url) = ServoUrl::parse(icon_url) {
-                    let request = self.build_resource_request(&url);
-                    self.pending_request_ids.borrow_mut().insert(request.id);
-                    pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
-                }
+            if let Some(icon_url) = &action.icon_url &&
+                let Ok(url) = ServoUrl::parse(icon_url)
+            {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
             }
         }
 

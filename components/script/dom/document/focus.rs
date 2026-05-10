@@ -399,13 +399,12 @@ impl DocumentFocusHandler {
         // Step 3: Apply any relevant platform-specific conventions for focusing new focus
         // target. (For example, some platforms select the contents of a text control when that
         // control is focused.)
-        if &*self.focused_area() != new_focus_target {
-            if let Some(html_element) = new_focus_target
+        if &*self.focused_area() != new_focus_target &&
+            let Some(html_element) = new_focus_target
                 .element()
                 .and_then(|element| element.downcast::<HTMLElement>())
-            {
-                html_element.handle_focus_state_for_contenteditable(cx);
-            }
+        {
+            html_element.handle_focus_state_for_contenteditable(cx);
         }
 
         self.set_has_focus(!new_focus_chain_was_empty);
@@ -745,12 +744,11 @@ impl SequentialFocusNavigationSearch {
             mechanism => *mechanism,
         };
 
-        if self.direction == SequentialFocusDirection::Backward {
-            if let Some(containing_element) = containing_node.downcast::<Element>() {
-                if containing_element.is_sequentially_focusable() {
-                    return Some(DomRoot::from_ref(containing_element));
-                }
-            }
+        if self.direction == SequentialFocusDirection::Backward &&
+            let Some(containing_element) = containing_node.downcast::<Element>() &&
+            containing_element.is_sequentially_focusable()
+        {
+            return Some(DomRoot::from_ref(containing_element));
         }
 
         Self {

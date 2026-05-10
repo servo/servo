@@ -53,6 +53,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
@@ -67,7 +68,6 @@ use crate::dom::bindings::error::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -1315,17 +1315,17 @@ pub(crate) fn fetch_a_modulepreload_module(
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
-            if pref!(dom_allow_preloading_module_descendants) {
-                if let Some(module) = result {
-                    fetch_the_descendants_and_link_module_script(
-                        cx,
-                        &global_scope,
-                        module,
-                        fetch_client,
-                        destination,
-                        |_, _| {},
-                    );
-                }
+            if pref!(dom_allow_preloading_module_descendants) &&
+                let Some(module) = result
+            {
+                fetch_the_descendants_and_link_module_script(
+                    cx,
+                    &global_scope,
+                    module,
+                    fetch_client,
+                    destination,
+                    |_, _| {},
+                );
             }
         },
     );

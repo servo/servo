@@ -4,6 +4,10 @@
 // META: variant=?context=worker&contention=request
 // META: variant=?context=nested-worker&contention=request
 // META: variant=?context=shared-worker&contention=request
+// META: variant=?context=document&contention=request-if-available
+// META: variant=?context=worker&contention=request-if-available
+// META: variant=?context=nested-worker&contention=request-if-available
+// META: variant=?context=shared-worker&contention=request-if-available
 // META: variant=?context=document&contention=query
 // META: variant=?context=worker&contention=query
 // META: variant=?context=nested-worker&contention=query
@@ -50,6 +54,12 @@ const contentions = {
     description: 'on navigator.locks.request()',
     funcBeforeBackNavigation: (name) => {
         return navigator.locks.request(name, () => {});
+    },
+  },
+  'request-if-available': {
+    description: 'on navigator.locks.request() with ifAvailable: true',
+    funcBeforeBackNavigation: (name) => {
+        return navigator.locks.request(name, { ifAvailable: true }, () => {});
     },
   },
   'query': {

@@ -15,6 +15,7 @@ use js::jsapi::{
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -24,7 +25,6 @@ use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;

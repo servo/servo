@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -15,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::StorageManagerBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::request_permission_to_use;
@@ -160,11 +161,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         if global
             .storage_threads()
             .persisted(global.origin().immutable().clone(), callback.clone())
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager persisted error: {error}");
-            }
+            error!("Failed to deliver StorageManager persisted error: {error}");
         }
 
         // Step 6. Return promise.
@@ -217,11 +217,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
                 permission == PermissionState::Granted,
                 callback.clone(),
             )
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager persist error: {error}");
-            }
+            error!("Failed to deliver StorageManager persist error: {error}");
         }
 
         // Step 6. Return promise.
@@ -266,11 +265,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         if global
             .storage_threads()
             .estimate(global.origin().immutable().clone(), callback.clone())
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager estimate error: {error}");
-            }
+            error!("Failed to deliver StorageManager estimate error: {error}");
         }
 
         // Step 6. Return promise.

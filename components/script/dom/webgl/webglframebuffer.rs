@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use euclid::Size2D;
 use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
@@ -19,7 +20,7 @@ use webxr_api::Viewport;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 #[cfg(feature = "webxr")]
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -336,10 +337,10 @@ impl WebGLFramebuffer {
             }
         }
 
-        if let Some(format) = format {
-            if constraints.all(|c| *c != format) {
-                return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
-            }
+        if let Some(format) = format &&
+            constraints.all(|c| *c != format)
+        {
+            return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
         }
 
         Ok(())
@@ -571,19 +572,19 @@ impl WebGLFramebuffer {
             ];
             let mut clear_bits = 0;
             for &(attachment, bits) in &attachments {
-                if let Some(ref att) = *attachment.borrow() {
-                    if att.needs_initialization() {
-                        att.mark_initialized();
-                        clear_bits |= bits;
-                    }
+                if let Some(ref att) = *attachment.borrow() &&
+                    att.needs_initialization()
+                {
+                    att.mark_initialized();
+                    clear_bits |= bits;
                 }
             }
             for attachment in self.colors.iter() {
-                if let Some(ref att) = *attachment.borrow() {
-                    if att.needs_initialization() {
-                        att.mark_initialized();
-                        clear_bits |= constants::COLOR_BUFFER_BIT;
-                    }
+                if let Some(ref att) = *attachment.borrow() &&
+                    att.needs_initialization()
+                {
+                    att.mark_initialized();
+                    clear_bits |= constants::COLOR_BUFFER_BIT;
                 }
             }
 

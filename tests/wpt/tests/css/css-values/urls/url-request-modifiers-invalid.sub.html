@@ -38,9 +38,16 @@ test_invalid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][
 test_invalid_value('background-image', 'url(referrer-policy(no-referrer) "http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png")');
 test_invalid_value('background-image', '"http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" referrer-policy(no-referrer)');
 
-// Test outdated names.
-test_invalid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" crossorigin(anonymous))');
-test_invalid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" referrerpolicy(no-referrer))');
+// Duplicates of unknown <url-modifier>s are not allowed, even though
+// individual unknown modifiers are silently ignored.
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" foobar(baz) foobar(baz))');
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" foobar(baz) foobar(qux))');
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" foobar foobar)');
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" FooBar foobar)');
+
+// Tokens that aren't an ident or function should be a parse error.
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" 42)');
+test_invalid_value('background-image', 'url("/css/support/1x1-green.png" "foobar")');
 
 // "A <url> that is either unquoted or not wrapped in url() notation
 // cannot accept any <url-modifier>s."

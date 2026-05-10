@@ -253,17 +253,12 @@ impl PlayerInner {
         if self.stream_type != StreamType::Seekable {
             return Err(PlayerError::NonSeekableStream);
         }
-        if let Some(ref metadata) = self.last_metadata {
-            if let Some(ref duration) = metadata.duration {
-                if duration < &time::Duration::new(time as u64, 0) {
-                    gstreamer::warning!(
-                        self.cat,
-                        obj = &self.player,
-                        "Trying to seek out of range"
-                    );
-                    return Err(PlayerError::SeekOutOfRange);
-                }
-            }
+        if let Some(ref metadata) = self.last_metadata &&
+            let Some(ref duration) = metadata.duration &&
+            duration < &time::Duration::new(time as u64, 0)
+        {
+            gstreamer::warning!(self.cat, obj = &self.player, "Trying to seek out of range");
+            return Err(PlayerError::SeekOutOfRange);
         }
 
         let time = time * 1_000_000_000.;
@@ -340,15 +335,14 @@ impl PlayerInner {
 
     pub fn seekable(&self) -> Vec<Range<f64>> {
         // if the servosrc is seekable, we should return the duration of the media
-        if let Some(metadata) = self.last_metadata.as_ref() {
-            if metadata.is_seekable {
-                if let Some(duration) = metadata.duration {
-                    return vec![Range {
-                        start: 0.0,
-                        end: duration.as_secs_f64(),
-                    }];
-                }
-            }
+        if let Some(metadata) = self.last_metadata.as_ref() &&
+            metadata.is_seekable &&
+            let Some(duration) = metadata.duration
+        {
+            return vec![Range {
+                start: 0.0,
+                end: duration.as_secs_f64(),
+            }];
         }
 
         // if the servosrc is not seekable, we should return the buffered range
@@ -744,17 +738,17 @@ impl GStreamerPlayer {
             });
 
             let mut inner = inner_clone.lock().unwrap();
-            if let Some(ref mut metadata) = inner.last_metadata {
-                if metadata.duration != duration {
-                    metadata.duration = duration;
-                    gstreamer::info!(
-                        inner.cat,
-                        obj = &inner.player,
-                        "Duration changed: {:?}",
-                        duration
-                    );
-                    let _ = notify!(observer, PlayerEvent::DurationChanged(duration));
-                }
+            if let Some(ref mut metadata) = inner.last_metadata &&
+                metadata.duration != duration
+            {
+                metadata.duration = duration;
+                gstreamer::info!(
+                    inner.cat,
+                    obj = &inner.player,
+                    "Duration changed: {:?}",
+                    duration
+                );
+                let _ = notify!(observer, PlayerEvent::DurationChanged(duration));
             }
         });
 

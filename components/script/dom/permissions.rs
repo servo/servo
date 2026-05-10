@@ -10,6 +10,7 @@ use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use script_bindings::inheritance::Castable;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 use servo_config::pref;
 
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::codegen::Bindings::PermissionsBinding::PermissionsMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
@@ -323,10 +324,10 @@ pub(crate) fn descriptor_permission_state(
     // relevant global object has an associated Document run the following step:
     //   1. Let document be settings' relevant global object's associated Document.
     //   2. If document is not allowed to use feature, return "denied".
-    if let Some(window) = global_scope.downcast::<Window>() {
-        if !window.Document().allowed_to_use_feature(feature) {
-            return PermissionState::Denied;
-        }
+    if let Some(window) = global_scope.downcast::<Window>() &&
+        !window.Document().allowed_to_use_feature(feature)
+    {
+        return PermissionState::Denied;
     }
 
     // Step 5. Let key be the result of generating a permission key for descriptor with settings.

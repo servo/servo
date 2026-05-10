@@ -911,10 +911,10 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
         // Handle flags that apply to the parent.
         let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.as_node().parent_element() {
-                p.element.insert_selector_flags(flags);
-            }
+        if !parent_flags.is_empty() &&
+            let Some(p) = self.as_node().parent_element()
+        {
+            p.element.insert_selector_flags(flags);
         }
     }
 

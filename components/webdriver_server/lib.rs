@@ -1869,13 +1869,13 @@ impl Handler {
         // Step 6. cookie expiry time is not an integer type,
         // or it less than 0 or greater than the maximum safe integer,
         // return error with error code invalid argument.
-        if let Some(ref expiry) = params.expiry {
-            if expiry.0 > MAXIMUM_SAFE_INTEGER {
-                return Err(WebDriverError::new(
-                    ErrorStatus::InvalidArgument,
-                    "expiry time greater than maximum safe integer",
-                ));
-            }
+        if let Some(ref expiry) = params.expiry &&
+            expiry.0 > MAXIMUM_SAFE_INTEGER
+        {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "expiry time greater than maximum safe integer",
+            ));
         }
 
         let mut cookie_builder =

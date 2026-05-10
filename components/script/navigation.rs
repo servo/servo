@@ -295,10 +295,10 @@ pub(crate) fn determine_the_origin(
     }
 
     // Step 4. If url matches about:blank and sourceOrigin is non-null, then return sourceOrigin.
-    if url.as_str() == "about:blank" {
-        if let Some(source_origin) = source_origin {
-            return source_origin;
-        }
+    if url.as_str() == "about:blank" &&
+        let Some(source_origin) = source_origin
+    {
+        return source_origin;
     }
 
     // Step 5. Return url's origin.
@@ -375,10 +375,11 @@ pub(crate) fn navigate(
     // Step 4 and 5
     let pipeline_id = window.pipeline_id();
     let window_proxy = window.window_proxy();
-    if let Some(active) = window_proxy.currently_active() {
-        if pipeline_id == active && doc.is_prompting_or_unloading() {
-            return;
-        }
+    if let Some(active) = window_proxy.currently_active() &&
+        pipeline_id == active &&
+        doc.is_prompting_or_unloading()
+    {
+        return;
     }
 
     // Step 12. If historyHandling is "auto", then:

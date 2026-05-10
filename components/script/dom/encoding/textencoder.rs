@@ -10,6 +10,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray;
 use js::typedarray::HeapUint8Array;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -17,7 +18,6 @@ use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::{
     TextEncoderEncodeIntoResult, TextEncoderMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;

@@ -29,6 +29,7 @@ use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl,
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
+use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -64,7 +65,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -198,10 +199,10 @@ fn get_known_shadow_root(
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
-    if let Some(ref node) = node {
-        if !node.is::<ShadowRoot>() {
-            return Err(ErrorStatus::NoSuchShadowRoot);
-        }
+    if let Some(ref node) = node &&
+        !node.is::<ShadowRoot>()
+    {
+        return Err(ErrorStatus::NoSuchShadowRoot);
     }
 
     // Step 4.1. If node is null return error with error code detached shadow root.
@@ -252,10 +253,10 @@ fn get_known_element(
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    if let Some(ref node) = node {
-        if !node.is::<Element>() {
-            return Err(ErrorStatus::NoSuchElement);
-        }
+    if let Some(ref node) = node &&
+        !node.is::<Element>()
+    {
+        return Err(ErrorStatus::NoSuchElement);
     }
     // Step 4.1. If node is null return error with error code stale element reference.
     let Some(node) = node else {
@@ -1828,10 +1829,10 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
             if input_element.Value().is_empty() {
                 return Ok(());
             }
-        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
-            if textarea_element.Value().is_empty() {
-                return Ok(());
-            }
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() &&
+            textarea_element.Value().is_empty()
+        {
+            return Ok(());
         }
     }
 
@@ -1958,10 +1959,10 @@ pub(crate) fn handle_element_click(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
-                if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-                    if matches!(*input_element.input_type(), InputType::File(_)) {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
+                if let Some(input_element) = element.downcast::<HTMLInputElement>() &&
+                    matches!(*input_element.input_type(), InputType::File(_))
+                {
+                    return Err(ErrorStatus::InvalidArgument);
                 }
 
                 let Some(container) = get_container(&element) else {

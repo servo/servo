@@ -4,7 +4,7 @@ from .base import (WebDriverBrowser,  # noqa: F401
                    get_timeout_multiplier,  # noqa: F401
                    require_arg)
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
@@ -21,7 +21,7 @@ __wptrunner__ = {
     "executor": {
         "testharness": "WebDriverTestharnessExecutor",
         "reftest": "WebDriverRefTestExecutor",
-        "wdspec": "WdspecExecutor",
+        "wdspec": "PytestExecutor",
         "crashtest": "WebDriverCrashtestExecutor",
         "test262": "WebDriverTestharnessExecutor"
     }

@@ -554,11 +554,11 @@ impl TextRun {
             };
 
             // If the existing segment is compatible with the character, just merge the character into it.
-            if let Some(current) = current.as_mut() {
-                if current.is_compatible(&font, script, bidi_level) {
-                    current.update(next_byte_index, current_character_index + 1, script);
-                    continue;
-                }
+            if let Some(current) = current.as_mut() &&
+                current.is_compatible(&font, script, bidi_level)
+            {
+                current.update(next_byte_index, current_character_index + 1, script);
+                continue;
             }
 
             let Some(font) = font.or_else(|| font_group.first(&layout_context.font_context)) else {

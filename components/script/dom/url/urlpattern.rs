@@ -8,14 +8,13 @@ use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::URLPatternBinding::URLPatternResult;
 use script_bindings::codegen::GenericUnionTypes::USVStringOrURLPatternInit;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::Reflector;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::USVString;
 
 use crate::dom::bindings::codegen::Bindings::URLPatternBinding;
 use crate::dom::bindings::codegen::Bindings::URLPatternBinding::URLPatternMethods;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::globalscope::GlobalScope;
 
 /// <https://urlpattern.spec.whatwg.org/#urlpattern>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool across trees</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const windowB = window.open('/common/blank.html', '_blank');
+  t.add_cleanup(() => windowB.close());
+
+  // Wait for window B to load.
+  await new Promise(resolve => {
+      windowB.onload = resolve;
+  });
+
+  // Register tool directly in window B using synchronous scripting.
+  const toolchange_promise = new Promise(resolve => {
+    windowB.navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  windowB.navigator.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool in other window',
+    execute: async () => 'test'
+  });
+
+  await toolchange_promise;
+
+  const tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], "We do not see the other document's tool");
+
+  const [tool] = await windowB.navigator.modelContext.getTools();
+  assert_equals(tool.window, windowB);
+  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+
+  await promise_rejects_dom(t, 'UnknownError', execute_promise);
+}, 'executeTool() rejects when the tool is hosted in another frame tree');
+</script>
+</body>
+</html>

@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;

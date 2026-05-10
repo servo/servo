@@ -13,6 +13,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{ImageDataId, ImageDataIndex};
@@ -25,7 +26,6 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     ImageDataMethods, ImageDataPixelFormat, ImageDataSettings, PredefinedColorSpace,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -149,7 +149,7 @@ impl ImageData {
                 reflector_: Reflector::new(),
                 width,
                 height,
-                data,
+                data: *data.into_box(),
                 pixel_format,
                 color_space,
             }),
@@ -317,13 +317,13 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         }
         // 3. If length is not a nonzero integral multiple of bytesPerPixel,
         // then throw an "InvalidStateError" DOMException.
-        if length % bytes_per_pixel != 0 {
+        if !length.is_multiple_of(bytes_per_pixel) {
             return Err(Error::InvalidState(None));
         }
         // 4. Let length be length divided by bytesPerPixel.
         let length = length / bytes_per_pixel;
         // 5. If length is not an integral multiple of sw, then throw an "IndexSizeError" DOMException.
-        if sw == 0 || length % sw as usize != 0 {
+        if sw == 0 || !length.is_multiple_of(sw as usize) {
             return Err(Error::IndexSize(None));
         }
         // 6. Let height be length divided by sw.

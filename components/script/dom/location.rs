@@ -5,13 +5,13 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;

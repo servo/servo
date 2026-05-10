@@ -307,13 +307,12 @@ impl InterceptedWebResourceLoad {
 
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
-        if !self.finished {
-            if let Err(error) = self
+        if !self.finished &&
+            let Err(error) = self
                 .response_sender
                 .send(WebResourceResponseMsg::FinishLoad)
-            {
-                self.error_sender.raise_response_send_error(error);
-            }
+        {
+            self.error_sender.raise_response_send_error(error);
         }
     }
 }

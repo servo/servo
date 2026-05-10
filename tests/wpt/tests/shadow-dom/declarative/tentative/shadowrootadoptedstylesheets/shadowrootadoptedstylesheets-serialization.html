@@ -92,4 +92,69 @@ test(() => {
     `ShadowRoot.getHTML() returns children-only markup; must not include the wrapping template attribute. Got: ${html}`
   );
 }, "ShadowRoot.getHTML() returns children-only markup (no wrapping template).");
+
+test(() => {
+  // The shadowrootadoptedstylesheets content attribute is populated only
+  // by the HTML parser when the declarative <template> is processed.
+  // Subsequent mutations to ShadowRoot.adoptedStyleSheets (e.g., pushing a
+  // constructor sheet) update the live IDL list but do NOT update the
+  // serialized attribute value. As a consequence, script-added sheets are
+  // necessarily dropped on serialization (and, by extension, on cloneNode
+  // / setHTMLUnsafe round-trips), since constructor sheets have no URL or
+  // import-map specifier that could be emitted.
+  const host = document.getElementById("host_basic");
+  const constructed = new CSSStyleSheet();
+  constructed.replaceSync("span { font-weight: bold; }");
+  const original = Array.from(host.shadowRoot.adoptedStyleSheets);
+  host.shadowRoot.adoptedStyleSheets = [...original, constructed];
+  try {
+    assert_equals(host.shadowRoot.adoptedStyleSheets.length, 2,
+      "Sanity: live adoptedStyleSheets reflects the script mutation.");
+    const html = host.getHTML(opts);
+    assert_true(
+      html.includes("shadowrootadoptedstylesheets=\"foo\""),
+      `Serialized markup must still emit the original attribute value. Got: ${html}`
+    );
+    // The constructor sheet's rule must not leak into the serialized
+    // markup in any form (it has no URL / specifier representation).
+    assert_false(
+      html.includes("font-weight"),
+      `Serialized markup must not contain text from the script-added constructor sheet. Got: ${html}`
+    );
+    // No second occurrence of the attribute either (the serializer emits
+    // it once, regardless of the live list length).
+    assert_equals(
+      (html.match(/shadowrootadoptedstylesheets/g) || []).length, 1,
+      `shadowrootadoptedstylesheets attribute must appear exactly once. Got: ${html}`
+    );
+  } finally {
+    host.shadowRoot.adoptedStyleSheets = original;
+  }
+}, "getHTML() ignores script-added entries in adoptedStyleSheets and emits only the authored shadowrootadoptedstylesheets value.");
+
+test(() => {
+  // Same invariant when the authored value is the present-but-empty form:
+  // pushing a constructor sheet does not promote the empty attribute to a
+  // non-empty one in the serialized markup.
+  const host = document.getElementById("host_empty");
+  const constructed = new CSSStyleSheet();
+  constructed.replaceSync("span { font-style: italic; }");
+  const original = Array.from(host.shadowRoot.adoptedStyleSheets);
+  host.shadowRoot.adoptedStyleSheets = [...original, constructed];
+  try {
+    assert_equals(host.shadowRoot.adoptedStyleSheets.length, 1,
+      "Sanity: live adoptedStyleSheets reflects the script mutation.");
+    const html = host.getHTML(opts);
+    assert_true(
+      html.includes("shadowrootadoptedstylesheets=\"\""),
+      `Empty authored value must round-trip as present-and-empty even after script mutation. Got: ${html}`
+    );
+    assert_false(
+      html.includes("font-style"),
+      `Constructor-sheet rule text must not appear in serialized markup. Got: ${html}`
+    );
+  } finally {
+    host.shadowRoot.adoptedStyleSheets = original;
+  }
+}, "getHTML() with an empty authored shadowrootadoptedstylesheets value is unaffected by script mutations.");
 </script>

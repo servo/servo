@@ -214,22 +214,22 @@ impl Actor for TimelineActor {
                     .unwrap();
 
                 // init memory actor
-                if let Some(with_memory) = msg.get("withMemory") {
-                    if let Some(true) = with_memory.as_bool() {
-                        *self.memory_actor.borrow_mut() = Some(MemoryActor::create(registry));
-                    }
+                if let Some(with_memory) = msg.get("withMemory") &&
+                    let Some(true) = with_memory.as_bool()
+                {
+                    *self.memory_actor.borrow_mut() = Some(MemoryActor::create(registry));
                 }
 
                 // init framerate actor
-                if let Some(with_ticks) = msg.get("withTicks") {
-                    if let Some(true) = with_ticks.as_bool() {
-                        let framerate_actor = Some(FramerateActor::create(
-                            registry,
-                            self.pipeline_id,
-                            self.script_sender.clone(),
-                        ));
-                        *self.framerate_actor.borrow_mut() = framerate_actor;
-                    }
+                if let Some(with_ticks) = msg.get("withTicks") &&
+                    let Some(true) = with_ticks.as_bool()
+                {
+                    let framerate_actor = Some(FramerateActor::create(
+                        registry,
+                        self.pipeline_id,
+                        self.script_sender.clone(),
+                    ));
+                    *self.framerate_actor.borrow_mut() = framerate_actor;
                 }
 
                 let emitter = Emitter::new(

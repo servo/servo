@@ -40,4 +40,45 @@ test_valid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][0]
 test_valid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" referrer-policy(no-referrer) cross-origin(anonymous) integrity("sha384-foobar"))', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" cross-origin(anonymous) integrity("sha384-foobar") referrer-policy(no-referrer))');
 test_valid_value('background-image', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" referrer-policy(no-referrer) integrity("sha384-foobar") cross-origin(anonymous))', 'url("http://{{hosts[][]}}:{{ports[http][0]}}/css/support/1x1-green.png" cross-origin(anonymous) integrity("sha384-foobar") referrer-policy(no-referrer))');
 
+// Unknown <url-modifier>s are silently ignored, and so are dropped
+// from the serialized form...
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar(baz))',
+                 'url("/css/support/1x1-green.png")');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar)',
+                 'url("/css/support/1x1-green.png")');
+
+// ...but if there is a valid <url-modifier> following an unknown
+// modifier, it should still be recognized.
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar(baz) cross-origin(anonymous))',
+                 'url("/css/support/1x1-green.png" cross-origin(anonymous))');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" cross-origin(anonymous) foobar(a b c))',
+                 'url("/css/support/1x1-green.png" cross-origin(anonymous))');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar(nes(ted)) integrity("sha384-foobar"))',
+                 'url("/css/support/1x1-green.png" integrity("sha384-foobar"))');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar([brackets {braces}]) referrer-policy(no-referrer))',
+                 'url("/css/support/1x1-green.png" referrer-policy(no-referrer))');
+
+// Outdated modifier names (no dashes) are unknown and so are silently ignored.
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" crossorigin(anonymous))',
+                 'url("/css/support/1x1-green.png")');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" referrerpolicy(no-referrer))',
+                 'url("/css/support/1x1-green.png")');
+
+// An ident-form unknown modifier and a function-form unknown modifier
+// with the same name are not duplicates of each other, since they're
+// syntactically distinct.
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar foobar(42))',
+                 'url("/css/support/1x1-green.png")');
+test_valid_value('background-image',
+                 'url("/css/support/1x1-green.png" foobar(42) foobar)',
+                 'url("/css/support/1x1-green.png")');
 </script>
