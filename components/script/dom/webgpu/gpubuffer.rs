@@ -196,7 +196,6 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let promise = self.pending_map.borrow_mut().take();
         if let Some(promise) = promise {
             promise.reject_error(Error::Abort(None), CanGc::deprecated_note());
-            *self.pending_map.borrow_mut() = Some(promise);
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
