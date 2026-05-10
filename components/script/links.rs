@@ -482,13 +482,12 @@ pub(crate) fn follow_hyperlink(
         // Step 13: Navigate targetNavigable to urlString using subject's node document,
         //          with referrerPolicy set to referrerPolicy, userInvolvement set to
         //          userInvolvement, and sourceElement set to subject.
-        let pipeline_id = target_window.as_global_scope().pipeline_id();
         let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
             document.about_base_url(),
-            Some(pipeline_id),
+            Some(window.pipeline_id()),
             referrer,
             referrer_policy,
             Some(secure),
