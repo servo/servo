@@ -921,8 +921,12 @@ pub(crate) async fn http_fetch(
     if (request.response_tainting == ResponseTainting::Opaque ||
         response.response_type == ResponseType::Opaque) &&
         request.client.as_ref().is_some_and(|client| {
-            cross_origin_resource_policy_check(&request.origin, client, &response, false) ==
-                CrossOriginResourcePolicy::Blocked
+            cross_origin_resource_policy_check(
+                &request.origin,
+                client,
+                &response,
+                ForNavigation::No,
+            ) == CrossOriginResourcePolicy::Blocked
         })
     {
         return Response::network_error(NetworkError::CrossOriginResponse);
@@ -1808,14 +1812,22 @@ enum CrossOriginResourcePolicy {
     Blocked,
 }
 
+enum ForNavigation {
+    #[expect(dead_code)]
+    Yes,
+    No,
+}
+
 /// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check>
 fn cross_origin_resource_policy_check(
     origin: &Origin,
     request_client: &RequestClient,
     response: &Response,
-    for_navigation: bool,
+    for_navigation: ForNavigation,
 ) -> CrossOriginResourcePolicy {
     // Step 1. Set forNavigation to false if it is not given.
+    //
+    // That's the default value of the enum
 
     // Step 2. Let embedderPolicy be settingsObject’s policy container’s embedder policy.
     let RequestPolicyContainer::PolicyContainer(ref policy_container) =
@@ -1832,7 +1844,7 @@ fn cross_origin_resource_policy_check(
         origin,
         EmbedderPolicyValue::UnsafeNone,
         response,
-        for_navigation,
+        &for_navigation,
     ) == CrossOriginResourcePolicy::Blocked
     {
         return CrossOriginResourcePolicy::Blocked;
@@ -1849,7 +1861,7 @@ fn cross_origin_resource_policy_check(
         origin,
         embedder_policy.value,
         response,
-        for_navigation,
+        &for_navigation,
     ) == CrossOriginResourcePolicy::Allowed
     {
         return CrossOriginResourcePolicy::Allowed;
@@ -1867,10 +1879,12 @@ fn cross_origin_resource_policy_internal_check(
     origin: &Origin,
     embedder_policy_value: EmbedderPolicyValue,
     response: &Response,
-    for_navigation: bool,
+    for_navigation: &ForNavigation,
 ) -> CrossOriginResourcePolicy {
     // Step 1. If forNavigation is true and embedderPolicyValue is "unsafe-none", then return allowed.
-    if for_navigation && let EmbedderPolicyValue::UnsafeNone = embedder_policy_value {
+    if let ForNavigation::Yes = for_navigation &&
+        let EmbedderPolicyValue::UnsafeNone = embedder_policy_value
+    {
         return CrossOriginResourcePolicy::Allowed;
     }
 
@@ -1907,13 +1921,14 @@ fn cross_origin_resource_policy_internal_check(
             CrossOriginResourcePolicy::Blocked
         },
         Some("same-site") => {
-            if let Some(url) = response.url() {
+            if let Some(response_url) = response.url() {
                 // If all of the following are true
                 // origin is schemelessly same site with response’s URL’s origin
                 // origin’s scheme is "https" or response’s URL’s scheme is not "https"
                 if let Origin::Origin(request_origin) = origin &&
-                    is_schemelessy_same_site(request_origin, &url.origin()) &&
-                    (request_origin.scheme() == Some("https") || url.scheme() != "https")
+                    is_schemelessy_same_site(request_origin, &response_url.origin()) &&
+                    (request_origin.scheme() == Some("https") ||
+                        response_url.scheme() != "https")
                 {
                     return CrossOriginResourcePolicy::Allowed;
                 }
