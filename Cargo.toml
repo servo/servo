@@ -112,7 +112,7 @@ ipc-channel = "0.22"
 itertools = "0.14"
 js = { package = "mozjs", version = "=0.15.14", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
-kurbo = { version = "0.12", features = ["euclid"] }
+kurbo = { version = "0.13", features = ["euclid"] }
 libc = "0.2"
 lru = "0.18"
 log = "0.4.29"
@@ -144,7 +144,7 @@ p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
-peniko = "0.5"
+peniko = "0.6"
 percent-encoding = "2.3"
 pkcs8 = { version = "0.10", features = ["rand_core"] }
 postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
@@ -212,7 +212,7 @@ urlpattern = "0.3"
 utf-8 = "0.7"
 uuid = { version = "1.23.1", features = ["v4", "v5"] }
 vello = "0.6"
-vello_cpu = "0.0.4"
+vello_cpu = "0.0.6"
 webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }

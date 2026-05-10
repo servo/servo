@@ -182,8 +182,10 @@ skip = [
     "toml_datetime",
     "toml_edit",
 
-    # usvg depends on svgtypes, which depends on old version of kurbo
+    # duplicated by vello
     "kurbo",
+    "peniko",
+    "png",
 
     # Dependency by quick_cache and other
     "hashbrown",
@@ -208,15 +210,11 @@ skip = [
     "font-types",
     "glow",
     "objc2-ui-kit",
-    "peniko",
     "read-fonts",
     "skrifa",
-    "vello_common",
-    "vello_cpu",
 
     # Duplicated by resvg/image
     "pastey",
-    "png",
     "roxmltree",
     "tiny-skia",
     "tiny-skia-path",

@@ -2334,7 +2334,7 @@ dependencies = [
  "self_cell",
  "skrifa 0.40.0",
  "smallvec",
- "vello_cpu 0.0.6",
+ "vello_cpu",
 ]
 
 [[package]]
@@ -3569,8 +3569,6 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
- "allocator-api2",
- "equivalent",
  "foldhash 0.1.5",
  "serde",
 ]
@@ -4707,7 +4705,6 @@ checksum = "ce9729cc38c18d86123ab736fd2e7151763ba226ac2490ec092d1dd148825e32"
 dependencies = [
  "arrayvec",
  "euclid",
- "serde",
  "smallvec",
 ]
 
@@ -4719,6 +4716,7 @@ checksum = "7564e90fe3c0d5771e1f0bc95322b21baaeaa0d9213fa6a0b61c99f8b17b3bfb"
 dependencies = [
  "arrayvec",
  "euclid",
+ "serde",
  "smallvec",
 ]
 
@@ -6219,7 +6217,6 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3c76095c9a636173600478e0373218c7b955335048c2bcd12dc6a79657649d8"
 dependencies = [
- "bytemuck",
  "color",
  "kurbo 0.12.0",
  "linebender_resource_handle",
@@ -7716,9 +7713,9 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "futures-intrusive",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "log",
- "peniko 0.5.0",
+ "peniko 0.6.0",
  "pollster",
  "rustc-hash 2.1.2",
  "servo-base",
@@ -7732,7 +7729,7 @@ dependencies = [
  "stylo",
  "tracing",
  "vello",
- "vello_cpu 0.0.4",
+ "vello_cpu",
  "webrender_api",
 ]
 
@@ -7743,7 +7740,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "glow 0.17.0",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "malloc_size_of_derive",
  "serde",
  "servo-base",
@@ -8091,7 +8088,7 @@ dependencies = [
  "icu_properties",
  "icu_segmenter",
  "itertools 0.14.0",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "log",
  "malloc_size_of_derive",
  "num-traits",
@@ -10673,22 +10670,6 @@ dependencies = [
 
 [[package]]
 name = "vello_common"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a235ba928b3109ad9e7696270edb09445a52ae1c7c08e6d31a19b1cdd6cbc24a"
-dependencies = [
- "bytemuck",
- "fearless_simd",
- "hashbrown 0.15.5",
- "log",
- "peniko 0.5.0",
- "png 0.17.16",
- "skrifa 0.37.0",
- "smallvec",
-]
-
-[[package]]
-name = "vello_common"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bd1a4c633ce09e7d713df1a6e036644a125e15e0c169cfb5180ddf5836ca04b"
@@ -10698,18 +10679,9 @@ dependencies = [
  "hashbrown 0.16.1",
  "log",
  "peniko 0.6.0",
+ "png 0.17.16",
  "skrifa 0.40.0",
  "smallvec",
-]
-
-[[package]]
-name = "vello_cpu"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0bd1fcf9c1814f17a491e07113623d44e3ec1125a9f3401f5e047d6d326da21"
-dependencies = [
- "bytemuck",
- "vello_common 0.0.4",
 ]
 
 [[package]]
@@ -10720,7 +10692,7 @@ checksum = "0162bfe48aabf6a9fdcd401b628c7d9f260c2cbabb343c70a65feba6f7849edc"
 dependencies = [
  "bytemuck",
  "hashbrown 0.16.1",
- "vello_common 0.0.6",
+ "vello_common",
 ]
 
 [[package]]
