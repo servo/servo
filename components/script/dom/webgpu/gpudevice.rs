@@ -16,7 +16,7 @@ use webgpu_traits::{
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
     WebGPURenderPipelineResponse, WebGPURequest,
 };
-use wgpu_core::id::{BindGroupLayoutId, PipelineLayoutId};
+use wgpu_core::id::PipelineLayoutId;
 use wgpu_core::pipeline as wgpu_pipe;
 use wgpu_core::pipeline::RenderPipelineDescriptor;
 use wgpu_types::{self, TextureFormat};
@@ -32,8 +32,8 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUErrorFilter, GPUPipelineErrorReason, GPUPipelineLayoutDescriptor,
     GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
-    GPUShaderModuleDescriptor, GPUSupportedLimitsMethods, GPUTextureDescriptor, GPUTextureFormat,
-    GPUUncapturedErrorEventInit, GPUVertexStepMode,
+    GPUShaderModuleDescriptor, GPUTextureDescriptor, GPUTextureFormat, GPUUncapturedErrorEventInit,
+    GPUVertexStepMode,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -107,7 +107,7 @@ pub(crate) struct GPUDevice {
 }
 
 pub(crate) enum PipelineLayout {
-    Implicit(PipelineLayoutId, Vec<BindGroupLayoutId>),
+    Implicit,
     Explicit(PipelineLayoutId),
 }
 
@@ -115,16 +115,7 @@ impl PipelineLayout {
     pub(crate) fn explicit(&self) -> Option<PipelineLayoutId> {
         match self {
             PipelineLayout::Explicit(layout_id) => Some(*layout_id),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn implicit(self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
-        match self {
-            PipelineLayout::Implicit(layout_id, bind_group_layout_ids) => {
-                Some((layout_id, bind_group_layout_ids))
-            },
-            _ => None,
+            PipelineLayout::Implicit => None,
         }
     }
 }
@@ -277,23 +268,15 @@ impl GPUDevice {
         if let GPUPipelineLayoutOrGPUAutoLayoutMode::GPUPipelineLayout(layout) = layout {
             PipelineLayout::Explicit(layout.id().0)
         } else {
-            let layout_id = self.global().wgpu_id_hub().create_pipeline_layout_id();
-            let max_bind_grps = self.limits.MaxBindGroups();
-            let mut bgl_ids = Vec::with_capacity(max_bind_grps as usize);
-            for _ in 0..max_bind_grps {
-                let bgl = self.global().wgpu_id_hub().create_bind_group_layout_id();
-                bgl_ids.push(bgl);
-            }
-            PipelineLayout::Implicit(layout_id, bgl_ids)
+            PipelineLayout::Implicit
         }
     }
 
     pub(crate) fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
-    ) -> Fallible<(PipelineLayout, RenderPipelineDescriptor<'a>)> {
+    ) -> Fallible<RenderPipelineDescriptor<'a>> {
         let pipeline_layout = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
         let desc = wgpu_pipe::RenderPipelineDescriptor {
             label: (&descriptor.parent.parent).convert(),
             layout: pipeline_layout.explicit(),
@@ -367,8 +350,9 @@ impl GPUDevice {
                     self.validate_texture_format_required_features(&dss_desc.format)
                         .map(|format| wgpu_types::DepthStencilState {
                             format,
-                            depth_write_enabled: dss_desc.depthWriteEnabled,
-                            depth_compare: dss_desc.depthCompare.convert(),
+                            // TODO(sagudev): these need webidl sync
+                            depth_write_enabled: Some(dss_desc.depthWriteEnabled),
+                            depth_compare: Some(dss_desc.depthCompare.convert()),
                             stencil: wgpu_types::StencilState {
                                 front: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
@@ -399,9 +383,9 @@ impl GPUDevice {
                 mask: descriptor.multisample.mask as u64,
                 alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
             },
-            multiview: None,
+            multiview_mask: None,
         };
-        Ok((pipeline_layout, desc))
+        Ok(desc)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
@@ -549,8 +533,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
-        let (pipeline_layout, desc) = self.parse_render_pipeline(descriptor)?;
-        let render_pipeline = GPURenderPipeline::create(self, pipeline_layout, desc, None)?;
+        let desc = self.parse_render_pipeline(descriptor)?;
+        let render_pipeline = GPURenderPipeline::create(self, desc, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
@@ -567,14 +551,14 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
+        let desc = self.parse_render_pipeline(descriptor)?;
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
-        GPURenderPipeline::create(self, implicit_ids, desc, Some(callback))?;
+        GPURenderPipeline::create(self, desc, Some(callback))?;
         Ok(promise)
     }
 

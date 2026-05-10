@@ -115,8 +115,9 @@ impl GPUPipelineLayout {
 
         let desc = PipelineLayoutDescriptor {
             label: (&descriptor.parent).convert(),
-            bind_group_layouts: Cow::Owned(bgls.iter().map(|l| l.0).collect::<Vec<_>>()),
-            push_constant_ranges: Cow::Owned(vec![]),
+            // TODO(sagudev): this needs webidl sync
+            bind_group_layouts: Cow::Owned(bgls.iter().map(|l| Some(l.0)).collect::<Vec<_>>()),
+            immediate_size: 0,
         };
 
         let pipeline_layout_id = device.global().wgpu_id_hub().create_pipeline_layout_id();

@@ -131,7 +131,6 @@ pub enum WebGPURequest {
         device_id: DeviceId,
         compute_pipeline_id: ComputePipelineId,
         descriptor: ComputePipelineDescriptor<'static>,
-        implicit_ids: Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
         /// present only on ASYNC versions
         async_sender: Option<GenericCallback<WebGPUComputePipelineResponse>>,
     },
@@ -144,7 +143,6 @@ pub enum WebGPURequest {
         device_id: DeviceId,
         render_pipeline_id: RenderPipelineId,
         descriptor: RenderPipelineDescriptor<'static>,
-        implicit_ids: Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
         /// present only on ASYNC versions
         async_sender: Option<GenericCallback<WebGPURenderPipelineResponse>>,
     },
@@ -282,7 +280,7 @@ pub enum WebGPURequest {
         render_pass_id: RenderPassId,
         label: Label<'static>,
         color_attachments: Vec<Option<RenderPassColorAttachment>>,
-        depth_stencil_attachment: Option<RenderPassDepthStencilAttachment>,
+        depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<TextureViewId>>,
         device_id: DeviceId,
     },
     RenderPassCommand {

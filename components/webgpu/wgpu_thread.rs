@@ -21,7 +21,7 @@ use webgpu_traits::{
 };
 use webrender_api::ExternalImageId;
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
-use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
+use wgc::device::DeviceDescriptor;
 use wgc::id;
 use wgc::id::DeviceId;
 use wgc::pipeline::ShaderModuleDescriptor;
@@ -32,7 +32,7 @@ use wgpu_core::device::DeviceError;
 use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
 use wgpu_core::resource::BufferAccessResult;
 pub use wgpu_types as wgt;
-use wgpu_types::MemoryHints;
+use wgpu_types::{ExperimentalFeatures, MemoryHints};
 use wgt::InstanceDescriptor;
 
 use crate::canvas_context::WebGpuExternalImageMap;
@@ -135,10 +135,29 @@ impl WGPU {
         };
         let global = Arc::new(wgc::global::Global::new(
             "wgpu-core",
-            &InstanceDescriptor {
+            InstanceDescriptor {
                 backends,
-                ..Default::default()
+                backend_options: wgt::BackendOptions {
+                    gl: wgt::GlBackendOptions {
+                        gles_minor_version: wgt::Gles3MinorVersion::Automatic,
+                        fence_behavior: wgt::GlFenceBehavior::Normal,
+                        debug_fns: wgt::GlDebugFns::Auto,
+                    },
+                    dx12: wgt::Dx12BackendOptions {
+                        ..Default::default()
+                    },
+                    noop: wgt::NoopBackendOptions::default(),
+                },
+
+                flags: wgt::InstanceFlags::from_build_config() |
+                    wgt::InstanceFlags::AUTOMATIC_TIMESTAMP_NORMALIZATION,
+                memory_budget_thresholds: wgt::MemoryBudgetThresholds {
+                    for_resource_creation: Some(95),
+                    for_device_loss: Some(99),
+                },
+                display: None,
             },
+            None,
         ));
         WGPU {
             poller: Poller::new(Arc::clone(&global)),
@@ -221,8 +240,13 @@ impl WGPU {
                             self.error_command_encoders.get(&command_encoder_id)
                         {
                             Err(Error::Validation(err.clone()))
-                        } else if let Some(error) =
-                            global.command_encoder_finish(command_encoder_id, &desc).1
+                        } else if let Some((_, error)) = global
+                            .command_encoder_finish(
+                                command_encoder_id,
+                                &desc,
+                                Some(unsafe { id::Id::from_raw(command_encoder_id.into_raw()) }),
+                            )
+                            .1
                         {
                             Err(Error::from_error(error))
                         } else {
@@ -356,27 +380,13 @@ impl WGPU {
                         device_id,
                         compute_pipeline_id,
                         descriptor,
-                        implicit_ids,
                         async_sender: sender,
                     } => {
                         let global = &self.global;
-                        let bgls = implicit_ids
-                            .as_ref()
-                            .map_or(Vec::with_capacity(0), |(_, bgls)| {
-                                bgls.iter().map(|x| x.to_owned()).collect()
-                            });
-                        let implicit =
-                            implicit_ids
-                                .as_ref()
-                                .map(|(layout, _)| ImplicitPipelineIds {
-                                    root_id: *layout,
-                                    group_ids: bgls.as_slice(),
-                                });
                         let (_, error) = global.device_create_compute_pipeline(
                             device_id,
                             &descriptor,
                             Some(compute_pipeline_id),
-                            implicit,
                         );
                         if let Some(sender) = sender {
                             let res = match error {
@@ -412,27 +422,13 @@ impl WGPU {
                         device_id,
                         render_pipeline_id,
                         descriptor,
-                        implicit_ids,
                         async_sender: sender,
                     } => {
                         let global = &self.global;
-                        let bgls = implicit_ids
-                            .as_ref()
-                            .map_or(Vec::with_capacity(0), |(_, bgls)| {
-                                bgls.iter().map(|x| x.to_owned()).collect()
-                            });
-                        let implicit =
-                            implicit_ids
-                                .as_ref()
-                                .map(|(layout, _)| ImplicitPipelineIds {
-                                    root_id: *layout,
-                                    group_ids: bgls.as_slice(),
-                                });
                         let (_, error) = global.device_create_render_pipeline(
                             device_id,
                             &descriptor,
                             Some(render_pipeline_id),
-                            implicit,
                         );
 
                         if let Some(sender) = sender {
@@ -592,7 +588,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropCommandBuffer(id) => {
                         self.error_command_encoders
-                            .remove(&id.into_command_encoder_id());
+                            .remove(&unsafe { id::Id::from_raw(id.into_raw()) });
                         let global = &self.global;
                         global.command_buffer_drop(id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeCommandBuffer(id)) {
@@ -675,6 +671,7 @@ impl WGPU {
                             required_limits: descriptor.required_limits.clone(),
                             memory_hints: MemoryHints::MemoryUsage,
                             trace: wgpu_types::Trace::Off,
+                            experimental_features: ExperimentalFeatures::disabled(),
                         };
                         let global = &self.global;
                         let device = WebGPUDevice(device_id);
@@ -889,6 +886,7 @@ impl WGPU {
                             depth_stencil_attachment: depth_stencil_attachment.as_ref(),
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         };
                         let (pass, error) =
                             global.command_encoder_begin_render_pass(command_encoder_id, desc);
@@ -955,7 +953,7 @@ impl WGPU {
                         let global = &self.global;
                         let cmd_id = command_buffers.iter().find(|id| {
                             self.error_command_encoders
-                                .contains_key(&id.into_command_encoder_id())
+                                .contains_key(&unsafe { id::Id::from_raw(id.into_raw()) })
                         });
                         let result = if cmd_id.is_some() {
                             Err(Error::Validation(String::from(
@@ -1115,7 +1113,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropTextureView(id) => {
                         let global = &self.global;
-                        let _result = global.texture_view_drop(id);
+                        global.texture_view_drop(id);
                         self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTextureView(id)) {
                             warn!("Unable to send FreeTextureView({:?}) ({:?})", id, e);

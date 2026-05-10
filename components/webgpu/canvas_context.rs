@@ -235,10 +235,12 @@ impl StagingBuffer {
             &buffer_info,
             &copy_size,
         )?;
-        let (command_buffer_id, error) = self
-            .global
-            .command_encoder_finish(encoder_id, &CommandBufferDescriptor::default());
-        if let Some(error) = error {
+        let (command_buffer_id, error) = self.global.command_encoder_finish(
+            encoder_id,
+            &CommandBufferDescriptor::default(),
+            Some(unsafe { id::Id::from_raw(encoder_id.into_raw()) }),
+        );
+        if let Some((_, error)) = error {
             return Err(error.into());
         };
         Ok(command_buffer_id)

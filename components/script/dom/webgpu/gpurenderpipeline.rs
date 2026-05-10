@@ -19,7 +19,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::webgpu::gpudevice::{GPUDevice, PipelineLayout};
+use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -97,7 +97,6 @@ impl GPURenderPipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     pub(crate) fn create(
         device: &GPUDevice,
-        pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,
         async_sender: Option<GenericCallback<WebGPURenderPipelineResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
@@ -110,7 +109,6 @@ impl GPURenderPipeline {
                 device_id: device.id().0,
                 render_pipeline_id,
                 descriptor,
-                implicit_ids: pipeline_layout.implicit(),
                 async_sender,
             })
             .expect("Failed to create WebGPU render pipeline");

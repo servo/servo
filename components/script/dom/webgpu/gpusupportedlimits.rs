@@ -34,12 +34,6 @@ impl GPUSupportedLimits {
     }
 }
 
-impl GPUSupportedLimits {
-    pub(crate) fn wgpu_limits(&self) -> &Limits {
-        &self.limits
-    }
-}
-
 impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxtexturedimension1d>
     fn MaxTextureDimension1D(&self) -> u32 {
@@ -108,12 +102,12 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxuniformbufferbindingsize>
     fn MaxUniformBufferBindingSize(&self) -> u64 {
-        self.limits.max_uniform_buffer_binding_size as u64
+        self.limits.max_uniform_buffer_binding_size
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebufferbindingsize>
     fn MaxStorageBufferBindingSize(&self) -> u64 {
-        self.limits.max_storage_buffer_binding_size as u64
+        self.limits.max_storage_buffer_binding_size
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-minuniformbufferoffsetalignment>
@@ -148,7 +142,7 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxinterstageshadercomponents>
     fn MaxInterStageShaderComponents(&self) -> u32 {
-        self.limits.max_inter_stage_shader_components
+        self.limits.max_inter_stage_shader_variables
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcomputeworkgroupstoragesize>
@@ -294,7 +288,7 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
             set_maximum(&mut limits.max_vertex_buffer_array_stride, value)
         },
         "maxInterStageShaderComponents" => {
-            set_maximum(&mut limits.max_inter_stage_shader_components, value)
+            set_maximum(&mut limits.max_inter_stage_shader_variables, value)
         },
         "maxInterStageShaderVariables" => {
             // not in wgpu but we're allowed to give back better limits than requested.

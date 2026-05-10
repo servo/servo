@@ -117,7 +117,7 @@ impl GPURenderBundleEncoder {
         };
 
         // Handle error gracefully
-        let render_bundle_encoder = RenderBundleEncoder::new(&desc, device.id().0, None).unwrap();
+        let render_bundle_encoder = RenderBundleEncoder::new(&desc, device.id().0).unwrap();
 
         Ok(GPURenderBundleEncoder::new(
             &device.global(),

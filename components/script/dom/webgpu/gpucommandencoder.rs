@@ -10,6 +10,7 @@ use webgpu_traits::{
     WebGPURenderPass, WebGPURequest,
 };
 use wgpu_core::command as wgpu_com;
+use wgpu_core::id::Id;
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -319,7 +320,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             })
             .expect("Failed to send Finish");
 
-        let buffer = WebGPUCommandBuffer(self.encoder.0.into_command_buffer_id());
+        #[expect(unsafe_code)]
+        let buffer = WebGPUCommandBuffer(unsafe { Id::from_raw(self.encoder.0.into_raw()) });
         GPUCommandBuffer::new(
             &self.global(),
             self.channel.clone(),
