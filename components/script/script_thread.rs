@@ -711,6 +711,10 @@ impl ScriptThread {
         })
     }
 
+    pub(crate) fn find_window(id: PipelineId) -> Option<DomRoot<Window>> {
+        with_script_thread(|script_thread| script_thread.documents.borrow().find_window(id))
+    }
+
     pub(crate) fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
         with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
     }

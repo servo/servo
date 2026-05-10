@@ -469,22 +469,34 @@ pub(crate) fn navigate(
         // navigable's active window to navigate to a javascript: URL given navigable, url,
         // historyHandling, sourceSnapshotParams, initiatorOriginSnapshot, userInvolvement,
         // cspNavigationType, initialInsertion, and navigationId.
-        let global = window.as_global_scope();
-        let trusted_window = Trusted::new(window);
-        let sender = global.script_to_constellation_chan().clone();
+
+        let Some(initiator_pipeline_id) = load_data.creator_pipeline_id else {
+            warn!("javascript: URL navigations must have a creator pipeline");
+            return;
+        };
+        let Some(initiator_window) = ScriptThread::find_window(initiator_pipeline_id) else {
+            warn!("Can't find global for navigation initiator");
+            return;
+        };
+
+        let target_window = Trusted::new(window);
         let mut load_data = load_data;
-        load_data.about_base_url = window.Document().about_base_url();
+        load_data.about_base_url = initiator_window.Document().about_base_url();
+        let initiator_window = Trusted::new(&*initiator_window);
         let task = task!(navigate_javascript: move |cx| {
             // Important re security. See https://github.com/servo/servo/issues/23373
-            let window = trusted_window.root();
-            let global = window.as_global_scope();
-            if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None, None) {
-                sender
+            let target_window = target_window.root();
+            let initiator_window = initiator_window.root();
+            if ScriptThread::navigate_to_javascript_url(cx, initiator_window.upcast(), target_window.upcast(), &mut load_data, None, None) {
+                target_window
+                    .as_global_scope()
+                    .script_to_constellation_chan()
                     .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling, target_snapshot_params))
                     .unwrap();
             }
         });
-        global
+        window
+            .as_global_scope()
             .task_manager()
             .navigation_and_traversal_task_source()
             .queue(task);
