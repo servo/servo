@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use script_bindings::cformat;
-use script_bindings::like::Maplike;
+use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
