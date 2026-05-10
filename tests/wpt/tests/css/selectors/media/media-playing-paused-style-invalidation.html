@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>CSS style invalidation for :playing and :paused pseudo-classes</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#video-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<style>
+  #playing-only:playing { outline-color: green; }
+  #paused-only:paused { outline-color: orange; }
+  #both:playing { outline-color: green; }
+  #both:paused { outline-color: orange; }
+</style>
+<body>
+  <video id="playing-only" width="300" height="300" muted loop></video>
+  <video id="paused-only" width="300" height="300" muted loop></video>
+  <video id="both" width="300" height="300" muted loop></video>
+  <script>
+    const BLACK = "rgb(0, 0, 0)";
+    const GREEN = "rgb(0, 128, 0)";
+    const ORANGE = "rgb(255, 165, 0)";
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
+      const video = document.querySelector("#playing-only");
+      t.add_cleanup(() => { video.pause(); video.removeAttribute("src"); });
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      assert_equals(getComputedStyle(video).outlineColor, BLACK,
+                    ":playing rule must not apply while paused");
+      await video.play();
+      assert_equals(getComputedStyle(video).outlineColor, GREEN,
+                    ":playing rule must apply after play()");
+    }, "CSS invalidation fires for :playing when no :paused rule is present");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:paused)"), ":paused is not supported");
+      const video = document.querySelector("#paused-only");
+      t.add_cleanup(() => { video.pause(); video.removeAttribute("src"); });
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      assert_equals(getComputedStyle(video).outlineColor, ORANGE,
+                    ":paused rule must apply while paused");
+      await video.play();
+      assert_equals(getComputedStyle(video).outlineColor, BLACK,
+                    ":paused rule must not apply after play()");
+    }, "CSS invalidation fires for :paused when no :playing rule is present");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)") && CSS.supports("selector(:paused)"),
+                        ":playing or :paused is not supported");
+      const video = document.querySelector("#both");
+      t.add_cleanup(() => { video.pause(); video.removeAttribute("src"); });
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      assert_equals(getComputedStyle(video).outlineColor, ORANGE,
+                    ":paused rule must apply while paused");
+      await video.play();
+      assert_equals(getComputedStyle(video).outlineColor, GREEN,
+                    ":playing rule must apply after play()");
+      video.pause();
+      assert_equals(getComputedStyle(video).outlineColor, ORANGE,
+                    ":paused rule must apply after pause()");
+    }, "CSS invalidation fires for both :playing and :paused rules");
+  </script>
+</body>

@@ -88,7 +88,7 @@ impl ServoUrl {
     }
 
     pub fn origin(&self) -> ImmutableOrigin {
-        ImmutableOrigin::new(self.0.origin())
+        ImmutableOrigin::new(self.as_url())
     }
 
     pub fn scheme(&self) -> &str {
@@ -235,15 +235,17 @@ impl ServoUrl {
 
     /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url>
     pub fn is_potentially_trustworthy(&self) -> bool {
-        // Step 1
+        // Step 1. If url is "about:blank" or "about:srcdoc", return "Potentially Trustworthy".
         if self.as_str() == "about:blank" || self.as_str() == "about:srcdoc" {
             return true;
         }
-        // Step 2
+
+        // Step 2. If url’s scheme is "data", return "Potentially Trustworthy".
         if self.scheme() == "data" {
             return true;
         }
-        // Step 3
+
+        // Step 3. Return the result of executing § 3.1 Is origin potentially trustworthy? on url’s origin.
         self.origin().is_potentially_trustworthy()
     }
 

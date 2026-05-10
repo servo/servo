@@ -4,8 +4,8 @@
 <link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
 <body>
   <div>
-    The permission element width is allowed to be unbounded if there is a border which makes the
-    bounds of the permission element sufficiently clear.
+    The usermedia element width is allowed to be unbounded if there is a border which makes the
+    bounds of the usermedia element sufficiently clear.
     The border should have enough width, enough contrast with the background-color and no transparency.
   </div>
 
@@ -48,10 +48,10 @@
   }
 </style>
 
-<div><permission id="unlimited-width" type="geolocation"></permission></div>
-<div><permission id="no-border-width" type="camera"></permission></div>
-<div><permission id="no-contrast" type="microphone"></permission></div>
-<div><permission id="transparent" type="microphone camera"></permission></div>
-<div><permission id="top-no-contrast" type="geolocation"></permission></div>
+<div><usermedia id="unlimited-width" type="camera"></usermedia></div>
+<div><usermedia id="no-border-width" type="camera"></usermedia></div>
+<div><usermedia id="no-contrast" type="microphone"></usermedia></div>
+<div><usermedia id="transparent" type="microphone camera"></usermedia></div>
+<div><usermedia id="top-no-contrast" type="microphone"></usermedia></div>
 
 </body>

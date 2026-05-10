@@ -127,6 +127,34 @@
 <br><br>
 
 
+<!-- Checkbox / radio buttons referenced via aria-labelledby -->
+<!-- comp_embedded_control also applies when the referenced node is itself a form control. -->
+<!-- The button's name is the accessible name of the referenced control. -->
+<button aria-labelledby="checkbox-with-label"
+        data-expectedlabel="Checkbox Label Text"
+        data-testname="button aria-labelledby referencing checkbox labelled via label element"
+        class="ex">Toggle</button>
+<input type="checkbox" id="checkbox-with-label" value="checkbox-value">
+<label for="checkbox-with-label">Checkbox Label Text</label>
+<br><br>
+
+<button aria-labelledby="checkbox-with-arialabel"
+        data-expectedlabel="Checkbox ARIA Label"
+        data-testname="button aria-labelledby referencing checkbox labelled via aria-label"
+        class="ex">Toggle</button>
+<input type="checkbox" id="checkbox-with-arialabel" value="checkbox-value" aria-label="Checkbox ARIA Label">
+<label for="checkbox-with-arialabel">Label for checkbox with aria-label</label>
+<br><br>
+
+<button aria-labelledby="radio-with-label"
+        data-expectedlabel="Radio Label Text"
+        data-testname="button aria-labelledby referencing radio button labelled via label element"
+        class="ex">Toggle</button>
+<input type="radio" id="radio-with-label" name="radios" value="radio-value">
+<label for="radio-with-label">Radio Label Text</label>
+<br><br>
+
+
 <script>
 AriaUtils.verifyLabelsBySelector(".ex");
 </script>

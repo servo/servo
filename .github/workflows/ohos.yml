@@ -4,7 +4,7 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: string
       upload_library:
         required: false
@@ -16,7 +16,7 @@ on:
         type: boolean
     outputs:
       artifact_ids:
-        value: ${{ jobs.build.outputs.artifact_ids }}
+        value: ${{ jobs.build-openharmony.outputs.artifact_ids }}
         description: Comma-separated list of artifact IDs for the release artifacts
       optional_job_status:
         description: "Status of optional jobs (as an object)"
@@ -25,10 +25,10 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: choice
         description: "Cargo build profile"
-        options: ["release", "debug", "production"]
+        options: ["checked-release", "release", "debug", "production"]
       bencher:
         required: false
         default: false
@@ -39,12 +39,15 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.9.1
+  HITRACE_BENCH_VERSION: 0.11.1
+  PYTHONUNBUFFERED: 1
+  MITMDUMP_CACHE_KEY: mitmdump-ohos-cache-0.1
 
 jobs:
-  build:
+  build-openharmony:
     name: OpenHarmony Build
-    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
@@ -52,13 +55,13 @@ jobs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -67,19 +70,21 @@ jobs:
         run: cargo install --path support/crown
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 30
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.2.3
+        uses: openharmony-rs/setup-ohos-sdk@v0.2.4
         with:
-          version: "5.0.2"
+          version: "6.0.0.1" # api 20 in openharmony
           fixup-path: true
       - name: Install node for hvigor
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 24
       - name: Install hvigor modules
         run: |
           mkdir ~/hvigor-installation
@@ -104,34 +109,38 @@ jobs:
           OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
         run: |
           ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
-          cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
+          mv target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload shared library
         if: ${{ inputs.upload_library }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-library
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
-          path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
+          path: target/${{ matrix.target }}/${{ inputs.profile }}/libservoshell.so
+          if-no-files-found: error
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-hap-signed
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+          if-no-files-found: error
       - name: Upload unsigned HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-hap-unsigned
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         # The implicit assumption here is that `upload_library` is true and the signed hap is uploaded,
         # since this output will only be consumed by the release workflow.
@@ -142,7 +151,7 @@ jobs:
           echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-signed.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
-    needs: ["build"]
+    needs: ["build-openharmony"]
     strategy:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
@@ -151,7 +160,7 @@ jobs:
     with:
       target: ohos-${{ matrix.target }}
       profile: ${{ inputs.profile }}
-      compressed-file-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-${{ needs.build.outputs.signed && 'signed' || 'unsigned' }}.hap
+      compressed-file-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-${{ needs.build-openharmony.outputs.signed && 'signed' || 'unsigned' }}.hap
       binary-path: libs/${{ matrix.target == 'aarch64-unknown-linux-ohos' && 'arm64-v8a' || matrix.target == 'x86_64-unknown-linux-ohos' && 'x86_64' }}/libservoshell.so
       file-size: true
       speedometer: false
@@ -162,6 +171,7 @@ jobs:
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
   build-harmonyos-aarch64:
     name: HarmonyOS Build (aarch64)
+    timeout-minutes: 60
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
     outputs:
@@ -173,89 +183,22 @@ jobs:
         run: git fetch --depth=1 origin $GITHUB_SHA
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      # Safeguard: -- means FETCH_HEAD is revision instead of path.
+      # See <https://github.com/servo/servo/pull/44309>
       - run: |
           git switch --detach
-          git reset --hard FETCH_HEAD
+          git reset --hard FETCH_HEAD --
       - name: Adding test files to directory
         run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
-      - name: Save result as job output
-        id: result
-        if: always()
-        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
-
-  test-harmonyos-aarch64:
-    name: Test HarmonyOS aarch64
-    # Don't block servos Merge queue on this job failing.
-    # Since we just added this, there might be some hidden issues,
-    # so in the beginning we will just do a best effort approach but ignore errors.
-    continue-on-error: true
-    runs-on: hos-runner
-    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
-    needs: build-harmonyos-aarch64
-    outputs:
-      job_status: ${{ steps.result.outputs.JOB_STATUS }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          # Name of the artifact to download.
-          # If unspecified, all artifacts for the run are downloaded.
-          name: servoshell-hos-${{ inputs.profile }}.hap
-      - name: Test hdc device
-        # First we ensure a device is actually connected and working.
-        run: hdc list targets && hdc shell echo hello world
-      - name: Sign the hap
-        run: |
-          ls -la
-          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
-      - name: Install
-        run: |
-          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
-          # to make sure we don't use a previous version if installation failed for some reason.
-          hdc uninstall org.servo.servo
-          hdc install -r servoshell-hos-signed.hap
-      - name: Test loading servo.org
-        env:
-          TRACE_BUFFER_SZ_KB: "524288" # 512 MB
-        run: |
-          mkdir test_output
-          hdc shell aa force-stop org.servo.servo
-          # Hitrace allows us to save application and system traces, which is useful to analyze performance.
-          # The main reason however, is that we can use the application traces to determine if servo
-          # successfully reaches certain locations in the code, in particular if a page is successfully loaded.
-          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" app graphic ohos freq idle memory --trace_begin
-          # We start servo, tell it to load a website (servo.org).
-          hdc shell aa start -a EntryAbility -b org.servo.servo -U https://servo.org
-          servo_pid=$(hdc shell pidof org.servo.servo)
-          # We don't really know how long servo needs to load a webpage, so we just wait 10s.
-          sleep 10
-          # We dump the trace in ftrace format to disk
-          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" --trace_finish -o /data/local/tmp/ohtrace.txt
-          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
-          hdc file recv /data/local/tmp/servo.jpeg  test_output/servo_hos_screenshot.jpeg
-          hdc file recv /data/local/tmp/ohtrace.txt  test_output/servo.ftrace
-          # To limit the logsize we only save logs from servo.
-          hdc shell hilog --exit -D 0xE0C3 > test_output/servo.log
-      # todo: Also benchmark some other websites....
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          path: test_output
-          name: hos-${{ inputs.profile }}-test-output
-      - name: Check success
-        run: |
-          # would be empty if servo crashed.
-          servo_pid=$(hdc shell pidof org.servo.servo)
-          [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
-          # If the grep fails, then the trace output for the "page loaded" prompt is missing
-          grep 'tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+          if-no-files-found: error
       - name: Save result as job output
         id: result
         if: always()
@@ -263,24 +206,25 @@ jobs:
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
+    timeout-minutes: 40
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
       UV_PROJECT: "etc/ci/scenario"
     continue-on-error: true
     runs-on: hos-runner
-    needs: test-harmonyos-aarch64
+    needs: build-harmonyos-aarch64
     outputs:
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # Name of the artifact to download.
           # If unspecified, all artifacts for the run are downloaded.
           name: servoshell-hos-${{ inputs.profile }}.hap
       - name: Test hdc device
         # First we ensure a device is actually connected and working.
-        run: hdc list targets && hdc shell echo hello world
+        run: timeout 10 hdc wait
       - name: Sign the hap
         run: |
           ls -la
@@ -292,13 +236,13 @@ jobs:
           # to make sure we don't use a previous version if installation failed for some reason.
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 0
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -348,9 +292,32 @@ jobs:
       - name: Setup complete
         id: setup_complete
         run: echo "Setup complete"
+      - name: Get mitmproxy cache
+        id: mitmproxy-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/mitmproxy-dump
+          key: ${{ env.MITMDUMP_CACHE_KEY }}
+      - name: Generate mitmproxy dump
+        if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
+        run: uv run etc/ci/scenario/update_mitmproxy_dump.py /tmp/mitmproxy-dump
+      - name: Save Cache
+        if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
+        id: cache-mitmproxy-save
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/mitmproxy-dump
+          key: ${{ env.MITMDUMP_CACHE_KEY }}
       - name: "Run benchmark"
         id: hitrace_bench
         run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
+      - name: Upload failure screenshots
+        if: ${{ steps.hitrace_bench.success == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: bencher-${{ inputs.profile }}-failure-screenshot
+          path: "/tmp/servo.jpeg"
+          if-no-files-found: error
       - name: Run speedometer
         id: speedometer
         run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
@@ -365,11 +332,12 @@ jobs:
           hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
           # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
           # sets a log filter, which filters everything except JS console output.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
         with:
           name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
           path: speedometer_error_logs
+          if-no-files-found: error
       - name: Combining bencher files
         if: ${{ !cancelled() && steps.setup_complete.outcome == 'success' }}
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
@@ -399,6 +367,7 @@ jobs:
   scenario-test-harmonyos:
     name: Mossel Scenario test
     continue-on-error: true
+    timeout-minutes: 20
     runs-on: hos-runner
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64
@@ -408,14 +377,14 @@ jobs:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
       UV_PROJECT: "etc/ci/scenario"
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # Name of the artifact to download.
           # If unspecified, all artifacts for the run are downloaded.
           name: servoshell-hos-${{ inputs.profile }}.hap
       - name: Test hdc device
         # First we ensure a device is actually connected and working.
-        run: hdc list targets && hdc shell echo hello world
+        run: timeout 10 hdc wait
       - name: Sign the hap
         run: |
           ls -la
@@ -428,10 +397,26 @@ jobs:
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
       - name: Checkout scenario scripts
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             etc/ci/scenario
+      - name: Get mitmproxy cache
+        id: mitmproxy-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/mitmproxy-dump
+          key: ${{ env.MITMDUMP_CACHE_KEY }}
+      - name: Generate mitmproxy dump
+        if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
+        run: uv run etc/ci/scenario/update_mitmproxy_dump.py /tmp/mitmproxy-dump
+      - name: Save Cache
+        if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
+        id: cache-mitmproxy-save
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/mitmproxy-dump
+          key: ${{ env.MITMDUMP_CACHE_KEY }}
       - name: Test loading servo.org
         run: uv run ./etc/ci/scenario/servo_test_open_page_servo.py
       - name: Test loading Mossel homepage
@@ -445,10 +430,11 @@ jobs:
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"
+          if-no-files-found: error
       - name: Save result as job output
         id: result
         if: always()
@@ -460,17 +446,16 @@ jobs:
   collect-job-results:
     name: Collect Job Results
     runs-on: ubuntu-latest
-    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, test-harmonyos-aarch64, scenario-test-harmonyos]
+    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, scenario-test-harmonyos]
     outputs:
       collected_job_status: ${{ steps.result.outputs.JOB_RESULTS_JSON }}
     steps:
       - name: Save result as job output
         id: result
         run: |
-          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"test-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
+          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
           printf "JOB_RESULTS_JSON=$JSON_FMT" \
                   "${{ needs.build-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.bench-harmonyos-aarch64.outputs.job_status }}" \
-                  "${{ needs.test-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.scenario-test-harmonyos.outputs.job_status }}" \
             >> $GITHUB_OUTPUT

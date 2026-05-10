@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{TexDataType, TexFormat};
 use js::jsapi::Type;
 use js::typedarray::ArrayBufferView;
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{TexDataType, TexFormat};
 
 use super::WebGLValidator;
 use super::tex_image_2d::TexImageValidationError;
@@ -92,7 +92,11 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
         let height = self.height as u32;
         let depth = self.depth as u32;
         let level = self.level as u32;
-        if width > max_size || height > max_size || level > max_size {
+        // The maximum width/height/depth values at level 0 are GL_MAX_3D_TEXTURE_SIZE,
+        // and per https://wikis.khronos.org/opengl/Texture#Texture_completeness,
+        // the ones at level N must be half of those at level N-1.
+        let max_size_for_level = max_size / 2u32.pow(level);
+        if width > max_size_for_level || height > max_size_for_level || depth > max_size_for_level {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::TextureTooBig);
         }

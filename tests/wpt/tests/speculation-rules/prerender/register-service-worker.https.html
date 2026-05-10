@@ -10,7 +10,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 // To make sure the service worker registered by the prerendered page starts up,
 // this test sends messages as the following sequence:

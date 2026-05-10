@@ -5,9 +5,9 @@
 use core::panic;
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::fs::{self, File, read_to_string};
-use std::io::Read;
+use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::str::FromStr;
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 use std::sync::OnceLock;
@@ -17,22 +17,32 @@ use bpaf::*;
 use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
+use servo::user_contents::UserStyleSheet;
 use servo::{
-    DeviceIndependentPixel, DiagnosticsLogging, Opts, OutputOptions, PrefValue, Preferences,
-    ServoUrl,
+    DeviceIndependentPixel, DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions,
+    PrefValue, Preferences,
 };
 use url::Url;
 
 use crate::VERSION;
 
+/// Preferences enabled when servoshell is launched with the `--enable-experimental-web-platform-features` flag.
+///
+/// These preferences are disabled by default but activated in experimental mode.
+/// For more details, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_async_clipboard_enabled",
+    "dom_exec_command_enabled",
     "dom_fontface_enabled",
+    "dom_indexeddb_enabled",
     "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",
     "dom_permissions_enabled",
+    "dom_sanitizer_enabled",
+    "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
     "layout_columns_enabled",
@@ -80,6 +90,8 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+    /// A set of [`UserStylesheets`] to load for content.
+    pub user_stylesheets: Vec<Rc<UserStyleSheet>>,
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Cell<Option<u16>>,
@@ -111,6 +123,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            user_stylesheets: Default::default(),
             webdriver_port: Cell::new(None),
             #[cfg(target_env = "ohos")]
             log_filter: None,
@@ -265,29 +278,25 @@ fn parse_resolution_string(
     }
 }
 
-/// Parse stylesheets into the byte stream.
-fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, std::io::Error> {
-    Ok(string
-        .split_whitespace()
-        .map(|filename| {
-            let cwd = env::current_dir().unwrap();
-            let path = cwd.join(filename);
-            let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
-            let mut contents = Vec::new();
-            File::open(path)
-                .unwrap()
-                .read_to_end(&mut contents)
-                .unwrap();
-            (contents, url)
-        })
-        .collect())
+/// Parse a space or comma-separated list of stylesheet paths into a vector of
+/// [`UserStyleSheet`].
+fn parse_user_stylesheets(string: String) -> Result<Vec<Rc<UserStyleSheet>>, std::io::Error> {
+    let mut results = Vec::new();
+    for path_string in string.split([' ', ',']) {
+        let path = env::current_dir()?.join(path_string);
+        results.push(Rc::new(UserStyleSheet::new(
+            read_to_string(&path)?,
+            Url::from_file_path(&path).unwrap(),
+        )));
+    }
+    Ok(results)
 }
 
 /// This is a helper function that fulfills the following parsing task
 /// check for long/short cmd. If there is the flag with this
 /// If the flag is not there, parse `None``
 /// If the flag is there but no argument, parse `Some(default)`
-/// If the flag is there and an argument parse the arugment
+/// If the flag is there and an argument parse the argument
 fn flag_with_default_parser<S, T>(
     short_cmd: Option<char>,
     long_cmd: &'static str,
@@ -339,14 +348,12 @@ fn profile() -> impl Parser<Option<OutputOptions>> {
 }
 
 fn userscripts() -> impl Parser<Option<PathBuf>> {
-    flag_with_default_parser(
-        None,
-        "userscripts_directory",
-        "your/directory",
-        "Uses userscripts in resources/user-agent-js, or a specified full path",
-        PathBuf::from("resources/user-agent-js"),
-        |val: String| PathBuf::from(val),
-    )
+    let arg = long("userscripts")
+        .argument::<String>("your/directory")
+        .help("Uses userscripts in specified full path")
+        .map(PathBuf::from);
+
+    construct!([arg]).optional()
 }
 
 fn webdriver_port() -> impl Parser<Option<u16>> {
@@ -365,7 +372,7 @@ fn map_debug_options(arg: String) -> Vec<String> {
 }
 
 #[derive(Bpaf, Clone, Debug)]
-#[bpaf(options, version(VERSION), usage("servo [OPTIONS] URL"))]
+#[bpaf(options, version(VERSION), usage("servoshell [OPTIONS] URL"))]
 // Newlines in comments are intentional to have the right formatting for the help message.
 struct CmdArgs {
     /// Background Hang Monitor enabled.
@@ -385,6 +392,10 @@ struct CmdArgs {
     ///  Config directory following xdg spec on linux platform.
     #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
+
+    /// Use temporary storage (data on disk will not persist across restarts).
+    #[bpaf(long)]
+    temporary_storage: bool,
 
     ///
     ///  Run as a content process and connect to the given pipe.
@@ -407,9 +418,9 @@ struct CmdArgs {
     #[bpaf(argument("1.0"))]
     device_pixel_ratio: Option<f32>,
 
-    /// Start remote devtools server on port.
-    #[bpaf(argument("0"))]
-    devtools: Option<u16>,
+    /// Start remote devtools server on port listening on this address. <address>:<port> and <port> are valid values.
+    #[bpaf(argument("127.0.0.1:7000"))]
+    devtools: Option<String>,
 
     ///
     ///  Whether or not to enable experimental web platform features.
@@ -464,11 +475,6 @@ struct CmdArgs {
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
 
-    ///
-    ///  Enable to turn off incremental layout.
-    #[bpaf(short('i'), long, flag(false, true))]
-    nonincremental_layout: bool,
-
     /// Path to an output image. The format of the image is determined by the extension.
     /// Supports all formats that `rust-image` does.
     #[bpaf(short('o'), argument("test.png"), long)]
@@ -493,10 +499,6 @@ struct CmdArgs {
     ///  Load in additional prefs from a file.
     #[bpaf(long, argument("/path/to/prefs.json"), many)]
     prefs_file: Vec<PathBuf>,
-
-    /// Print Progressive Web Metrics.
-    #[bpaf(long)]
-    print_pwm: bool,
 
     ///
     ///  Probability of randomly closing a pipeline (for testing constellation hardening).
@@ -542,14 +544,16 @@ struct CmdArgs {
     user_agent: Option<String>,
 
     ///
-    ///  Uses userscripts in resources/user-agent-js, or a specified full path.
+    ///  Uses userscripts in a specified full path.
     #[bpaf(external)]
     userscripts: Option<PathBuf>,
 
     ///
-    ///  A user stylesheet to be added to every document.
-    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets), fallback(vec![]))]
-    user_stylesheet: Vec<(Vec<u8>, ServoUrl)>,
+    /// Add each of the given UTF-8 encoded CSS files in the space or comma-separated
+    /// list as user stylesheet to apply to every page loaded.
+    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets),
+    fallback(vec![]))]
+    user_stylesheet: Vec<Rc<UserStyleSheet>>,
 
     /// Start remote WebDriver server on port.
     #[bpaf(external)]
@@ -569,9 +573,9 @@ fn update_preferences_from_command_line_arguemnts(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
-    if let Some(port) = cmd_args.devtools {
+    if let Some(listen_address) = &cmd_args.devtools {
         preferences.devtools_server_enabled = true;
-        preferences.devtools_server_port = port as i64;
+        preferences.devtools_server_listen_address = listen_address.clone();
     }
 
     if cmd_args.enable_experimental_web_platform_features {
@@ -654,6 +658,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
                 fs::create_dir_all(config_dir).expect("Could not create config_dir");
             }
         });
+    let temporary_storage = cmd_args.temporary_storage;
     if let Some(ref time_profiler_trace_path) = cmd_args.profiler_trace_path {
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
@@ -693,6 +698,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
         userscripts_directory: cmd_args.userscripts,
+        user_stylesheets: cmd_args.user_stylesheet,
         experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
         log_filter: cmd_args.log_filter.or_else(|| {
@@ -703,15 +709,9 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         ..Default::default()
     };
 
-    let mut debug_options = DiagnosticsLogging::new();
-
-    // Parse -Z command-line flags.
-    for debug_string in cmd_args.debug {
-        if let Err(error) = debug_options.extend_from_string(&debug_string) {
-            eprintln!("Could not parse debug logging option: {error}");
-            return ArgumentParsingResult::ErrorParsing;
-        }
-    }
+    let Ok(debug_options) = parse_diagnostics_logging(cmd_args.debug) else {
+        return ArgumentParsingResult::ErrorParsing;
+    };
 
     let opts = Opts {
         debug: debug_options,
@@ -719,15 +719,14 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         time_profiler_trace_path: cmd_args
             .profiler_trace_path
             .map(|p| p.to_string_lossy().into_owned()),
-        nonincremental_layout: cmd_args.nonincremental_layout,
-        user_stylesheets: cmd_args.user_stylesheet,
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
-        config_dir: config_dir.clone(),
+        config_dir,
+        temporary_storage,
         shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path
@@ -738,11 +737,38 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
-        print_pwm: cmd_args.print_pwm,
         force_ipc: cmd_args.force_ipc,
     };
 
     ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences)
+}
+
+/// Parse the '-Z' command-line flags.
+fn parse_diagnostics_logging(cli_options: Vec<String>) -> Result<DiagnosticsLogging, ()> {
+    fn print_option(name: &str, description: &str) {
+        println!("\t{:<35} {}", name, description);
+    }
+
+    if cli_options.contains(&"help".into()) {
+        // TODO: Remove hardcoded binary name by perhaps receiving this as an argument.
+        println!("Usage: servoshell -Z option,[option,...]\n\twhere options include:");
+        print_option("help", "Show this help message");
+        for option in DiagnosticsLoggingOption::iter() {
+            print_option(option.help_option(), option.help_message())
+        }
+
+        std::process::exit(0);
+    }
+
+    let mut diagnostics_logging = DiagnosticsLogging::new();
+    for cli_option in cli_options.iter() {
+        if let Err(error) = diagnostics_logging.extend_from_string(cli_option) {
+            eprintln!("Could not parse debug logging option: {error}");
+            return Err(());
+        }
+    }
+
+    Ok(diagnostics_logging)
 }
 
 #[cfg(test)]
@@ -774,6 +800,12 @@ fn test_parse_pref_from_command_line() {
     // Test with numbers
     let preferences = test_parse_pref("layout_threads=42");
     assert_eq!(preferences.layout_threads, 42);
+
+    // Test with unsigned numbers
+    let preferences = test_parse_pref("network_http_cache_size=50");
+    assert_eq!(preferences.network_http_cache_size, 50);
+    let preferences = test_parse_pref("network_connection_timeout=30");
+    assert_eq!(preferences.network_connection_timeout, 30);
 
     // Test string.
     let preferences = test_parse_pref("fonts_default=Lucida");

@@ -20,7 +20,7 @@ from .base import (CallbackHandler,
                    RefTestImplementation,
                    TestharnessExecutor,
                    TimedRunner,
-                   WdspecExecutor,
+                   PytestExecutor,
                    get_pages,
                    strip_server)
 from .protocol import (AccessibilityProtocolPart,
@@ -751,6 +751,12 @@ class MarionetteAccessibilityProtocolPart(AccessibilityProtocolPart):
     def get_computed_role(self, element):
         return element.computed_role
 
+    def get_accessibility_properties_for_element(self, element):
+        return element.accessibility_properties
+
+    def get_accessibility_properties_for_accessibility_node(self, id):
+        return self.marionette.get_accessibility_properties_for_accessibility_node(id)
+
 
 class MarionetteVirtualSensorProtocolPart(VirtualSensorProtocolPart):
     def setup(self):
@@ -1277,7 +1283,7 @@ class InternalRefTestImplementation(RefTestImplementation):
                 "cacheScreenshots": self.executor.cache_screenshots}
         if self.executor.group_metadata is not None:
             data["urlCount"] = {urljoin(self.executor.server_url(key[0]), key[1]):value
-                                for key, value in self.executor.group_metadata.get("url_count", {}).items()
+                                for key, value in self.executor.group_metadata.extra.get("url_count", {}).items()
                                 if value > 1}
         self.chrome_scope = chrome_scope
         if chrome_scope:
@@ -1463,7 +1469,7 @@ class MarionettePrintRefTestExecutor(MarionetteRefTestExecutor):
         return screenshots
 
 
-class MarionetteWdspecExecutor(WdspecExecutor):
+class MarionettePytestExecutor(PytestExecutor):
     def __init__(self, logger, browser, *args, **kwargs):
         super().__init__(logger, browser, *args, **kwargs)
 

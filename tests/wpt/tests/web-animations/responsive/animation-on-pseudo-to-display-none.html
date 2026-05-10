@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animation on pseudo to display: none</title>
+  <link rel="help" href="https://www.w3.org/TR/css-animations-2/#owning-element-section">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    #target {
+      background-color: lightgoldenrodyellow;
+      height: 100px;
+      width: 100px;
+      position: relative;
+    }
+    @keyframes vanish {
+      to {
+        opacity: 0;
+        display: none;
+      }
+    }
+    #target::before {
+      box-sizing: border-box;
+      content: "hello";
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+    #target.vanish::before {
+      animation: vanish 1s forwards steps(1, jump-end);
+    }
+
+    #target.label::before {
+      content: "world";
+    }
+
+    #target.hide::before {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  promise_test(async t => {
+    const target = document.getElementById('target');
+    const opacity = () => {
+      return getComputedStyle(target, '::before').opacity;
+    };
+    const display = () => {
+      return getComputedStyle(target, '::before').display;
+    };
+    const content = () => {
+      return getComputedStyle(target, '::before').content.replace(/\"/g,"");
+    };
+
+    target.classList.add('vanish');
+    let anim = target.getAnimations({subtree: true})[0];
+    assert_true(!!anim, 'animation created');
+    assert_equals(anim.animationName, 'vanish');
+    assert_equals(content(), 'hello', 'initial content');
+
+    anim.finish();
+    assert_equals(opacity(), '0', 'opacity when animation is finished');
+    assert_equals(document.getAnimations()[0], anim,
+                   'same animation is still running');
+
+    target.classList.add('label');
+    assert_equals(document.getAnimations().length, 1,
+                  'animation still alive after style update');
+    assert_equals(opacity(), '0', 'opacity after style update');
+    assert_equals(content(), 'world', 'content after style update');
+
+    target.classList.add('hide');
+    assert_equals(document.getAnimations().length, 0,
+                  'display: none on the base style cancels the animation');
+
+    target.classList.remove('label');
+    assert_equals(content(), 'hello', 'content after post hide style update');
+
+    target.classList.remove('hide');
+    assert_equals(document.getAnimations().length, 1,
+                  'Removing display:none in the base style restarts the ' +
+                  'animation');
+    anim = document.getAnimations()[0];
+    assert_equals(anim.animationName, 'vanish', 'name of restarted animation');
+    assert_equals(opacity(), '1', 'opacity after restart');
+    anim.finish();
+    assert_equals(opacity(), '0', 'opacity after restart and finish');
+    anim.cancel();
+    assert_equals(opacity(), '1', 'opacity after cancel');
+  }, 'display:none via a CSS animation on a pseudo-element does not cancel ' +
+       'the animation.');
+</script>
+</html>

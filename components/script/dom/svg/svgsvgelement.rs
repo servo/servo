@@ -6,33 +6,33 @@ use base64::Engine as _;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
-use style::values::specified::Length;
+use style::values::specified::LengthPercentage;
 use style_traits::ParsingMode;
 use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{
     ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
     UnbindContext,
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
@@ -60,29 +60,32 @@ impl SVGSVGElement {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGSVGElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn serialize_and_cache_subtree(&self) {
-        let can_gc = CanGc::note();
-        let cloned_nodes = self.process_use_elements(can_gc);
+        // TODO: https://github.com/servo/servo/issues/43142
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+        let cloned_nodes = self.process_use_elements(cx);
 
         let serialize_result = self
             .upcast::<Node>()
             .xml_serialize(TraversalScope::IncludeNode);
 
-        self.cleanup_cloned_nodes(&cloned_nodes, can_gc);
+        self.cleanup_cloned_nodes(cx, &cloned_nodes);
 
         let Ok(xml_source) = serialize_result else {
             *self.cached_serialized_data_url.borrow_mut() = Some(Err(()));
@@ -98,17 +101,16 @@ impl SVGSVGElement {
         };
     }
 
-    fn process_use_elements(&self, can_gc: CanGc) -> Vec<DomRoot<Node>> {
+    fn process_use_elements(&self, cx: &mut JSContext) -> Vec<DomRoot<Node>> {
         let mut cloned_nodes = Vec::new();
         let root_node = self.upcast::<Node>();
 
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
-            if let Some(element) = node.downcast::<Element>() {
-                if element.local_name() == &local_name!("use") {
-                    if let Some(cloned) = self.process_single_use_element(element, can_gc) {
-                        cloned_nodes.push(cloned);
-                    }
-                }
+            if let Some(element) = node.downcast::<Element>() &&
+                element.local_name() == &local_name!("use") &&
+                let Some(cloned) = self.process_single_use_element(cx, element)
+            {
+                cloned_nodes.push(cloned);
             }
         }
 
@@ -117,8 +119,8 @@ impl SVGSVGElement {
 
     fn process_single_use_element(
         &self,
+        cx: &mut JSContext,
         use_element: &Element,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Node>> {
         let href = use_element.get_string_attribute(&local_name!("href"));
         let href_view = href.str();
@@ -134,26 +136,26 @@ impl SVGSVGElement {
             return None;
         }
         let cloned_node = Node::clone(
+            cx,
             referenced_node,
             None,
             CloneChildrenFlag::CloneChildren,
             None,
-            can_gc,
         );
         let root_node = self.upcast::<Node>();
-        let _ = root_node.AppendChild(&cloned_node, can_gc);
+        let _ = root_node.AppendChild(cx, &cloned_node);
 
         Some(cloned_node)
     }
 
-    fn cleanup_cloned_nodes(&self, cloned_nodes: &[DomRoot<Node>], can_gc: CanGc) {
+    fn cleanup_cloned_nodes(&self, cx: &mut JSContext, cloned_nodes: &[DomRoot<Node>]) {
         if cloned_nodes.is_empty() {
             return;
         }
         let root_node = self.upcast::<Node>();
 
         for cloned_node in cloned_nodes {
-            let _ = root_node.RemoveChild(cloned_node, can_gc);
+            let _ = root_node.RemoveChild(cx, cloned_node);
         }
     }
 
@@ -163,13 +165,9 @@ impl SVGSVGElement {
     }
 }
 
-pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
-    fn data(self) -> SVGElementData<'dom>;
-}
-
-impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
+impl<'dom> LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
-    fn data(self) -> SVGElementData<'dom> {
+    pub(crate) fn data(self) -> SVGElementData<'dom> {
         let svg_id = self.unsafe_get().uuid.clone();
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -195,15 +193,20 @@ impl VirtualMethods for SVGSVGElement {
         Some(self.upcast::<SVGGraphicsElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self
@@ -230,13 +233,14 @@ impl VirtualMethods for SVGSVGElement {
                     /* namespaces = */ Default::default(),
                     None,
                     None,
+                    /* attr_taint = */ Default::default(),
                 );
-                let val = Length::parse_quirky(
+                let val = LengthPercentage::parse_quirky(
                     &context,
                     parser,
                     style::values::specified::AllowQuirks::Always,
                 );
-                AttrValue::Length(value.to_string(), val.ok())
+                AttrValue::LengthPercentage(value.to_string(), val.ok())
             },
             _ => self
                 .super_type()
@@ -245,17 +249,17 @@ impl VirtualMethods for SVGSVGElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(super_type) = self.super_type() {
-            super_type.children_changed(mutation, can_gc);
+            super_type.children_changed(cx, mutation);
         }
 
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext<'_>, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
         let owner_window = self.owner_window();
         self.owner_window()

@@ -1304,6 +1304,55 @@ const triangularTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'triangular int32 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'triangularInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'triangular',
+        'arguments': [{'input': 'triangularInput'}],
+        'outputs': 'triangularOutput'
+      }],
+      'expectedOutputs': {
+        'triangularOutput': {
+          'data': [1, -2, 3, 0, 5, -6, 0, 0, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'triangular int32 2D tensor options.upper=false',
+    'graph': {
+      'inputs': {
+        'triangularInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'triangular',
+        'arguments': [
+          {'input': 'triangularInput'},
+          {'options': {'upper': false}}
+        ],
+        'outputs': 'triangularOutput'
+      }],
+      'expectedOutputs': {
+        'triangularOutput': {
+          'data': [1, 0, 0, -4, 5, 0, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

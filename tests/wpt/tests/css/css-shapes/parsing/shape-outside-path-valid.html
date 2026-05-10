@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Shapes Module Level 1: parsing shape-outside with valid path() values</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#funcdef-basic-shape-path">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<meta name="assert" content="shape-outside supports the path() basic shape.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_value("shape-outside", "path('M 10 10 h 80 v 80 h -80 Z')", 'path("M 10 10 h 80 v 80 h -80 Z")');
+test_valid_value("shape-outside", "path('M10,10h80v80h-80z')", 'path("M 10 10 h 80 v 80 h -80 Z")');
+test_valid_value("shape-outside", "path(evenodd, 'M10,10h80v80h-80zM25,25h50v50h-50z')", 'path(evenodd, "M 10 10 h 80 v 80 h -80 Z M 25 25 h 50 v 50 h -50 Z")');
+test_valid_value("shape-outside", "path(nonzero, 'M10,10h80v80h-80z')", 'path("M 10 10 h 80 v 80 h -80 Z")');
+test_valid_value("shape-outside", "path('M0,0L100,0L100,100Z')", 'path("M 0 0 L 100 0 L 100 100 Z")');
+test_valid_value("shape-outside", "path('M0,0C30,60,70,60,100,0')", 'path("M 0 0 C 30 60 70 60 100 0")');
+test_valid_value("shape-outside", "path('M0,0Q50,100,100,0')", 'path("M 0 0 Q 50 100 100 0")');
+test_valid_value("shape-outside", "path('M0,0A25,25,0,0,1,50,0')", 'path("M 0 0 A 25 25 0 0 1 50 0")');
+test_valid_value("shape-outside", "path(evenodd, 'M10,10h80v80h-80zM25,25h50v50h-50')", 'path(evenodd, "M 10 10 h 80 v 80 h -80 Z M 25 25 h 50 v 50 h -50")');
+</script>

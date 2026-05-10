@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+::selection {
+  background-color: green;
+  color: white;
+}
+</style>
+
+<button class="customizable-select-button" popovertarget="popover" id="button">
+  <span class="customizable-select-selectedcontent">one</span>
+</button>
+<div id="popover" popover="auto" class="customizable-select-popover">
+  Hello World
+  <div class="customizable-select-option selected">one</div>
+  <div class="customizable-select-option">two</div>
+</div>
+
+<script>
+document.getElementById("popover").showPopover({ source: button });
+
+const popover = document.getElementById("popover");
+const textNode = [...popover.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.nodeValue.includes("Hello"));
+const start = textNode.nodeValue.indexOf("Hello");
+const range = document.createRange();
+range.setStart(textNode, start);
+range.setEnd(textNode, start + 5); // "Hello"
+window.getSelection().addRange(range);
+</script>

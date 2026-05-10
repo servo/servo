@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Gap Decorations: repaint when flex item width changes</title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+  <link rel="match" href="flex-gap-decorations-repaint-on-child-resize-ref.html">
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <meta name="assert" content="Gap decorations repaint correctly when a flex item's width changes">
+  <style>
+    .flex-container {
+      display: flex;
+      column-gap: 20px;
+      width: 160px;
+      height: 50px;
+      background: red;
+      column-rule: 20px solid green;
+    }
+
+    .flex-item {
+      background: green;
+      height: 50px;
+    }
+
+    #item1 {
+      /* Start at 40px, will change to 90px */
+      width: 40px;
+    }
+
+    #item2 {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="flex-container">
+    <div id="item1" class="flex-item"></div>
+    <div id="item2" class="flex-item"></div>
+  </div>
+  <script>
+    // Use double requestAnimationFrame to ensure style is computed and painted.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Change the flex item width. The gap decoration should repaint
+        // at the new position (covering what was previously red).
+        document.getElementById('item1').style.width = '90px';
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</body>
+</html>

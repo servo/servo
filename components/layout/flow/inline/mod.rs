@@ -77,66 +77,65 @@ pub mod text_run;
 use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use app_units::{Au, MAX_AU};
+use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, FontRef, GlyphStore};
+use fonts::{FontMetrics, FontRef, ShapedTextSlice};
+use icu_locid::LanguageIdentifier;
+use icu_locid::subtags::{Language, language};
+use icu_properties::{self, LineBreak as ICULineBreak};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
-use layout_api::wrapper_traits::SharedSelection;
+use layout_api::{LayoutNode, SharedSelection};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
-use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
-use style::values::generics::box_::VerticalAlignKeyword;
+use style::values::computed::BaselineShift;
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::TextAlignKeyword;
-use style::values::specified::{TextAlignLast, TextJustify};
-use text_run::{
-    TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
-    get_font_for_first_font_for_style,
-};
+use style::values::specified::{AlignmentBaseline, TextAlignLast, TextJustify};
+use text_run::{TextRun, get_font_for_first_font_for_style};
 use unicode_bidi::{BidiInfo, Level};
-use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
-use super::{CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult};
+use super::{IndependentFloatOrAtomicLayoutResult, IndependentFormattingContextLayoutResult};
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::text_run::{FontAndScriptInfo, TextRunItem, TextRunSegment};
 use crate::flow::{
-    BlockContainer, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
-    layout_in_flow_non_replaced_block_level_same_formatting_context,
+    BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
+    compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
+    BaseFragmentInfo, BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::sizing::{
-    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, outer_inline,
-};
+use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SharedStyle};
 
@@ -163,6 +162,11 @@ pub(crate) struct InlineFormattingContext {
     /// share styles with all [`TextRun`] children.
     shared_inline_styles: SharedInlineStyles,
 
+    /// The default font that is used for the root of this [`InlineFormattingContext`]. This is the
+    /// font used when the font fallback code path is not taken. It may be `None` if no default
+    /// font was found (this typically means that no characters can be rendered).
+    default_font: Option<FontRef>,
+
     /// Whether this IFC contains the 1st formatted line of an element:
     /// <https://www.w3.org/TR/css-pseudo-4/#first-formatted-line>.
     has_first_formatted_line: bool,
@@ -182,6 +186,9 @@ pub(crate) struct InlineFormattingContext {
     /// node in the DOM, this will not be `None`.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
     shared_selection: Option<SharedSelection>,
+
+    /// The cached tab stop inline advance used when finding final tab stops for preserved tabs.
+    tab_stop_advance: OnceLock<Au>,
 }
 
 /// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
@@ -198,76 +205,44 @@ impl SharedInlineStyles {
     pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
         self.style.ptr_eq(&other.style) && self.selected.ptr_eq(&other.selected)
     }
-}
 
-impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
-    fn from(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn from_info_and_context(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             style: SharedStyle::new(info.style.clone()),
-            selected: SharedStyle::new(info.node.selected_style()),
+            selected: SharedStyle::new(info.node.selected_style(&context.style_context)),
         }
     }
 }
 
-/// Each sequence of block-level boxes that participate in an inline formatting context
-/// (because their parent is an inline box) gets wrapped inside an [`AnonymousBlockBox`].
-/// This way we don't have to deal with the block-levels directly.
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct AnonymousBlockBox {
-    base: LayoutBoxBase,
-    contents: BlockContainer,
-}
-
-impl AnonymousBlockBox {
+impl BlockLevelBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
         layout.process_soft_wrap_opportunity();
         layout.commit_current_segment_to_line();
         layout.process_line_break(true);
         layout.current_line.for_block_level = true;
 
-        let fragment = layout
-            .positioning_context
-            .layout_maybe_position_relative_fragment(
-                layout.layout_context,
-                layout.placement_state.containing_block,
-                &self.base,
-                |positioning_context| {
-                    layout_in_flow_non_replaced_block_level_same_formatting_context(
-                        layout.layout_context,
-                        positioning_context,
-                        layout.placement_state.containing_block,
-                        &self.base,
-                        &self.contents,
-                        layout.sequential_layout_state.as_deref_mut(),
-                        Some(CollapsibleWithParentStartMargin(
-                            layout
-                                .placement_state
-                                .next_in_flow_margin_collapses_with_parent_start_margin,
-                        )),
-                        // This doesn't matter, because the anonymous block doesn't stretch in the
-                        // block axis. However, it's not clear what to do for the block-levels inside,
-                        // see <https://github.com/w3c/csswg-drafts/issues/13260>
-                        LogicalSides1D::new(false, false),
-                    )
-                },
-            );
-
-        // If this Fragment's layout depends on the block size of the containing block,
-        // then the entire layout of the inline formatting context does as well.
-        layout.depends_on_block_constraints |= fragment.base.flags.contains(
-            FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
-        );
-
-        let mut fragment = Fragment::Box(ArcRefCell::new(fragment));
-        layout.placement_state.place_fragment_and_update_baseline(
-            &mut fragment,
+        let fragment = layout_block_level_child(
+            layout.layout_context,
+            layout.positioning_context,
+            self,
             layout.sequential_layout_state.as_deref_mut(),
+            &mut layout.placement_state,
+            // Under discussion in <https://github.com/w3c/csswg-drafts/issues/13260>.
+            LogicalSides1D::new(false, false),
+            true, /* has_inline_parent */
         );
 
         let Fragment::Box(fragment) = fragment else {
-            unreachable!("The fragment should still be a Fragment::Box()");
+            unreachable!("The fragment should be a Fragment::Box()");
         };
-        layout.push_line_item_to_unbreakable_segment(LineItem::AnonymousBlockBox(
+
+        // If this Fragment's layout depends on the block size of the containing block,
+        // then the entire layout of the inline formatting context does as well.
+        layout.depends_on_block_constraints |= fragment.borrow().base.flags.contains(
+            FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+        );
+
+        layout.push_line_item_to_unbreakable_segment(LineItem::BlockLevel(
             layout.current_inline_box_identifier(),
             fragment,
         ));
@@ -293,19 +268,21 @@ pub(crate) enum InlineItem {
         usize, /* offset_in_text */
         Level, /* bidi_level */
     ),
-    AnonymousBlock(ArcRefCell<AnonymousBlockBox>),
+    BlockLevel(ArcRefCell<BlockLevelBox>),
 }
 
 impl InlineItem {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow_mut().repair_style(node, new_style);
+                inline_box
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
             },
             InlineItem::EndInlineBox => {},
             // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
@@ -322,11 +299,9 @@ impl InlineItem {
             InlineItem::Atomic(atomic, ..) => {
                 atomic.borrow_mut().repair_style(context, node, new_style)
             },
-            InlineItem::AnonymousBlock(block_box) => {
-                let mut block_box = block_box.borrow_mut();
-                block_box.base.repair_style(new_style);
-                block_box.contents.repair_style(node, new_style);
-            },
+            InlineItem::BlockLevel(block_level) => block_level
+                .borrow_mut()
+                .repair_style(context, node, new_style),
         }
     }
 
@@ -343,7 +318,7 @@ impl InlineItem {
             InlineItem::Atomic(independent_formatting_context, ..) => {
                 callback(&independent_formatting_context.borrow().base)
             },
-            InlineItem::AnonymousBlock(block_box) => callback(&block_box.borrow().base),
+            InlineItem::BlockLevel(block_level) => block_level.borrow().with_base(callback),
         }
     }
 
@@ -362,7 +337,7 @@ impl InlineItem {
             InlineItem::Atomic(independent_formatting_context, ..) => {
                 callback(&mut independent_formatting_context.borrow_mut().base)
             },
-            InlineItem::AnonymousBlock(block_box) => callback(&mut block_box.borrow_mut().base),
+            InlineItem::BlockLevel(block_level) => block_level.borrow_mut().with_base_mut(callback),
         }
     }
 
@@ -382,9 +357,7 @@ impl InlineItem {
                 float_box.borrow().contents.attached_to_tree(layout_box)
             },
             Self::Atomic(atomic, ..) => atomic.borrow().attached_to_tree(layout_box),
-            Self::AnonymousBlock(block_box) => {
-                block_box.borrow().contents.attached_to_tree(layout_box)
-            },
+            Self::BlockLevel(block_level) => block_level.borrow().attached_to_tree(layout_box),
         }
     }
 
@@ -407,9 +380,7 @@ impl InlineItem {
             Self::Atomic(atomic, offset_in_text, bidi_level) => {
                 WeakInlineItem::Atomic(atomic.downgrade(), *offset_in_text, *bidi_level)
             },
-            Self::AnonymousBlock(block_box) => {
-                WeakInlineItem::AnonymousBlock(block_box.downgrade())
-            },
+            Self::BlockLevel(block_level) => WeakInlineItem::BlockLevel(block_level.downgrade()),
         }
     }
 }
@@ -429,7 +400,7 @@ pub(crate) enum WeakInlineItem {
         usize, /* offset_in_text */
         Level, /* bidi_level */
     ),
-    AnonymousBlock(WeakRefCell<AnonymousBlockBox>),
+    BlockLevel(WeakRefCell<BlockLevelBox>),
 }
 
 impl WeakInlineItem {
@@ -450,7 +421,7 @@ impl WeakInlineItem {
             Self::Atomic(atomic, offset_in_text, bidi_level) => {
                 InlineItem::Atomic(atomic.upgrade()?, *offset_in_text, *bidi_level)
             },
-            Self::AnonymousBlock(block_box) => InlineItem::AnonymousBlock(block_box.upgrade()?),
+            Self::BlockLevel(block_level) => InlineItem::BlockLevel(block_level.upgrade()?),
         })
     }
 }
@@ -500,6 +471,16 @@ struct LineUnderConstruction {
 
     /// Whether the current line is for a block-level box.
     for_block_level: bool,
+
+    /// The starting character offset of this line.
+    ///
+    /// This is used to generate empty `TextRunLineItem` to hold text carets on otherwise
+    /// empty lines.
+    ///
+    /// TODO: This is only guaranteed to be accurate for the first line or when the previous line
+    /// ended with a hard line break. Eventually this should be updated during content processing so
+    /// that text carets work outside of text inputs.
+    starting_character_offset: usize,
 }
 
 impl LineUnderConstruction {
@@ -514,6 +495,7 @@ impl LineUnderConstruction {
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
             for_block_level: false,
+            starting_character_offset: 0,
         }
     }
 
@@ -547,12 +529,19 @@ impl LineUnderConstruction {
                     text_run
                         .text
                         .iter()
-                        .map(|glyph_store| glyph_store.total_word_separators())
+                        .map(|shaped_text_slice| shaped_text_slice.total_word_separators())
                         .sum::<usize>(),
                 ),
                 _ => None,
             })
             .sum()
+    }
+
+    /// Whether this is a phantom line box.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `UnbreakableSegmentUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
     }
 }
 
@@ -772,6 +761,13 @@ impl UnbreakableSegmentUnderConstruction {
         }
         self.inline_size -= whitespace_trimmed;
     }
+
+    /// Whether this is segment is phantom. If false, its line box won't be phantom.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `LineUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
+    }
 }
 
 bitflags! {
@@ -809,6 +805,10 @@ struct InlineContainerState {
     /// baseline while a negative value indicates one "above" it (when the block direction
     /// is vertical).
     pub baseline_offset: Au,
+
+    /// The primary font used for this container, if one exists. This is the font that is
+    /// used when not falling back.
+    default_font: Option<FontRef>,
 
     /// The font metrics of the non-fallback font for this container.
     font_metrics: Arc<FontMetrics>,
@@ -874,7 +874,11 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// as soon as we encounter the `<br>` the `<span>`'s ending inline borders would be
     /// placed on the second line, because we add those borders in
     /// [`InlineFormattingContextLayout::finish_inline_box()`].
-    linebreak_before_new_content: bool,
+    ///
+    /// If this field is `Some`, a hard line break should be processed before any new content. The
+    /// `usize` stores the character offset of the originating hard line break, which is used to
+    /// generate placeholders for carets on otherwise empty lines.
+    force_line_break_before_new_content: Option<usize>,
 
     /// When a `<br>` element has `clear`, this needs to be applied after the linebreak,
     /// which will be processed *after* the `<br>` element is processed. This member
@@ -958,10 +962,7 @@ impl InlineFormattingContextLayout<'_> {
             containing_block,
             self.layout_context,
             self.current_inline_container_state(),
-            inline_box
-                .default_font
-                .as_ref()
-                .map(|font| font.metrics.clone()),
+            inline_box.default_font.clone(),
         );
 
         self.depends_on_block_constraints |= inline_box
@@ -1052,6 +1053,9 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn finish_last_line(&mut self) {
+        // First, process any deferred forced line breaks.
+        self.possibly_flush_deferred_forced_line_break();
+
         // We are at the end of the IFC, and we need to do a few things to make sure that
         // the current segment is committed and that the final line is finished.
         //
@@ -1072,6 +1076,8 @@ impl InlineFormattingContextLayout<'_> {
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextLayout`] preparing it for laying out a new line.
     fn finish_current_line_and_reset(&mut self, last_line_or_forced_line_break: bool) {
+        self.possibly_push_empty_text_run_to_line_for_text_caret();
+
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
         let (inline_start_position, justification_adjustment) = self
             .calculate_current_line_inline_start_and_justification_adjustment(
@@ -1087,7 +1093,7 @@ impl InlineFormattingContextLayout<'_> {
         // > positions of any descendant content (such as absolutely positioned boxes), and both the
         // > line box and its in-flow content must be treated as not existing for any other layout or
         // > rendering purpose.
-        let is_phantom_line = !self.current_line.has_content && !self.current_line.has_inline_pbm;
+        let is_phantom_line = self.current_line.is_phantom();
         if !is_phantom_line {
             self.current_line.start_position.block += self.placement_state.current_margin.solve();
             self.placement_state.current_margin = CollapsedMargin::zero();
@@ -1108,7 +1114,7 @@ impl InlineFormattingContextLayout<'_> {
             let mut block_end_position = block_start_position + resolved_block_advance;
             if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
                 if !is_phantom_line {
-                    sequential_layout_state.collapse_margins();
+                    sequential_layout_state.commit_margin();
                 }
 
                 // This amount includes both the block size of the line and any extra space
@@ -1504,7 +1510,7 @@ impl InlineFormattingContextLayout<'_> {
         inline_would_overflow
     }
 
-    fn defer_forced_line_break(&mut self) {
+    fn defer_forced_line_break_at_character_offset(&mut self, line_break_offset: usize) {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
@@ -1512,7 +1518,7 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
-        self.linebreak_before_new_content = true;
+        self.force_line_break_before_new_content = Some(line_break_offset);
 
         // In quirks mode, the line-height isn't automatically added to the line. If we consider a
         // forced line break a kind of preserved white space, quirks mode requires that we add the
@@ -1537,13 +1543,15 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn possibly_flush_deferred_forced_line_break(&mut self) {
-        if !self.linebreak_before_new_content {
+        let Some(line_break_character_offset) = self.force_line_break_before_new_content.take()
+        else {
             return;
-        }
+        };
 
         self.commit_current_segment_to_line();
         self.process_line_break(true /* forced_line_break */);
-        self.linebreak_before_new_content = false;
+
+        self.current_line.starting_character_offset = line_break_character_offset + 1;
     }
 
     fn push_line_item_to_unbreakable_segment(&mut self, line_item: LineItem) {
@@ -1553,10 +1561,9 @@ impl InlineFormattingContextLayout<'_> {
 
     fn push_glyph_store_to_unbreakable_segment(
         &mut self,
-        glyph_store: Arc<GlyphStore>,
+        glyph_store: Arc<ShapedTextSlice>,
         text_run: &TextRun,
-        font: &FontRef,
-        bidi_level: Level,
+        info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,
     ) {
         let inline_advance = glyph_store.total_advance();
@@ -1566,56 +1573,49 @@ impl InlineFormattingContextLayout<'_> {
             SegmentContentFlags::empty()
         };
 
-        // If the metrics of this font don't match the default font, we are likely using a fallback
-        // font and need to adjust the line size to account for a potentially different font.
-        // If somehow the metrics match, the line size won't change.
-        let font_metrics = &font.metrics;
-        let font_key = font.key(
-            self.layout_context.painter_id,
-            &self.layout_context.font_context,
-        );
-        let using_fallback_font = !Arc::ptr_eq(
-            &self.current_inline_container_state().font_metrics,
-            font_metrics,
-        );
-
+        let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
-        let strut_size = if using_fallback_font {
-            // TODO(mrobinson): This value should probably be cached somewhere.
-            let container_state = self.current_inline_container_state();
-            let vertical_align = effective_vertical_align(
-                &container_state.style,
-                self.inline_box_state_stack.last().map(|c| &c.base),
-            );
-            let mut block_size = container_state.get_block_size_contribution(
-                vertical_align,
-                font_metrics,
-                &container_state.font_metrics,
-            );
-            block_size.adjust_for_baseline_offset(container_state.baseline_offset);
-            block_size
-        } else if quirks_mode && !flags.is_collapsible_whitespace() {
+        if quirks_mode && !flags.is_collapsible_whitespace() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
             // ultimately does not collapse because it is between two other pieces of content.
-            self.current_inline_container_state()
-                .strut_block_sizes
-                .clone()
-        } else {
-            LineBlockSizes::zero()
-        };
-        self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
+            block_contribution.max_assign(&self.current_inline_container_state().strut_block_sizes);
+        }
+
+        // If the metrics of this font don't match the default font, we are likely using another
+        // font from the font list or a fallback and should incorporate its block size into the block
+        // size of the container.
+        let font_metrics = &info.font.metrics;
+        if self
+            .current_inline_container_state()
+            .font_metrics
+            .block_metrics_meaningfully_differ(font_metrics)
+        {
+            // TODO(mrobinson): This value should probably be cached somewhere.
+            let container_state = self.current_inline_container_state();
+            let baseline_shift = effective_baseline_shift(
+                &container_state.style,
+                self.inline_box_state_stack.last().map(|c| &c.base),
+            );
+            let mut font_block_conribution = container_state.get_block_size_contribution(
+                baseline_shift,
+                font_metrics,
+                &container_state.font_metrics,
+            );
+            font_block_conribution.adjust_for_baseline_offset(container_state.baseline_offset);
+            block_contribution.max_assign(&font_block_conribution);
+        }
+
+        self.update_unbreakable_segment_for_new_content(&block_contribution, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
-            self.current_line_segment.line_items.last_mut()
+            self.current_line_segment.line_items.last_mut() &&
+            *inline_box_identifier == current_inline_box_identifier &&
+            line_item.merge_if_possible(info, &glyph_store, &offsets, &text_run.inline_styles)
         {
-            if *inline_box_identifier == current_inline_box_identifier &&
-                line_item.merge_if_possible(font_key, bidi_level, &glyph_store, &offsets)
-            {
-                return;
-            }
+            return;
         }
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
@@ -1624,12 +1624,55 @@ impl InlineFormattingContextLayout<'_> {
                 text: vec![glyph_store],
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
-                font_metrics: font_metrics.clone(),
-                font_key,
-                bidi_level,
+                info: info.clone(),
                 offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: false,
             },
         ));
+    }
+
+    /// If the current line is empty and this [`InlineFormattingContext`] has a selection, push an
+    /// empty [`LineItem::TextRun`] so that text carets can be placed on otherwise empty lines.
+    fn possibly_push_empty_text_run_to_line_for_text_caret(&mut self) {
+        let line_start_offset = self.current_line.starting_character_offset;
+        let Some(shared_selection) = self.ifc.shared_selection.clone() else {
+            return;
+        };
+        let offsets = TextRunOffsets {
+            shared_selection,
+            character_range: line_start_offset..line_start_offset + 1,
+        };
+
+        // If the last content line item is a text item, then the placeholder for the text caret is not necessary.
+        if self
+            .current_line
+            .line_items
+            .iter()
+            .rev()
+            .find(|line_item| line_item.is_in_flow_content())
+            .is_some_and(|line_item| matches!(line_item, LineItem::TextRun(..)))
+        {
+            return;
+        }
+
+        let inline_container_state = self.current_inline_container_state();
+        let Some(font) = inline_container_state.default_font.clone() else {
+            return;
+        };
+
+        self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
+            self.current_inline_box_identifier(),
+            TextRunLineItem {
+                text: Default::default(),
+                base_fragment_info: BaseFragmentInfo::anonymous(),
+                inline_styles: self.ifc.shared_inline_styles.clone(),
+                info: Arc::new(FontAndScriptInfo::simple_for_font(font)),
+                offsets: Some(Box::new(offsets)),
+                is_empty_for_text_cursor: true,
+            },
+        ));
+        self.current_line_segment.has_content = true;
+        self.commit_current_segment_to_line();
     }
 
     fn update_unbreakable_segment_for_new_content(
@@ -1674,17 +1717,25 @@ impl InlineFormattingContextLayout<'_> {
         self.finish_current_line_and_reset(forced_line_break);
     }
 
-    fn unbreakable_segment_fits_on_line(&mut self) -> bool {
-        let potential_line_size = LogicalVec2 {
-            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
+    fn potential_line_size(&self) -> LogicalVec2<Au> {
+        LogicalVec2 {
+            inline: self.current_line.inline_position + self.current_line_segment.inline_size,
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
                 .resolve(),
-        };
+        }
+    }
 
-        !self.new_potential_line_size_causes_line_break(&potential_line_size)
+    fn unbreakable_segment_fits_on_line(&mut self) -> bool {
+        let potential_line_size_without_hanging_whitespace = self.potential_line_size() -
+            LogicalVec2 {
+                inline: self.current_line_segment.trailing_whitespace_size,
+                block: Au::zero(),
+            };
+        !self.new_potential_line_size_causes_line_break(
+            &potential_line_size_without_hanging_whitespace,
+        )
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
@@ -1820,10 +1871,14 @@ impl InlineFormattingContext {
             .last()
             .expect("Should have at least one SharedInlineStyle for the root of an IFC")
             .clone();
-        let (word_break, line_break) = {
+        let (word_break, line_break, lang) = {
             let styles = shared_inline_styles.style.borrow();
             let text_style = styles.get_inherited_text();
-            (text_style.word_break, text_style.line_break)
+            (
+                text_style.word_break,
+                text_style.line_break,
+                styles.get_font()._x_lang.clone(),
+            )
         };
 
         let mut options = LineBreakOptions::default();
@@ -1842,7 +1897,15 @@ impl InlineFormattingContext {
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
             WordBreak::KeepAll => LineBreakWordOption::KeepAll,
         };
-        options.ja_zh = false; // TODO: This should be true if the writing system is Chinese or Japanese.
+        // Enable Chinese/Japanese line breaking behavior when this inline formatting context
+        // has a Japanese or Chinese language set.
+        options.ja_zh = {
+            lang.0.parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
+                const JA: Language = language!("ja");
+                const ZH: Language = language!("zh");
+                matches!(lang_id.language, JA | ZH)
+            })
+        };
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
         for item in &mut builder.inline_items {
@@ -1870,30 +1933,38 @@ impl InlineFormattingContext {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
                 InlineItem::OutOfFlowFloatBox(_) |
                 InlineItem::EndInlineBox |
-                InlineItem::AnonymousBlock { .. } => {},
+                InlineItem::BlockLevel { .. } => {},
             }
         }
+
+        let default_font = get_font_for_first_font_for_style(
+            &shared_inline_styles.style.borrow(),
+            &layout_context.font_context,
+        );
 
         InlineFormattingContext {
             text_content,
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             shared_inline_styles,
+            default_font,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
             shared_selection: builder.shared_selection,
+            tab_stop_advance: Default::default(),
         }
     }
 
     pub(crate) fn repair_style(
         &self,
-        node: &ServoThreadSafeLayoutNode,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
     }
 
     fn inline_start_for_first_line(&self, containing_block: IndefiniteContainingBlock) -> Au {
@@ -1915,19 +1986,13 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         // Clear any cached inline fragments from previous layouts.
         for inline_box in self.inline_boxes.iter() {
             inline_box.borrow().base.clear_fragments();
         }
 
         let style = containing_block.style;
-
-        // It's unfortunate that it isn't possible to get this during IFC text processing, but in
-        // that situation the style of the containing block is unknown.
-        let default_font_metrics =
-            get_font_for_first_font_for_style(style, &layout_context.font_context)
-                .map(|font| font.metrics.clone());
 
         let style_text = containing_block.style.get_inherited_text();
         let mut inline_container_state_flags = InlineContainerStateFlags::empty();
@@ -1956,12 +2021,12 @@ impl InlineFormattingContext {
                 style.to_arc(),
                 inline_container_state_flags,
                 None, /* parent_container */
-                default_font_metrics,
+                self.default_font.clone(),
             ),
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
-            linebreak_before_new_content: false,
+            force_line_break_before_new_content: None,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             depends_on_block_constraints: false,
@@ -1993,14 +2058,18 @@ impl InlineFormattingContext {
                         layout.current_inline_box_identifier(),
                         AbsolutelyPositionedLineItem {
                             absolutely_positioned_box: positioned_box.clone(),
+                            preceding_line_content_would_produce_phantom_line: layout
+                                .current_line
+                                .is_phantom() &&
+                                layout.current_line_segment.is_phantom(),
                         },
                     ));
                 },
                 InlineItem::OutOfFlowFloatBox(float_box) => {
                     float_box.borrow().layout_into_line_items(&mut layout);
                 },
-                InlineItem::AnonymousBlock(block_box) => {
-                    block_box.borrow().layout_into_line_items(&mut layout);
+                InlineItem::BlockLevel(block_level) => {
+                    block_level.borrow().layout_into_line_items(&mut layout);
                 },
             }
         }
@@ -2009,7 +2078,7 @@ impl InlineFormattingContext {
         let (content_block_size, collapsible_margins_in_children, baselines) =
             layout.placement_state.finish();
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments: layout.fragments,
             content_block_size,
             collapsible_margins_in_children,
@@ -2076,23 +2145,23 @@ impl InlineFormattingContext {
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
                 let parent_style = text_run.inline_styles.style.borrow();
-                text_run.shaped_text.iter().all(|segment| {
-                    segment.runs.iter().all(|run| {
+                text_run.items.iter().all(|item| match item {
+                    TextRunItem::LineBreak { .. } => false,
+                    TextRunItem::Tab { .. } => false,
+                    TextRunItem::TextSegment(segment) => segment.runs.iter().all(|run| {
                         run.is_whitespace() &&
-                            !run.is_single_preserved_newline() &&
                             !matches!(
                                 parent_style.get_inherited_text().white_space_collapse,
                                 WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
                             )
-                    })
+                    }),
                 })
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => true,
             InlineItem::OutOfFlowFloatBox(..) => true,
             InlineItem::Atomic(..) => false,
-            InlineItem::AnonymousBlock(block_box) => block_box
+            InlineItem::BlockLevel(block_level) => block_level
                 .borrow()
-                .contents
                 .find_block_margin_collapsing_with_parent(
                     layout_context,
                     collected_margin,
@@ -2134,6 +2203,53 @@ impl InlineFormattingContext {
             }
         }
     }
+
+    pub(crate) fn next_tab_stop_after_inline_advance(&self, current_inline_advance: Au) -> Au {
+        let Some(font) = self.default_font.as_ref() else {
+            return Au::zero();
+        };
+
+        let tab_stop_advance = *self.tab_stop_advance.get_or_init(|| {
+            let root_style = self.shared_inline_styles.style.borrow();
+            let inherited_text_style = root_style.get_inherited_text();
+            let font_size = root_style.get_font().font_size.computed_size().into();
+            let letter_spacing = inherited_text_style
+                .letter_spacing
+                .0
+                .to_used_value(font_size);
+            let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size);
+
+            match root_style.get_inherited_text().tab_size {
+                // Each "space" character in the tab is considered both a letter and a word separator for
+                // the purposes of applying word spacing and letter spacing.
+                style::values::generics::length::LengthOrNumber::Number(number_of_spaces) => {
+                    (font.metrics.space_advance + word_spacing + letter_spacing)
+                        .scale_by(number_of_spaces.0)
+                },
+                // When a length is provided we do not apply word spacing or letter spacing.
+                style::values::generics::length::LengthOrNumber::Length(length) => length.into(),
+            }
+        });
+
+        if tab_stop_advance.is_zero() {
+            return Au::zero();
+        }
+
+        // From <https://drafts.csswg.org/css-text-4/#ref-for-tab-size-dfn>
+        // > If this distance is less than 0.5ch, then the subsequent tab stop is used instead.
+        // From <https://drafts.csswg.org/css-values/#ch>
+        // > In the cases where it is impossible or impractical to determine the measure of the “0”
+        // > glyph, it must be assumed to be 0.5em wide by 1em tall.
+        let half_ch_advance = font
+            .metrics
+            .zero_horizontal_advance
+            .unwrap_or(font.metrics.em_size.scale_by(0.5))
+            .scale_by(0.5);
+        let number_of_tab_stops =
+            (current_inline_advance + half_ch_advance).to_f32_px() / tab_stop_advance.to_f32_px();
+        let number_of_tab_stops = number_of_tab_stops.ceil();
+        tab_stop_advance.scale_by(number_of_tab_stops) - current_inline_advance
+    }
 }
 
 impl InlineContainerState {
@@ -2141,22 +2257,29 @@ impl InlineContainerState {
         style: ServoArc<ComputedValues>,
         flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
-        font_metrics: Option<Arc<FontMetrics>>,
+        default_font: Option<FontRef>,
     ) -> Self {
-        let font_metrics = font_metrics.unwrap_or_else(FontMetrics::empty);
+        let font_metrics = default_font
+            .as_ref()
+            .map(|font| font.metrics.clone())
+            .unwrap_or_else(FontMetrics::empty);
         let mut baseline_offset = Au::zero();
-        let mut strut_block_sizes = Self::get_block_sizes_with_style(
-            effective_vertical_align(&style, parent_container),
-            &style,
-            &font_metrics,
-            &font_metrics,
-            &flags,
-        );
+        let mut strut_block_sizes = {
+            Self::get_block_sizes_with_style(
+                effective_baseline_shift(&style, parent_container),
+                &style,
+                &font_metrics,
+                &font_metrics,
+                &flags,
+            )
+        };
+
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.clone_vertical_align(),
+                style.clone_alignment_baseline(),
+                style.clone_baseline_shift(),
                 &strut_block_sizes,
             );
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
@@ -2176,12 +2299,13 @@ impl InlineContainerState {
             nested_strut_block_sizes: nested_block_sizes,
             strut_block_sizes,
             baseline_offset,
+            default_font,
             font_metrics,
         }
     }
 
     fn get_block_sizes_with_style(
-        vertical_align: VerticalAlign,
+        baseline_shift: BaselineShift,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
@@ -2189,7 +2313,7 @@ impl InlineContainerState {
     ) -> LineBlockSizes {
         let line_height = line_height(style, font_metrics, flags);
 
-        if !is_baseline_relative(vertical_align) {
+        if !is_baseline_relative(baseline_shift) {
             return LineBlockSizes {
                 line_height,
                 baseline_relative_size_for_line_height: None,
@@ -2255,12 +2379,12 @@ impl InlineContainerState {
 
     fn get_block_size_contribution(
         &self,
-        vertical_align: VerticalAlign,
+        baseline_shift: BaselineShift,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
     ) -> LineBlockSizes {
         Self::get_block_sizes_with_style(
-            vertical_align,
+            baseline_shift,
             &self.style,
             font_metrics,
             font_metrics_of_first_font,
@@ -2270,33 +2394,22 @@ impl InlineContainerState {
 
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_vertical_align: VerticalAlign,
+        child_alignment_baseline: AlignmentBaseline,
+        child_baseline_shift: BaselineShift,
         child_block_size: &LineBlockSizes,
     ) -> Au {
         let block_size = self.get_block_size_contribution(
-            child_vertical_align.clone(),
+            child_baseline_shift.clone(),
             &self.font_metrics,
             &self.font_metrics,
         );
         self.baseline_offset +
-            match child_vertical_align {
-                // `top` and `bottom are not actually relative to the baseline, but this value is unused
-                // in those cases.
-                // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
-                // See https://drafts.csswg.org/css2/#aligned-subtree.
-                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
-                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => {
-                    block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
-                },
-                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => {
-                    -block_size.resolve().scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
-                },
-                VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
+            match child_alignment_baseline {
+                AlignmentBaseline::Baseline => Au::zero(),
+                AlignmentBaseline::TextTop => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
                 },
-                VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
+                AlignmentBaseline::Middle => {
                     // "Align the vertical midpoint of the box with the baseline of the parent
                     // box plus half the x-height of the parent."
                     (child_block_size.size_for_baseline_positioning.ascent -
@@ -2304,11 +2417,35 @@ impl InlineContainerState {
                         self.font_metrics.x_height)
                         .scale_by(0.5)
                 },
-                VerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
+                AlignmentBaseline::TextBottom => {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
                 },
-                VerticalAlign::Length(length_percentage) => {
+                AlignmentBaseline::Alphabetic |
+                AlignmentBaseline::Ideographic |
+                AlignmentBaseline::Central |
+                AlignmentBaseline::Mathematical |
+                AlignmentBaseline::Hanging => {
+                    unreachable!("Got alignment-baseline value that should be disabled in Stylo")
+                },
+            } +
+            match child_baseline_shift {
+                // `top` and `bottom are not actually relative to the baseline, but this value is unused
+                // in those cases.
+                // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
+                // See https://drafts.csswg.org/css2/#aligned-subtree.
+                BaselineShift::Keyword(
+                    BaselineShiftKeyword::Top |
+                    BaselineShiftKeyword::Bottom |
+                    BaselineShiftKeyword::Center,
+                ) => Au::zero(),
+                BaselineShift::Keyword(BaselineShiftKeyword::Sub) => {
+                    block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
+                },
+                BaselineShift::Keyword(BaselineShiftKeyword::Super) => {
+                    -block_size.resolve().scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
+                },
+                BaselineShift::Length(length_percentage) => {
                     -length_percentage.to_used_value(child_block_size.line_height)
                 },
             }
@@ -2430,7 +2567,7 @@ impl IndependentFormattingContext {
         block_size: Au,
         baseline_offset_in_content_area: Au,
     ) -> (LineBlockSizes, Au) {
-        let mut contribution = if !is_baseline_relative(self.style().clone_vertical_align()) {
+        let mut contribution = if !is_baseline_relative(self.style().clone_baseline_shift()) {
             LineBlockSizes {
                 line_height: block_size,
                 baseline_relative_size_for_line_height: None,
@@ -2448,10 +2585,12 @@ impl IndependentFormattingContext {
             }
         };
 
+        let style = self.style();
         let baseline_offset = ifc
             .current_inline_container_state()
             .get_cumulative_baseline_offset_for_child(
-                self.style().clone_vertical_align(),
+                style.clone_alignment_baseline(),
+                style.clone_baseline_shift(),
                 &contribution,
             );
         contribution.adjust_for_baseline_offset(baseline_offset);
@@ -2483,10 +2622,10 @@ impl FloatBox {
 
 fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mut [LineItem]) {
     for item in line_items.iter_mut() {
-        if let LineItem::Float(_, float_line_item) = item {
-            if float_line_item.needs_placement {
-                ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
-            }
+        if let LineItem::Float(_, float_line_item) = item &&
+            float_line_item.needs_placement
+        {
+            ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
         }
     }
 }
@@ -2514,25 +2653,26 @@ fn line_height(
     line_height
 }
 
-fn effective_vertical_align(
+fn effective_baseline_shift(
     style: &ComputedValues,
     container: Option<&InlineContainerState>,
-) -> VerticalAlign {
+) -> BaselineShift {
     if container.is_none() {
         // If we are at the root of the inline formatting context, we shouldn't use the
-        // computed `vertical-align`, since it has no effect on the contents of this IFC
+        // computed `baseline-shift`, since it has no effect on the contents of this IFC
         // (it can just affect how the block container is aligned within the parent IFC).
-        VerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+        BaselineShift::zero()
     } else {
-        style.clone_vertical_align()
+        style.clone_baseline_shift()
     }
 }
 
-fn is_baseline_relative(vertical_align: VerticalAlign) -> bool {
+fn is_baseline_relative(baseline_shift: BaselineShift) -> bool {
     !matches!(
-        vertical_align,
-        VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+        baseline_shift,
+        BaselineShift::Keyword(
+            BaselineShiftKeyword::Top | BaselineShiftKeyword::Bottom | BaselineShiftKeyword::Center
+        )
     )
 }
 
@@ -2613,6 +2753,7 @@ struct ContentSizesComputation<'layout_data> {
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Au>,
+    /// Whether the inline content size depends on block constraints.
     depends_on_block_constraints: bool,
 }
 
@@ -2672,64 +2813,19 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
                 let parent_style = text_run.inline_styles.style.borrow();
-                for segment in text_run.shaped_text.iter() {
-                    let style_text = parent_style.get_inherited_text();
-                    let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
-
-                    // TODO: This should take account whether or not the first and last character prevent
-                    // linebreaks after atomics as in layout.
-                    let break_at_start =
-                        segment.break_at_start && self.had_content_yet_for_min_content;
-
-                    for (run_index, run) in segment.runs.iter().enumerate() {
-                        // Break before each unbreakable run in this TextRun, except the first unless the
-                        // linebreaker was set to break before the first run.
-                        if can_wrap && (run_index != 0 || break_at_start) {
-                            self.line_break_opportunity();
-                        }
-
-                        let advance = run.total_advance();
-                        if run.is_whitespace() {
+                for item in text_run.items.iter() {
+                    match item {
+                        TextRunItem::LineBreak { .. } => {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if run.is_single_preserved_newline() {
-                                self.forced_line_break();
-                                continue;
-                            }
-                            if !matches!(
-                                style_text.white_space_collapse,
-                                WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-                            ) {
-                                if self.had_content_yet_for_min_content {
-                                    if can_wrap {
-                                        self.line_break_opportunity();
-                                    } else {
-                                        self.pending_whitespace.min_content += advance;
-                                    }
-                                }
-                                if self.had_content_yet_for_max_content {
-                                    self.pending_whitespace.max_content += advance;
-                                }
-                                continue;
-                            }
-                            if can_wrap {
-                                self.pending_whitespace.max_content += advance;
-                                self.commit_pending_whitespace();
-                                self.line_break_opportunity();
-                                continue;
-                            }
-                        }
-
-                        self.commit_pending_whitespace();
-                        self.add_inline_size(advance);
-
-                        // Typically whitespace glyphs are placed in a separate store,
-                        // but for `white-space: break-spaces` we place the first whitespace
-                        // with the preceding text. That prevents a line break before that
-                        // first space, but we still need to allow a line break after it.
-                        if can_wrap && run.ends_with_whitespace() {
-                            self.line_break_opportunity();
-                        }
+                            self.forced_line_break();
+                        },
+                        TextRunItem::Tab { .. } => {
+                            self.process_preserved_tab(&parent_style, inline_formatting_context)
+                        },
+                        TextRunItem::TextSegment(segment) => {
+                            self.process_text_segment(&parent_style, segment)
+                        },
                     }
                 }
             },
@@ -2768,35 +2864,96 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     FloatSide::InlineEnd => self.uncleared_floats.end.union_assign(&sizes),
                 }
             },
-            InlineItem::AnonymousBlock(block) => {
+            InlineItem::BlockLevel(block_level) => {
                 self.forced_line_break();
                 self.flush_floats();
-                let borrowed_block = block.borrow();
-                let AnonymousBlockBox {
-                    ref base,
-                    ref contents,
-                    ..
-                } = *borrowed_block;
-                let inline_content_sizes_result = outer_inline(
-                    base,
-                    &contents.layout_style(base),
-                    &self.constraint_space.into(),
-                    &LogicalVec2::zero(),
-                    false,    /* auto_block_size_stretches_to_containing_block */
-                    false,    /* is_replaced */
-                    false,    /* establishes_containing_block */
-                    |_| None, /* get_preferred_aspect_ratio */
-                    |constraint_space| {
-                        base.inline_content_sizes(self.layout_context, constraint_space, contents)
-                    },
-                    |_aspect_ratio| None,
-                );
+                let inline_content_sizes_result =
+                    compute_inline_content_sizes_for_block_level_boxes(
+                        std::slice::from_ref(block_level),
+                        self.layout_context,
+                        &self.constraint_space.into(),
+                    );
                 self.depends_on_block_constraints |=
                     inline_content_sizes_result.depends_on_block_constraints;
                 self.current_line = inline_content_sizes_result.sizes;
                 self.forced_line_break();
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => {},
+        }
+    }
+
+    fn process_text_segment(
+        &mut self,
+        parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
+        segment: &TextRunSegment,
+    ) {
+        let style_text = parent_style.get_inherited_text();
+        let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
+
+        // TODO: This should take account whether or not the first and last character prevent
+        // linebreaks after atomics as in layout.
+        let break_at_start = segment.break_at_start && self.had_content_yet_for_min_content;
+
+        for (run_index, run) in segment.runs.iter().enumerate() {
+            // Break before each unbreakable run in this TextRun, except the first unless the
+            // linebreaker was set to break before the first run.
+            if can_wrap && (run_index != 0 || break_at_start) {
+                self.line_break_opportunity();
+            }
+
+            let advance = run.total_advance();
+            if run.is_whitespace() {
+                if !matches!(
+                    style_text.white_space_collapse,
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+                ) {
+                    if self.had_content_yet_for_min_content {
+                        if can_wrap {
+                            self.line_break_opportunity();
+                        } else {
+                            self.pending_whitespace.min_content += advance;
+                        }
+                    }
+                    if self.had_content_yet_for_max_content {
+                        self.pending_whitespace.max_content += advance;
+                    }
+                    continue;
+                }
+                if can_wrap {
+                    self.pending_whitespace.max_content += advance;
+                    self.commit_pending_whitespace();
+                    self.line_break_opportunity();
+                    continue;
+                }
+            }
+
+            self.commit_pending_whitespace();
+            self.add_inline_size(advance);
+
+            // Typically whitespace glyphs are placed in a separate store,
+            // but for `white-space: break-spaces` we place the first whitespace
+            // with the preceding text. That prevents a line break before that
+            // first space, but we still need to allow a line break after it.
+            if can_wrap && run.ends_with_whitespace() {
+                self.line_break_opportunity();
+            }
+        }
+    }
+
+    fn process_preserved_tab(
+        &mut self,
+        parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
+        inline_formatting_context: &InlineFormattingContext,
+    ) {
+        // If there is a preserved tab, that means that all whitespace is preserved.
+        self.commit_pending_whitespace();
+
+        self.current_line.min_content += inline_formatting_context
+            .next_tab_stop_after_inline_advance(self.current_line.min_content);
+        self.current_line.max_content += inline_formatting_context
+            .next_tab_stop_after_inline_advance(self.current_line.max_content);
+        if parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap {
+            self.line_break_opportunity();
         }
     }
 
@@ -2912,8 +3069,8 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
     if character == '\u{00A0}' {
         return false;
     }
-    let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
+    matches!(
+        icu_properties::maps::line_break().get(character),
+        ICULineBreak::Glue | ICULineBreak::WordJoiner | ICULineBreak::ZWJ
+    )
 }

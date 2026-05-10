@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<canvas id="canvas" style="width: 100px;height: 100px"></canvas>
+<script>
+    setup({explicit_done:true});
+    const context = canvas.getContext("2d");
+
+    window.onload = () => {
+        test(() => {
+            context.fillStyle = 'green';
+            context.fillRect(25, 25, 100, 100);
+
+            assert_array_equals(ServoTestUtils.forceLayout().phases, ["UpdatedImageData"])
+        }, "Painting to canvas only triggers UpdatedImageData");
+
+        done();
+    }
+</script>

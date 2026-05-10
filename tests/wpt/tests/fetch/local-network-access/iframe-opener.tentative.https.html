@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LNA Opener navigation tests </title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support.sub.js"></script>
+<script>
+  "use strict";
+
+  // These tests are testing the following scenario
+  //
+  // --------------------------
+  // | window (origin1)       |
+  // |   |                    |
+  // |   \                    |
+  // |    iframe (origin2)    |
+  // |                        |
+  // |-------------------------
+  //
+  // * javascript in the iframe (origin2) executes "open(origin2)".
+  // * new window opened then executes a LNA navigation through
+  //
+  //      opener.location.href = "lna-url"
+  //
+  //  In this scenario, the permission to be checked is on the initiator, which
+  //  is the new window.
+
+  promise_test(t => {
+    const navigateUrl = resolveUrl("resources/openee.html",
+        sourceResolveOptions({ server: Server.HTTP_LOOPBACK }));
+    const iframeUrl = resolveUrl("resources/iframe-opener.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    iframeUrl.searchParams.set('mode', 'iframe');
+    iframeUrl.searchParams.set('navigateto', navigateUrl.toString());
+
+    // Top window is an HTTP url; the top window need a separate origin from the
+    // iframe and there is only one public-address-space HTTPS origin available.
+    //
+    // Permissions set to denied as these permissions should not be checked,
+    // denying lets us fail the load if they are checked.
+    const sourceUrl = resolveUrl("resources/iframer.html",
+        sourceResolveOptions({
+            server: Server.HTTP_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.set('url', iframeUrl);
+
+    function checkResult(evt) {
+      assert_equals(evt.data.message, "loaded");
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to loopback navigate iframe from opener with permission');
+
+  promise_test(t => {
+    const navigateUrl = resolveUrl("resources/openee.html",
+        sourceResolveOptions({ server: Server.HTTP_LOOPBACK }));
+    const iframeUrl = resolveUrl("resources/iframe-opener.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    iframeUrl.searchParams.set('mode', 'iframe');
+    iframeUrl.searchParams.set('navigateto', navigateUrl.toString());
+
+    // Top window is an HTTP url; the top window need a separate origin from the
+    // iframe and there is only one public-address-space HTTPS origin available.
+    //
+    // Permissions set to denied as these permissions should not be checked,
+    // granting lets us fail the test if they are checked.
+    const sourceUrl = resolveUrl("resources/iframer.html",
+        sourceResolveOptions({
+            server: Server.HTTP_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.set('url', iframeUrl);
+
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+    // Frame should not load because navigation should be blocked.
+    //
+    // There exists no interoperable way to check whether an iframe failed to
+    // load, so we use a timeout.
+    // See: https://github.com/whatwg/html/issues/125
+    return Promise.race([
+      futureMessage().then((data) => data.message),
+      new Promise((resolve) => {
+        t.step_timeout(() => resolve('timeout'), 2000 /* ms */);
+      }),
+    ]).then((message) => assert_equals(message, "timeout"));
+
+  }, 'LNA Public to loopback navigate iframe from opener without permission');
+
+</script>
+</body>

@@ -14,6 +14,11 @@ features:
   - '!css3-modsel-25.xml'
   - '!css3-modsel-70.xml'
   - '!css3-modsel-144.xml'
+  - "!css3-modsel-57*"
+  - "!css3-modsel-9[1-9]*"
+  - "!css3-modsel-1[0-3][0-9]*"
+  - "!css3-modsel-14[0-3]*"
+  - "!css3-modsel-172b*"
 # Keep all mappings below synced with selectors exclusions above
 - name: target
   files:
@@ -32,6 +37,24 @@ features:
 - name: selection
   files:
   - css3-modsel-159.xml
+- name: namespace
+  files:
+  - "css3-modsel-57*"
+  - "css3-modsel-9*"
+  - "!css3-modsel-9.xml"
+  - "!css3-modsel-90*"
+  - "css3-modsel-10*"
+  - "!css3-modsel-10.xml"
+  - "css3-modsel-11*"
+  - "!css3-modsel-11.xml"
+  - "css3-modsel-12*"
+  - "css3-modsel-13*"
+  - "!css3-modsel-13.xml"
+  - "css3-modsel-140*"
+  - "css3-modsel-141*"
+  - "css3-modsel-142*"
+  - "css3-modsel-143*"
+  - "css3-modsel-172b*"
 - name: input-selectors
   files:
   - css3-modsel-25.xml

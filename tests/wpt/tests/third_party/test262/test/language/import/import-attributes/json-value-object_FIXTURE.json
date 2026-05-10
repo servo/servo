@@ -1,0 +1,10 @@
+ 
+	{
+  "number": -1234.500e-003,
+  "boolean": true,
+  "string": "a string value",
+  "null": null,
+  "object": {},
+  "array": []
+} 
+	

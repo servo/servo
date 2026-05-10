@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<body>
+<script>
+// This page runs inside a container iframe. It creates a child iframe, sets up
+// a beforeunload handler that tries to navigate this page (the parent), then
+// navigates the child. It reports results back via postMessage.
+//
+// If the browser blocks the parent navigation, the child loads successfully
+// and we report parentNavigationBlocked: true.
+// If the browser allows the parent navigation, this page navigates away,
+// but a beforeunload handler reports parentNavigationBlocked: false first.
+
+let triedToNavigateParent = false;
+
+function sendResult(parentNavigationBlocked) {
+    window.parent.postMessage({
+        type: "navigation-during-beforeunload-result",
+        status: "complete",
+        triedToNavigateParent: triedToNavigateParent,
+        parentNavigationBlocked: parentNavigationBlocked
+    }, "*");
+}
+
+// If *this* page gets navigated away, report failure to the test harness.
+window.addEventListener("beforeunload", () => {
+    if (triedToNavigateParent)
+        sendResult(false);
+});
+
+const frame = document.createElement("iframe");
+document.body.appendChild(frame);
+
+// Wait for the child iframe to load about:blank, then set up the test.
+setTimeout(() => {
+    frame.contentWindow.addEventListener("beforeunload", () => {
+        triedToNavigateParent = true;
+        window.location.href = "navigation-target.html";
+    });
+
+    frame.addEventListener("load", () => {
+        // Child loaded successfully - parent navigation was blocked.
+        sendResult(true);
+    }, { once: true });
+
+    frame.contentWindow.location.href = "navigation-target.html";
+}, 0);
+</script>
+</body>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>gap decorations row-rule-inset properties neutral keyframe</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+    <meta name="assert" content="gap decorations row-rule-inset value list supports neutral keyframe.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      test(() => {
+        target.style.rowRuleStyle = 'solid';
+        target.style.rowRuleInsetCapStart = '1px';
+        target.style.rowRuleInsetCapEnd = '1px';
+        target.style.rowRuleInsetJunctionStart = '1px';
+        target.style.rowRuleInsetJunctionEnd = '1px';
+        var animation = target.animate([{}, {rowRuleInsetCapStart: '11px'}], 1000);
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleInsetCapStart, '6px');
+
+        var animation2 = target.animate([{}, {rowRuleInsetCapEnd: '11px'}], 1000);
+        animation2.pause();
+        animation2.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleInsetCapEnd, '6px');
+
+        var animation3 = target.animate([{}, {rowRuleInsetJunctionStart: '11px'}], 1000);
+        animation3.pause();
+        animation3.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleInsetJunctionStart, '6px');
+
+        var animation4 = target.animate([{}, {rowRuleInsetJunctionEnd: '11px'}], 1000);
+        animation4.pause();
+        animation4.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleInsetJunctionEnd, '6px');
+      }, 'gap decorations row-rule-inset properties support neutral keyframe.');
+    </script>
+  </body>
+</html>

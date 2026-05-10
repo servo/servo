@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Test that short_name_localized selects the exact locale match</title>
+<link rel="help" href="https://w3c.github.io/manifest/#short_name-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/short_name_localized-member-exact-match.webmanifest" />
+<script src="resources/short_name_localized-member-manual.js"></script>
+<h1>Testing exact locale match for <code>short_name_localized</code></h1>
+<p>
+    Set your browser locale to one of: <code>en</code>, <code>en-US</code>,
+    <code>fr</code>, or <code>ja</code>. Install this page as a web
+    application. To pass, the installed app short name must match the
+    <code>short_name_localized</code> entry for your exact locale (e.g.,
+    "EN-US Short" for <code>en-US</code>, "FR Court" for
+    <code>fr</code>).
+</p>

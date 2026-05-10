@@ -1,11 +1,13 @@
 [package]
-name = "background_hang_monitor_api"
+name = "servo-background-hang-monitor-api"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "background_hang_monitor_api"
@@ -14,5 +16,5 @@ test = false
 doctest = false
 
 [dependencies]
-base = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }

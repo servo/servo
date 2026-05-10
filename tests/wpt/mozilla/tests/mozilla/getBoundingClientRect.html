@@ -36,9 +36,7 @@
     height: 40px;
 }
 #span1 {
-    font-family: 'ahem';
-    font-size: 20px;
-    line-height: 1;
+    font: 20px/1 Ahem;
 }
 </style>
 </head>
@@ -62,7 +60,8 @@
       assert_equals(rect.right, right);
     }
 
-    test(function() {
+    promise_test(async () => {
+      await document.fonts.ready;
       assert_equals(String(DOMRect).indexOf("function DOMRect("), 0);
 
       var elems = document.getElementsByTagName('div');
@@ -80,7 +79,8 @@
       assert_equals(rect.height, rect.bottom - rect.top);
     });
 
-    test(function() {
+    promise_test(async () => {
+        await document.fonts.ready;
         test_rect('abs1', 55, 45, 165, 155);
         test_rect('abs2', 60, 50, 130, 140);
         test_rect('abs3', 74, 62, 102, 122);

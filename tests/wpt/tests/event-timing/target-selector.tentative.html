@@ -14,16 +14,6 @@
 <img id='img-with-id-and-src' src='/images/blue.png'>
 <img src='/images/green.png'>
 <script>
-  function computeExpectedTargetSelector(target) {
-    let selector = target.tagName;
-    if (target.id) {
-      selector += '#' + target.id;
-    } else if (target.hasAttribute('src')) {
-      selector += '[src="' + target.getAttribute('src') + '"]';
-    }
-    return selector;
-  }
-
   function runTest(t, eventType, target) {
     let entry;
     const callback = (entryList) => {
@@ -39,9 +29,12 @@
         assert_equals(entry.name, eventType);
         assert_equals(entry.entryType, 'event');
         assert_equals(entry.target, target);
-        assert_equals(entry.targetSelector, computeExpectedTargetSelector(entry.target));
+        assert_true(!!entry.targetSelector, "targetSelector should not be empty");
+        // The new format is a path (e.g. "BODY > DIV:nth-child(1)").
+        // It should be a valid querySelector that includes our target.
         const matchingElements = document.querySelectorAll(entry.targetSelector);
-        assert_true(Array.from(matchingElements).includes(target));
+        assert_true(Array.from(matchingElements).includes(target),
+          `Selector "${entry.targetSelector}" should match the target element`);
       });
   }
 
@@ -81,12 +74,15 @@
     target.textContent = 'Click Me';
     parent.appendChild(target);
     await interactAndObserve('click', target, observerPromise);
-    const expectedIdentifier = target.tagName + '#' + target.id;
+    // The new format is a path, but it should still end with or contain the ID.
+    const selector = entry.targetSelector;
+    assert_true(selector.includes('BUTTON#temp-target'),
+      `Selector "${selector}" should contain BUTTON#temp-target`);
     parent.removeChild(target);
     // The garbage collector might need some time to collect |target|.
     await new Promise(r => t.step_timeout(r, 0));
     assert_equals(entry.target, null);
-    assert_equals(entry.targetSelector, expectedIdentifier);
+    assert_equals(entry.targetSelector, selector);
   }, "Test with disconnected target");
 </script>
 </html>

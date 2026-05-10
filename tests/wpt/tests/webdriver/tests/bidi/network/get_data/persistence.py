@@ -5,7 +5,6 @@ pytestmark = pytest.mark.asyncio
 
 @pytest.mark.parametrize("domain", ["", "alt"],
                          ids=["same_origin", "cross_origin"])
-@pytest.mark.asyncio
 async def test_data_persists_after_navigation(bidi_session, top_context,
         setup_network_test, add_data_collector, url, test_page, domain):
     network_events = await setup_network_test(
@@ -51,7 +50,6 @@ async def test_data_persists_after_navigation(bidi_session, top_context,
     assert "<div>foo</div>" in data["value"]
 
 
-@pytest.mark.asyncio
 async def test_data_persists_after_closing(bidi_session, setup_network_test,
         add_data_collector, test_page):
     new_context = await bidi_session.browsing_context.create(type_hint="tab")

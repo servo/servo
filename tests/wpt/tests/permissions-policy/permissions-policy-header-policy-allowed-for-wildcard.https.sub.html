@@ -18,7 +18,7 @@
   // Test that fullscreen's allowlist is [self wildcard_origin].
   test(function() {
     assert_array_equals(
-      document.featurePolicy.getAllowlistForFeature('fullscreen').sort(),
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen').sort(),
       [wildcard_origin, same_origin].sort());
   }, header_policy + ' -- test allowlist is [self wildcard_origin].');
 

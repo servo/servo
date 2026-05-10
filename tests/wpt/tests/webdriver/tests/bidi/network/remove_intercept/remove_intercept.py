@@ -14,8 +14,9 @@ from .. import (
     RESPONSE_STARTED_EVENT,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("phase", [
     "beforeRequestSent",
     "responseStarted",
@@ -105,7 +106,6 @@ async def test_remove_intercept(
     )
 
 
-@pytest.mark.asyncio
 async def test_return_value(bidi_session, add_intercept):
     intercept = await add_intercept(
         phases=["beforeRequestSent"],

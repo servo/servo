@@ -7,6 +7,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::panner_node::{
     DistanceModel, PannerNodeMessage, PannerNodeOptions, PanningModel,
@@ -29,7 +30,6 @@ use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -77,13 +77,13 @@ impl PannerNode {
             return Err(Error::NotSupported(None));
         }
         if *options.maxDistance <= 0. {
-            return Err(Error::Range("maxDistance should be positive".into()));
+            return Err(Error::Range(c"maxDistance should be positive".into()));
         }
         if *options.refDistance < 0. {
-            return Err(Error::Range("refDistance should be non-negative".into()));
+            return Err(Error::Range(c"refDistance should be non-negative".into()));
         }
         if *options.rolloffFactor < 0. {
-            return Err(Error::Range("rolloffFactor should be non-negative".into()));
+            return Err(Error::Range(c"rolloffFactor should be non-negative".into()));
         }
         if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
             return Err(Error::InvalidState(None));
@@ -289,7 +289,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance>
     fn SetRefDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
-            return Err(Error::Range("value should be non-negative".into()));
+            return Err(Error::Range(c"value should be non-negative".into()));
         }
         self.ref_distance.set(*val);
         let msg = PannerNodeMessage::SetRefDistance(self.ref_distance.get());
@@ -304,7 +304,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance>
     fn SetMaxDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val <= 0. {
-            return Err(Error::Range("value should be positive".into()));
+            return Err(Error::Range(c"value should be positive".into()));
         }
         self.max_distance.set(*val);
         let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
@@ -319,7 +319,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor>
     fn SetRolloffFactor(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
-            return Err(Error::Range("value should be non-negative".into()));
+            return Err(Error::Range(c"value should be non-negative".into()));
         }
         self.rolloff_factor.set(*val);
         let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());

@@ -8,8 +8,9 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_caps;
-use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
+use style::font_face::{Descriptors, FontStyle as FontFaceStyle};
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::stylesheets::FontFaceRule;
 use style::values::computed::font::{FixedPoint, FontStyleFixedPoint};
 use style::values::computed::{Au, FontStretch, FontStyle, FontSynthesis, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
@@ -97,16 +98,16 @@ impl CSSFontFaceDescriptors {
     }
 }
 
-impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
-    fn from(rule_data: &FontFaceRuleData) -> Self {
-        let family_name = rule_data
-            .family
+impl From<&Descriptors> for CSSFontFaceDescriptors {
+    fn from(descriptors: &Descriptors) -> Self {
+        let family_name = descriptors
+            .font_family
             .as_ref()
             .expect("Expected rule to contain a font family.")
             .name
             .clone();
-        let weight = rule_data
-            .weight
+        let weight = descriptors
+            .font_weight
             .as_ref()
             .map(|weight_range| (weight_range.0.compute(), weight_range.1.compute()));
 
@@ -117,7 +118,7 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
             SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
             SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
         };
-        let stretch = rule_data.stretch.as_ref().map(|stretch_range| {
+        let stretch = descriptors.font_stretch.as_ref().map(|stretch_range| {
             (
                 stretch_to_computed(stretch_range.0),
                 stretch_to_computed(stretch_range.1),
@@ -133,8 +134,8 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
                 ),
             }
         }
-        let style = rule_data.style.as_ref().map(style_to_computed);
-        let unicode_range = rule_data
+        let style = descriptors.font_style.as_ref().map(style_to_computed);
+        let unicode_range = descriptors
             .unicode_range
             .as_ref()
             .map(|ranges| ranges.iter().map(|range| range.start..=range.end).collect());
@@ -146,6 +147,12 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
             style,
             unicode_range,
         }
+    }
+}
+
+impl From<&FontFaceRule> for CSSFontFaceDescriptors {
+    fn from(rule: &FontFaceRule) -> Self {
+        (&rule.descriptors).into()
     }
 }
 

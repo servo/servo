@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates border and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="../../../../../reference/ref-filled-green-100px-square.xht">
+<style>
+.wrapper {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(5, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-column: span 5;
+  grid-template: auto / subgrid;
+  background: green;
+  padding: 11px 7px 20px 13px;
+  border-width: 14px 18px 5px 12px;
+  border-style: solid;
+  border-color: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="grid-lanes">
+    <div class="subgrid">
+      <div class="subgrid"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: three green 100px squares in a row</title>
+<style>
+.container {
+    position: relative;
+    width: 400px;
+    height: 100px;
+}
+.square {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: green;
+    top: 0;
+}
+</style>
+<p>Test passes if there are three filled green squares and <strong>no red</strong>.</p>
+
+<div class="container">
+    <div class="square" style="left: 0"></div>
+    <div class="square" style="left: 110px"></div>
+    <div class="square" style="left: 220px"></div>
+</div>

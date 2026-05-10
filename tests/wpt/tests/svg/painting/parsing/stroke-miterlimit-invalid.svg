@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing stroke-miterlimit with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeMiterlimitProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeMiterlimitProperty"/>
     <h:meta name="assert" content="stroke-miterlimit supports only the grammar 'number'"/>
     <h:meta name="assert" content="A negative value for stroke-miterlimit must be treated as an illegal value."/>
   </metadata>

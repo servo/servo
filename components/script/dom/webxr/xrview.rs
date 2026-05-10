@@ -7,13 +7,13 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, View};
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -29,7 +29,6 @@ pub(crate) struct XRView {
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
     proj: HeapBufferSource<Float32>,
-    #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
     transform: Dom<XRRigidTransform>,
@@ -128,11 +127,11 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrview-requestviewportscale>
     fn RequestViewportScale(&self, scale: Option<Finite<f64>>) {
-        if let Some(scale) = scale {
-            if *scale > 0.0 {
-                let clamped_scale = scale.clamp(0.0, 1.0);
-                self.requested_viewport_scale.set(clamped_scale);
-            }
+        if let Some(scale) = scale &&
+            *scale > 0.0
+        {
+            let clamped_scale = scale.clamp(0.0, 1.0);
+            self.requested_viewport_scale.set(clamped_scale);
         }
     }
 

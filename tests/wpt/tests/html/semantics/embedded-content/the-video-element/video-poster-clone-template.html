@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Video poster is shown when cloned from template with relative URL</title>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#dom-video-poster"
+/>
+<link rel="match" href="video_dynamic_poster-ref.htm" />
+<meta
+  name="assert"
+  content="The poster image is shown when cloned from a template with a relative URL."
+/>
+<body>
+  <script>
+    const template = document.createElement("template");
+    template.innerHTML = `<video src="/media/A4.mp4" poster="/media/poster.png" loop muted>`;
+
+    const video = template.content.firstChild.cloneNode(true);
+    document.body.appendChild(video);
+  </script>
+</body>

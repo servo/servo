@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
@@ -13,9 +12,10 @@ from .. import (
     RESPONSE_STARTED_EVENT,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
-async def test_cors_preflight_request(bidi_session, url, fetch, setup_network_test):
+
+async def test_cors_preflight_request(bidi_session, url, wait_for_bidi_events, fetch, setup_network_test):
     network_events = await setup_network_test(
         events=[
             BEFORE_REQUEST_SENT_EVENT,
@@ -51,7 +51,7 @@ async def test_cors_preflight_request(bidi_session, url, fetch, setup_network_te
         fetch(fetch_url, method="GET", headers={"Content-Type": "custom/type"})
     )
 
-    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
+    await wait_for_bidi_events(events, 6, timeout=2)
 
     # Check that all events for the CORS preflight request are received before
     # receiving events for the actual request
@@ -83,7 +83,6 @@ async def test_cors_preflight_request(bidi_session, url, fetch, setup_network_te
     remove_response_started_listener()
 
 
-@pytest.mark.asyncio
 async def test_iframe_navigation_request(
     bidi_session,
     top_context,
@@ -192,7 +191,6 @@ async def test_iframe_navigation_request(
     )
 
 
-@pytest.mark.asyncio
 async def test_same_navigation_id(
     bidi_session, top_context, wait_for_event, wait_for_future_safe, url, setup_network_test
 ):
@@ -245,7 +243,6 @@ async def test_same_navigation_id(
     )
 
 
-@pytest.mark.asyncio
 async def test_same_request_id(wait_for_event, wait_for_future_safe, url, setup_network_test, fetch):
     network_events = await setup_network_test(
         events=[
@@ -296,7 +293,6 @@ async def test_same_request_id(wait_for_event, wait_for_future_safe, url, setup_
     )
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_one_context(
     bidi_session, top_context, wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
@@ -361,9 +357,8 @@ async def test_subscribe_to_one_context(
     assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1
 
 
-@pytest.mark.asyncio
 async def test_event_order_with_redirect(
-    bidi_session, top_context, subscribe_events, url, fetch
+    bidi_session, top_context, wait_for_bidi_events, subscribe_events, url, fetch
 ):
     events = [
         BEFORE_REQUEST_SENT_EVENT,
@@ -394,7 +389,7 @@ async def test_event_order_with_redirect(
 
     # Wait until we receive two events, one for the initial request and one for
     # the redirection.
-    await wait_for_bidi_events(bidi_session, response_completed_events, 2, timeout=2)
+    await wait_for_bidi_events(response_completed_events, 2, timeout=2)
 
     events_in_expected_order = [
         {"event": "network.beforeRequestSent", "url": redirect_url},

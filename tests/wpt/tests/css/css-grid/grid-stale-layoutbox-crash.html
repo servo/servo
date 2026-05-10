@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=312602">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 100px;
+    width: 200px;
+}
+.item1 {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+.item2 {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+}
+</style>
+<div class="grid">
+    <div class="item1"></div>
+    <div class="item2"></div>
+</div>
+<script>
+document.body.offsetHeight;
+
+const grid = document.querySelector('.grid');
+grid.removeChild(grid.lastElementChild);
+const thirdItem = document.createElement('div');
+thirdItem.className = 'item2';
+grid.appendChild(thirdItem);
+
+document.body.offsetHeight;
+</script>

@@ -15,24 +15,23 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericCallback;
-use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
-    MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId,
+    MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId, UrlRequest,
     ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
-use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
@@ -48,8 +47,8 @@ pub enum EmbedderToConstellationMessage {
     Exit,
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page.
-    LoadUrl(WebViewId, ServoUrl),
+    /// Request to load a page, with optionally additional data in [`URLRequest`].
+    LoadUrl(WebViewId, UrlRequest),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
@@ -96,7 +95,7 @@ pub enum EmbedderToConstellationMessage {
     SetWebViewThrottled(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
-    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, ScrollStateUpdate),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
@@ -117,6 +116,8 @@ pub enum EmbedderToConstellationMessage {
     UserContentManagerAction(UserContentManagerId, UserContentManagerAction),
     /// Update pinch zoom details stored in the top level window
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
+    /// Activate or deactivate accessibility features for the given `WebView`.
+    SetAccessibilityActive(WebViewId, bool),
 }
 
 pub enum UserContentManagerAction {
@@ -132,11 +133,7 @@ pub enum UserContentManagerAction {
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
-    LargestContentfulPaint(
-        CrossProcessInstant,
-        usize, /* area */
-        LargestContentfulPaintType,
-    ),
+    LargestContentfulPaint(CrossProcessInstant, usize /* area */, Option<ServoUrl>),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {
@@ -211,4 +208,15 @@ pub enum MessagePortMsg {
     CompleteDisentanglement(MessagePortId),
     /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
+}
+
+/// A data structure which contains information for the pipeline after a scroll happens in the
+/// embedder-side `WebView`.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ScrollStateUpdate {
+    /// The [`ExternalScrollId`] of the node that that was scrolled.
+    pub scrolled_node: ExternalScrollId,
+    /// A map containing the scroll offsets of the entire scroll tree. This is necessary,
+    /// because scroll events can cause other nodes to scroll due to sticky positioning.
+    pub offsets: FxHashMap<ExternalScrollId, LayoutVector2D>,
 }

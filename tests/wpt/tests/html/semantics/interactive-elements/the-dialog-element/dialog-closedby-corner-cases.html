@@ -175,7 +175,7 @@
 
       const shouldRespond = changeMethod.respondsTo?.(openMethod) ?? true;
 
-      assert_true(respondsToLightDismiss, shouldRespond, 'Dialog respond to light dismiss');
+      assert_equals(respondsToLightDismiss, shouldRespond, 'Dialog respond to light dismiss');
     }, `Clicking outside, when ${changeMethod.description}, ${openMethod}`);
   }
 

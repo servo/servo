@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Simultaneous Touch Moves from multiple pointers</title>
+    <link rel=help href="https://github.com/servo/servo/issues/42921">
+    <link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+    <script>
+        promise_test(async () => {
+            const seenPointers = new Set();
+            document.addEventListener("touchmove", (e) => {
+                for (let touch of e.changedTouches) {
+                    seenPointers.add(touch.identifier);
+                }
+            });
+
+            await new test_driver.Actions()
+                .addPointer("f1", "touch")
+                .addPointer("f2", "touch")
+                .pointerMove(10, 10, { origin: "viewport", sourceName: "f1" })
+                .pointerMove(15, 15, { origin: "viewport", sourceName: "f2" })
+                .pointerDown({ sourceName: "f1" })
+                .pointerDown({ sourceName: "f2" })
+                .pointerMove(30, 30, { origin: "viewport", duration: 0, sourceName: "f1" })
+                .pointerMove(40, 40, { origin: "viewport", duration: 0, sourceName: "f2" })
+                .pointerUp({ sourceName: "f1" })
+                .pointerUp({ sourceName: "f2" })
+                .send();
+
+            assert_equals(seenPointers.size, 2, "Should have captured 2 distinct touch identifiers");
+        }, "Touchmove events should track multiple pointers");
+    </script>
+</body>
+</html>

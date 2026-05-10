@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{self, GenericSend, GenericSender, SendResult};
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericCallback, GenericSend, GenericSender, SendResult};
+use servo_url::ImmutableOrigin;
 
-use crate::client_storage::ClientStorageThreadMessage;
+use crate::client_storage::{ClientStorageThreadHandle, ClientStorageThreadMessage};
 use crate::indexeddb::IndexedDBThreadMsg;
 use crate::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorageType};
 
@@ -32,6 +33,42 @@ impl StorageThreads {
             idb_thread,
             web_storage_thread,
         }
+    }
+
+    pub fn persisted(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.client_storage_thread
+            .send(ClientStorageThreadMessage::Persisted { origin, sender })
+    }
+
+    pub fn persist(
+        &self,
+        origin: ImmutableOrigin,
+        permission_granted: bool,
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.client_storage_thread
+            .send(ClientStorageThreadMessage::Persist {
+                origin,
+                permission_granted,
+                sender,
+            })
+    }
+
+    pub fn estimate(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<(u64, u64), String>>,
+    ) -> SendResult {
+        self.client_storage_thread
+            .send(ClientStorageThreadMessage::Estimate { origin, sender })
+    }
+
+    pub fn client_storage_handle(&self) -> ClientStorageThreadHandle {
+        self.client_storage_thread.clone().into()
     }
 
     // TODO: Consider changing to `webstorage_sites`

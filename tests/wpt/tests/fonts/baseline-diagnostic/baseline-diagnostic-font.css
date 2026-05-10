@@ -1,0 +1,19 @@
+
+@font-face {
+  /**
+   * Font that can be used for validating baseline alignments. Given the embedded
+   * text in the font, this should be used with very large font sizes. There are
+   * two glyphs in the font.
+   */
+  font-family: "BaselineDiagnostic";
+  src: url('./BaselineDiagnostic.ttf') format('opentype');
+}
+
+@font-face {
+  /**
+   * Same as the "BaselineDiagnostic" font, but uses the common alphabetic baseline
+   * of 0. This also results in the x-middle baseline being at 125.
+   */
+  font-family: "BaselineDiagnosticAlphabeticZero";
+  src: url('./BaselineDiagnosticAlphabeticZero.ttf') format('opentype');
+}

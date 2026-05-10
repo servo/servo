@@ -4,7 +4,7 @@
 <link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
 <link rel="match" href="reference/line-clamp-011-ref.html">
-<meta name="assert" content="When line-clamp is used with a number of lines while also having a set block size, whichever comes earlier takes precedence.">
+<meta name="assert" content="When line-clamp is used with a number of lines while also having a set block size, only the line number affects the clamping; content beyond the block size, if any, overflows.">
 <style>
 .clamp {
   line-clamp: 4;
@@ -20,4 +20,3 @@ Line 2
 Line 3
 Line 4
 Line 5</div>
-<p>Following content.</p>

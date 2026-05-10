@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://drafts.csswg.org/css-forms-1">
+<link rel=match href="textarea-base-appearance-rendering-ref.tentative.html">
+
+<textarea style="appearance:base">value</textarea>
+
+<style>
+body {
+  font-family: monospace;
+  background-color: black;
+  color: green;
+}
+textarea {
+  /* Without setting the width, we would be relying on intrinsic sizing which
+   * is not specified or interoperable. */
+  width: 150px;
+  height: 40px;
+}
+</style>

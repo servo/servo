@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(() => {
+    const host = document.createElement('span');
+    document.body.appendChild(host);
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = '<slot></slot>';
+
+    let slotchangeDidFire = false;
+    shadowRoot.querySelector('slot').addEventListener('slotchange', () => slotchangeDidFire = true);
+    host.innerHTML = '<span slot="unused"></span>b<span slot="unused"></span>';
+
+    return new Promise((resolve) => {
+        queueMicrotask(() => {
+            assert_true(slotchangeDidFire);
+            host.remove();
+            resolve();
+        });
+    })
+}, 'This tests inserting a document fragment with a mixture of elements and text nodes, which should dispatch a `slotchange` event.');
+
+</script>
+</body>
+</html>

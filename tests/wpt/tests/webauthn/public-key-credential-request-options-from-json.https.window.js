@@ -16,7 +16,7 @@ test(() => {
       { type: "public-key", id: test_b64 },
     ],
     userVerification: "required",
-    hints: ["hybrid", "security-key"],
+    hints: ["hybrid", "security-key", "hybrid"],
   });
   let expected = {
     challenge: test_bytes,
@@ -26,7 +26,7 @@ test(() => {
       { type: "public-key", id: test_bytes },
     ],
     userVerification: "required",
-    hints: ["hybrid", "security-key"],
+    hints: ["hybrid", "security-key", "hybrid"],
   };
 
   assert_equals(actual.rpId, expected.rpId);

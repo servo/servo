@@ -350,6 +350,8 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     exchangeIceCandidates(pc1, pc2);
 
     const size = 1024*1024*5;
+    // TODO: crbug.com/490588131: this exceeds max-message-size which leads to unrelated failures.
+    // Setting this to max-message-size causes a crash however.
     const bigMessage = 'a'.repeat(size);
     const smallMessage = 'boom';
     const numLittle = 1000;
@@ -479,5 +481,41 @@ promise_test(async t => {
   assert_array_equals(await received1, toSend);
 }, 'Sending before the other side is open should work');
 
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  t.add_cleanup(() => answerer.close());
 
+  const sender = offerer.createDataChannel('foo');
+  const data = 'something';
+  sender.onopen = () => {
+    sender.send(data);
+  };
+  const receiverPromise = new Promise(r => {
+    answerer.ondatachannel = ({channel}) => {
+      channel.onmessage = (e) => r(e.data);
+    }
+  });
+  await negotiate(offerer, answerer);
+  assert_equals(data, await receiverPromise);
+}, 'Sending in onopen should work');
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  t.add_cleanup(() => answerer.close());
+
+  const data = 'something';
+  answerer.ondatachannel = ({channel}) => {
+    channel.send(data);onmessage = (e) => r(e.data);
+  }
+  const sender = offerer.createDataChannel('foo');
+  const senderPromise = new Promise(r => {
+    sender.onmessage = e => r(data);
+  });
+  await negotiate(offerer, answerer);
+  assert_equals(data, await senderPromise);
+}, 'Sending in ondatachannel should work');
 </script>

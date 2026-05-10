@@ -10,7 +10,9 @@
 
     <style>
       @mixin --m1() {
-        @contents;
+        @result {
+          @contents;
+        }
       }
       #e1 {
         color: red;
@@ -28,7 +30,9 @@
 
     <style>
       @mixin --m2() {
-        @contents
+        @result {
+          @contents
+        }
       }
       #e2 {
         color: red;
@@ -46,8 +50,10 @@
 
     <style>
       @mixin --m3() {
-        &.a {
-          @contents { color: blue; }
+        @result {
+          &.a {
+            @contents { color: blue; }
+          }
         }
       }
       .b {
@@ -66,8 +72,10 @@
 
     <style>
       @mixin --m4() {
-        &.c {
-          @contents { color: green; }
+        @result {
+          &.c {
+            @contents { color: green; }
+          }
         }
       }
       .d {
@@ -86,8 +94,10 @@
 
     <style>
       @mixin --m6() {
-        @contents { }
-        color: green;
+        @result {
+          @contents { }
+          color: green;
+        }
       }
       #e6 {
         @apply --m6;
@@ -104,8 +114,10 @@
 
     <style>
         @mixin --m7() {
-          @contents;
-          color: green;
+          @result {
+            @contents;
+            color: green;
+          }
         }
         #e7 {
           @apply --m7 {};

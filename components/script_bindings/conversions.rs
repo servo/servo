@@ -51,6 +51,11 @@ impl<T: ToJSValConvertible + ?Sized> SafeToJSValConvertible for T {
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(_: &'static DOMClass) -> bool;
+
+    /// First prototype ID in the DFS-ordered range for this interface and its descendants.
+    const PROTO_FIRST: u16 = 0;
+    /// Last prototype ID in the DFS-ordered range for this interface and its descendants.
+    const PROTO_LAST: u16 = u16::MAX;
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
@@ -192,7 +197,7 @@ impl FromJSValConvertible for ByteString {
         let char_vec = slice::from_raw_parts(chars, length);
 
         if char_vec.iter().any(|&c| c > 0xFF) {
-            throw_type_error(cx, "Invalid ByteString");
+            throw_type_error(cx, c"Invalid ByteString");
             Err(())
         } else {
             Ok(ConversionResult::Success(ByteString::new(
@@ -222,7 +227,7 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
         Ok(
             match root_from_handlevalue(value, SafeJSContext::from_ptr(cx)) {
                 Ok(result) => ConversionResult::Success(result),
-                Err(()) => ConversionResult::Failure("value is not an object".into()),
+                Err(()) => ConversionResult::Failure(c"value is not an object".into()),
             },
         )
     }
@@ -414,7 +419,7 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(DOMString::from_string(jsstr_to_string(cx, jsstr)));
+        return Some(jsstr_to_string(cx, jsstr).into());
     }
 
     if id_raw.is_int() {
@@ -451,7 +456,7 @@ impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Fini
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
             None => {
-                throw_type_error(cx, "this argument is not a finite floating-point value");
+                throw_type_error(cx, c"this argument is not a finite floating-point value");
                 Err(())
             },
         }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>moveBefore() changing size container queries for moved elements</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .container { container-type: inline-size; height: 100px; }
+  .w200 { width: 200px; }
+  .w400 { width: 400px; }
+  @container (width = 400px) {
+    #target { color: green; }
+  }
+</style>
+<div class="container w400" id="new_parent"></div>
+<div class="container w200">
+  <div id="mv">
+    <div id="target">This text should be green</div>
+  </div>
+</div>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    new_parent.moveBefore(mv, null);
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "moveBefore() between different size containers invalidates target");
+</script>

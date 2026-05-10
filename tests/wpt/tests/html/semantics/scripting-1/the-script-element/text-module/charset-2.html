@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="windows-1250">
+<title>Text modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script type="module">
+  import text from "../serve-with-content-type.py?fn=text-module/utf-8.txt" with { type: "text" };
+  test(() => {
+    assert_true(text.startsWith("śćążź"));
+  }, "Text module should be loaded as utf-8 even though document's encoding is windows-1250");
+</script>
+<script type="module">
+  import text from "../serve-with-content-type.py?fn=text-module/windows-1250.txt&ct=text/plain%3Bcharset=windows-1250" with { type: "text" };
+  test(() => {
+    assert_false(text.startsWith("śćążź"), 'Should be decoded as UTF-8');
+  }, "Text module should be loaded as utf-8 even if it is encoded in windows-1250 and served with a windows-1250 charset response header, and this document's encoding is windows-1250");
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: calc() mixing angle and percentage is rejected outside &lt;angle-percentage&gt; contexts</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#typedef-angular-color-stop-list">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-angle-percentage">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// linear-gradient() color stops are <length-percentage>, not <angle-percentage>.
+test_invalid_value("background-image",
+  "linear-gradient(red calc(50% + 30deg), blue)");
+
+// radial-gradient() color stops are <length-percentage>, not <angle-percentage>.
+test_invalid_value("background-image",
+  "radial-gradient(red calc(50% + 30deg), blue)");
+
+// Angle in conic-gradient's 'from' position is <angle>, not <angle-percentage>.
+test_invalid_value("background-image",
+  "conic-gradient(from calc(50% + 30deg), red, blue)");
+
+// Inside calc(), a bare '0' is a <number>, not an <angle>; it cannot be added
+// to a <percentage>. The angle unit must be explicit (e.g. '0deg').
+test_invalid_value("background-image",
+  "conic-gradient(red calc(50% + 0), blue)");
+</script>

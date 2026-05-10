@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with nested shadow roots (synchronous)</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "outer-css": "data:text/css,span { color: blue }",
+    "inner-css": "data:text/css,span { color: green }"
+  }
+}
+</script>
+
+<body>
+<script>
+  // Nested shadow roots, both with synchronous specifiers.
+  // The outer shadow root styles should NOT leak into the inner shadow root.
+  test(function (t) {
+    document.body.setHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' shadowrootadoptedstylesheets='outer-css'>" +
+          "<span id='outer_span'>Outer content</span>" +
+          "<div id='inner_host'>" +
+            "<template shadowrootmode='open' shadowrootadoptedstylesheets='inner-css'>" +
+              "<span id='inner_span'>Inner content</span>" +
+            "</template>" +
+          "</div>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const outerRoot = document.getElementById("host").shadowRoot;
+    const innerRoot = outerRoot.getElementById("inner_host").shadowRoot;
+
+    assertSheetRule(outerRoot, 0, "span { color: blue; }", "Outer root");
+    assertSheetRule(innerRoot, 0, "span { color: green; }", "Inner root");
+    assert_equals(getComputedStyle(outerRoot.getElementById("outer_span")).color,
+      "rgb(0, 0, 255)", "Outer span should be blue.");
+    assert_equals(getComputedStyle(innerRoot.getElementById("inner_span")).color,
+      "rgb(0, 128, 0)", "Inner span should be green, not blue from the outer root.");
+    assert_not_equals(outerRoot.adoptedStyleSheets[0],
+      innerRoot.adoptedStyleSheets[0],
+      "Outer and inner should have different CSSStyleSheet instances.");
+  }, "Nested sync: shadow roots independently resolve specifiers and apply styles.");
+</script>
+</body>

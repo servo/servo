@@ -2,7 +2,7 @@ import asyncio
 import pytest
 from webdriver.bidi.error import UnknownErrorException
 
-from . import navigate_and_assert
+from .. import navigate_and_assert
 
 pytestmark = pytest.mark.asyncio
 

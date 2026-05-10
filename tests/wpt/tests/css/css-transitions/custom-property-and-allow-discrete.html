@@ -10,7 +10,7 @@
 <script src="./support/helper.js" type="text/javascript"></script>
 <style>
   .target {
-    transition: --foo 10s step-start;
+    transition: --foo 10s step-end;
     transition-behavior: allow-discrete;
     --foo: bar;
   }
@@ -25,16 +25,33 @@ promise_test(async t => {
   let transitionCount = 0;
   div.addEventListener("transitionstart", () => transitionCount++);
 
-  // Trigger a transition on the custom property.
-  getComputedStyle(div).getPropertyValue('--foo');
+  // Assert initial value.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'bar',
+    'Computed style reflects initial value before transition'
+  );
   div.style.setProperty('--foo', 'baz');
-  getComputedStyle(div).getPropertyValue('--foo');
 
-  // Wait two more frames to ensure only a single transition was started.
-  await waitForFrame();
-  await waitForFrame();
+  const anim = assertTransitionKeyframes(div, '--foo', 'bar', 'baz');
+  await waitForAnimationFrames(2);
 
   assert_equals(transitionCount, 1, 'A single "transitionstart" event was dispatched');
+  // Assert value during transition.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'bar',
+    'Computed style stays at the old value while transition is running'
+  );
+
+  anim.finish();
+  await anim.finished;
+  // Assert final value.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'baz',
+    'Computed style reflects the new value after transition ends'
+  );
 }, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete"');
 
 promise_test(async t => {
@@ -46,7 +63,7 @@ promise_test(async t => {
   div.style.transition = "--foo 10s allow-discrete";
   div.style.setProperty('--foo', 'baz');
 
-  assert_equals(div.getAnimations()[0].transitionProperty, '--foo', 'A transition was started for the custom property');
+  assertTransitionKeyframes(div, '--foo', 'bar', 'baz');
 }, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete" when setting "transition-property" in the style change that yields the transition');
 
 </script>

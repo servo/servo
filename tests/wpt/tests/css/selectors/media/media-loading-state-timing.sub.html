@@ -8,9 +8,11 @@
   <video width="300" height="300" muted autoplay></video>
   <script>
     // The order of "is currently stalled" changing and events firing changed in
-    // https://github.com/whatwg/html/pull/11959. This test asserts that when
-    // the stalled event is fired, :stalled already matches, and that when the
-    // progress event is fired, it no longer matches.
+    // https://github.com/whatwg/html/pull/11959 so that "is currently stalled"
+    // is set before the stalled event fires. :stalled also requires readyState
+    // to be HAVE_CURRENT_DATA or less, which is indicated by the waiting event.
+    // Since the spec does not guarantee the order of stalled and waiting, we
+    // await both before checking :stalled.
     //
     // This uses a Python custom handler that sends the initial part of the
     // video and then waits for a POST request to send the rest.
@@ -19,21 +21,29 @@
     // Wait for the load event so that the video delaying-the-load-event flag
     // doesn't interact with the test harness.
     window.addEventListener("load", () => {
-      async_test((t) => {
-        assert_implements(CSS.supports("selector(:stalled)"), ":stalled is not supported");
+      promise_test(async (t) => {
+        assert_implements(CSS.supports("selector(:stalled)"),
+          ":stalled is not supported");
         const video = document.querySelector("video");
+
+        const waitingPromise = new Promise(
+          r => video.addEventListener("waiting", r, { once: true }));
+        const stalledPromise = new Promise(
+          r => video.addEventListener("stalled", r, { once: true }));
+
         video.src = `support/stall-resume.py?video&key=${key}`;
-        video.addEventListener("stalled", t.step_func(() => {
-          assert_true(video.matches(":stalled"), ":stalled matches in stalled event handler");
+        video.play();
 
-          video.addEventListener("progress", t.step_func_done(() => {
-            assert_false(video.matches(":stalled"), ":stalled matches in progress event handler");
-          }));
+        await Promise.all([waitingPromise, stalledPromise]);
+        assert_true(video.matches(":stalled"),
+          ":stalled matches after waiting and stalled events");
 
-          // This POST request resumes the video delivery.
-          fetch(`support/stall-resume.py?resume&key=${key}`, { method: 'POST' });
-        }));
-      }, "Test :stalled timing relative to stalled and progress events");
+        fetch(`support/stall-resume.py?resume&key=${key}`, { method: 'POST' });
+        await new Promise(
+          r => video.addEventListener("timeupdate", r, { once: true }));
+        assert_false(video.matches(":stalled"),
+          ":stalled does not match after media recovers from stalled");
+      }, "Test :stalled timing relative to waiting and timeupdate events");
     });
   </script>
 </body>

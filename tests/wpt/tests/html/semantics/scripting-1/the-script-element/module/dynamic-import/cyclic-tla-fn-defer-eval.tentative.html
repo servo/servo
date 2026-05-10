@@ -1,0 +1,19 @@
+<!doctype html>
+<title>import.defer with cyclic TLA dependency using function export</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+  delete window.__moduleBEvaluated;
+  delete window.__moduleAEvaluated;
+  const ns = await import.defer("./resources/cyclic-tla-fn-dep-a.js");
+  assert_true(window.__moduleBEvaluated,
+      "TLA dependency should be eagerly evaluated");
+  assert_true(window.__moduleAEvaluated,
+      "Deferred entrypoint should be evaluated due to cyclic TLA dependency");
+  assert_equals(ns.getValue(), "tla-done",
+      "Calling exported function should return the value from TLA dependency");
+}, "import.defer() with cyclic TLA dependency resolves when export is a function");
+</script>

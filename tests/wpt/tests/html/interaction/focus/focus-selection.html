@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test how selection changes when different elements are focused</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2032191">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#sequential-focus-navigation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container" tabindex="0">
+  <button>button</button>
+  <input type="submit">
+  <input type="text" data-expect="parent">
+  <input type="number" data-expect="parent">
+  <div tabindex="0" id="contenteditable">foo</div>
+</div>
+
+<script>
+function doTest() {
+  getSelection().collapse(container);
+  let prevSelectedRange = getSelection().getRangeAt(0);
+  for (let element of container.children) {
+    let description = element.tagName.toLowerCase();
+    if (description === "input") {
+      description += " type = " + element.type;
+    }
+    element.focus();
+    assert_equals(getSelection().rangeCount, 1, "Should have 1 selected range after focusing " + description);
+    let selectedRange = getSelection().getRangeAt(0);
+    assert_true(selectedRange.collapsed, "Selection should be collapsed after focusing " + description);
+    let container = selectedRange.startContainer;
+    let offset = selectedRange.startOffset;
+    if (element.isContentEditable) {
+      assert_equals(container, element.childNodes[0],
+                    "Selection range should be in text node after contenteditable element is focused.");
+      assert_equals(offset, 0, "Selection should have offset 0 after contenteditable element is focused.");
+    } else if (element.dataset.expect === "parent") {
+      assert_equals(container, element.parentNode,
+                    "Selection range should be in parent after focusing " + description);
+      let expectedOffset = Array.from(element.parentNode.childNodes).indexOf(element);
+      assert_equals(offset, expectedOffset,
+                    "Selection range should have offset just before element after focusing " + description);
+    } else {
+      assert_equals(container, prevSelectedRange.startContainer,
+                    "Selection container should not change after focusing " + description);
+      assert_equals(offset, prevSelectedRange.startOffset,
+                    "Selection offset should not change after focusing " + description);
+    }
+    prevSelectedRange = selectedRange;
+  }
+}
+
+test(() => {
+  contenteditable.contentEditable = false;
+  doTest();
+}, 'div has contenteditable=false');
+
+test(() => {
+  contenteditable.contentEditable = true;
+  doTest();
+}, 'div has contenteditable=true');
+</script>

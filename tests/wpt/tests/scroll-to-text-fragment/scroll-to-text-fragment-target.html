@@ -29,6 +29,8 @@ function checkScroll() {
     position = 'hidden';
   else if (isInView(document.getElementById('horizontal-scroll')) && window.scrollX > 0)
     position = 'horizontal-scroll';
+  else if (isInView(document.getElementById('inline-horizontal-scroll')) && window.scrollX > window.innerWidth)
+    position = 'inline-horizontal-scroll';
 
   let target = document.querySelector(":target");
 
@@ -98,5 +100,6 @@ window.onload = function() {
   </script>
   <p id="hidden" class="scroll-section">hidden text</p>
   <p id="horizontal-scroll" class="scroll-section">horizontally scrolled text</p>
+  <p class="scroll-section" style="white-space:nowrap; word-spacing:50vw">filler filler filler filler <span id="inline-horizontal-scroll">inline-horizontal-target</span></p>
   <p id="display-none" class="scroll-section">display none</p>
 </body>

@@ -24,10 +24,10 @@ interface HTMLAnchorElement : HTMLElement {
   [CEReactions]
            attribute DOMString rel;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
-  // [CEReactions]
-  //       attribute DOMString hreflang;
-  // [CEReactions]
-  //       attribute DOMString type;
+  [CEReactions]
+  attribute DOMString hreflang;
+  [CEReactions]
+  attribute DOMString type;
 
   [CEReactions, Pure]
            attribute DOMString text;
@@ -42,8 +42,8 @@ HTMLAnchorElement includes HTMLHyperlinkElementUtils;
 partial interface HTMLAnchorElement {
   [CEReactions]
   attribute DOMString coords;
-  // [CEReactions]
-  //          attribute DOMString charset;
+  [CEReactions]
+  attribute DOMString charset;
   [CEReactions]
   attribute DOMString name;
   [CEReactions]

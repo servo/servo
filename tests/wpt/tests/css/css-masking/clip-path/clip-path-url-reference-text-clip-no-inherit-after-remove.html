@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>Remove Ancestor Clip to SVG Reference Text Clip-Path</title>
+    <link rel="author" title="Claire Chambers" href="mailto:clchambers@microsoft.com">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="clip-path-url-reference-text-clip-no-inherit-after-remove-ref.html">
+    <meta name="variant" content="?force-repaint">
+    <meta name="variant" content="?skip-repaint">
+    <script src="/common/reftest-wait.js"></script>
+    <style>
+      #container {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        background-color: black;
+        /* ensure #container creates a stacking context */
+        will-change: transform;
+        /* hide the overflow */
+        border-radius: 50px;
+        overflow: hidden;
+      }
+      #container.stage-clip-removed {
+        /* removing the overflow clip should reveal the outset */
+        border-radius: initial;
+        overflow: initial;
+      }
+      #clipped-element {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        background-color: blue;
+        clip-path: url(#svg-text-clip);
+        /* for positioning the outset */
+        position: relative;
+        /* inherited clip must be expanded by 1px for the filter backdrop */
+        filter: blur(1px);
+      }
+      #container.stage-foreground-repainted #clipped-element {
+        background-color: purple;
+      }
+      #clipped-element-outset {
+        left: -10px;
+        top: -10px;
+        position: absolute;
+        border: 10px solid green;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="/common/reftest-wait.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <p>
+      Test passes if there is a green outset around a black square.
+    </p>
+    <div id="container">
+      <div id="clipped-element">
+        <div id="clipped-element-outset">
+        </div>
+      </div>
+    </div>
+    <script>
+      const container = document.getElementById("container");
+      const skipRepaint = location.search.includes("skip-repaint");
+      function addAncestorClip() {
+        container.classList.add("stage-clip-removed");
+      }
+      function repaintForeground() {
+        container.classList.add("stage-foreground-repainted");
+      }
+      window.addEventListener('load', async () => {
+        /* if skipping repaint, set the updated color immediately so the ref requires no special logic */
+        if(skipRepaint) {
+          repaintForeground();
+        }
+        await waitForCompositorReady();
+        await runAndWaitForFrameUpdate(addAncestorClip);
+        if(!skipRepaint) {
+          await runAndWaitForFrameUpdate(repaintForeground);
+        }
+        takeScreenshot();
+      });
+    </script>
+    <svg width="0" height="0" viewBox="0 0 100 100">
+      <clipPath id="svg-text-clip" clipPathUnits="objectBoundingBox">
+        <text x="0.1" y="0.6" font-size="0.2">SVG Clip</text>
+        <!-- Include a 10% outset around the clipped element -->
+        <path clip-rule="evenodd" d="
+            M -0.1 -0.1  L 1.1 -0.1  L 1.1 1.1  L -0.1 1.1
+             M  0    0    L 1    0    L 1   1    L  0   1
+          "/>
+      </clipPath>
+    </svg>
+  </body>
+</html>

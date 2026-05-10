@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  scroll-snap-type: both mandatory;
+  overflow: scroll;
+  width: 200px;
+  height: 200px;
+  position: relative;
+}
+.child {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+.snap-block {
+  scroll-snap-align: start none;
+  background-color: blue;
+}
+.snap-inline {
+  scroll-snap-align: none start;
+  background-color: green;
+}
+#spacer {
+  width: 1000px;
+  height: 1000px;
+}
+</style>
+<div id="scroller">
+  <div class="child snap-block" tabindex="-1"></div>
+  <div class="child snap-inline"></div>
+  <div id="spacer"></div>
+</div>
+<script>
+promise_test(async () => {
+  assert_equals(scroller.scrollTop, 0);
+  assert_equals(scroller.scrollLeft, 0);
+
+  const targetOnBlock = document.querySelector(".snap-block");
+  targetOnBlock.focus({preventScroll: false});
+  assert_equals(document.activeElement, targetOnBlock);
+
+  const scrollendPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollend", resolve);
+  });
+
+  // Move the focused element (the last snap target on the block axis) down a
+  // bit.
+  targetOnBlock.style.top = "10px";
+
+  // Also move the other axis target.
+  const targetOnInline = document.querySelector(".snap-inline");
+  targetOnInline.style.left = "10px";
+
+  await scrollendPromise;
+
+  assert_equals(scroller.scrollTop, 10);
+  assert_equals(scroller.scrollLeft, 10);
+}, "Re-snap tracks snap target on each axis independently");
+</script>

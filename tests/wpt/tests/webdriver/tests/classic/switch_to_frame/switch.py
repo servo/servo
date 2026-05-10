@@ -5,7 +5,7 @@ import webdriver.protocol as protocol
 from webdriver import NoSuchElementException
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.classic.asserts import assert_error, assert_same_element, assert_success
 
 
 def switch_to_frame(session, frame):

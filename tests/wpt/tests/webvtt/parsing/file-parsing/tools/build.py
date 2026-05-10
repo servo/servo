@@ -108,8 +108,14 @@ def main():
 
     tests_pattern = path.join(file_parsing_path, TEST_FILE_PATTERN)
 
-    # Clean test directory
-    shutil.rmtree(test_output_path)
+    # Clean generated files
+    for file in glob.glob(tests_pattern):
+        test_basefilename = path.splitext(path.basename(file))[0]
+        html_file = path.join(test_output_path, test_basefilename + '.html')
+        vtt_file = path.join(test_output_path, 'support', test_basefilename + '.vtt')
+        for f in [html_file, vtt_file]:
+            if path.exists(f):
+                os.remove(f)
 
     # Generate tests
     for file in glob.glob(tests_pattern):

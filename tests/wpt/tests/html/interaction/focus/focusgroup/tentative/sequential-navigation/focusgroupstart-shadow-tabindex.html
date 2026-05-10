@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - focusgroupstart inside tabindex=-1 shadow host</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#shadow-dom-boundaries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Test 1: focusgroupstart inside the shadow tree of a tabindex=-1 host. -->
+<button id="inner_before">inner_before</button>
+<div focusgroup="toolbar nomemory">
+  <div id="inner_host" tabindex="-1">
+    <template shadowrootmode="open">
+      <button id="ish1">ish1</button>
+      <button id="ish2" focusgroupstart>ish2</button>
+    </template>
+  </div>
+  <button id="inner_light">inner_light</button>
+</div>
+<button id="inner_after">inner_after</button>
+
+<script>
+  promise_test(async t => {
+    const host = inner_host;
+    await assert_focusgroup_tab_navigation([
+      inner_before,
+      host,
+    ]);
+    assert_equals(host.shadowRoot.activeElement.id, "ish2",
+      "Tab should land on focusgroupstart inside the shadow tree");
+  }, "Tab into focusgroup with focusgroupstart inside tabindex=-1 shadow host");
+
+  promise_test(async t => {
+    const host = inner_host;
+    await assert_focusgroup_shift_tab_navigation([
+      inner_after,
+      host,
+    ]);
+    assert_equals(host.shadowRoot.activeElement.id, "ish2",
+      "Shift+Tab should also land on the focusgroupstart entry");
+  }, "Shift+Tab into focusgroup with focusgroupstart inside tabindex=-1 shadow host");
+</script>
+
+<!-- Test 2: Slotted focusgroupstart routed through a tabindex=-1 host. -->
+<button id="slot_before">slot_before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="slot_b1">slot_b1</button>
+  <div id="slot_host" tabindex="-1">
+    <template shadowrootmode="open">
+      <slot></slot>
+    </template>
+    <button id="slot_start" focusgroupstart>slot_start</button>
+  </div>
+  <button id="slot_b2">slot_b2</button>
+</div>
+<button id="slot_after">slot_after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      slot_before,
+      slot_start,
+      slot_after,
+    ]);
+  }, "Tab through focusgroup enters at slotted focusgroupstart and exits");
+</script>
+
+<!-- Test 3: Remembered item lives inside a tabindex=-1 shadow host. -->
+<button id="mem_before">mem_before</button>
+<div focusgroup="toolbar">
+  <button id="mem_outer">mem_outer</button>
+  <div id="mem_host" tabindex="-1">
+    <template shadowrootmode="open">
+      <button id="mem_inner">mem_inner</button>
+    </template>
+  </div>
+</div>
+<button id="mem_after">mem_after</button>
+
+<script>
+  promise_test(async t => {
+    const host = mem_host;
+    await focusAndSendDirectionalInput(mem_outer, kRight);
+    assert_equals(host.shadowRoot.activeElement.id, "mem_inner",
+      "Precondition: arrow nav reached the inner item");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, mem_after,
+      "Precondition: Tab from remembered item exits the focusgroup");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, host,
+      "Shift+Tab returns to the host containing the remembered item");
+    assert_equals(host.shadowRoot.activeElement.id, "mem_inner",
+      "Remembered inner item gets focus on re-entry");
+  }, "Memory item inside tabindex=-1 shadow host is honored on re-entry");
+</script>
+
+<!-- Test 4: Negative — outside any focusgroup, tabindex=-1 host stays a Tab barrier. -->
+<button id="neg_before">neg_before</button>
+<div id="neg_host" tabindex="-1">
+  <template shadowrootmode="open">
+    <button id="neg_inner">neg_inner</button>
+  </template>
+</div>
+<button id="neg_after">neg_after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      neg_before,
+      neg_after,
+    ]);
+  }, "Without focusgroup, tabindex=-1 shadow host remains a Tab barrier");
+</script>

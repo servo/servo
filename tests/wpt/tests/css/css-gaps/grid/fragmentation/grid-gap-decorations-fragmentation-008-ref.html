@@ -32,8 +32,13 @@
   }
   .row-gap {
     position: absolute;
-    background: red;
+    display: flex;
+    column-gap: 10px;
     height: 10px;
+  }
+  .row-gap-segment {
+    background: red;
+    width: 44px;
   }
 </style>
 <div class="multi-col">
@@ -51,10 +56,16 @@
 <div></div>
 </div>
 <div class="column-gap" style="left: 47px; top: 1px; height: 49px;"></div>
-<div class="column-gap" style="left: 47px; top: 55px; height: 45px;"></div>
+<div class="column-gap" style="left: 47px; top: 70px; height: 30px;"></div>
 <div class="column-gap" style="left: 157px; top: 1px; height: 19px;"></div>
-<div class="column-gap" style="left: 157px; top: 25px; height: 75px;"></div>
+<div class="column-gap" style="left: 157px; top: 40px; height: 60px;"></div>
 <div class="column-gap" style="left: 267px; top: 1px; height: 49px;"></div>
-<div class="row-gap" style="left: 1px; top: 55px; width: 99px;"></div>
-<div class="row-gap" style="left: 111px; top: 25px; width: 99px;"></div>
+<div class="row-gap" style="left: 1px; top: 55px; width: 99px;">
+  <div class="row-gap-segment"></div>
+  <div class="row-gap-segment" style="width: 45px;"></div>
+</div>
+<div class="row-gap" style="left: 111px; top: 25px; width: 99px;">
+  <div class="row-gap-segment"></div>
+  <div class="row-gap-segment" style="width: 45px;"></div>
+</div>
 </div>

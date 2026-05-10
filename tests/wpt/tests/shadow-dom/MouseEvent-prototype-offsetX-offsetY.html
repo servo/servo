@@ -5,13 +5,14 @@
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <meta name="assert" content="The MouseEvent offsetX and offsetY attributes must return the coordinates relative to the origin of the padding edge of the relative target">
 <link rel="help" href="http://w3c.github.io/webcomponents/spec/shadow/#event-dispatch">
+<link rel="stylesheet" href="/fonts/ahem.css">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/event-path-test-helpers.js"></script>
 </head>
 <body>
 <style>
-html, body { padding: 0; margin: 0; }
+html, body { padding: 0; margin: 0; font-family: Ahem; }
 my-host { display: block; width: 180px; height: 80px; margin: 10px 20px; padding: 10px; background: #ccc; }
 #log { margin: 1rem; }
 </style>

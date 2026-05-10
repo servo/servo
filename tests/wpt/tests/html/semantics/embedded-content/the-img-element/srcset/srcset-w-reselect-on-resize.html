@@ -1,0 +1,48 @@
+<!doctype html>
+<title>srcset w-descriptor reselects on viewport resize</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#reacting-to-environment-changes">
+<link rel="help" href="https://crbug.com/41385706">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<div id=log></div>
+<script>
+// Tests that an <img> with srcset w-descriptors correctly re-selects the
+// image source when the viewport (iframe) is resized.
+
+function resolveUrl(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  return a.href;
+}
+
+function createIframe(width) {
+  const id = token();
+  return new Promise(resolvePromise => {
+    const iframe = document.createElement('iframe');
+    iframe.style.width = width + 'px';
+    iframe.srcdoc = `<!doctype html>
+                     <img srcset="/images/green-1x1.png?200w-${id} 200w,
+                                  /images/green-2x2.png?800w-${id} 800w"
+                          sizes="100vw">`;
+    iframe.onload = () => resolvePromise({iframe, id});
+    document.body.appendChild(iframe);
+  });
+}
+
+promise_test(async t => {
+  const {iframe, id} = await createIframe(100);
+  const img = iframe.contentDocument.querySelector('img');
+  const narrow = resolveUrl(`/images/green-1x1.png?200w-${id}`);
+  const wide = resolveUrl(`/images/green-2x2.png?800w-${id}`);
+
+  assert_equals(img.currentSrc, narrow, 'narrow viewport should select 200w');
+
+  // Set up load listener before resizing so we catch the re-selection.
+  const loaded = new Promise(resolve =>
+      img.addEventListener('load', resolve, {once: true}));
+  iframe.style.width = '1000px';
+  await loaded;
+  assert_equals(img.currentSrc, wide, 'after widening should select 800w');
+}, 'srcset w-descriptor: narrow to wide selects higher-density candidate');
+</script>

@@ -5,25 +5,22 @@
 pub(crate) mod base {
     pub(crate) use std::ptr;
 
-    #[expect(unused_imports)]
     pub(crate) use js::context::JSContext;
     #[expect(unused_imports)]
     pub(crate) use js::realm::CurrentRealm;
     pub(crate) use js::rust::{HandleObject, MutableHandleObject};
 
-    pub(crate) use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
 }
 
 pub(crate) mod module {
     pub(crate) use script_bindings::codegen::PrototypeList;
     pub(crate) use script_bindings::conversions::IDLInterface;
+    pub(crate) use script_bindings::reflector::{DomObjectIteratorWrap, DomObjectWrap, Reflector};
     pub(crate) use script_bindings::utils::DOMClass;
 
     pub(crate) use super::base::*;
     pub(crate) use crate::dom::bindings::iterable::IterableIterator;
-    pub(crate) use crate::dom::bindings::reflector::{
-        DomObjectIteratorWrap, DomObjectWrap, Reflector,
-    };
     pub(crate) use crate::dom::bindings::root::{Dom, Root};
     pub(crate) use crate::dom::bindings::weakref::WeakReferenceable;
 }

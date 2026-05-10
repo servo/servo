@@ -1,0 +1,9 @@
+<!doctype html>
+<link rel=help href="https://bugzil.la/2036139">
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const a = document.createElement("pre")
+  const b = new MessageChannel()
+  b.port1.postMessage(a.childNodes)
+})
+</script>

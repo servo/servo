@@ -1,24 +1,26 @@
 [package]
-name = "pixels"
+name = "servo-pixels"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "pixels"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 euclid = { workspace = true }
 image = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+servo-base = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]

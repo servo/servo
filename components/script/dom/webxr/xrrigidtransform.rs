@@ -6,13 +6,15 @@ use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::cformat;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
@@ -24,7 +26,6 @@ pub(crate) struct XRRigidTransform {
     reflector_: Reflector,
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
-    #[ignore_malloc_size_of = "defined in euclid"]
     #[no_trace]
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
@@ -82,7 +83,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
         if position.w != 1.0 {
-            return Err(Error::Type(format!(
+            return Err(Error::Type(cformat!(
                 "XRRigidTransform must be constructed with a position that has a w value of of 1.0, not {}",
                 position.w
             )));
@@ -94,7 +95,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             !position.w.is_finite()
         {
             return Err(Error::Type(
-                "Position must not contain non-finite values".into(),
+                c"Position must not contain non-finite values".into(),
             ));
         }
 
@@ -104,7 +105,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             !orientation.w.is_finite()
         {
             return Err(Error::Type(
-                "Orientation must not contain non-finite values".into(),
+                c"Orientation must not contain non-finite values".into(),
             ));
         }
 
@@ -128,30 +129,23 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position>
-    fn Position(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Position(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
-            DOMPointReadOnly::new(
-                &self.global(),
-                t.x.into(),
-                t.y.into(),
-                t.z.into(),
-                1.0,
-                can_gc,
-            )
+            DOMPointReadOnly::new(cx, &self.global(), t.x.into(), t.y.into(), t.z.into(), 1.0)
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation>
-    fn Orientation(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Orientation(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
             DOMPointReadOnly::new(
+                cx,
                 &self.global(),
                 r.i.into(),
                 r.j.into(),
                 r.k.into(),
                 r.r.into(),
-                can_gc,
             )
         })
     }

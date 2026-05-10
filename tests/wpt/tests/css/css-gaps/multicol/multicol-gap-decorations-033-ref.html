@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+        column-gap: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+
+    .items {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .row-gap {
+        position: absolute;
+        height: 10px;
+        width: 60px;
+        background: rgba(255, 0, 0, 0.5);
+        left: 2px;
+        top: 62px;
+    }
+
+    .column-gap {
+        position: absolute;
+        height: 130px;
+        width: 10px;
+        background: rgba(0,0,255, 0.5);
+        top: 2px;
+    }
+</style>
+
+<div class="container">
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+</div>
+
+<div class="column-gap" style="left:62px; height:70px;"></div>
+<div class="column-gap" style="left:62px; top: 62px; height:70px;"></div>
+
+<div class="column-gap" style="left:132px; height:70px;"></div>
+<div class="column-gap" style="left:132px; top: 62px; height:70px;"></div>
+
+<div class="row-gap" style="width: 70px;"></div>
+<div class="row-gap" style="left: 72px; width: 60px;"></div>
+<div class="row-gap" style="left: 132px; width: 70px;"></div>

@@ -4,11 +4,12 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionResultMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatus_Binding::PermissionStatusMethods;
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth};
@@ -46,14 +47,14 @@ impl BluetoothPermissionResult {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         status: &PermissionStatus,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothPermissionResult> {
         reflect_dom_object(
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -97,7 +98,12 @@ impl BluetoothPermissionResultMethods<crate::DomTypeHolder> for BluetoothPermiss
 }
 
 impl AsyncBluetoothListener for BluetoothPermissionResult {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: BluetoothResponse,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 3, 11, 13 - 14.
@@ -112,14 +118,14 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                     // https://w3c.github.io/permissions/#dom-permissions-request
                     // Step 8.
-                    return promise.resolve_native(self, can_gc);
+                    return promise.resolve_native(self, CanGc::from_cx(cx));
                 }
                 let bt_device = BluetoothDevice::new(
+                    cx,
                     &self.global(),
                     DOMString::from(device.id.clone()),
                     device.name.map(DOMString::from),
                     &bluetooth,
-                    can_gc,
                 );
                 device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
                 self.global()
@@ -135,9 +141,12 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                 // https://w3c.github.io/permissions/#dom-permissions-request
                 // Step 8.
-                promise.resolve_native(self, can_gc);
+                promise.resolve_native(self, CanGc::from_cx(cx));
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
+            _ => promise.reject_error(
+                Error::Type(c"Something went wrong...".to_owned()),
+                CanGc::from_cx(cx),
+            ),
         }
     }
 }

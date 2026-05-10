@@ -5,10 +5,11 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
     MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
@@ -28,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::fakexrinputcontroller::{FakeXRInputController, init_to_mock_buttons};
 use crate::dom::globalscope::GlobalScope;
@@ -40,7 +41,6 @@ pub(crate) struct FakeXRDevice {
     reflector: Reflector,
     #[no_trace]
     sender: GenericSender<MockDeviceMsg>,
-    #[ignore_malloc_size_of = "defined in webxr-api"]
     #[no_trace]
     next_input_id: Cell<InputId>,
 }
@@ -73,7 +73,7 @@ impl FakeXRDevice {
 
 pub(crate) fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     if view.projectionMatrix.len() != 16 || view.viewOffset.position.len() != 3 {
-        return Err(Error::Type("Incorrectly sized array".into()));
+        return Err(Error::Type(c"Incorrectly sized array".into()));
     }
 
     let mut proj = [0.; 16];
@@ -127,7 +127,7 @@ pub(crate) fn get_origin<T, U>(
     origin: &FakeXRRigidTransformInit,
 ) -> Fallible<RigidTransform3D<f32, T, U>> {
     if origin.position.len() != 3 || origin.orientation.len() != 4 {
-        return Err(Error::Type("Incorrectly sized array".into()));
+        return Err(Error::Type(c"Incorrectly sized array".into()));
     }
     let p = Vector3D::new(
         *origin.position[0],
@@ -160,7 +160,7 @@ pub(crate) fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
                 .map(|face| {
                     if face.vertices.len() != 3 {
                         return Err(Error::Type(
-                            "Incorrectly sized array for triangle list".into(),
+                            c"Incorrectly sized array for triangle list".into(),
                         ));
                     }
 
@@ -299,7 +299,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
         let _ = self.sender.send(MockDeviceMsg::AddInputSource(init));
 
         let controller =
-            FakeXRInputController::new(&global, self.sender.clone(), id, CanGc::note());
+            FakeXRInputController::new(&global, self.sender.clone(), id, CanGc::deprecated_note());
 
         Ok(controller)
     }
@@ -330,7 +330,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     fn SetBoundsGeometry(&self, bounds_coodinates: Vec<FakeXRBoundsPoint>) -> Fallible<()> {
         if bounds_coodinates.len() < 3 {
             return Err(Error::Type(
-                "Bounds geometry must contain at least 3 points".into(),
+                c"Bounds geometry must contain at least 3 points".into(),
             ));
         }
         let coords = bounds_coodinates

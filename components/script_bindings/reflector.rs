@@ -8,11 +8,12 @@ use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociated
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
 use crate::realms::InRealm;
 use crate::root::{Dom, DomRoot, Root};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc, temp_cx};
 use crate::{DomTypes, JSTraceable};
 
 pub trait AssociatedMemorySize: Default {
@@ -43,6 +44,8 @@ pub struct Reflector<T = ()> {
     object: Heap<*mut JSObject>,
     /// Associated memory size (of rust side). Used for memory reporting to SM.
     size: T,
+    /// Cached prototype ID for fast type checks.
+    proto_id: Cell<u16>,
 }
 
 unsafe impl<T> js::gc::Traceable for Reflector<T> {
@@ -61,6 +64,18 @@ impl<T> Reflector<T> {
     pub fn get_jsobject(&self) -> HandleObject<'_> {
         // We're rooted, so it's safe to hand out a handle to object in Heap
         unsafe { HandleObject::from_raw(self.object.handle()) }
+    }
+
+    /// Get the cached prototype ID.
+    #[inline]
+    pub fn proto_id(&self) -> u16 {
+        self.proto_id.get()
+    }
+
+    /// Set the cached prototype ID.
+    #[inline]
+    pub fn set_proto_id(&self, id: u16) {
+        self.proto_id.set(id);
     }
 
     /// Initialize the reflector. (May be called only once.)
@@ -89,6 +104,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
     pub fn new() -> Reflector<T> {
         Reflector {
             object: Heap::default(),
+            proto_id: Cell::new(u16::MAX),
             size: T::default(),
         }
     }
@@ -149,7 +165,15 @@ pub trait MutDomObject: DomObject {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
+    /// The provided [`JSObject`] pointer must not be allocated in the nursery.
     unsafe fn init_reflector<D>(&self, obj: *mut JSObject);
+
+    /// Initializes the Reflector without recording any associated memory usage.
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject);
 }
 
 impl MutDomObject for Reflector<()> {
@@ -160,6 +184,12 @@ impl MutDomObject for Reflector<()> {
                 size_of::<D>() + size_of::<Box<D>>(),
                 MemoryUse::DOMBinding,
             );
+            self.init_reflector_without_associated_memory(obj);
+        }
+    }
+
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject) {
+        unsafe {
             self.set_jsobject(obj);
         }
     }
@@ -173,6 +203,12 @@ impl MutDomObject for Reflector<AssociatedMemory> {
                 size_of::<D>() + size_of::<Box<D>>(),
                 MemoryUse::DOMBinding,
             );
+            self.init_reflector_without_associated_memory(obj);
+        }
+    }
+
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject) {
+        unsafe {
             self.set_jsobject(obj);
         }
     }
@@ -197,11 +233,10 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     /// Function pointer to the general wrap function type
     #[expect(clippy::type_complexity)]
     const WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
-        CanGc,
     ) -> Root<Dom<Self>>;
 }
 
@@ -211,10 +246,71 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
     /// Function pointer to the wrap function for `IterableIterator<T>`
     #[expect(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<D, Self>>,
-        CanGc,
     ) -> Root<Dom<IterableIterator<D, Self>>>;
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
+}
+
+pub fn reflect_dom_object_with_proto<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    _can_gc: CanGc,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object_with_cx<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    cx: &mut js::context::JSContext,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, None, obj) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object_with_proto_and_cx<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    cx: &mut js::context::JSContext,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, proto, obj) }
 }

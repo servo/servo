@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+      margin: 0;
+    }
+    .multi-column {
+      position: relative;
+        height: 47px;
+        column-width: 110px;
+        width: 350px;
+        column-gap: 10px;
+    }
+    #flexbox {
+        display: flex;
+        flex-wrap: wrap;
+        height: 110px;
+        column-gap: 10px;
+        width: 110px;
+        background: lightgreen;
+    }
+    #monolithic {
+       contain: size;
+    }
+
+    .items {
+      background: lightblue;
+      width: 50px;
+    }
+
+    .column-rule {
+      position: absolute;
+      height: 55px;
+      background: gold;
+      width: 10px;
+      top: 0px;
+    }
+
+</style>
+<div class="multi-column">
+<div class="column-rule" style="left: 50px;"></div>
+<div class="column-rule" style="left: 170px; height: 47px;"></div>
+<div class="column-rule" style="left: 290px; height: 8px;"></div>
+    <div id="flexbox">
+        <div class="items">1</div>
+        <div class="items" id="monolithic">2</div>
+        <div class="items">3</div>
+        <div class="items">4</div>
+    </div>
+</div>

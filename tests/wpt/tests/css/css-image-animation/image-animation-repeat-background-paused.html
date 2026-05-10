@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>pausing animated image for repeat background image</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-repeat-background-paused-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  takeScreenshotDelayed(300);
+</script>
+
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    image-animation: paused;
+    background-repeat: repeat;
+  }
+  #box1 {
+    background-image: url("../../images/anim-gr.gif");
+  }
+  #box2 {
+    background-image: url("../../images/anim-gr.png");
+  }
+</style>
+
+<div id="box1"></div>
+<div id="box2"></div>
+
+</html>

@@ -22,7 +22,7 @@ assert_return(() => call($1, "grow-t64", [1n, null]), "table_grow64.wast:16", 0n
 assert_return(() => call($1, "size-t64", []), "table_grow64.wast:17", 1n);
 
 // table_grow64.wast:18
-assert_return(() => call($1, "get-t64", [0n]), "table_grow64.wast:18", null);
+assert_return(() => call($1, "get-t64", [0n]), "table_grow64.wast:18", "ref.null");
 
 // table_grow64.wast:19
 assert_return(() => call($1, "set-t64", [0n, hostref(2)]), "table_grow64.wast:19");

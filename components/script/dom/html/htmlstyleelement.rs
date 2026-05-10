@@ -7,16 +7,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -32,6 +32,7 @@ use crate::dom::css::stylesheetcontentscache::{
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -79,20 +80,20 @@ impl HTMLStyleElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLStyleElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLStyleElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -253,7 +254,7 @@ impl HTMLStyleElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 )
             })
         })
@@ -317,10 +318,8 @@ impl VirtualMethods for HTMLStyleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // > The element is not on the stack of open elements of an HTML parser or XML parser, and its children changed steps run.
@@ -329,8 +328,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // > The element is not on the stack of open elements of an HTML parser or XML parser, and it becomes connected or disconnected.
@@ -339,8 +338,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn pop(&self) {
-        self.super_type().unwrap().pop();
+    fn pop(&self, cx: &mut js::context::JSContext) {
+        self.super_type().unwrap().pop(cx);
         self.in_stack_of_open_elements.set(false);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
@@ -348,9 +347,9 @@ impl VirtualMethods for HTMLStyleElement {
         self.update_a_style_block();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
@@ -360,9 +359,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
 
         let node = self.upcast::<Node>();
@@ -373,24 +377,24 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if attr.name() == "type" {
-            if let AttributeMutation::Set(Some(old_value), _) = mutation {
-                if **old_value == **attr.value() {
-                    return;
-                }
+            if let AttributeMutation::Set(Some(old_value), _) = mutation &&
+                **old_value == **attr.value()
+            {
+                return;
             }
             self.remove_stylesheet();
             self.update_a_style_block();
-        } else if attr.name() == "media" {
-            if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
-                let shared_lock = node.owner_doc().style_shared_lock().clone();
-                let mut guard = shared_lock.write();
-                let media = stylesheet.media.write_with(&mut guard);
-                match mutation {
-                    AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
-                    AttributeMutation::Removed => *media = StyleMediaList::empty(),
-                };
-                self.owner_document().invalidate_stylesheets();
-            }
+        } else if attr.name() == "media" &&
+            let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
+        {
+            let shared_lock = node.owner_doc().style_shared_lock().clone();
+            let mut guard = shared_lock.write();
+            let media = stylesheet.media.write_with(&mut guard);
+            match mutation {
+                AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
+                AttributeMutation::Removed => *media = StyleMediaList::empty(),
+            };
+            self.owner_document().invalidate_stylesheets();
         }
     }
 }
@@ -434,7 +438,7 @@ impl StylesheetOwner for HTMLStyleElement {
                 .is_some_and(|list| list.Contains("render".into()))
     }
 
-    fn referrer_policy(&self) -> ReferrerPolicy {
+    fn referrer_policy(&self, _cx: &mut js::context::JSContext) -> ReferrerPolicy {
         ReferrerPolicy::EmptyString
     }
 
@@ -458,7 +462,7 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
-    fn SetDisabled(&self, value: bool) {
+    fn SetDisabled(&self, _cx: &mut js::context::JSContext, value: bool) {
         if let Some(sheet) = self.get_cssom_stylesheet() {
             sheet.set_disabled(value);
         }
@@ -477,13 +481,13 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     make_setter!(SetMedia, "media");
 
     /// <https://html.spec.whatwg.org/multipage/#attr-style-blocking>
-    fn Blocking(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn Blocking(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.blocking.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("blocking"),
                 Some(vec![Atom::from("render")]),
-                can_gc,
             )
         })
     }

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - listbox behavior token defaults</title>
+<meta name="assert" content="listbox implies block axis only, no wrap. Explicit wrap adds wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="listbox">
+  <button tabindex=0 id=lb1>lb1</button>
+  <button tabindex=0 id=lb2>lb2</button>
+  <button tabindex=0 id=lb3>lb3</button>
+</div>
+
+<!-- listbox wrap: explicit wrap adds wrapping to non-wrapping default -->
+<div focusgroup="listbox wrap">
+  <button tabindex=0 id=lw1>lw1</button>
+  <button tabindex=0 id=lw2>lw2</button>
+  <button tabindex=0 id=lw3>lw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kDown);
+    assert_equals(document.activeElement.id, 'lb2');
+  }, "listbox: Down navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb2'), kUp);
+    assert_equals(document.activeElement.id, 'lb1');
+  }, "listbox: Up navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kRight);
+    assert_equals(document.activeElement.id, 'lb1');
+  }, "listbox: Right blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kLeft);
+    assert_equals(document.activeElement.id, 'lb1');
+  }, "listbox: Left blocked");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb3'), kDown);
+    assert_equals(document.activeElement.id, 'lb3');
+  }, "listbox: Down does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kUp);
+    assert_equals(document.activeElement.id, 'lb1');
+  }, "listbox: Up does not wrap at start");
+
+  // --- listbox wrap: adds wrapping to non-wrapping default ---
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kDown);
+    assert_equals(document.activeElement.id, 'lw2');
+  }, "listbox wrap: Down navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lw3'), kDown);
+    assert_equals(document.activeElement.id, 'lw1');
+  }, "listbox wrap: Down wraps at end");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kUp);
+    assert_equals(document.activeElement.id, 'lw3');
+  }, "listbox wrap: Up wraps at start");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kRight);
+    assert_equals(document.activeElement.id, 'lw1');
+  }, "listbox wrap: Right still blocked");
+
+</script>

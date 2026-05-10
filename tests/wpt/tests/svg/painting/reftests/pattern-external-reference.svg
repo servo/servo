@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>External file reference for pattern</title>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#SpecifyingFillPaint"/>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#SpecifyingStrokePaint"/>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#Patterns"/>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#URLReference"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#SpecifyingFillPaint"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#SpecifyingStrokePaint"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#Patterns"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#URLReference"/>
   <h:link rel="match" href="../../pservers/reftests/reference/green-100x100.svg"/>
 
   <rect width="100" height="100" fill="url(support/resources.svg#greenPattern) red"/>

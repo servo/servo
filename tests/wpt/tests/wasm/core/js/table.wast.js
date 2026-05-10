@@ -157,7 +157,7 @@ let $$18 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x88\x80\x80\x80\x00\x02\
 let $17 = instance($$18);
 
 // table.wast:112
-assert_return(() => call($17, "get1", []), "table.wast:112", "ref.null");
+assert_return(() => call($17, "get1", []), "table.wast:112", null);
 
 // table.wast:113
 assert_return(() => call($17, "get2", []), "table.wast:113", "ref.func");

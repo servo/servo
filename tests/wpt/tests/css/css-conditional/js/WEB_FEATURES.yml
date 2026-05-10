@@ -3,6 +3,10 @@ features:
   files:
   - "supports-*.html"
   - 001.html
+  - "!supports-at-rule.html"
 - name: css-supports
   files:
   - CSS-supports-*
+- name: supports-at-rule
+  files:
+  - supports-at-rule.html

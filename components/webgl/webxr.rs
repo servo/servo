@@ -5,10 +5,10 @@
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
-use canvas_traits::webgl::{
+use rustc_hash::FxHashMap;
+use servo_canvas_traits::webgl::{
     GenericSender, WebGLMsg, WebXRCommand, WebXRLayerManagerId, webgl_channel,
 };
-use rustc_hash::FxHashMap;
 use surfman::{Context, Device};
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::{

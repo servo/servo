@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    font-size: 20px;
+    line-height: 1.5;
+    zoom: 2;
+  }
+</style>
+<div id="outside"></div>
+<div id="zoomed" style="zoom: 2; font-size: 20px; line-height: 1.5;">
+  <div id="inside"></div>
+</div>
+<script>
+  function test_unit(unit, outside, zoomed, inside = zoomed) {
+    let values = { outside, zoomed, inside };
+    for (let id of ["outside", "zoomed", "inside"]) {
+      test(function() {
+        let el = document.getElementById(id);
+        el.style.height = "1" + unit;
+        let actual = el.getBoundingClientRect().height;
+        assert_approx_equals(actual, values[id], 1, `${unit} in ${id} (got ${actual})`);
+        el.style.height = "";
+      }, `1${unit} in ${id}`);
+    }
+  }
+
+  test_unit("lh", 60, 120);
+  test_unit("rlh", 60, 120);
+</script>

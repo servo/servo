@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="shrink-dynamic-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 80px;
+  margin-bottom: 10px;
+  font: 20px/normal Ahem;
+  border: 1px solid blue;
+}
+
+.scale-c {
+  text-fit: shrink consistent;
+}
+.scale-pl {
+  text-fit: shrink per-line;
+}
+.scale-pla {
+  text-fit: shrink per-line-all;
+}
+</style>
+<body>
+<!-- none ==> shrink consistent -->
+<div class="target">ABCDEFGH
+ABCDEF</div>
+
+<!-- shrink consistent ==> shrink per-line -->
+<div class="target scale-c">ABCDEFGH
+ABCDEF</div>
+
+<!-- shrink per-line ==> shrink per-line-all -->
+<div class="target scale-pl">ABCDEFGH
+ABCDEF</div>
+
+<script>
+document.fonts.ready.then(() => {
+  const targets = document.querySelectorAll('.target');
+  targets[0].classList.add('scale-c');
+  targets[1].classList.replace('scale-c', 'scale-pl');
+  targets[2].classList.replace('scale-pl', 'scale-pla');
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

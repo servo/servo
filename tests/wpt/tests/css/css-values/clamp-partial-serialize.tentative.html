@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="author" title="Tyler Thrailkill" href="mailto:tyler@programming.dev">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+
+// Specification does not state how serialization should occur for clamp
+// https://github.com/w3c/csswg-drafts/issues/13535
+// tentatively partially serialize to min/max
+
+function test_valid_partial(value, expected) {
+  test_valid_value('margin-top', value, expected);
+  test_valid_value('margin-top', `calc(${value})`, expected);
+}
+
+test_valid_partial('clamp(none, 2px, 3em)', 'min(2px, 3em)');
+test_valid_partial('clamp(1em, 2px, none)', 'max(1em, 2px)');
+
+
+test_valid_partial('clamp(1px, 2px, clamp(none, 4px, 5em))', 'clamp(1px, 2px, min(4px, 5em))');
+test_valid_partial('clamp(1px, 2px, clamp(3em, 4px, none))', 'clamp(1px, 2px, max(3em, 4px))');
+
+test_valid_partial('clamp(clamp(none, 2em, 3px), 4px, clamp(none, 6px, 7em))', 'clamp(min(2em, 3px), 4px, min(6px, 7em))');
+test_valid_partial('clamp(clamp(1em, 2px, none), 4px, clamp(none, 6px, 7em))', 'clamp(max(1em, 2px), 4px, min(6px, 7em))');
+test_valid_partial('clamp(clamp(none, 2em, 3px), 4px, clamp(5em, 6px, none))', 'clamp(min(2em, 3px), 4px, max(5em, 6px))');
+test_valid_partial('clamp(clamp(none, 2em, none), 4px, clamp(none, 6em, none))', 'clamp(2em, 4px, 6em)');
+
+</script>

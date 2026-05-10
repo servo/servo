@@ -7,22 +7,23 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{FontMetrics, GlyphStore};
+use fonts::ShapedTextSlice;
 use itertools::Either;
-use layout_api::wrapper_traits::SharedSelection;
+use layout_api::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use style::values::computed::BaselineShift;
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
-use webrender_api::FontInstanceKey;
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
+use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
     LogicalRect, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
@@ -217,7 +218,7 @@ impl LineItemLayout<'_, '_> {
             .iter()
             .map(|item| {
                 let level = match item {
-                    LineItem::TextRun(_, text_run) => text_run.bidi_level,
+                    LineItem::TextRun(_, text_run) => text_run.info.bidi_level,
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
@@ -230,7 +231,8 @@ impl LineItemLayout<'_, '_> {
                         // position it's fragment has in the order of line items.
                         last_level
                     },
-                    LineItem::AnonymousBlockBox(..) => last_level,
+                    LineItem::BlockLevel(..) => last_level,
+                    LineItem::Tab { bidi_level, .. } => *bidi_level,
                 };
                 last_level = level;
                 level
@@ -279,7 +281,8 @@ impl LineItemLayout<'_, '_> {
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
-                LineItem::AnonymousBlockBox(_, block_box) => self.layout_block(block_box),
+                LineItem::BlockLevel(_, block_level) => self.layout_block_level(block_level),
+                LineItem::Tab { advance, .. } => self.layout_tab(advance),
             }
         }
 
@@ -513,12 +516,15 @@ impl LineItemLayout<'_, '_> {
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match inline_box_state.base.style.clone_vertical_align() {
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
+        match inline_box_state.base.style.clone_baseline_shift() {
+            BaselineShift::Keyword(BaselineShiftKeyword::Top) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
             },
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
+            BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
+                (self.line_metrics.block_size - line_gap).scale_by(0.5)
+            },
+            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 let half_leading = (line_height - line_gap).scale_by(0.5);
                 self.line_metrics.block_size - line_height + half_leading
@@ -531,7 +537,7 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn layout_text_run(&mut self, text_item: TextRunLineItem) {
-        if text_item.text.is_empty() {
+        if text_item.text.is_empty() && !text_item.is_empty_for_text_cursor {
             return;
         }
 
@@ -539,9 +545,9 @@ impl LineItemLayout<'_, '_> {
         let mut inline_advance = text_item
             .text
             .iter()
-            .map(|glyph_store| {
-                number_of_justification_opportunities += glyph_store.total_word_separators();
-                glyph_store.total_advance()
+            .map(|shaped_text_slice| {
+                number_of_justification_opportunities += shaped_text_slice.total_word_separators();
+                shaped_text_slice.total_advance()
             })
             .sum();
 
@@ -554,19 +560,25 @@ impl LineItemLayout<'_, '_> {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
+        let font_metrics = &text_item.info.font.metrics;
         let start_corner = LogicalVec2 {
             inline: self.current_state.inline_advance,
             block: self.current_state.baseline_offset -
-                text_item.font_metrics.ascent -
+                font_metrics.ascent -
                 self.current_state.parent_offset.block,
         };
         let content_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
-                block: text_item.font_metrics.line_gap,
+                block: font_metrics.line_gap,
                 inline: inline_advance,
             },
         };
+
+        let font_key = text_item.info.font.key(
+            self.layout.layout_context.painter_id,
+            &self.layout.layout_context.font_context,
+        );
 
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
@@ -577,11 +589,12 @@ impl LineItemLayout<'_, '_> {
                     PhysicalRect::zero(),
                 ),
                 selected_style: text_item.inline_styles.selected.clone(),
-                font_metrics: text_item.font_metrics,
-                font_key: text_item.font_key,
+                font_metrics: font_metrics.clone(),
+                font_key,
                 glyphs: text_item.text,
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
+                is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
             })),
             content_rect,
         ));
@@ -669,9 +682,15 @@ impl LineItemLayout<'_, '_> {
                 }
             } else {
                 // After the bottom of the line at the start of the inline formatting context.
+                // Note that phantom lines are treated as being zero-height for this purpose.
+                // <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
                 LogicalVec2 {
                     inline: -self.current_state.parent_offset.inline,
-                    block: block_position + self.line_metrics.block_size,
+                    block: if absolute.preceding_line_content_would_produce_phantom_line {
+                        block_position
+                    } else {
+                        block_position + self.line_metrics.block_size
+                    },
                 }
             };
 
@@ -724,19 +743,26 @@ impl LineItemLayout<'_, '_> {
             .push((Fragment::Float(float.fragment), LogicalRect::zero()));
     }
 
-    fn layout_block(&mut self, block: ArcRefCell<BoxFragment>) {
+    fn layout_block_level(&mut self, block_level: ArcRefCell<BoxFragment>) {
         let containing_block = self.containing_block();
-        let mut content_rect = block.borrow().content_rect().to_logical(containing_block);
-        // Anonymous blocks are always placed at the logical origin of the line.
+        let mut content_rect = block_level
+            .borrow()
+            .content_rect()
+            .to_logical(containing_block);
+        // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
-        let fragment_and_rect = (Fragment::Box(block), content_rect);
+        let fragment_and_rect = (Fragment::Box(block_level), content_rect);
         self.current_state.fragments.push(fragment_and_rect);
     }
 
     #[inline]
     fn containing_block(&self) -> &ContainingBlock<'_> {
         self.layout.containing_block()
+    }
+
+    fn layout_tab(&mut self, advance: Au) {
+        self.current_state.inline_advance += advance;
     }
 }
 
@@ -747,10 +773,22 @@ pub(super) enum LineItem {
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
-    AnonymousBlockBox(Option<InlineBoxIdentifier>, ArcRefCell<BoxFragment>),
+    BlockLevel(Option<InlineBoxIdentifier>, ArcRefCell<BoxFragment>),
+    Tab {
+        inline_box_identifier: Option<InlineBoxIdentifier>,
+        advance: Au,
+        bidi_level: Level,
+    },
 }
 
 impl LineItem {
+    pub(crate) fn is_in_flow_content(&self) -> bool {
+        matches!(
+            self,
+            Self::TextRun(..) | Self::Atomic(..) | Self::BlockLevel(..)
+        )
+    }
+
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(identifier) => Some(*identifier),
@@ -759,7 +797,11 @@ impl LineItem {
             LineItem::Atomic(identifier, _) => *identifier,
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,
             LineItem::Float(identifier, _) => *identifier,
-            LineItem::AnonymousBlockBox(identifier, _) => *identifier,
+            LineItem::BlockLevel(identifier, _) => *identifier,
+            LineItem::Tab {
+                inline_box_identifier,
+                ..
+            } => *inline_box_identifier,
         }
     }
 
@@ -771,7 +813,8 @@ impl LineItem {
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
-            LineItem::AnonymousBlockBox(..) => true,
+            LineItem::BlockLevel(..) => true,
+            LineItem::Tab { .. } => false,
         }
     }
 
@@ -783,12 +826,13 @@ impl LineItem {
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
-            LineItem::AnonymousBlockBox(..) => true,
+            LineItem::BlockLevel(..) => true,
+            LineItem::Tab { .. } => false,
         }
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRunOffsets {
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
@@ -799,16 +843,16 @@ pub(crate) struct TextRunOffsets {
 }
 
 pub(super) struct TextRunLineItem {
+    pub info: Arc<FontAndScriptInfo>,
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
-    pub text: Vec<std::sync::Arc<GlyphStore>>,
-    pub font_metrics: Arc<FontMetrics>,
-    pub font_key: FontInstanceKey,
-    /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
-    pub bidi_level: Level,
+    pub text: Vec<Arc<ShapedTextSlice>>,
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
+    /// Whether or not this [`TextFragment`] is an empty fragment added for the
+    /// benefit of placing a text cursor on an otherwise empty editable line.
+    pub is_empty_for_text_cursor: bool,
 }
 
 impl TextRunLineItem {
@@ -872,12 +916,15 @@ impl TextRunLineItem {
 
     pub(crate) fn merge_if_possible(
         &mut self,
-        new_font_key: FontInstanceKey,
-        new_bidi_level: Level,
-        new_glyph_store: &Arc<GlyphStore>,
+        new_info: &Arc<FontAndScriptInfo>,
+        new_glyph_store: &Arc<ShapedTextSlice>,
         new_offsets: &Option<TextRunOffsets>,
+        new_inline_styles: &SharedInlineStyles,
     ) -> bool {
-        if self.font_key != new_font_key || self.bidi_level != new_bidi_level {
+        if !Arc::ptr_eq(&self.info.font, &new_info.font) ||
+            self.info.bidi_level != new_info.bidi_level ||
+            !self.inline_styles.ptr_eq(new_inline_styles)
+        {
             return false;
         }
         self.text.push(new_glyph_store.clone());
@@ -912,9 +959,12 @@ impl AtomicLineItem {
     /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
     /// position relative to the top of the line.
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
-        match self.fragment.borrow().style().clone_vertical_align() {
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => Au::zero(),
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
+        match self.fragment.borrow().style().clone_baseline_shift() {
+            BaselineShift::Keyword(BaselineShiftKeyword::Top) => Au::zero(),
+            BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
+                (line_metrics.block_size - self.size.block).scale_by(0.5)
+            },
+            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 line_metrics.block_size - self.size.block
             },
 
@@ -929,6 +979,10 @@ impl AtomicLineItem {
 
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
+    /// Whether the line would be phantom if it were to end before the abspos.
+    /// This is used when computing the static position (in the block axis) of
+    /// an abspos whose original display had a block outer display type.
+    pub preceding_line_content_would_produce_phantom_line: bool,
 }
 
 pub(super) struct FloatLineItem {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test (Transforms): Perspective with overflow - reference</title>
+<style>
+#container {
+  width: 300px;
+  height: 300px;
+  overflow: visible;
+  perspective: 1000px;
+}
+
+#child {
+  width: 60px;
+  height: 60px;
+  background: lime;
+  transform: translateX(100px) translateY(140px) translateZ(550px);
+  transform-origin: top left;
+}
+</style>
+<div id="container">
+  <div id="child"></div>
+</div>

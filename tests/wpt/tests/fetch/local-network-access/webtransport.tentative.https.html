@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LNA WebTransport tests </title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support.sub.js"></script>
+<script>
+  "use strict";
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/webtransport.html",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebTransportTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to loopback webtransport with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/webtransport.html?permission=denied",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebTransportTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to loopback webtransport without permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/webtransport.html",
+        sourceResolveOptions({ server: Server.HTTPS_LOCAL }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebTransportTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA local to loopback webtransport with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/webtransport.html?permission=denied",
+        sourceResolveOptions({ server: Server.HTTPS_LOCAL }));
+
+    function checkResult(evt) {
+      // Permission not needed for local -> loopback
+      assert_equals(evt.data, WebTransportTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA local to loopback webtransport without permission');
+
+
+</script>
+</body>

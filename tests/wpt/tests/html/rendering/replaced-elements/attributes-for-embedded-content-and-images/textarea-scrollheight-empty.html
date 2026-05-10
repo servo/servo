@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Textarea scrollHeight shouldn't collapse under a line height</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2022491">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<textarea id="a" style="height: 1px"></textarea>
+<textarea id="b" rows="1"></textarea>
+<script>
+test(() => {
+  assert_equals(a.scrollHeight, b.scrollHeight);
+});
+</script>

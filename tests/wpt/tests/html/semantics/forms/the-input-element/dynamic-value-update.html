@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Dynamically-created input displays value changes</title>
+<link rel="match" href="dynamic-value-update-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#dom-input-value">
+<p>There should be one input with "1" and one empty input.</p>
+<div id="source"><input name="F01" value="1"></div>
+<script>
+const clone = document.createElement('div');
+clone.innerHTML = document.getElementById('source').innerHTML;
+document.body.appendChild(clone);
+document.getElementsByName('F01')[1].value = '';
+</script>

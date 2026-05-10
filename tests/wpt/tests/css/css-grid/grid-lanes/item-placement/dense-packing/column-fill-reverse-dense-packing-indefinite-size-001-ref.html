@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    .container {
+        display: grid;
+        grid-template-columns: repeat(4, 100px);
+        grid-template-rows: 1fr;
+        column-gap: 10px;
+        margin-top: 100px;
+        border: solid 2px blue;
+        width: min-content;
+        font-family: Ahem;
+        font-size: 10px;
+    }
+    .col {
+        display: flex;
+        flex-direction: column-reverse;
+        row-gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Column 1: block, spanner, (120px gap for items in other columns), spanner -->
+    <div class="col">
+      <div style="background-color: lightcoral; height: 100px;">block</div>
+      <div style="background-color: lightcoral; height: 10px; width: 430px;">spanner</div>
+      <div style="height: 100px;"></div>
+      <div style="background-color: lightcoral; height: 10px; width: 430px;">spanner</div>
+    </div>
+    <!-- Column 2: Item 1, Item 5, Item 8, [spanner gap], Item 6, [spanner gap], Item 9, Item 10 -->
+    <div class="col">
+      <div style="background-color: lightgreen; height: 30px;">Item 1</div>
+      <div style="background-color: lightgreen; height: 30px;">Item 5</div>
+      <div style="background-color: lightblue; height: 15px;">Item 8</div>
+      <div style="height: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; height: 100px; margin-bottom: 5px;">Item 6</div>
+      <div style="height: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; height: 40px;">Item 9</div>
+      <div style="background-color: steelblue; height: 45px;">Item 10</div>
+    </div>
+    <!-- Column 3: Item 2, [spanner gap], Item 4 -->
+    <div class="col">
+      <div style="background-color: lightblue; height: 100px;">Item 2</div>
+      <div style="height: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; height: 90px;">Item 4</div>
+    </div>
+    <!-- Column 4: Item 3, [spanner gap], Item 7, block2, [spanner gap] -->
+    <div class="col">
+      <div style="background-color: lightgreen; height: 30px;">Item 3</div>
+      <div style="background-color: lightgreen; height: 30px;">Item 7</div>
+      <div style="background-color: lightcoral; height: 100px; margin-bottom: 50px;">block</div>
+      <div style="height: 20px;"></div><!-- spanner space -->
+    </div>
+  </div>
+</body>
+</html>

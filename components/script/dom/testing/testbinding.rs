@@ -9,17 +9,18 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use std::time::Duration;
 
-use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, HeapUint8ClampedArray};
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_config::prefs;
+use servo_constellation_traits::BlobImpl;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -30,18 +31,18 @@ use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     TestDictionaryParent, TestDictionaryWithParent, TestDictionaryWithTypedArray, TestEnum,
     TestURLLike,
 };
-use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
-    BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
+    self, BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
     ByteStringSequenceOrLong, ByteStringSequenceOrLongOrString, EventOrString, EventOrUSVString,
-    HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrLongSequenceSequence,
-    LongSequenceOrBoolean, StringOrBoolean, StringOrLongSequence, StringOrStringSequence,
+    HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrBoolean,
+    LongOrLongSequenceSequence, LongSequenceOrBoolean, ObjectOrBoolean, ObjectOrLong,
+    ObjectOrString, StringOrBoolean, StringOrLong, StringOrLongSequence, StringOrStringSequence,
     StringOrUnsignedLong, StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -71,46 +72,46 @@ impl TestBinding {
     }
 
     fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<TestBinding> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TestBinding::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
 
 impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     #[expect(unused_variables)]
     fn Constructor_(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         nums: Vec<f64>,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     #[expect(unused_variables)]
     fn Constructor__(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         num: f64,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     fn BooleanAttribute(&self) -> bool {
@@ -229,7 +230,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &data, array.handle_mut(), CanGc::note())
+        create_buffer_source(cx, &data, array.handle_mut(), CanGc::deprecated_note())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
@@ -568,7 +569,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         &self,
         _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
     ) {
-        self.global().as_window().Gc();
+        self.global().as_window().gc();
     }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {
@@ -708,6 +709,51 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn PassOverloadedDict_(&self, u: &TestURLLike) -> DOMString {
         u.href.clone()
+    }
+
+    fn PassOverloadedUnionOfObjectAndString(
+        &self,
+        _: SafeJSContext,
+        _: ObjectOrString,
+    ) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfObjectAndNumber(&self, _: SafeJSContext, _: ObjectOrLong) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfObjectAndBoolean(
+        &self,
+        _: SafeJSContext,
+        _: ObjectOrBoolean,
+    ) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> DOMString {
+        "number".into()
+    }
+    fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> DOMString {
+        "number".into()
+    }
+    fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: DOMString) -> DOMString {
+        "string".into()
     }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
@@ -895,12 +941,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        DOMString::from_string(
-            prefs::get()
-                .get_value(&pref_name.str())
-                .try_into()
-                .unwrap_or_default(),
-        )
+        let string: String = prefs::get()
+            .get_value(&pref_name.str())
+            .try_into()
+            .unwrap_or_default();
+        string.into()
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false
@@ -981,11 +1026,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(&self.global(), cx, v, CanGc::note())
+        Promise::new_resolved(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(&self.global(), cx, v, CanGc::note())
+        Promise::new_rejected(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
@@ -997,7 +1042,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
-        p.reject_error(Error::Type(s.0), can_gc);
+        p.reject_error(Error::Type(cformat!("{}", s.0)), can_gc);
     }
 
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
@@ -1014,20 +1059,20 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn PromiseNativeHandler(
         &self,
+        realm: &mut CurrentRealm,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            can_gc,
+            CanGc::from_cx(realm),
         );
-        let p = Promise::new_in_current_realm(comp, can_gc);
-        p.append_native_handler(&handler, comp, can_gc);
+
+        let p = Promise::new_in_realm(realm);
+        p.append_native_handler(realm, &handler);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
@@ -1042,11 +1087,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
         impl Callback for SimpleHandler {
             fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-                let can_gc = CanGc::from_cx(cx);
                 let global = GlobalScope::from_current_realm(cx);
                 let _ = self
                     .handler
-                    .Call_(&*global, v, ExceptionHandling::Report, can_gc);
+                    .Call_(cx, &*global, v, ExceptionHandling::Report);
             }
         }
     }
@@ -1068,19 +1112,6 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 let _seq: Vec<Vec<i32>> = seq;
             },
         }
-    }
-
-    #[expect(unsafe_code)]
-    fn CrashHard(&self) {
-        unsafe { std::ptr::null_mut::<i32>().write(42) }
-    }
-
-    fn AdvanceClock(&self, ms: i32) {
-        self.global().as_window().advance_animation_clock(ms);
-    }
-
-    fn Panic(&self) {
-        panic!("explicit panic from script")
     }
 
     fn EntryGlobal(&self) -> DomRoot<GlobalScope> {
@@ -1112,11 +1143,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn MethodThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn GetGetterThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
@@ -1124,7 +1155,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
@@ -1174,7 +1205,7 @@ impl TestBindingCallback {
     pub(crate) fn invoke(self) {
         self.promise
             .root()
-            .resolve_native(&self.value, CanGc::note());
+            .resolve_native(&self.value, CanGc::deprecated_note());
     }
 }
 

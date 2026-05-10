@@ -6,15 +6,14 @@
 //! properties applied, including the attributes and layout of each element.
 
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::iter::once;
 
-use base::generic_channel::{self, GenericSender};
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
-use devtools_traits::{AutoMargins, ComputedNodeLayout, DevtoolScriptControlMsg};
+use devtools_traits::{AutoMargins, ComputedNodeLayout, MatchedRule};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
@@ -90,10 +89,9 @@ pub(crate) struct PageStyleMsg {
     pub traits: HashMap<String, bool>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct PageStyleActor {
     pub name: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
 }
 
 impl Actor for PageStyleActor {
@@ -131,41 +129,49 @@ impl Actor for PageStyleActor {
 }
 
 impl PageStyleActor {
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
+    }
+
     fn get_applied(
         &self,
         request: ClientRequest,
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node = registry.find::<NodeActor>(target);
-        let walker = registry.find::<WalkerActor>(&node.walker);
+        let node_actor = registry.find::<NodeActor>(node_name);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
+        let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
-            &node.script_chan,
-            node.pipeline,
-            target,
+            &node_actor.script_chan,
+            node_actor.pipeline,
+            node_name,
             registry,
             &walker.root(registry)?.actor,
             vec![],
-            |msg| msg.actor == target,
+            |msg| msg.actor == node_name,
         )
         .unwrap_or_default()
         .into_iter()
         .flat_map(|node| {
-            let inherited = (node.actor != target).then(|| node.actor.clone());
+            let inherited = (node.actor != node_name).then(|| node.actor.clone());
             let node_actor = registry.find::<NodeActor>(&node.actor);
 
             // Get the css selectors that match this node present in the currently active stylesheets.
             let selectors = (|| {
                 let (selectors_sender, selector_receiver) = generic_channel::channel()?;
-                walker
-                    .script_chan
+                browsing_context_actor
+                    .script_chan()
                     .send(GetSelectors(
-                        walker.pipeline,
+                        browsing_context_actor.pipeline_id(),
                         registry.actor_to_script(node.actor.clone()),
                         selectors_sender,
                     ))
@@ -177,28 +183,33 @@ impl PageStyleActor {
             // For each selector (plus an empty one that represents the style attribute)
             // get all of the rules associated with it.
 
-            once(("".into(), usize::MAX))
-                .chain(selectors)
-                .filter_map(move |selector| {
-                    let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
-                        Entry::Vacant(e) => {
-                            let name = registry.new_name::<StyleRuleActor>();
-                            let actor = StyleRuleActor::new(
-                                name.clone(),
-                                node_actor.name(),
-                                (!e.key().0.is_empty()).then_some(e.key().clone()),
-                            );
-                            let rule = actor.applied(registry)?;
+            let style_attribute_rule = MatchedRule {
+                selector: "".into(),
+                stylesheet_index: usize::MAX,
+                block_id: 0,
+                ancestor_data: vec![],
+            };
 
-                            registry.register(actor);
-                            e.insert(name);
-                            rule
-                        },
-                        Entry::Occupied(e) => {
-                            let actor = registry.find::<StyleRuleActor>(e.get());
-                            actor.applied(registry)?
-                        },
-                    };
+            once(style_attribute_rule)
+                .chain(selectors)
+                .filter_map(move |matched_rule| {
+                    let style_rule_name = node_actor
+                        .style_rules
+                        .borrow_mut()
+                        .entry(matched_rule.clone())
+                        .or_insert_with(|| {
+                            StyleRuleActor::register(
+                                registry,
+                                node_actor.name(),
+                                (matched_rule.stylesheet_index != usize::MAX)
+                                    .then_some(matched_rule.clone()),
+                            )
+                        })
+                        .clone();
+
+                    let rule = registry
+                        .find::<StyleRuleActor>(&style_rule_name)
+                        .applied(registry)?;
                     if inherited.is_some() && rule.declarations.is_empty() {
                         return None;
                     }
@@ -226,31 +237,30 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node_actor = registry.find::<NodeActor>(target);
-        let computed = (|| match node_actor
+        let node_actor = registry.find::<NodeActor>(node_name);
+        let style_attribute_rule = devtools_traits::MatchedRule {
+            selector: "".into(),
+            stylesheet_index: usize::MAX,
+            block_id: 0,
+            ancestor_data: vec![],
+        };
+
+        let style_rule_name = node_actor
             .style_rules
             .borrow_mut()
-            .entry(("".into(), usize::MAX))
-        {
-            Entry::Vacant(e) => {
-                let name = registry.new_name::<StyleRuleActor>();
-                let actor = StyleRuleActor::new(name.clone(), target.into(), None);
-                let computed = actor.computed(registry)?;
-                registry.register(actor);
-                e.insert(name);
-                Some(computed)
-            },
-            Entry::Occupied(e) => {
-                let actor = registry.find::<StyleRuleActor>(e.get());
-                Some(actor.computed(registry)?)
-            },
-        })()
-        .unwrap_or_default();
+            .entry(style_attribute_rule)
+            .or_insert_with(|| StyleRuleActor::register(registry, node_name.into(), None))
+            .clone();
+        let computed = registry
+            .find::<StyleRuleActor>(&style_rule_name)
+            .computed(registry)
+            .unwrap_or_default();
+
         let msg = GetComputedReply {
             computed,
             from: self.name(),
@@ -264,16 +274,20 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
+        let node_actor = registry.find::<NodeActor>(node_name);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
+        let browsing_context_actor = walker.browsing_context_actor(registry);
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        self.script_chan
+        browsing_context_actor
+            .script_chan()
             .send(GetLayout(
-                self.pipeline,
-                registry.actor_to_script(target.to_owned()),
+                browsing_context_actor.pipeline_id(),
+                registry.actor_to_script(node_name.to_owned()),
                 tx,
             ))
             .map_err(|_| ActorError::Internal)?;

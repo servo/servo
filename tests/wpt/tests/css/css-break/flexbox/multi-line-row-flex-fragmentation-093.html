@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: item with large inner overflow.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://crbug.com/440474985">
+<link rel="match" href="multi-line-row-flex-fragmentation-093-ref.html">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  #flex > div {
+    width: 25px;
+  }
+</style>
+<div style="columns:2; width:100px; height:100px; gap:0; column-fill:auto;">
+  <div id="flex">
+    <div></div>
+    <div style="height:50px; background: orange;">
+      <div style="height:210px; background: purple; opacity: 0.5;"></div>
+    </div>
+    <div style="height:100px; background: blue;"></div>
+    <div style="height:50px; background: yellow;"></div>
+  </div>
+</div>

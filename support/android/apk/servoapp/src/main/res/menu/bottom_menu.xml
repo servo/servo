@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/history_back_menu_item"
+        android:icon="@drawable/arrow_back"
+        android:enabled="false"
+        android:title="@string/history_back" />
+    <item android:id="@+id/history_forward_menu_item"
+        android:icon="@drawable/arrow_forward"
+        android:enabled="false"
+        android:title="@string/history_forward" />
+    <item android:id="@+id/refresh_menu_item"
+        android:icon="@drawable/refresh"
+        android:title="@string/refresh" />
+    <item android:id="@+id/cancel_menu_item"
+        android:icon="@drawable/cancel"
+        android:visible="false"
+        android:title="@string/cancel" />
+    <item android:id="@+id/settings_menu_item"
+        android:icon="@drawable/settings"
+        android:title="@string/options" />
+    <item android:id="@+id/history_menu_item"
+        android:icon="@drawable/history"
+        android:title="@string/history_title" />
+</menu>

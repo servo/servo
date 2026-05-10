@@ -1,0 +1,9 @@
+<!-- crashtest -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async function() {
+  new CustomEvent("foo", { detail: null });
+  await TestUtils.gc();
+});
+</script>

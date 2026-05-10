@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Avar2 GPOS Variable Kerning Reference</title>
+    <style>
+        @font-face {
+            font-family: 'AvarTestFont';
+            src: url('../resources/avar2_kern_test.ttf') format('truetype');
+        }
+
+        .pair {
+            font-family: 'AvarTestFont';
+            font-size: 50px;
+            line-height: 2.3;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Pair 1: Default (XKRN 0, YKRN 0) -->
+    <div class="pair" style="font-variation-settings: 'XKRN' 0.0, 'YKRN' 0.0;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 2: XKRN 0.133975, YKRN 0.5 -->
+    <div class="pair" style="font-variation-settings: 'XKRN' 0.133975, 'YKRN' 0.5;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 3: XKRN 0.5, YKRN 0.866025 -->
+    <div class="pair" style="font-variation-settings: 'XKRN' 0.5, 'YKRN' 0.866025;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 4: XKRN 1.0, YKRN 1.0 -->
+    <div class="pair" style="font-variation-settings: 'XKRN' 1.0, 'YKRN' 1.0;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 5: XKRN 1.0 with space in between crosses, no kerning. -->
+    <div class="pair">&#x2316; &#x2316;</div>
+</body>
+
+</html>

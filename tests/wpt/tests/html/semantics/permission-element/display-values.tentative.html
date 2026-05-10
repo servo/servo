@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Permission Element: display style validation</title>
+    <title>Usermedia Element: display style validation</title>
     <link
       rel="help"
       href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style"
@@ -12,8 +12,8 @@
   </head>
   <body>
     <script>
-      function createPermissionElementWithStyle(displayValue, type) {
-        const element = document.createElement("permission");
+      function createUsermediaElementWithStyle(displayValue, type) {
+        const element = document.createElement("usermedia");
 
         element.setAttribute("type", type);
         element.style.display = displayValue;
@@ -43,18 +43,18 @@
         ["table-row-group", "style_invalid"],
       ];
 
-      const permissionTypes = ["camera", "microphone", "camera microphone", "geolocation"];
+      const usermediaTypes = ["camera", "microphone", "camera microphone"];
 
       testCases.forEach((testCase, index) =>
-        testCase.push(permissionTypes[index % permissionTypes.length]),
+        testCase.push(usermediaTypes[index % usermediaTypes.length]),
       );
       async_test((t) => {
         let completedTests = 0;
 
         testCases.forEach(([displayValue, expectedInvalidReason, type]) => {
-          const element = createPermissionElementWithStyle(displayValue, type);
+          const element = createUsermediaElementWithStyle(displayValue, type);
           element.onvalidationstatuschange = t.step_func(() => {
-            // These two invalid reasons are expected when the permission element was just created.
+            // These two invalid reasons are expected when the usermedia element was just created.
             if (
               element.invalidReason == "unsuccessful_registration" ||
               element.invalidReason == "intersection_changed"
@@ -70,7 +70,7 @@
             if (++completedTests === testCases.length) t.done();
           });
         });
-      }, "Permission element display style validation");
+      }, "Usermedia element display style validation");
     </script>
   </body>
 </html>

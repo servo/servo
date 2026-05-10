@@ -1,0 +1,291 @@
+<!doctype html>
+<title>light-dark() with image values</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<div id="light" style="color-scheme: light"></div>
+<div id="dark" style="color-scheme: dark"></div>
+<div id="inherit-parent" style="color-scheme: dark">
+  <div id="inherit-child"></div>
+</div>
+<script>
+function test_light_dark_image(property, value, expected_light, expected_dark) {
+  test(() => {
+    for (let element of [light, dark]) {
+      element.style.setProperty(property, "");
+      element.style.setProperty(property, value);
+      assert_not_equals(element.style.getPropertyValue(property), "",
+                        "Should parse as valid: " + value);
+      let computed = getComputedStyle(element).getPropertyValue(property);
+      let expected = element.id == "dark" ? expected_dark : expected_light;
+      assert_true(computed.endsWith(expected),
+                  `Expected "${computed}" to end with "${expected}"`);
+      element.style.setProperty(property, "");
+    }
+  }, `${property}: ${value}`);
+}
+
+function test_invalid(property, value) {
+  test(() => {
+    light.style.setProperty(property, "initial");
+    light.style.setProperty(property, value);
+    assert_equals(light.style.getPropertyValue(property), "initial",
+                  "Should not parse: " + value);
+    light.style.setProperty(property, "");
+  }, `${property}: ${value} (invalid)`);
+}
+
+// background-image: url values
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('light.png'), url('dark.png'))",
+  'light.png")',
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(none, url('dark.png'))",
+  "none",
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('light.png'), none)",
+  'light.png")',
+  "none"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(none, none)",
+  "none",
+  "none"
+);
+
+// background-image: gradient values
+test_light_dark_image(
+  "background-image",
+  "light-dark(linear-gradient(red, blue), linear-gradient(green, yellow))",
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  "linear-gradient(rgb(0, 128, 0), rgb(255, 255, 0))"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(radial-gradient(red, blue), radial-gradient(green, yellow))",
+  "radial-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  "radial-gradient(rgb(0, 128, 0), rgb(255, 255, 0))"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(conic-gradient(red, blue), conic-gradient(green, yellow))",
+  "conic-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  "conic-gradient(rgb(0, 128, 0), rgb(255, 255, 0))"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(repeating-linear-gradient(red, blue 50px), repeating-linear-gradient(green, yellow 50px))",
+  "repeating-linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255) 50px)",
+  "repeating-linear-gradient(rgb(0, 128, 0), rgb(255, 255, 0) 50px)"
+);
+
+// background-image: mixed image types (url + gradient)
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('light.png'), linear-gradient(red, blue))",
+  'light.png")',
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(linear-gradient(red, blue), url('dark.png'))",
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  'dark.png")'
+);
+
+// background-image: none + gradient
+test_light_dark_image(
+  "background-image",
+  "light-dark(none, linear-gradient(red, blue))",
+  "none",
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(linear-gradient(red, blue), none)",
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  "none"
+);
+
+// list-style-image
+test_light_dark_image(
+  "list-style-image",
+  "light-dark(url('light.png'), url('dark.png'))",
+  'light.png")',
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "list-style-image",
+  "light-dark(none, url('dark.png'))",
+  "none",
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "list-style-image",
+  "light-dark(url('light.png'), none)",
+  'light.png")',
+  "none"
+);
+
+// border-image-source
+test_light_dark_image(
+  "border-image-source",
+  "light-dark(url('light.png'), url('dark.png'))",
+  'light.png")',
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "border-image-source",
+  "light-dark(linear-gradient(red, blue), linear-gradient(green, yellow))",
+  "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
+  "linear-gradient(rgb(0, 128, 0), rgb(255, 255, 0))"
+);
+
+// content property with image values
+test_light_dark_image(
+  "content",
+  "light-dark(url('light.png'), url('dark.png'))",
+  'light.png")',
+  'dark.png")'
+);
+
+// Nested light-dark with image values
+test_light_dark_image(
+  "background-image",
+  "light-dark(light-dark(url('a.png'), url('b.png')), url('c.png'))",
+  'a.png")',
+  'c.png")'
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('a.png'), light-dark(url('b.png'), url('c.png')))",
+  'a.png")',
+  'c.png")'
+);
+
+test(() => {
+  for (let element of [light, dark]) {
+    element.style.setProperty("background-image", "");
+    element.style.setProperty(
+        "background-image",
+        "image-set(-webkit-cross-fade(light-dark(url('dummy://light-a.png'), " +
+            "url('dummy://dark-a.png')), image-set(light-dark(" +
+            "url('dummy://light-b.png'), url('dummy://dark-b.png')) 1x), " +
+            "50%) 1x)");
+    assert_not_equals(element.style.getPropertyValue("background-image"), "",
+                      "Should parse nested image functions");
+
+    const computed = getComputedStyle(element).getPropertyValue(
+        "background-image");
+    const expected = element.id == "dark"
+        ? ["dummy://dark-a.png", "dummy://dark-b.png"]
+        : ["dummy://light-a.png", "dummy://light-b.png"];
+    const unexpected = element.id == "dark"
+        ? ["dummy://light-a.png", "dummy://light-b.png"]
+        : ["dummy://dark-a.png", "dummy://dark-b.png"];
+
+    for (const url of expected) {
+      assert_true(
+          computed.includes(url),
+          `Expected "${computed}" to include resolved URL "${url}"`);
+    }
+    for (const url of unexpected) {
+      assert_false(
+          computed.includes(url),
+          `Expected "${computed}" not to include unresolved URL "${url}"`);
+    }
+
+    element.style.setProperty("background-image", "");
+  }
+}, "background-image: nested image-set() / -webkit-cross-fade() resolve light-dark() at any depth");
+
+// Serialization round-trip
+test(() => {
+  for (let element of [light, dark]) {
+    element.style.setProperty("background-image", "");
+    element.style.setProperty("background-image",
+      "light-dark(url('light.png'), url('dark.png'))");
+    let serialized = element.style.getPropertyValue("background-image");
+    assert_not_equals(serialized, "", "Should serialize");
+    let computed_before =
+        getComputedStyle(element).getPropertyValue("background-image");
+    element.style.setProperty("background-image", "");
+    element.style.setProperty("background-image", serialized);
+    assert_not_equals(element.style.getPropertyValue("background-image"), "",
+                      "Serialized value should re-parse");
+    let computed_after =
+        getComputedStyle(element).getPropertyValue("background-image");
+    assert_equals(computed_after, computed_before,
+                  "Computed value should match after round-trip");
+    element.style.setProperty("background-image", "");
+  }
+}, "Serialization round-trip for light-dark() image");
+
+// Inheritance: child inherits light-dark image from parent
+test(() => {
+  const parent = document.getElementById("inherit-parent");
+  const child = document.getElementById("inherit-child");
+  parent.style.setProperty("background-image",
+    "light-dark(url('light.png'), url('dark.png'))");
+  child.style.setProperty("background-image", "inherit");
+  let computed = getComputedStyle(child).getPropertyValue("background-image");
+  assert_true(computed.endsWith('dark.png")'),
+              `Expected "${computed}" to end with dark.png")`);
+  parent.style.setProperty("background-image", "");
+  child.style.setProperty("background-image", "");
+}, "Inherited light-dark() image resolves with parent's color-scheme");
+
+// Dynamic color-scheme change
+test(() => {
+  light.style.setProperty("background-image",
+    "light-dark(url('light.png'), url('dark.png'))");
+  let computed_light = getComputedStyle(light).getPropertyValue("background-image");
+  assert_true(computed_light.endsWith('light.png")'),
+              "Should resolve to light image initially");
+
+  light.style.setProperty("color-scheme", "dark");
+  let computed_dark = getComputedStyle(light).getPropertyValue("background-image");
+  assert_true(computed_dark.endsWith('dark.png")'),
+              "Should resolve to dark image after scheme change");
+
+  light.style.setProperty("color-scheme", "light");
+  let computed_restored = getComputedStyle(light).getPropertyValue("background-image");
+  assert_true(computed_restored.endsWith('light.png")'),
+              "Should resolve to light image after restoring scheme");
+  light.style.setProperty("background-image", "");
+}, "light-dark() image responds to dynamic color-scheme changes");
+
+// Invalid cases
+test_invalid("background-image", "light-dark()");
+test_invalid("background-image", "light-dark(url(a.png))");
+test_invalid("background-image", "light-dark(url(a.png) url(b.png))");
+test_invalid("background-image", "light-dark(url(a.png),,url(b.png))");
+// Colors are not valid in image context
+test_invalid("background-image", "light-dark(red, green)");
+test_invalid("background-image", "light-dark(red, url(a.png))");
+test_invalid("background-image", "light-dark(url(a.png), red)");
+// Three arguments
+test_invalid("background-image", "light-dark(url(a.png), url(b.png), url(c.png))");
+</script>

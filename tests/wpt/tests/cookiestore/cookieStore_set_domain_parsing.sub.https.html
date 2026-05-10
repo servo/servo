@@ -18,6 +18,17 @@
       const childWindow = window.open(childUrl.href);
       await fetch_tests_from_window(childWindow);
     }, "cookieStore.set with mixed casing domain");
+
+    promise_test(async (t) => {
+      const name = "public-suffix";
+      const value = "cookie-value";
+      // Web platform tests execute on domains that end in `test` as the eTLD.
+      // The eTLD should not be a valid domain for cookies.
+      const domain = "test";
+      await promise_rejects_js(t, TypeError,
+          cookieStore.set({ name, value, domain }),
+          "ETLD should not be a valid domain attribute");
+    }, "cookieStore.set with public suffix domain");
     </script>
   </body>
 </html>

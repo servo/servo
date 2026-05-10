@@ -4,10 +4,7 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use atomic_refcell::AtomicRefCell;
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -19,11 +16,13 @@ use crate::protocol::ClientRequest;
 use crate::{ActorMsg, StreamId};
 
 pub mod accessibility;
+pub mod accessible_walker;
 pub mod css_properties;
 pub mod highlighter;
 pub mod layout;
 pub mod node;
 pub mod page_style;
+pub mod simulator;
 pub mod style_rule;
 pub mod walker;
 
@@ -52,11 +51,12 @@ struct SupportsHighlightersReply {
     value: bool,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct InspectorActor {
     name: String,
-    highlighter: String,
-    page_style: String,
-    walker: String,
+    highlighter_name: String,
+    page_style_name: String,
+    pub(crate) walker_name: String,
 }
 
 impl Actor for InspectorActor {
@@ -76,7 +76,7 @@ impl Actor for InspectorActor {
             "getPageStyle" => {
                 let msg = GetPageStyleReply {
                     from: self.name(),
-                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style),
+                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -84,7 +84,7 @@ impl Actor for InspectorActor {
             "getHighlighterByType" => {
                 let msg = GetHighlighterReply {
                     from: self.name(),
-                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter),
+                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -92,7 +92,7 @@ impl Actor for InspectorActor {
             "getWalker" => {
                 let msg = GetWalkerReply {
                     from: self.name(),
-                    walker: registry.encode::<WalkerActor, _>(&self.walker),
+                    walker: registry.encode::<WalkerActor, _>(&self.walker_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -112,45 +112,23 @@ impl Actor for InspectorActor {
 }
 
 impl InspectorActor {
-    // TODO: Passing the pipeline id here isn't correct. We should query the browsing
-    // context for the active pipeline, otherwise reloading or navigating will break the inspector.
-    pub fn register(
-        registry: &ActorRegistry,
-        pipeline: PipelineId,
-        script_chan: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
-        let highlighter = HighlighterActor {
-            name: registry.new_name::<HighlighterActor>(),
-            script_sender: script_chan.clone(),
-            pipeline,
-        };
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+        let highlighter_name = HighlighterActor::register(registry, browsing_context_name.clone());
 
-        let page_style = PageStyleActor {
-            name: registry.new_name::<PageStyleActor>(),
-            script_chan: script_chan.clone(),
-            pipeline,
-        };
+        let page_style_name = PageStyleActor::register(registry);
 
-        let walker = WalkerActor {
-            name: registry.new_name::<WalkerActor>(),
-            mutations: AtomicRefCell::new(vec![]),
-            script_chan,
-            pipeline,
-        };
+        let walker_name = WalkerActor::register(registry, browsing_context_name);
 
-        let actor = Self {
+        let inspector_actor = Self {
             name: registry.new_name::<InspectorActor>(),
-            highlighter: highlighter.name(),
-            page_style: page_style.name(),
-            walker: walker.name(),
+            highlighter_name,
+            page_style_name,
+            walker_name,
         };
-        let name = actor.name();
+        let inspector_name = inspector_actor.name();
 
-        registry.register(highlighter);
-        registry.register(page_style);
-        registry.register(walker);
-        registry.register(actor);
+        registry.register(inspector_actor);
 
-        name
+        inspector_name
     }
 }

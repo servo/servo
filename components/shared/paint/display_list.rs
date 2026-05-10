@@ -7,21 +7,21 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::Epoch;
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
 use webrender_api::{
-    ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
-    StickyOffsetBounds, TransformStyle,
+    ColorF, ExternalScrollId, PipelineId, PropertyBindingKey, ReferenceFrameKind, ScrollLocation,
+    SpatialId, StickyOffsetBounds, TransformStyle,
 };
 
 /// A scroll type, describing whether what kind of action originated this scroll request.
@@ -112,24 +112,24 @@ impl StickyNodeInfo {
         // handling the bottom margin case. Note that the "don't have a sticky-top offset"
         // case includes the case where we *had* a sticky-top offset but we reduced it to
         // zero in the above block.
-        if sticky_offset.y <= 0.0 {
-            if let Some(margin) = self.margins.bottom {
-                // If sticky_offset.y is nonzero that means we must have set it
-                // in the sticky-top handling code above, so this item must have
-                // both top and bottom sticky margins. We adjust the item's rect
-                // by the top-sticky offset, and then combine any offset from
-                // the bottom-sticky calculation into sticky_offset below.
-                sticky_rect.min.y += sticky_offset.y;
-                sticky_rect.max.y += sticky_offset.y;
+        if sticky_offset.y <= 0.0 &&
+            let Some(margin) = self.margins.bottom
+        {
+            // If sticky_offset.y is nonzero that means we must have set it
+            // in the sticky-top handling code above, so this item must have
+            // both top and bottom sticky margins. We adjust the item's rect
+            // by the top-sticky offset, and then combine any offset from
+            // the bottom-sticky calculation into sticky_offset below.
+            sticky_rect.min.y += sticky_offset.y;
+            sticky_rect.max.y += sticky_offset.y;
 
-                // Same as the above case, but inverted for bottom-sticky items. Here
-                // we adjust items upwards, resulting in a negative sticky_offset.y,
-                // or reduce the already-present upward adjustment, resulting in a positive
-                // sticky_offset.y.
-                let bottom_viewport_edge = viewport_rect.max.y - margin;
-                if sticky_rect.max.y > bottom_viewport_edge {
-                    sticky_offset.y += bottom_viewport_edge - sticky_rect.max.y;
-                }
+            // Same as the above case, but inverted for bottom-sticky items. Here
+            // we adjust items upwards, resulting in a negative sticky_offset.y,
+            // or reduce the already-present upward adjustment, resulting in a positive
+            // sticky_offset.y.
+            let bottom_viewport_edge = viewport_rect.max.y - margin;
+            if sticky_rect.max.y > bottom_viewport_edge {
+                sticky_offset.y += bottom_viewport_edge - sticky_rect.max.y;
             }
         }
 
@@ -141,14 +141,14 @@ impl StickyNodeInfo {
             }
         }
 
-        if sticky_offset.x <= 0.0 {
-            if let Some(margin) = self.margins.right {
-                sticky_rect.min.x += sticky_offset.x;
-                sticky_rect.max.x += sticky_offset.x;
-                let right_viewport_edge = viewport_rect.max.x - margin;
-                if sticky_rect.max.x > right_viewport_edge {
-                    sticky_offset.x += right_viewport_edge - sticky_rect.max.x;
-                }
+        if sticky_offset.x <= 0.0 &&
+            let Some(margin) = self.margins.right
+        {
+            sticky_rect.min.x += sticky_offset.x;
+            sticky_rect.max.x += sticky_offset.x;
+            let right_viewport_edge = viewport_rect.max.x - margin;
+            if sticky_rect.max.x > right_viewport_edge {
+                sticky_offset.x += right_viewport_edge - sticky_rect.max.x;
             }
         }
 
@@ -562,10 +562,10 @@ impl ScrollTree {
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         for node in self.nodes.iter_mut() {
-            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
-                if let Some(offset) = offsets.get(&scroll_info.external_id) {
-                    scroll_info.scroll_to_offset(*offset, ScrollType::Script);
-                }
+            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info &&
+                let Some(offset) = offsets.get(&scroll_info.external_id)
+            {
+                scroll_info.scroll_to_offset(*offset, ScrollType::Script);
             }
         }
 
@@ -842,14 +842,22 @@ pub struct PaintDisplayListInfo {
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
 
+    /// From <https://www.w3.org/TR/paint-timing/#paintable>:
+    /// Whether the display list contains paintable items.
+    pub is_paintable: bool,
+
+    /// From <https://www.w3.org/TR/paint-timing/#contentful>:
     /// Contentful paint i.e. whether the display list contains items of type
     /// text, image, non-white canvas or SVG). Used by metrics.
-    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
     pub is_contentful: bool,
 
     /// Whether the first layout or a subsequent (incremental) layout triggered this
     /// display list creation.
     pub first_reflow: bool,
+
+    /// If this display list contains a blinking caret, this value will be filled with its animation
+    /// key and original color value so that the painter can animate the caret.
+    pub caret_property_binding: Option<(PropertyBindingKey<ColorF>, ColorF)>,
 }
 
 impl PaintDisplayListInfo {
@@ -897,8 +905,10 @@ impl PaintDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
+            is_paintable: false,
             is_contentful: false,
             first_reflow,
+            caret_property_binding: Default::default(),
         }
     }
 

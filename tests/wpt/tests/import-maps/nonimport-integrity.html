@@ -84,6 +84,31 @@ promise_test(async t => {
   await test_not_loaded(script);
 }, "Script was not loaded as its bad integrity attribute was not overridden");
 
+promise_test(async () => {
+  log = [];
+  const script = document.createElement("script");
+  script.src = "./resources/log.js?pipe=sub&name=NonModule";
+  const promise = new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+  });
+  document.head.appendChild(script);
+  await promise;
+  assert_equals(log.length, 1);
+  assert_equals(log[0], "log:NonModule");
+}, "Classic script was loaded as its integrity check was ignored");
+
+promise_test(async () => {
+  const img = document.createElement("img");
+  const promise = new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+  img.src = "/images/green.png";
+  document.head.appendChild(img);
+  await promise;
+}, "Image was loaded as its integrity check was ignored");
+
 promise_test(async t => {
   const link = document.createElement("link");
   link.rel = "modulepreload";
@@ -129,30 +154,5 @@ promise_test(async t => {
   link.href = "./resources/log.js?pipe=sub&name=ModulePreloadBadIntegrityAttribute";
   await test_not_loaded(link);
 }, "Modulepreload was not loaded as its bad integrity attribute was not ignored");
-
-promise_test(async () => {
-  log = [];
-  const script = document.createElement("script");
-  script.src = "./resources/log.js?pipe=sub&name=NonModule";
-  const promise = new Promise((resolve, reject) => {
-    script.onload = resolve;
-    script.onerror = reject;
-  });
-  document.head.appendChild(script);
-  await promise;
-  assert_equals(log.length, 1);
-  assert_equals(log[0], "log:NonModule");
-}, "Classic script was loaded as its integrity check was ignored");
-
-promise_test(async () => {
-  const img = document.createElement("img");
-  const promise = new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = reject;
-  });
-  img.src = "/images/green.png";
-  document.head.appendChild(img);
-  await promise;
-}, "Image was loaded as its integrity check was ignored");
 </script>
 </head>

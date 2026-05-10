@@ -7,20 +7,20 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
     PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
@@ -35,7 +35,7 @@ enum ObserverType {
 #[dom_struct]
 pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "can't measure Rc values"]
+    #[conditional_malloc_size_of]
     callback: Rc<PerformanceObserverCallback>,
     entries: DomRefCell<DOMPerformanceEntryList>,
     observer_type: Cell<ObserverType>,
@@ -82,20 +82,20 @@ impl PerformanceObserver {
 
     /// Trigger performance observer callback with the list of performance entries
     /// buffered since the last callback call.
-    pub(crate) fn notify(&self, can_gc: CanGc) {
+    pub(crate) fn notify(&self, cx: &mut js::context::JSContext) {
         if self.entries.borrow().is_empty() {
             return;
         }
         let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
         let observer_entry_list =
-            PerformanceObserverEntryList::new(&self.global(), entry_list, can_gc);
+            PerformanceObserverEntryList::new(&self.global(), entry_list, CanGc::from_cx(cx));
         // using self both as thisArg and as the second formal argument
         let _ = self.callback.Call_(
+            cx,
             self,
             &observer_entry_list,
             self,
             ExceptionHandling::Report,
-            can_gc,
         );
     }
 
@@ -182,6 +182,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         }
 
         // The entryTypes and type paths diverge here
+        const NO_VALID_ENTRY_TYPE: &str = "No valid entry type provided to observe().";
         if let Some(entry_types) = &options.entryTypes {
             // Steps 6.1 - 6.2
             let entry_types = entry_types
@@ -191,10 +192,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
 
             // Step 6.3
             if entry_types.is_empty() {
-                Console::internal_warn(
-                    &self.global(),
-                    DOMString::from("No valid entry type provided to observe()."),
-                );
+                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             }
 
@@ -208,10 +206,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
             let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
-                Console::internal_warn(
-                    &self.global(),
-                    DOMString::from("No valid entry type provided to observe()."),
-                );
+                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             };
 

@@ -7,25 +7,25 @@ let $$1 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8c\x80\x80\x80\x00\x02\x
 let $1 = instance($$1);
 
 // table_fill.wast:17
-assert_return(() => call($1, "get", [1]), "table_fill.wast:17", null);
+assert_return(() => call($1, "get", [1]), "table_fill.wast:17", "ref.null");
 
 // table_fill.wast:18
-assert_return(() => call($1, "get", [2]), "table_fill.wast:18", null);
+assert_return(() => call($1, "get", [2]), "table_fill.wast:18", "ref.null");
 
 // table_fill.wast:19
-assert_return(() => call($1, "get", [3]), "table_fill.wast:19", null);
+assert_return(() => call($1, "get", [3]), "table_fill.wast:19", "ref.null");
 
 // table_fill.wast:20
-assert_return(() => call($1, "get", [4]), "table_fill.wast:20", null);
+assert_return(() => call($1, "get", [4]), "table_fill.wast:20", "ref.null");
 
 // table_fill.wast:21
-assert_return(() => call($1, "get", [5]), "table_fill.wast:21", null);
+assert_return(() => call($1, "get", [5]), "table_fill.wast:21", "ref.null");
 
 // table_fill.wast:23
 assert_return(() => call($1, "fill", [2, hostref(1), 3]), "table_fill.wast:23");
 
 // table_fill.wast:24
-assert_return(() => call($1, "get", [1]), "table_fill.wast:24", null);
+assert_return(() => call($1, "get", [1]), "table_fill.wast:24", "ref.null");
 
 // table_fill.wast:25
 assert_return(() => call($1, "get", [2]), "table_fill.wast:25", hostref(1));
@@ -37,7 +37,7 @@ assert_return(() => call($1, "get", [3]), "table_fill.wast:26", hostref(1));
 assert_return(() => call($1, "get", [4]), "table_fill.wast:27", hostref(1));
 
 // table_fill.wast:28
-assert_return(() => call($1, "get", [5]), "table_fill.wast:28", null);
+assert_return(() => call($1, "get", [5]), "table_fill.wast:28", "ref.null");
 
 // table_fill.wast:30
 assert_return(() => call($1, "fill", [4, hostref(2), 2]), "table_fill.wast:30");
@@ -52,7 +52,7 @@ assert_return(() => call($1, "get", [4]), "table_fill.wast:32", hostref(2));
 assert_return(() => call($1, "get", [5]), "table_fill.wast:33", hostref(2));
 
 // table_fill.wast:34
-assert_return(() => call($1, "get", [6]), "table_fill.wast:34", null);
+assert_return(() => call($1, "get", [6]), "table_fill.wast:34", "ref.null");
 
 // table_fill.wast:36
 assert_return(() => call($1, "fill", [4, hostref(3), 0]), "table_fill.wast:36");
@@ -70,7 +70,7 @@ assert_return(() => call($1, "get", [5]), "table_fill.wast:39", hostref(2));
 assert_return(() => call($1, "fill", [8, hostref(4), 2]), "table_fill.wast:41");
 
 // table_fill.wast:42
-assert_return(() => call($1, "get", [7]), "table_fill.wast:42", null);
+assert_return(() => call($1, "get", [7]), "table_fill.wast:42", "ref.null");
 
 // table_fill.wast:43
 assert_return(() => call($1, "get", [8]), "table_fill.wast:43", hostref(4));
@@ -85,25 +85,25 @@ assert_return(() => call($1, "fill-abbrev", [9, null, 1]), "table_fill.wast:46")
 assert_return(() => call($1, "get", [8]), "table_fill.wast:47", hostref(4));
 
 // table_fill.wast:48
-assert_return(() => call($1, "get", [9]), "table_fill.wast:48", null);
+assert_return(() => call($1, "get", [9]), "table_fill.wast:48", "ref.null");
 
 // table_fill.wast:50
 assert_return(() => call($1, "fill", [10, hostref(5), 0]), "table_fill.wast:50");
 
 // table_fill.wast:51
-assert_return(() => call($1, "get", [9]), "table_fill.wast:51", null);
+assert_return(() => call($1, "get", [9]), "table_fill.wast:51", "ref.null");
 
 // table_fill.wast:53
 assert_trap(() => call($1, "fill", [8, hostref(6), 3]), "table_fill.wast:53");
 
 // table_fill.wast:57
-assert_return(() => call($1, "get", [7]), "table_fill.wast:57", null);
+assert_return(() => call($1, "get", [7]), "table_fill.wast:57", "ref.null");
 
 // table_fill.wast:58
 assert_return(() => call($1, "get", [8]), "table_fill.wast:58", hostref(4));
 
 // table_fill.wast:59
-assert_return(() => call($1, "get", [9]), "table_fill.wast:59", null);
+assert_return(() => call($1, "get", [9]), "table_fill.wast:59", "ref.null");
 
 // table_fill.wast:61
 assert_trap(() => call($1, "fill", [11, null, 0]), "table_fill.wast:61");

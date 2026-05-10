@@ -4,7 +4,7 @@
 
 use std::io::Error;
 
-use ipc_channel::ipc;
+use ipc_channel::{IpcError, TryRecvError, ipc};
 use serde::{Deserialize, Serialize};
 
 use crate::time::{ProfilerCategory, ProfilerChan};
@@ -22,7 +22,7 @@ impl<T> IpcReceiver<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    pub fn recv(&self) -> Result<T, ipc::IpcError> {
+    pub fn recv(&self) -> Result<T, IpcError> {
         time_profile!(
             ProfilerCategory::IpcReceiver,
             None,
@@ -31,7 +31,7 @@ where
         )
     }
 
-    pub fn try_recv(&self) -> Result<T, ipc::TryRecvError> {
+    pub fn try_recv(&self) -> Result<T, TryRecvError> {
         self.ipc_receiver.try_recv()
     }
 
@@ -60,7 +60,7 @@ pub struct IpcBytesReceiver {
 }
 
 impl IpcBytesReceiver {
-    pub fn recv(&self) -> Result<Vec<u8>, ipc::IpcError> {
+    pub fn recv(&self) -> Result<Vec<u8>, IpcError> {
         time_profile!(
             ProfilerCategory::IpcBytesReceiver,
             None,

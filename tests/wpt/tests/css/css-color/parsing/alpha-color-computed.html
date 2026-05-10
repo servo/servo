@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 5: alpha() function - computed values</title>
+<link rel="author" title="CGQAQ" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#relative-alpha">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+<div id="target"></div>
+<script>
+
+const target = document.getElementById('target');
+
+// Basic: replace alpha on a named color.
+test_computed_value("color", "alpha(from red / 0.5)", "rgba(255, 0, 0, 0.5)");
+test_computed_value("color", "alpha(from blue / 0)", "rgba(0, 0, 255, 0)");
+test_computed_value("color", "alpha(from green / 1)", "rgb(0, 128, 0)");
+
+// Percentage alpha.
+test_computed_value("color", "alpha(from red / 50%)", "rgba(255, 0, 0, 0.5)");
+test_computed_value("color", "alpha(from red / 0%)", "rgba(255, 0, 0, 0)");
+
+// Omitted alpha defaults to origin's alpha.
+test_computed_value("color", "alpha(from red)", "rgb(255, 0, 0)");
+test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.3))", "rgba(255, 0, 0, 0.3)");
+
+// None alpha.
+test_computed_value("color", "alpha(from red / none)", "rgba(255, 0, 0, 0)");
+
+// Alpha clamped to [0, 1].
+test_computed_value("color", "alpha(from red / 2)", "rgb(255, 0, 0)");
+test_computed_value("color", "alpha(from red / -1)", "rgba(255, 0, 0, 0)");
+
+// Origin color with existing alpha.
+test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.3) / 0.8)", "rgba(255, 0, 0, 0.8)");
+
+// Preserves non-legacy color spaces.
+test_computed_value("color", "alpha(from color(display-p3 1 0 0) / 0.5)", "color(display-p3 1 0 0 / 0.5)");
+test_computed_value("color", "alpha(from color(srgb 1 0 0) / 0.5)", "color(srgb 1 0 0 / 0.5)");
+
+// currentcolor: resolves against the element's color property.
+// Set color on target, then test background-color with currentcolor origin.
+function test_currentcolor_alpha(specified, expected, current) {
+  target.style["color"] = current;
+  fuzzy_test_computed_color_property("background-color", specified, expected);
+}
+
+// Explicit alpha replaces origin alpha.
+test_currentcolor_alpha("alpha(from currentcolor / 0.5)", "color(srgb 1 0 0 / 0.5)", "red");
+// Omitted alpha defaults to origin's alpha.
+test_currentcolor_alpha("alpha(from currentcolor)", "color(srgb 0 0 1)", "blue");
+// Alpha keyword references origin's alpha.
+test_currentcolor_alpha("alpha(from currentcolor / alpha)", "color(srgb 1 0 0 / 0.8)", "rgba(255, 0, 0, 0.8)");
+// None alpha.
+test_currentcolor_alpha("alpha(from currentcolor / none)", "color(srgb 0 0.50196 0 / none)", "green");
+// Percentage alpha.
+test_currentcolor_alpha("alpha(from currentcolor / 50%)", "color(srgb 1 0 0 / 0.5)", "red");
+// Calc with alpha keyword.
+test_currentcolor_alpha("alpha(from currentcolor / calc(alpha * 0.5))", "color(srgb 1 0 0 / 0.4)", "rgba(255, 0, 0, 0.8)");
+
+</script>

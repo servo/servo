@@ -1834,6 +1834,42 @@ const whereTests = [
         }
       }
     }
+  },
+
+  // int32 value tests
+  {
+    'name': 'where int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'whereCondition': {
+          'data': [1, 0, 1, 0],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
+        },
+        'whereTrueValue': {
+          'data': [10, 20, 30, 40],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int32'}
+        },
+        'whereFalseValue': {
+          'data': [-1, -2, -3, -4],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'whereCondition'},
+          {'trueValue': 'whereTrueValue'},
+          {'falseValue': 'whereFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [10, -2, 30, -4],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

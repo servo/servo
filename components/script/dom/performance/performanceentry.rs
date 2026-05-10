@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use script_bindings::reflector::Reflector;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use strum::VariantArray;
 use time::Duration;
 
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 
 /// All supported entry types, in alphabetical order.
@@ -56,15 +57,25 @@ impl<'a> TryFrom<&'a str> for EntryType {
     }
 }
 
+/// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry>
 #[dom_struct]
 pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
+
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name>
     name: DOMString,
+
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
     entry_type: EntryType,
+
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-starttime>
     #[no_trace]
     start_time: Option<CrossProcessInstant>,
+
     /// The duration of this [`PerformanceEntry`]. This is a [`time::Duration`],
     /// because it can be negative and `std::time::Duration` cannot be.
+    ///
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-duration>
     #[no_trace]
     #[ignore_malloc_size_of = "No MallocSizeOf support for `time` crate"]
     duration: Duration,
@@ -86,18 +97,22 @@ impl PerformanceEntry {
         }
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name>
     pub(crate) fn entry_type(&self) -> EntryType {
         self.entry_type
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
     pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-starttime>
     pub(crate) fn start_time(&self) -> Option<CrossProcessInstant> {
         self.start_time
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-duration>
     pub(crate) fn duration(&self) -> Duration {
         self.duration
     }

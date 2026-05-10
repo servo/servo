@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async t => {
+      const worker = new Worker('/js-self-profiling/resources/dedicated-worker-profiler-test.js');
+      const result = await new Promise((resolve, reject) => {
+        worker.onmessage = e => resolve(e.data);
+        worker.onerror = e => reject(new Error(e.message));
+      });
+      assert_true(result.success, 'profiling should succeed in dedicated worker with document policy enabled');
+      worker.terminate();
+    }, 'profiling should succeed in dedicated worker with document policy enabled');
+  </script>
+</body>
+</html>

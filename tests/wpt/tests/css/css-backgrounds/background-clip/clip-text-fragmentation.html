@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>background-clip:text in multi-column layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-fragmentation-ref.html">
+<style>
+.multi_column {
+  font-size: 40px;
+  width: 8em;
+  column-gap: 0;
+  columns: 2;
+  orphans: 1;
+  widows: 1;
+}
+.clip {
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+</style>
+<!-- A green word "PASS" should be seen below. -->
+<div class="multi_column">
+  <div class="clip">
+    <div><br>PASS</div>
+  </div>
+</div>

@@ -5,10 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::videotracklist::VideoTrackList;
@@ -116,10 +116,10 @@ impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn SetSelected(&self, value: bool) {
-        if let Some(list) = self.track_list.borrow().as_ref() {
-            if let Some(idx) = list.find(self) {
-                list.set_selected(idx, value);
-            }
+        if let Some(list) = self.track_list.borrow().as_ref() &&
+            let Some(idx) = list.find(self)
+        {
+            list.set_selected(idx, value);
         }
         self.set_selected(value);
     }

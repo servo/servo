@@ -40,7 +40,7 @@ promise_test(async t => {
       .setPointer("touchPointer")
       .pointerMove(xPosition, yPosition)
       .pointerDown()
-      .pointerMove(3, 3, video)
+      .pointerMove(3, 3, { origin: video } )
       .pointerUp()
       .send();
   });

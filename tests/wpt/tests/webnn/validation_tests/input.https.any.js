@@ -71,7 +71,7 @@ promise_test(async t => {
 
   const inputDescriptor = {
       dataType: 'float32',
-      shape: [(context.opSupportLimits().maxTensorByteLength + 1) / 4]};
+      shape: [context.opSupportLimits().maxTensorByteLength / 4 + 1]};
 
   assert_throws_js(
     TypeError, () => builder.input('input', inputDescriptor));

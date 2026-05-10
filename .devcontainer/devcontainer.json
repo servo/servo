@@ -2,10 +2,12 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
 	"name": "Ubuntu",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": ".."
-	},
+	"image": "ghcr.io/servo/servo/devcontainer-ubuntu:latest",
+	// Alternatively, uncomment the "build" property below to build the image from the Dockerfile in this folder.
+	// "build": {
+	// 	"dockerfile": "Ubuntu.Dockerfile",
+	// 	"context": ".."
+	// },
 
 
 	// Most dependencies are installed in the image, but we run mach bootstrap to ensure
@@ -14,9 +16,17 @@
 	"postCreateCommand":
 		"./mach bootstrap --yes",
 
+	"mounts": [
+		"source=servo-cargo-target,target=/var/servo-cargo-target,type=volume"
+	],
+
 	"containerEnv": {
 		"CC": "clang",
 		"CXX": "clang++",
+		// at least on macOS the workspace directory can be mounted as case-insensitve,
+		// which causes build errors in mozjs. Using a volume avoids this issue, and can
+		// also improve performance.
+		"CARGO_TARGET_DIR": "/var/servo-cargo-target",
 		"UV_PROJECT_ENVIRONMENT": ".devcontainer-venv"
 	}
 }

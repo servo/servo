@@ -1,0 +1,21 @@
+dictionary HTMLMediaStreamConstraints {
+  MediaTrackConstraintSet video;
+  MediaTrackConstraintSet audio;
+};
+
+[Exposed=Window]
+interface HTMLUserMediaElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute DOMString type;
+  attribute EventHandler onstream;
+
+  static boolean isTypeSupported(DOMString type);
+
+  readonly attribute MediaStream? stream;
+  readonly attribute any error;
+
+  undefined setConstraints(optional HTMLMediaStreamConstraints constraints = {});
+};
+
+HTMLUserMediaElement includes InPagePermissionMixin;

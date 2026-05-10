@@ -7,16 +7,15 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 /// <https://svgwg.org/svg2-draft/embedded.html#Placement>
 const DEFAULT_WIDTH: u32 = 300;
@@ -39,17 +38,17 @@ impl SVGImageElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGImageElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGImageElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -69,20 +68,24 @@ impl VirtualMethods for SVGImageElement {
         Some(self.upcast::<SVGGraphicsElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("href") &&
-            matches!(attr.namespace(), &ns!() | &ns!(xlink))
+            matches!(attr.namespace(), &ns!() | &ns!(xlink)) &&
+            let AttributeMutation::Set(..) = mutation
         {
-            if let AttributeMutation::Set(..) = mutation {
-                self.fetch_image_resource();
-            }
+            self.fetch_image_resource();
         }
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self

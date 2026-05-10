@@ -5,12 +5,13 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::HTMLFrameElementBinding::HTMLFrameElement_Binding::HTMLFrameElementMethods;
 
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLFrameElement {
@@ -29,19 +30,27 @@ impl HTMLFrameElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLFrameElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLFrameElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
+}
+
+impl HTMLFrameElementMethods<crate::DomTypeHolder> for HTMLFrameElement {
+    // https://html.spec.whatwg.org/multipage/#dom-frame-longdesc
+    make_url_getter!(LongDesc, "longdesc");
+
+    // https://html.spec.whatwg.org/multipage/#dom-frame-longdesc
+    make_url_setter!(SetLongDesc, "longdesc");
 }

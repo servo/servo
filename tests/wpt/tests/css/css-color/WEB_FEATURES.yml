@@ -47,7 +47,7 @@ features:
   - "system-color-*"
 - name: contrast-color
   files:
-  - contrast-color-001.html
+  - contrast-color-*.html
 - name: hsl
   files:
   - background-color-hsl-*

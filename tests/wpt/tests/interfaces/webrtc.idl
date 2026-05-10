@@ -497,7 +497,7 @@ partial interface RTCPeerConnection {
 interface RTCSctpTransport : EventTarget {
   readonly attribute RTCDtlsTransport transport;
   readonly attribute RTCSctpTransportState state;
-  readonly attribute unrestricted double maxMessageSize;
+  readonly attribute unrestricted double? maxMessageSize;
   readonly attribute unsigned short? maxChannels;
   attribute EventHandler onstatechange;
 };

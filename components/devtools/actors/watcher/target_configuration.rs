@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 use embedder_traits::Theme;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -31,6 +32,7 @@ pub(crate) struct TargetConfigurationActorMsg {
     traits: TargetConfigurationTraits,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TargetConfigurationActor {
     name: String,
     configuration: HashMap<&'static str, bool>,
@@ -75,8 +77,8 @@ impl Actor for TargetConfigurationActor {
                     };
                     let root_actor = registry.find::<RootActor>("root");
                     if let Some(tab_name) = root_actor.active_tab() {
-                        let tab_actor = registry.find::<TabDescriptorActor>(&tab_name);
-                        let browsing_context_name = tab_actor.browsing_context();
+                        let tab_descriptor_actor = registry.find::<TabDescriptorActor>(&tab_name);
+                        let browsing_context_name = tab_descriptor_actor.browsing_context();
                         let browsing_context_actor =
                             registry.find::<BrowsingContextActor>(&browsing_context_name);
                         browsing_context_actor
@@ -103,9 +105,10 @@ impl Actor for TargetConfigurationActor {
 }
 
 impl TargetConfigurationActor {
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
@@ -126,7 +129,9 @@ impl TargetConfigurationActor {
                 ("tracerOptions", false),
                 ("useSimpleHighlightersForReducedMotion", false),
             ]),
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
 

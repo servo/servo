@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>JPEG XL integration: canvas decode paths reftest</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="canvas-decode-paths-ref.html">
+<meta name="assert" content="Canvas decode paths should match PNG reference output for drawImage, createImageBitmap, WebGL texture upload, and rgba-float16 readback conversion.">
+
+<canvas id="output"></canvas>
+
+<script src="resources/canvas-decode-paths-reftest.js"></script>
+<script>
+runCanvasDecodePathReftest('resources/3x3_srgb_lossless.jxl');
+</script>
+</html>

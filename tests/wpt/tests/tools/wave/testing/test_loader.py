@@ -48,7 +48,7 @@ class TestLoader:
                 self._tests[AUTOMATIC][api].remove(test_path)
 
                 if not self._is_valid_test(test_path,
-                                           include_list=include_list):
+                                           include_regex_list=include_list):
                     continue
 
                 if api not in self._tests[MANUAL]:
@@ -94,14 +94,22 @@ class TestLoader:
                 continue
             return part
 
-    def _is_valid_test(self, test_path, exclude_list=None, include_list=None):
+    def _convert_list_to_regex(self, test_list):
+        regex_patterns = []
+
+        if test_list is not None and len(test_list) > 0:
+            for test in test_list:
+                test = test.split("?")[0]
+                pattern = re.compile("^" + test)
+                regex_patterns.append(pattern)
+        return regex_patterns
+
+    def _is_valid_test(self, test_path, exclude_regex_list=None, include_regex_list=None):
         is_valid = True
 
-        if include_list is not None and len(include_list) > 0:
+        if include_regex_list is not None and len(include_regex_list) > 0:
             is_valid = False
-            for include_test in include_list:
-                include_test = include_test.split("?")[0]
-                pattern = re.compile("^" + include_test)
+            for pattern in include_regex_list:
                 if pattern.match(test_path) is not None:
                     is_valid = True
                     break
@@ -109,11 +117,9 @@ class TestLoader:
         if not is_valid:
             return is_valid
 
-        if exclude_list is not None and len(exclude_list) > 0:
+        if exclude_regex_list is not None and len(exclude_regex_list) > 0:
             is_valid = True
-            for exclude_test in exclude_list:
-                exclude_test = exclude_test.split("?")[0]
-                pattern = re.compile("^" + exclude_test)
+            for pattern in exclude_regex_list:
                 if pattern.match(test_path) is not None:
                     is_valid = False
                     break
@@ -154,6 +160,9 @@ class TestLoader:
         if reference_tokens is None:
             reference_tokens = []
 
+        exclude_regex_list = self._convert_list_to_regex(exclude_list)
+        include_regex_list = self._convert_list_to_regex(include_list)
+
         loaded_tests = {}
 
         reference_results = self._results_manager.read_common_passed_tests(
@@ -164,16 +173,17 @@ class TestLoader:
                 continue
             for api in self._tests[test_type]:
                 for test_path in self._tests[test_type][api]:
-                    if not self._is_valid_test(test_path, exclude_list,
-                                               include_list):
+                    if not self._is_valid_test(test_path, exclude_regex_list,
+                                               include_regex_list):
                         continue
                     if reference_results is not None and \
                        (api not in reference_results or
-                       (api in reference_results and test_path not in reference_results[api])):
+                            (api in reference_results and test_path not in reference_results[api])):
                         continue
                     if api not in loaded_tests:
                         loaded_tests[api] = []
                     loaded_tests[api].append(test_path)
+
         return loaded_tests
 
     def get_apis(self):

@@ -46,7 +46,7 @@ pub(crate) fn Platform() -> DOMString {
 }
 
 #[expect(non_snake_case)]
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
 pub(crate) fn Platform() -> DOMString {
     DOMString::from("Linux")
 }
@@ -75,5 +75,5 @@ pub(crate) fn AppVersion() -> DOMString {
 
 #[expect(non_snake_case)]
 pub(crate) fn Language() -> DOMString {
-    DOMString::from("en-US")
+    DOMString::from(net_traits::get_current_locale().0.clone())
 }

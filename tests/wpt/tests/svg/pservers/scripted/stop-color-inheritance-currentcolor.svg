@@ -3,7 +3,7 @@
      color="red">
   <title>SVG Paint Servers: 'stop-color' inheritance of 'currentcolor'</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopColorProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopColorProperty"/>
     <h:link rel="help" href="https://drafts.csswg.org/css-color/#resolve-color-values"/>
   </metadata>
   <h:script src="/resources/testharness.js"/>

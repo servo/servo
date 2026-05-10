@@ -91,6 +91,7 @@
       // Finally, request2 should have been "closed", so trying to show
       // it will again result in promise rejected with an InvalidStateError.
       // See: https://github.com/w3c/payment-request/pull/821
+      await test_driver.bless("payment request show()");
       const rejectedPromise = request2.show();
       await promise_rejects_dom(
         t,

@@ -7,7 +7,7 @@
 
 idl_test(
   ['pointerlock'],
-  ['uievents', 'html', 'dom'],
+  ['pointerevents', 'uievents', 'html', 'dom'],
   idl_array => {
     idl_array.add_objects({
       Document: ["window.document"],

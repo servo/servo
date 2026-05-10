@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<title>CSS Position: percentage top on relatively positioned elements with various containing block heights</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-top-percentage">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+</style>
+
+<!-- 1. Fixed height containing block, top: 50% -->
+<div id="t1-cb" style="height: 200px;">
+    <div class="green" id="t1" style="top: 50%;"></div>
+</div>
+
+<!-- 2. Auto height containing block, top: 50% -->
+<div id="t2-cb">
+    <div class="green" id="t2" style="top: 50%;"></div>
+</div>
+
+<!-- 3. Percentage height containing block (parent has fixed height), top: 50% -->
+<div style="height: 200px;">
+    <div id="t3-cb" style="height: 50%;">
+        <div class="green" id="t3" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 4. OOF with both insets (implicit height), top: 50% -->
+<div style="position: relative; height: 200px;">
+    <div id="t4-cb" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0;">
+        <div class="green" id="t4" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 5. Grid item stretched, top: 50% -->
+<div style="display: grid; height: 200px;">
+    <div id="t5-cb">
+        <div class="green" id="t5" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 6. Grid item with 0px track, top: 50% -->
+<div style="display: grid; grid-template-rows: 0px; height: 200px;">
+    <div id="t6-cb">
+        <div class="green" id="t6" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 7. Grid item with auto track, top: 50% -->
+<div style="display: grid; height: 200px;">
+    <div id="t7-cb" style="height: auto;">
+        <div class="green" id="t7" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 8. Grid item with fixed track, top: 50% -->
+<div style="display: grid; grid-template-rows: 100px; height: 200px;">
+    <div id="t8-cb">
+        <div class="green" id="t8" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 9. Grid item with percentage track, top: 50% -->
+<div style="display: grid; grid-template-rows: 50%; height: 200px;">
+    <div id="t9-cb">
+        <div class="green" id="t9" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 10. Percentage height against auto-height body, top: 50% -->
+<div id="t10-cb" style="height: 100%;">
+    <div class="green" id="t10" style="top: 50%;"></div>
+</div>
+
+<!-- 11. Percentage height against auto parent (unresolvable), top: 50% -->
+<div>
+    <div id="t11-cb" style="height: 50%; min-height: 200px;">
+        <div class="green" id="t11" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 12. fit-content height, top: 50% -->
+<div id="t12-cb" style="height: fit-content; min-height: 200px;">
+    <div class="green" id="t12" style="top: 50%;"></div>
+</div>
+
+<!-- 13. max-content height, top: 50% -->
+<div id="t13-cb" style="height: max-content; min-height: 200px;">
+    <div class="green" id="t13" style="top: 50%;"></div>
+</div>
+
+<!-- 14. min-content height, top: 50% -->
+<div id="t14-cb" style="height: min-content; min-height: 200px;">
+    <div class="green" id="t14" style="top: 50%;"></div>
+</div>
+
+<!-- 15. Nested unresolvable percentages, top: 50% -->
+<div>
+    <div style="height: 50%;">
+        <div id="t15-cb" style="height: 50%; min-height: 200px;">
+            <div class="green" id="t15" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 16. calc() fixed height, top: 50% -->
+<div id="t16-cb" style="height: calc(100px + 100px);">
+    <div class="green" id="t16" style="top: 50%;"></div>
+</div>
+
+<!-- 17. calc() with resolvable percentage, top: 50% -->
+<div style="height: 200px;">
+    <div id="t17-cb" style="height: calc(50% + 0px);">
+        <div class="green" id="t17" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 18. calc() with unresolvable percentage, top: 50% -->
+<div>
+    <div id="t18-cb" style="height: calc(50% + 0px); min-height: 200px;">
+        <div class="green" id="t18" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 19. stretch height, top: 50% -->
+<div style="height: 200px;">
+    <div id="t19-cb" style="height: stretch;">
+        <div class="green" id="t19" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 20. Chain of percentages resolving to fixed height, top: 50% -->
+<div style="height: 200px;">
+    <div style="height: 50%;">
+        <div id="t20-cb" style="height: 50%;">
+            <div class="green" id="t20" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function offsetFromParent(greenId, parentId) {
+    var green = document.getElementById(greenId);
+    var parent = document.getElementById(parentId);
+    return green.getBoundingClientRect().top - parent.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(offsetFromParent('t1', 't1-cb'), 100);
+}, 'Fixed height containing block, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t2', 't2-cb'), 0);
+}, 'Auto height containing block, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t3', 't3-cb'), 50);
+}, 'Percentage height containing block, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t4', 't4-cb'), 100);
+}, 'OOF with implicit height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t5', 't5-cb'), 100);
+}, 'Grid item stretched, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t6', 't6-cb'), 0);
+}, 'Grid item with 0px track, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t7', 't7-cb'), 100);
+}, 'Grid item with auto track (stretched to 200px), top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t8', 't8-cb'), 50);
+}, 'Grid item with fixed 100px track, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t9', 't9-cb'), 50);
+}, 'Grid item with 50% track, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t10', 't10-cb'), 0);
+}, 'Unresolvable percentage height (100% of auto body), top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t11', 't11-cb'), 0);
+}, 'Unresolvable percentage height with min-height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t12', 't12-cb'), 0);
+}, 'fit-content height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t13', 't13-cb'), 0);
+}, 'max-content height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t14', 't14-cb'), 0);
+}, 'min-content height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t15', 't15-cb'), 0);
+}, 'Nested unresolvable percentage heights, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t16', 't16-cb'), 100);
+}, 'calc() fixed height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t17', 't17-cb'), 50);
+}, 'calc() with resolvable percentage, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t18', 't18-cb'), 0);
+}, 'calc() with unresolvable percentage, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t19', 't19-cb'), 100);
+}, 'stretch height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t20', 't20-cb'), 25);
+}, 'Chain of resolvable percentages, top: 50%');
+</script>

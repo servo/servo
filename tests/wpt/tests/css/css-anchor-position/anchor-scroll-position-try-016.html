@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<title>Fixed element using position-area should fallback when it is outside the viewport</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-apply">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+  border: solid black;
+  width: 200vw;
+  height: 200vh;
+  scrollbar-width: none;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 40vw;
+  height: 40vh;
+  margin-inline-start: 80vw;
+  margin-block-start: 80vh;
+  background: orange;
+}
+
+#anchored {
+  position: fixed;
+  width: 40vw;
+  height: 40vh;
+
+  position-anchor: --a;
+  position-area: start;
+  position-try: end start, start end, end end;
+  background: teal;
+  z-index: -1;
+}
+</style>
+
+<div id="anchor"></div>
+<div id="anchored"></div>
+
+<script>
+  promise_test(async () => {
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+
+    assert_fallback_position(anchored, anchor, 'top');
+    assert_fallback_position(anchored, anchor, 'left');
+  }, "Initially, anchored is at top left position");
+
+  promise_test(async () => {
+    window.scroll(0, document.body.scrollHeight);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+
+    assert_fallback_position(anchored, anchor, 'bottom');
+    assert_fallback_position(anchored, anchor, 'left');
+  }, "Scroll to end of page, anchored should be at bottom left position");
+
+  promise_test(async () => {
+    window.scroll(0, 0);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+
+    assert_fallback_position(anchored, anchor, 'top');
+    assert_fallback_position(anchored, anchor, 'left');
+  }, "Scroll back to top of page, anchored should be at top left position");
+</script>

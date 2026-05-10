@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="grow-per-line-all-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  text-fit: grow per-line-all;
+  white-space: pre;
+  width: 120px;
+  border: 2px solid blue;
+  margin-bottom: 10px;
+  font: 10px/normal Ahem;
+}
+
+.target:first-line {
+  color: gray;
+}
+</style>
+<body>
+<div class="target" style="width:122px">AB<span style="border:1px solid lime">CD</span>EF</div>
+
+<div class="target">GHIJ
+KLM</div>
+
+<!-- Fixed line-height -->
+<div class="target" style="line-height:20px;">ABC
+DEFGHI</div>
+</body>

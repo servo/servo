@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: The backdrop root concept</title>
+<link rel="author" href="mailto:clchambers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+<link rel=stylesheet  href="resources/backdrop-filter-backdrop-root.css">
+<link rel="match"  href="backdrop-filter-backdrop-root-mask-ref.html">
+
+<style>
+  .masked {
+    mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 40 40"%3E%3Crect width="50" height="50" fill="black"/%3E%3C/svg%3E');
+  }
+</style>
+
+<!-- A Backdrop Root is formed, anywhere in the document, by:
+     - An element with mask, mask-image, mask-border, or clip-path properties with values other than “none”.
+     - An element with a will-change value specifying any property that would create a Backdrop Root on non-initial value. -->
+<div class=container>
+  <div class=testcase>
+    <div class="masked"><div></div></div>
+  </div>
+  <div class=testcase>
+    <div style="will-change: mask;"><div></div></div>
+  </div>
+  <div class=testcase>
+    <div style="will-change: mask-image;"><div></div></div>
+  </div>
+</div>

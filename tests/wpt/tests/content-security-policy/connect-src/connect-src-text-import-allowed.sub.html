@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>connect-src-text-import-allowed</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="connect-src 'self'; script-src http://{{host}}:{{ports[http][0]}}/resources/testharness.js http://{{host}}:{{ports[http][0]}}/resources/testharnessreport.js 'unsafe-inline';"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      promise_test(t => new Promise((resolve, reject) => {
+        window.addEventListener("securitypolicyviolation", (err) => {
+          if (err.blockedURI.endsWith("/common/text-plain.txt")) {
+            reject("Should not raise securitypolicyviolation.");
+          }
+        });
+        import("/common/text-plain.txt", { with: { type: "text" } }).then(resolve, reject)
+      }), "import should be allowed");
+    </script>
+  </body>
+</html>

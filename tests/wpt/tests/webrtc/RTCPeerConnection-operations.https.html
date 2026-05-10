@@ -1,10 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title></title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
 'use strict';
+
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 // Helpers to test APIs "return a promise rejected with a newly created" error.
 // Strictly speaking this means already-rejected upon return.
@@ -25,11 +30,17 @@ async function promiseStateFinal(p) {
   return promiseState(p);
 }
 
+if (rest) {
+
 [promiseState, promiseStateFinal].forEach(f => promise_test(async t => {
   assert_equals(await f(Promise.resolve()), "fulfilled");
   assert_equals(await f(Promise.reject()), "rejected");
   assert_equals(await f(new Promise(() => {})), "pending");
 }, `${f.name} helper works`));
+
+}
+
+if (interop2026) {
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -59,6 +70,10 @@ promise_test(async t => {
   }
   assert_equals(await haveState, "rejected", "promise rejected on same task");
 }, "createAnswer must detect InvalidStateError synchronously when chain is empty (prerequisite)");
+
+}
+
+if (rest) {
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -105,6 +120,10 @@ promise_test(async t => {
   assert_equals(await haveState, "rejected", "promise rejected on same task");
 }, "replaceTrack must detect InvalidStateError synchronously when chain is empty and transceiver is stopped");
 
+}
+
+if (interop2026) {
+
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -138,6 +157,8 @@ promise_test(async t => {
   assert_equals(await haveState, "rejected", "promise rejected on same task");
 }, "pc.getStats must detect InvalidAccessError synchronously always");
 
+}
+
 // Helper builds on above tests to check if operations queue is empty or not.
 //
 // Meaning of "empty": Because this helper uses the sloppy promiseStateFinal,
@@ -170,6 +191,8 @@ async function isOperationsChainEmpty(pc) {
   return state == "rejected";
 }
 
+if (interop2026) {
+
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -190,6 +213,10 @@ promise_test(async t => {
   assert_true(await isOperationsChainEmpty(pc), "Empty to start");
 }, "isOperationsChainEmpty detects empty in have-remote-offer");
 
+}
+
+if (rest) {
+
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -197,6 +224,10 @@ promise_test(async t => {
   assert_false(await isOperationsChainEmpty(pc), "Non-empty chain");
   await p;
 }, "createOffer uses operations chain");
+
+}
+
+if (interop2026) {
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -253,6 +284,10 @@ promise_test(async t => {
   assert_true(await isOperationsChainEmpty(pc), "Empty chain");
 }, "Firing of negotiationneeded does NOT use operations chain");
 
+}
+
+if (rest) {
+
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -281,6 +316,10 @@ promise_test(async t => {
   await p;
 }, "Negotiationneeded only fires once operations chain is empty");
 
+}
+
+if (interop2026) {
+
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -294,6 +333,10 @@ promise_test(async t => {
   assert_false(await isOperationsChainEmpty(pc), "Non-empty chain");
   await p;
 }, "replaceTrack uses operations chain");
+
+}
+
+if (rest) {
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -309,6 +352,10 @@ promise_test(async t => {
   assert_equals(await haveState, "pending", "Method is async");
   await p;
 }, "setParameters does NOT use the operations chain");
+
+}
+
+if (interop2026) {
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -348,6 +395,10 @@ promise_test(async t => {
   await p;
 }, "receiver.getStats does NOT use the operations chain");
 
+}
+
+if (rest) {
+
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -383,6 +434,10 @@ promise_test(async t => {
   await pc.setRemoteDescription(offer);
   await p;
 }, "Operations queue not vulnerable to recursion by chained negotiationneeded");
+
+}
+
+if (interop2026) {
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
@@ -421,5 +476,7 @@ promise_test(async t => {
   await state(pc2, "stable");
   await pc1.setRemoteDescription(pc2.localDescription);
 }, "Negotiate solely by operations queue and signaling state");
+
+}
 
 </script>

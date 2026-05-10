@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --s {
+    syntax: "<string>";
+    inherits: false;
+    initial-value: "x";
+  }
+  #attr {
+    --s: attr(href);
+    animation: 1s anim linear;
+    background-image: image-set(var(--s));
+  }
+
+  @keyframes anim {
+    from {
+      --s: "x";
+    }
+    to {
+      --s: attr(href);
+    }
+  }
+</style>
+
+<html>
+  <body>
+    <div id="attr" href="https://does-not-exist.test/404.png">div</div>
+  </body>
+</html>
+
+<script>
+  test(() => {
+    // during animation
+    document.getAnimations().forEach(anim => {
+      anim.currentTime = 600;
+    });
+    var elem = document.getElementById("attr");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+
+    // after animation
+    document.getAnimations().forEach(anim => {
+      anim.currentTime = 3000;
+    });
+    var elem = document.getElementById("attr");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+  });
+</script>

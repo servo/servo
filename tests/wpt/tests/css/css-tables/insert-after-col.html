@@ -1,0 +1,31 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2033384">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#content-model">
+<link rel="match" href="insert-after-col-ref.html">
+<title>Insertion of a block after a display:table-column element</title>
+<style>
+.hide-desktop {
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  visibility: hidden !important;
+  margin: 0 !important;
+  display: table-column !important;
+  background: 0 !important;
+  content-visibility: hidden;
+  overflow: hidden !important;
+}
+.header {
+  height: 100px;
+  background-color: green;
+}
+</style>
+<div id="container">
+  <div class="hide-desktop">Something something</div>
+</div>
+<script>
+  container.getBoundingClientRect();
+  let header = document.createElement("div");
+  header.className = "header";
+  container.appendChild(header);
+</script>

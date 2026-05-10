@@ -2,34 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "gamepad")]
 use std::cell::Cell;
 use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
+#[cfg(feature = "gamepad")]
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::body::Extractable;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::to_frozen_array;
@@ -53,7 +57,9 @@ use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
+use crate::dom::storagemanager::StorageManager;
 use crate::dom::types::UserActivation;
+use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
@@ -61,7 +67,7 @@ use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 pub(super) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -123,6 +129,7 @@ pub(crate) struct Navigator {
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     clipboard: MutNullableDom<Clipboard>,
+    storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
@@ -130,6 +137,7 @@ pub(crate) struct Navigator {
     has_gamepad_gesture: Cell<bool>,
     servo_internals: MutNullableDom<ServoInternals>,
     user_activation: MutNullableDom<UserActivation>,
+    wake_lock: MutNullableDom<WakeLock>,
 }
 
 impl Navigator {
@@ -150,12 +158,14 @@ impl Navigator {
             permissions: Default::default(),
             mediasession: Default::default(),
             clipboard: Default::default(),
+            storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             #[cfg(feature = "gamepad")]
             has_gamepad_gesture: Cell::new(false),
             servo_internals: Default::default(),
             user_activation: Default::default(),
+            wake_lock: Default::default(),
         }
     }
 
@@ -343,18 +353,18 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth
-            .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
+            .or_init(|| Bluetooth::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
     fn Credentials(&self) -> DomRoot<CredentialsContainer> {
         self.credentials
-            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::note()))
+            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
     fn Geolocation(&self) -> DomRoot<Geolocation> {
-        Geolocation::new(&self.global(), CanGc::note())
+        Geolocation::new(&self.global(), CanGc::deprecated_note())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
@@ -363,8 +373,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
-    fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(&[self.Language()], cx, retval, can_gc)
+    fn Languages(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx.into(), retval, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
@@ -375,13 +385,13 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins
-            .or_init(|| PluginArray::new(&self.global(), CanGc::note()))
+            .or_init(|| PluginArray::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::note()))
+            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled>
@@ -397,7 +407,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::note()))
+            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled>
@@ -422,20 +432,20 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     #[cfg(feature = "webxr")]
     fn Xr(&self) -> DomRoot<XRSystem> {
         self.xr
-            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::note()))
+            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global(), CanGc::note()))
+            .or_init(|| MediaDevices::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
@@ -450,14 +460,15 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window, CanGc::note())
+            MediaSession::new(window, CanGc::deprecated_note())
         })
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
+        self.gpu
+            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
@@ -466,13 +477,24 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#h-navigator-clipboard>
-    fn Clipboard(&self) -> DomRoot<Clipboard> {
+    fn Clipboard(&self, cx: &mut js::context::JSContext) -> DomRoot<Clipboard> {
         self.clipboard
-            .or_init(|| Clipboard::new(&self.global(), CanGc::note()))
+            .or_init(|| Clipboard::new(cx, &self.global()))
+    }
+
+    /// <https://storage.spec.whatwg.org/#api>
+    fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
+        self.storage
+            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>
-    fn SendBeacon(&self, url: USVString, data: Option<BodyInit>, can_gc: CanGc) -> Fallible<bool> {
+    fn SendBeacon(
+        &self,
+        cx: &mut js::context::JSContext,
+        url: USVString,
+        data: Option<BodyInit>,
+    ) -> Fallible<bool> {
         let global = self.global();
         // Step 1. Set base to this's relevant settings object's API base URL.
         let base = global.api_base_url();
@@ -484,10 +506,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // If the algorithm returns an error, or if parsedUrl's scheme is not "http" or "https",
         // throw a "TypeError" exception and terminate these steps.
         let Ok(url) = ServoUrl::parse_with_base(Some(&base), &url) else {
-            return Err(Error::Type("Cannot parse URL".to_owned()));
+            return Err(Error::Type(c"Cannot parse URL".to_owned()));
         };
         if !matches!(url.scheme(), "http" | "https") {
-            return Err(Error::Type("URL is not http(s)".to_owned()));
+            return Err(Error::Type(c"URL is not http(s)".to_owned()));
         }
         let mut request_body = None;
         // Step 4. Let headerList be an empty list.
@@ -498,7 +520,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         if let Some(data) = data {
             // Step 6.1. Set transmittedData and contentType to the result of extracting data's byte stream
             // with the keepalive flag set.
-            let extracted_body = data.extract(&global, true, can_gc)?;
+            let extracted_body = data.extract(cx, &global, true)?;
             // Step 6.2. If the amount of data that can be queued to be sent by keepalive enabled requests
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.
@@ -530,15 +552,19 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             request_body = Some(extracted_body.into_net_request_body().0);
         }
         // Step 7.1. Let req be a new request, initialized as follows:
-        let request = RequestBuilder::new(None, url.clone(), global.get_referrer())
-            .mode(cors_mode)
-            .destination(Destination::None)
-            .with_global_scope(&global)
-            .method(http::Method::POST)
-            .body(request_body)
-            .keep_alive(true)
-            .credentials_mode(CredentialsMode::Include)
-            .headers(headers);
+        let request = RequestBuilder::new(
+            None,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            global.get_referrer(),
+        )
+        .mode(cors_mode)
+        .destination(Destination::None)
+        .with_global_scope(&global)
+        .method(http::Method::POST)
+        .body(request_body)
+        .keep_alive(true)
+        .credentials_mode(CredentialsMode::Include)
+        .headers(headers);
         // Step 7.2. Fetch req.
         global.fetch(
             request,
@@ -556,7 +582,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://servo.org/internal-no-spec>
     fn Servo(&self) -> DomRoot<ServoInternals> {
         self.servo_internals
-            .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
+            .or_init(|| ServoInternals::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>
@@ -598,9 +624,14 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useractivation>
-    fn UserActivation(&self, can_gc: CanGc) -> DomRoot<UserActivation> {
+    fn UserActivation(&self, cx: &mut js::context::JSContext) -> DomRoot<UserActivation> {
         self.user_activation
-            .or_init(|| UserActivation::new(&self.global(), can_gc))
+            .or_init(|| UserActivation::new(cx, &self.global()))
+    }
+
+    /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>
+    fn WakeLock(&self, cx: &mut js::context::JSContext) -> DomRoot<WakeLock> {
+        self.wake_lock.or_init(|| WakeLock::new(cx, &self.global()))
     }
 }
 
@@ -614,27 +645,32 @@ struct BeaconFetchListener {
 impl FetchResponseListener for BeaconFetchListener {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         _ = chunk;
     }
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        submit_timing(&self, &response, &timing, CanGc::note());
+        submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

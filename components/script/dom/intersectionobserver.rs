@@ -7,12 +7,15 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
-use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use euclid::{Rect, SideOffsets2D, Size2D};
+use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
+use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
-use layout_api::BoxAreaType;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_geometry::f32_rect_to_au_rect;
 use style::parser::Parse;
 use style::stylesheets::CssRuleType;
 use style::values::computed::Overflow;
@@ -22,7 +25,6 @@ use url::Url;
 
 use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
 };
@@ -31,7 +33,6 @@ use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementO
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -41,7 +42,7 @@ use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
@@ -99,6 +100,9 @@ pub(crate) struct IntersectionObserver {
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
     track_visibility: Cell<bool>,
+
+    /// Whether or not this [`IntersectionObserver`] is connected to its owning [`Document`].
+    connected_to_document: Cell<bool>,
 }
 
 impl IntersectionObserver {
@@ -121,16 +125,17 @@ impl IntersectionObserver {
             thresholds: Default::default(),
             delay: Default::default(),
             track_visibility: Default::default(),
+            connected_to_document: Cell::new(false),
         }
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
         // > Attempt to parse a margin from options.rootMargin. If a list is returned,
@@ -155,7 +160,7 @@ impl IntersectionObserver {
         // > 2. Set this’s internal [[callback]] slot to callback.
         // > 3. ... set this’s internal [[rootMargin]] slot to that.
         // > 4. ... set this’s internal [[scrollMargin]] slot to that.
-        let observer = reflect_dom_object_with_proto(
+        let observer = reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited(
                 window,
                 callback,
@@ -165,7 +170,7 @@ impl IntersectionObserver {
             )),
             window,
             proto,
-            can_gc,
+            cx,
         );
 
         // Step 5-13
@@ -192,7 +197,7 @@ impl IntersectionObserver {
         for num in &thresholds {
             if **num < 0.0 || **num > 1.0 {
                 return Err(Error::Range(
-                    "Value in thresholds should not be less than 0.0 or greater than 1.0"
+                    c"Value in thresholds should not be less than 0.0 or greater than 1.0"
                         .to_owned(),
                 ));
             }
@@ -241,19 +246,6 @@ impl IntersectionObserver {
         Ok(())
     }
 
-    /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-implicit-root>
-    fn root_is_implicit_root(&self) -> bool {
-        self.root.is_none()
-    }
-
-    /// Return unwrapped root if it was an element, None if otherwise.
-    fn maybe_element_root(&self) -> Option<&Element> {
-        match &self.root {
-            Some(ElementOrDocument::Element(element)) => Some(element),
-            _ => None,
-        }
-    }
-
     /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
     fn observe_target_element(&self, target: &Element) {
         // Step 1
@@ -276,7 +268,7 @@ impl IntersectionObserver {
         target.add_initial_intersection_observer_registration(self);
 
         if self.observation_targets.borrow().is_empty() {
-            self.connect_to_owner_unchecked();
+            self.connect_to_owner();
         }
 
         // Step 4
@@ -310,7 +302,7 @@ impl IntersectionObserver {
 
         // Should disconnect from owner if it is not observing anything.
         if self.observation_targets.borrow().is_empty() {
-            self.disconnect_from_owner_unchecked();
+            self.disconnect_from_owner();
         }
     }
 
@@ -318,6 +310,7 @@ impl IntersectionObserver {
     #[allow(clippy::too_many_arguments)]
     fn queue_an_intersectionobserverentry(
         &self,
+        cx: &mut JSContext,
         document: &Document,
         time: CrossProcessInstant,
         root_bounds: Rect<Au, CSSPixel>,
@@ -327,17 +320,16 @@ impl IntersectionObserver {
         is_visible: bool,
         intersection_ratio: f64,
         target: &Element,
-        can_gc: CanGc,
     ) {
-        let rect_to_domrectreadonly = |rect: Rect<Au, CSSPixel>| {
+        let mut rect_to_domrectreadonly = |rect: Rect<Au, CSSPixel>| {
             DOMRectReadOnly::new(
+                cx,
                 self.owner_doc.window().as_global_scope(),
                 None,
                 rect.origin.x.to_f64_px(),
                 rect.origin.y.to_f64_px(),
                 rect.size.width.to_f64_px(),
                 rect.size.height.to_f64_px(),
-                can_gc,
             )
         };
 
@@ -351,6 +343,7 @@ impl IntersectionObserver {
         // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
         self.queued_entries.borrow_mut().push(
             IntersectionObserverEntry::new(
+                cx,
                 self.owner_doc.window(),
                 None,
                 document
@@ -364,7 +357,6 @@ impl IntersectionObserver {
                 is_visible,
                 Finite::wrap(intersection_ratio),
                 target,
-                can_gc,
             )
             .as_traced(),
         );
@@ -374,7 +366,7 @@ impl IntersectionObserver {
     }
 
     /// Step 3.1-3.5 of <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn invoke_callback_if_necessary(&self, can_gc: CanGc) {
+    pub(crate) fn invoke_callback_if_necessary(&self, cx: &mut js::context::JSContext) {
         // Step 1
         // > If observer’s internal [[QueuedEntries]] slot is empty, continue.
         if self.queued_entries.borrow().is_empty() {
@@ -391,89 +383,70 @@ impl IntersectionObserver {
             .collect();
 
         // Step 4-5
-        let _ = self.callback.Call_(
-            self,
-            queued_entries,
-            self,
-            ExceptionHandling::Report,
-            can_gc,
-        );
+        let _ = self
+            .callback
+            .Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
-    /// It would not check whether the observer is already connected or not inside the doc.
-    fn connect_to_owner_unchecked(&self) {
-        self.owner_doc.add_intersection_observer(self);
+    /// If the [`IntersectionObserver`] is already connected, do nothing.
+    fn connect_to_owner(&self) {
+        if !self.connected_to_document.get() {
+            self.owner_doc.add_intersection_observer(self);
+            self.connected_to_document.set(true);
+        }
     }
 
     /// Disconnect the observer itself from owner doc.
-    /// It would not check whether the observer is already disconnected or not inside the doc.
-    fn disconnect_from_owner_unchecked(&self) {
-        self.owner_doc.remove_intersection_observer(self);
+    /// If not connected to a [`Document`], do nothing.
+    fn disconnect_from_owner(&self) {
+        if self.connected_to_document.get() {
+            self.owner_doc.remove_intersection_observer(self);
+        }
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#ref-for-intersectionobserver-content-clip>
+    /// An Element is defined as having a content clip if its computed style has overflow properties
+    /// that cause its content to be clipped to the element’s padding edge.
+    // TODO: this is not clear for `overflow: clip` since it is clipped based on overflow clip rect.
+    fn has_content_clip(element: &Element) -> bool {
+        element
+            .upcast::<Node>()
+            .effective_overflow_without_reflow()
+            .is_some_and(|overflow_axes| {
+                overflow_axes.x != Overflow::Visible || overflow_axes.y != Overflow::Visible
+            })
     }
 
     /// > The root intersection rectangle for an IntersectionObserver is
     /// > the rectangle we’ll use to check against the targets.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
-    pub(crate) fn root_intersection_rectangle(
-        &self,
-        document: &Document,
-    ) -> Option<Rect<Au, CSSPixel>> {
-        let window = document.window();
-        let intersection_rectangle = match &self.root {
+    pub(crate) fn root_intersection_rectangle(&self) -> Option<Rect<Au, CSSPixel>> {
+        let intersection_rectangle = match self.concrete_root() {
             // Handle if root is an element.
             Some(ElementOrDocument::Element(element)) => {
                 // TODO: recheck scrollbar approach and clip-path clipping from Chromium implementation.
-                if element.style().is_some_and(|style| {
-                    style.clone_overflow_x() != Overflow::Visible ||
-                        style.clone_overflow_y() != Overflow::Visible
-                }) {
+                if IntersectionObserver::has_content_clip(&element) {
                     // > Otherwise, if the intersection root has a content clip, it’s the element’s padding area.
-                    window.box_area_query_without_reflow(
-                        &DomRoot::upcast::<Node>(element.clone()),
-                        BoxAreaType::Padding,
-                        false,
-                    )
+                    element.upcast::<Node>().padding_box_without_reflow()
                 } else {
                     // > Otherwise, it’s the result of getting the bounding box for the intersection root.
-                    window.box_area_query_without_reflow(
-                        &DomRoot::upcast::<Node>(element.clone()),
-                        BoxAreaType::Border,
-                        false,
-                    )
+                    element.upcast::<Node>().border_box_without_reflow()
                 }
             },
             // Handle if root is a Document, which includes implicit root and explicit Document root.
-            _ => {
-                let document = if self.root.is_none() {
-                    // > If the IntersectionObserver is an implicit root observer,
-                    // > it’s treated as if the root were the top-level browsing context’s document,
-                    // > according to the following rule for document.
-                    //
-                    // There are uncertainties whether the browsing context we should consider is the browsing
-                    // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
-                    document
-                        .window()
-                        .webview_window_proxy()
-                        .and_then(|window_proxy| window_proxy.document())
-                } else if let Some(ElementOrDocument::Document(document)) = &self.root {
-                    Some(document.clone())
-                } else {
-                    None
-                };
-
+            Some(ElementOrDocument::Document(document)) => {
                 // > If the intersection root is a document, it’s the size of the document's viewport
                 // > (note that this processing step can only be reached if the document is fully active).
                 // TODO: viewport should consider native scrollbar if exist. Recheck Servo's scrollbar approach.
-                document.map(|document| {
-                    let viewport = document.window().viewport_details().size;
-                    Rect::from_size(Size2D::new(
-                        Au::from_f32_px(viewport.width),
-                        Au::from_f32_px(viewport.height),
-                    ))
-                })
+                let viewport = document.window().viewport_details().size;
+                Some(Rect::from_size(Size2D::new(
+                    Au::from_f32_px(viewport.width),
+                    Au::from_f32_px(viewport.height),
+                )))
             },
+            None => None,
         };
 
         // > When calculating the root intersection rectangle for a same-origin-domain target,
@@ -484,9 +457,26 @@ impl IntersectionObserver {
         // > the width of the undilated rectangle.
         // TODO(stevennovaryo): add check for same-origin-domain
         intersection_rectangle.map(|intersection_rectangle| {
-            let margin = self.resolve_percentages_with_basis(intersection_rectangle);
+            let margin = Self::resolve_percentages_with_basis(
+                &self.root_margin.borrow(),
+                intersection_rectangle,
+            );
             intersection_rectangle.outer_rect(margin)
         })
+    }
+
+    /// Return root or try to get the top-level browsing context document in case if this is a implicit root.
+    /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
+    // TODO: Currently we are unable to get the cross `ScriptThread` document.
+    fn concrete_root(&self) -> Option<ElementOrDocument> {
+        match &self.root {
+            Some(root) => Some(root.clone()),
+            None => self
+                .owner_doc
+                .window()
+                .top_level_document_if_local()
+                .map(ElementOrDocument::Document),
+        }
     }
 
     /// Step 2.2.4-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
@@ -499,36 +489,40 @@ impl IntersectionObserver {
     /// <https://www.w3.org/TR/intersection-observer/>
     fn maybe_compute_intersection_output(
         &self,
-        document: &Document,
         target: &Element,
         maybe_root_bounds: Option<Rect<Au, CSSPixel>>,
     ) -> IntersectionObservationOutput {
         // Step 5
         // > If the intersection root is not the implicit root, and target is not in
         // > the same document as the intersection root, skip to step 11.
-        if !self.root_is_implicit_root() && *target.owner_document() != *document {
-            return IntersectionObservationOutput::default_skipped();
-        }
-
         // Step 6
         // > If the intersection root is an Element, and target is not a descendant of
         // > the intersection root in the containing block chain, skip to step 11.
-        // TODO(stevennovaryo): implement LayoutThread query that support this.
-        if let Some(_element) = self.maybe_element_root() {
-            debug!("descendant of containing block chain is not implemented");
+        match &self.root {
+            Some(ElementOrDocument::Document(document)) if document != &target.owner_document() => {
+                return IntersectionObservationOutput::default_skipped();
+            },
+            Some(ElementOrDocument::Element(element)) => {
+                // To ensure consistency, we also check for elements right now, but we can depend on the
+                // layout query later.
+                if element.owner_document() != target.owner_document() {
+                    return IntersectionObservationOutput::default_skipped();
+                }
+                // TODO(stevennovaryo): implement LayoutThread query for descendant of containing block chain.
+                debug!("descendant of containing block chain is not implemented");
+            },
+            _ => {},
         }
 
         // Step 7
         // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-        let maybe_target_rect = document.window().box_area_query_without_reflow(
-            target.upcast::<Node>(),
-            BoxAreaType::Border,
-            false,
-        );
+        let maybe_target_rect = target.upcast::<Node>().border_box_without_reflow();
 
         // Following the implementation of Gecko, we will skip further processing if these
         // information not available. This would also handle display none element.
-        let (Some(root_bounds), Some(target_rect)) = (maybe_root_bounds, maybe_target_rect) else {
+        let (Some(root_bounds), Some(target_rect), Some(root_intersection)) =
+            (maybe_root_bounds, maybe_target_rect, self.concrete_root())
+        else {
             return IntersectionObservationOutput::default_skipped();
         };
 
@@ -538,8 +532,14 @@ impl IntersectionObserver {
         // Step 8
         // > Let intersectionRect be the result of running the compute the intersection algorithm on
         // > target and observer’s intersection root.
-        let intersection_rect =
-            compute_the_intersection(document, target, &self.root, root_bounds, target_rect);
+        let maybe_intersection_rect = compute_the_intersection(
+            target,
+            &root_intersection,
+            root_bounds,
+            target_rect,
+            &self.scroll_margin.borrow(),
+        );
+        let intersection_rect = maybe_intersection_rect.unwrap_or_default();
 
         // Step 9
         // > Let targetArea be targetRect’s area.
@@ -555,10 +555,7 @@ impl IntersectionObserver {
         // we are checking whether the rectangle is negative or not.
         // TODO(stevennovaryo): there is a dicussion regarding isIntersecting definition, we should update
         //                      it accordingly. https://github.com/w3c/IntersectionObserver/issues/432
-        let is_intersecting = !target_rect
-            .to_box2d()
-            .intersection_unchecked(&root_bounds.to_box2d())
-            .is_negative();
+        let is_intersecting = maybe_intersection_rect.is_some();
 
         // Step 12
         // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
@@ -601,10 +598,10 @@ impl IntersectionObserver {
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     pub(crate) fn update_intersection_observations_steps(
         &self,
+        cx: &mut JSContext,
         document: &Document,
         time: CrossProcessInstant,
         root_bounds: Option<Rect<Au, CSSPixel>>,
-        can_gc: CanGc,
     ) {
         for target in &*self.observation_targets.borrow() {
             // Step 1
@@ -625,8 +622,7 @@ impl IntersectionObserver {
             registration.last_update_time.set(time);
 
             // step 4-14
-            let intersection_output =
-                self.maybe_compute_intersection_output(document, target, root_bounds);
+            let intersection_output = self.maybe_compute_intersection_output(target, root_bounds);
 
             // Step 15-17
             // > 15. Let previousThresholdIndex be the registration’s previousThresholdIndex property.
@@ -649,6 +645,7 @@ impl IntersectionObserver {
                 // TODO(stevennovaryo): Per IntersectionObserverEntry interface, the rootBounds
                 //                      should be null for cross-origin-domain target.
                 self.queue_an_intersectionobserverentry(
+                    cx,
                     document,
                     time,
                     intersection_output.root_bounds,
@@ -658,7 +655,6 @@ impl IntersectionObserver {
                     intersection_output.is_visible,
                     intersection_output.intersection_ratio,
                     target,
-                    can_gc,
                 );
             }
 
@@ -679,10 +675,10 @@ impl IntersectionObserver {
     }
 
     fn resolve_percentages_with_basis(
-        &self,
+        margin: &IntersectionObserverMargin,
         containing_block: Rect<Au, CSSPixel>,
     ) -> SideOffsets2D<Au, CSSPixel> {
-        let inner = &self.root_margin.borrow().0;
+        let inner = &margin.0;
         SideOffsets2D::new(
             inner.0.to_used_value(containing_block.height()),
             inner.1.to_used_value(containing_block.width()),
@@ -707,7 +703,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
     fn RootMargin(&self) -> DOMString {
-        DOMString::from_string(self.root_margin.borrow().to_css_string())
+        self.root_margin.borrow().to_css_string().into()
     }
 
     /// > Offsets are applied to scrollports on the path from intersection root to target,
@@ -715,7 +711,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin>
     fn ScrollMargin(&self) -> DOMString {
-        DOMString::from_string(self.scroll_margin.borrow().to_css_string())
+        self.scroll_margin.borrow().to_css_string().into()
     }
 
     /// > A list of thresholds, sorted in increasing numeric order, where each threshold
@@ -725,8 +721,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > constructor, or the sequence is empty, the value of this attribute will be `[0]`.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
-    fn Thresholds(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(&self.thresholds.borrow(), context, retval, can_gc);
+    fn Thresholds(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(
+            &self.thresholds.borrow(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from
@@ -749,9 +750,6 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
     fn Observe(&self, target: &Element) {
         self.observe_target_element(target);
-
-        // Connect to owner doc to be accessed in the event loop.
-        self.connect_to_owner_unchecked();
     }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
@@ -773,7 +771,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         self.observation_targets.borrow_mut().clear();
 
         // We should remove this observer from the event loop.
-        self.disconnect_from_owner_unchecked();
+        self.disconnect_from_owner();
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-takerecords>
@@ -788,13 +786,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
-        Self::new(window, proto, callback, init, can_gc)
+        Self::new(cx, window, proto, callback, init)
     }
 }
 
@@ -850,56 +848,151 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
         .map_err(|_| ())
 }
 
+/// In terms of intersection observer, we consider zero-area rectangles as long as the area is not negative.
+fn intersect_rectangle(
+    lhs: &Rect<Au, CSSPixel>,
+    rhs: &Rect<Au, CSSPixel>,
+) -> Option<Rect<Au, CSSPixel>> {
+    let box_result = lhs.to_box2d().intersection_unchecked(&rhs.to_box2d());
+    if box_result.is_negative() {
+        None
+    } else {
+        Some(box_result.to_rect())
+    }
+}
+
+/// Compute the intersection rectangle of the target [`Element`] returning the results of intersection in the coordinate
+/// space of the target's owning [`Document`]. Additionally, we assume that both the target and the root is connected.
 /// <https://w3c.github.io/IntersectionObserver/#compute-the-intersection>
 fn compute_the_intersection(
-    _document: &Document,
-    _target: &Element,
-    _root: &IntersectionRoot,
+    target: &Element,
+    root: &ElementOrDocument,
     root_bounds: Rect<Au, CSSPixel>,
     mut intersection_rect: Rect<Au, CSSPixel>,
-) -> Rect<Au, CSSPixel> {
+    scroll_margin: &IntersectionObserverMargin,
+) -> Option<Rect<Au, CSSPixel>> {
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
     // We had delegated the computation of this to the caller of the function.
 
     // > 2. Let container be the containing block of target.
+    let mut container = match target
+        .upcast::<Node>()
+        .containing_block_node_without_reflow()
+    {
+        Some(node) => ElementOrDocument::Element(DomRoot::downcast(node).unwrap()),
+        None => ElementOrDocument::Document(target.owner_document()),
+    };
+
+    // Total offsets gained from traversing through multiple navigables. We use this to map the coordinate space.
+    // TODO: We should store the product sum of transformation matrices instead. But this should be enough to handle
+    // scrolling, simple translation, and offset from containing block.
+    let mut total_inter_document_offset = Vector2D::zero();
+
     // > 3. While container is not root:
-    // >    1. If container is the document of a nested browsing context, update intersectionRect
-    // >       by clipping to the viewport of the document,
-    // >       and update container to be the browsing context container of container.
-    // >    2. Map intersectionRect to the coordinate space of container.
-    // >    3. If container is a scroll container, apply the IntersectionObserver’s [[scrollMargin]]
-    // >       to the container’s clip rect as described in apply scroll margin to a scrollport.
-    // >    4. If container has a content clip or a css clip-path property, update intersectionRect
-    // >       by applying container’s clip.
-    // >    5. If container is the root element of a browsing context, update container to be the
-    // >       browsing context’s document; otherwise, update container to be the containing block
-    // >       of container.
-    // TODO: Implement rest of step 2 and 3, which will consider transform matrix, window scroll, etc.
+    while container != *root {
+        let containing_element = match container {
+            ElementOrDocument::Document(ref containing_document) => {
+                // > 3.1. If container is the document of a nested browsing context, update intersectionRect by clipping
+                // >      to the viewport of the document, and update container to be the browsing context container of container.
+                if let Some(frame_container) = containing_document
+                    .browsing_context()
+                    .and_then(|window| window.frame_element().map(DomRoot::from_ref))
+                {
+                    let viewport_rect = f32_rect_to_au_rect(Rect::from_size(
+                        containing_document.window().viewport_details().size,
+                    ));
+
+                    if let Some(rect) = intersect_rectangle(&intersection_rect, &viewport_rect) {
+                        intersection_rect = rect;
+                    } else {
+                        return None;
+                    }
+
+                    let current_offset = frame_container
+                        .upcast::<Node>()
+                        .padding_box()
+                        .unwrap()
+                        .origin
+                        .to_vector();
+                    intersection_rect.origin += current_offset;
+                    total_inter_document_offset += current_offset;
+
+                    frame_container
+                } else {
+                    // TODO: Theoritically, this shouldn't be reachable as we have ensured that the root is reachable
+                    // in the previous steps. But we are still unable to iterate through cross-origin ancestor iframes,
+                    // and we will need to stop the iteration for that case.
+                    break;
+                }
+            },
+            ElementOrDocument::Element(ref root) => root.clone(),
+        };
+
+        // > 3.2. Map intersectionRect to the coordinate space of container.
+        // TODO(#35767): We don't map the coordinate space per each iteration yet, instead all the rectangles are
+        // in the viewport coordinate space. But this would cause the scroll margin calculation to be inaccurate
+        // with respect to transforms.
+
+        // > 3.3. If container is a scroll container, apply the IntersectionObserver’s [[scrollMargin]]
+        // >      to the container’s clip rect as described in apply scroll margin to a scrollport.
+        // > 3.4. If container has a content clip or a css clip-path property, update intersectionRect
+        // >      by applying container’s clip.
+        // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
+        // Additionally, handle css `clip-path` as well.
+        if IntersectionObserver::has_content_clip(&containing_element) &&
+            let Some(container_padding_box) = containing_element
+                .upcast::<Node>()
+                .padding_box_without_reflow()
+        {
+            let container_padding_box = if containing_element.establishes_scroll_container() {
+                let margin = IntersectionObserver::resolve_percentages_with_basis(
+                    scroll_margin,
+                    container_padding_box,
+                );
+                container_padding_box.outer_rect(margin)
+            } else {
+                container_padding_box
+            };
+
+            if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
+                intersection_rect = rect;
+            } else {
+                return None;
+            }
+        }
+
+        // > 3.5. If container is the root element of a browsing context, update container to be the
+        // >      browsing context’s document; otherwise, update container to be the containing block
+        // >      of container.
+        // Additionally, for a node that doesn't have an element that establishes its containing block, we should
+        // refer to the browsing context's document.
+        container = match containing_element
+            .upcast::<Node>()
+            .containing_block_node_without_reflow()
+            .and_then(DomRoot::downcast::<Element>)
+        {
+            Some(element) => ElementOrDocument::Element(element),
+            None => ElementOrDocument::Document(containing_element.owner_document()),
+        };
+    }
 
     // Step 4
     // > Map intersectionRect to the coordinate space of root.
-    // TODO: implement this by considering the transform matrix, window scroll, etc.
+    // TODO(#35767): we don't map the coordinate space per each iteration yet, instead all the rectangles are
+    // in the viewport coordinate space.
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
-    // Note that we also consider the edge-adjacent intersection.
-    let intersection_box = intersection_rect
-        .to_box2d()
-        .intersection_unchecked(&root_bounds.to_box2d());
-    // Although not specified, the result for non-intersecting rectangle should be zero rectangle.
-    // So we should give zero rectangle immediately without modifying it.
-    if intersection_box.is_negative() {
-        return Rect::zero();
-    }
-    intersection_rect = intersection_box.to_rect();
+    intersection_rect = intersect_rectangle(&intersection_rect, &root_bounds)?;
 
     // Step 6
     // > Map intersectionRect to the coordinate space of the viewport of the document containing target.
-    // TODO: implement this by considering the transform matrix, window scroll, etc.
+    // Offset the intersectionRect back to the coordinate space of target's document.
+    intersection_rect.origin -= total_inter_document_offset;
 
     // Step 7
     // > Return intersectionRect.
-    intersection_rect
+    Some(intersection_rect)
 }
 
 /// The values from computing step 2.2.4-2.2.14 in

@@ -2,7 +2,7 @@ import pytest
 
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def set_timeouts(session, timeouts):

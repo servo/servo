@@ -5,12 +5,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use js::context::JSContext;
 use script_bindings::callback::ExceptionHandling;
+use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
 use crate::microtask::{Microtask, MicrotaskQueue};
 
@@ -38,7 +38,7 @@ impl ScriptMutationObservers {
     }
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
-    pub(crate) fn notify_mutation_observers(&self, can_gc: CanGc) {
+    pub(crate) fn notify_mutation_observers(&self, cx: &mut JSContext) {
         // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
         self.mutation_observer_microtask_queued.set(false);
 
@@ -72,7 +72,7 @@ impl ScriptMutationObservers {
             if !queue.is_empty() {
                 let _ = mo
                     .callback()
-                    .Call_(&**mo, queue, mo, ExceptionHandling::Report, can_gc);
+                    .Call_(cx, &**mo, queue, mo, ExceptionHandling::Report);
             }
         }
 
@@ -80,7 +80,7 @@ impl ScriptMutationObservers {
         // with its bubbles attribute set to true, at slot.
         for slot in signal_set {
             slot.upcast::<EventTarget>()
-                .fire_event(atom!("slotchange"), can_gc);
+                .fire_event(cx, atom!("slotchange"));
         }
     }
 

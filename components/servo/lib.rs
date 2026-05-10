@@ -14,7 +14,9 @@
 
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
-mod gamepad_provider;
+mod gamepad_delegate;
+#[cfg(feature = "media-gstreamer")]
+mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
 mod proxies;
@@ -29,10 +31,8 @@ mod webview_delegate;
 // These are Servo's public exports. Everything (apart from a couple exceptions below)
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
 pub use accesskit;
-pub use base::generic_channel::GenericSender;
-pub use base::id::WebViewId;
 pub use embedder_traits::user_contents::UserScript;
-pub use embedder_traits::*;
+pub use embedder_traits::{submit_resource_reader, *};
 pub use image::RgbaImage;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
@@ -40,6 +40,7 @@ pub use keyboard_types::{
 pub use media::{
     GlApi as MediaGlApi, GlContext as MediaGlContext, NativeDisplay as MediaNativeDisplay,
 };
+pub use net_traits::CookieSource;
 // This API should probably not be exposed in this way. Instead there should be a fully
 // fleshed out public domains API if we want to expose it.
 pub use net_traits::pub_domains::is_reg_domain;
@@ -47,15 +48,23 @@ pub use paint::WebRenderDebugOption;
 pub use paint_api::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
+// Expose our profile traits for servoshell, so we can instrument code there, but don't
+// add it as an official API.
+#[doc(hidden)]
+pub use profile_traits;
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
-pub use servo_config::opts::{DiagnosticsLogging, Opts, OutputOptions};
+pub use servo_base::generic_channel::GenericSender;
+pub use servo_base::id::WebViewId;
+pub use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};
 pub use servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
+#[doc(hidden)]
+pub use servo_tracing;
 pub use servo_url::ServoUrl;
 pub use style::Zero;
 pub use style_traits::CSSPixel;
@@ -63,9 +72,10 @@ pub use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 
+pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
 #[cfg(feature = "gamepad")]
-pub use crate::gamepad_provider::{
-    GamepadHapticEffectRequest, GamepadHapticEffectRequestType, GamepadProvider,
+pub use crate::gamepad_delegate::{
+    GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
@@ -74,10 +84,10 @@ pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::user_content_manager::UserContentManager;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
-    AlertDialog, AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ConfirmDialog,
-    ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker, InputMethodControl,
-    NavigationRequest, PermissionRequest, PromptDialog, SelectElement, SimpleDialog,
-    WebResourceLoad, WebViewDelegate,
+    AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
+    ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker,
+    InputMethodControl, NavigationRequest, PermissionRequest, PromptDialog, SelectElement,
+    SimpleDialog, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webxr")]
@@ -104,3 +114,7 @@ pub mod protocol_handler {
 
     pub use crate::webview_delegate::ProtocolHandlerRegistration;
 }
+
+// We need to reference this crate, in order for the linker not to remove it.
+#[cfg(all(feature = "baked-in-resources", not(target_env = "ohos")))]
+use servo_default_resources as _;

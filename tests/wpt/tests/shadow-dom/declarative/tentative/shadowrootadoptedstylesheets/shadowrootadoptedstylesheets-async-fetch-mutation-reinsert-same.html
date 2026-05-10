@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: reinsert placeholder at same position</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Remove a placeholder, then put it back in the same position.
+    // The fetch callback should still find and replace it.
+    const url = "./support/styles-red.css";
+    const { shadowRoot, testElement } = createStylesheetHost(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before removal: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before removal: placeholder at index 0 should be empty.");
+
+    const placeholder = shadowRoot.adoptedStyleSheets[0];
+    shadowRoot.adoptedStyleSheets = [];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "adoptedStyleSheets should be empty after clearing.");
+
+    shadowRoot.adoptedStyleSheets = [placeholder];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "adoptedStyleSheets should have one entry after reinserting.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0], placeholder,
+      "The reinserted sheet should be the same placeholder object.");
+
+    await fetchAndWait(url);
+
+    assertSheetRule(shadowRoot, 0, "span { color: red; }",
+      "After fetch");
+    assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
+      "Red styles should be applied after fetch.");
+  }, "Placeholder removed and reinserted at same position is replaced by fetched sheet.");
+</script>
+</body>

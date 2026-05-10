@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Iframer-opener</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script>
+"use strict";
+
+// Iframe source for the iframe-opener tests.
+//
+// In `mode=iframe`, this will open a new window with the same URL as itself,
+// but changes the window to `mode=opener`.
+//
+// In `mode=opener`, this will set LNA permissions, and then navigate its
+// opener (the original iframe) to the URL passed through the 'navigateto'
+// parameter.
+//
+// Permission setting is documented in the sourceResolveOptions() function in
+// support.sub.js.
+Promise.resolve().then(async () => {
+    const window_url = new URL(window.location.href);
+    let mode = window_url.searchParams.get('mode');
+    switch (mode) {
+      case 'iframe':
+        let new_window_url = new URL(window.location.href);
+        new_window_url.searchParams.set('mode', 'opener');
+        window.open(new_window_url);
+        break;
+
+      case 'opener':
+        let permission_name = getPermissionName(window_url);
+        let permission_value = getPermissionValue(window_url);
+
+        // Location of the test_driver.
+        test_driver.set_test_context(opener.top.opener);
+        await test_driver.set_permission({ name: permission_name }, permission_value);
+
+        const navigate_url = window_url.searchParams.get('navigateto');
+        opener.location.href = navigate_url.toString();
+        break;
+    }
+});
+</script>

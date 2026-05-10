@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/40731">
+<div id="container">
+  <span id="outer"><slot id="slot"><span id="inner">before</span></slot></span>
+</div>
+<script>
+  container.scrollHeight;
+  container.hidden = true;
+  outer.attachShadow({mode: "open"});
+  document.createElement("canvas").toBlob(_ => inner.innerText = "hello");
+</script>

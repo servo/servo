@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+<title>Test custom element callbacks with Sanitizer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+test(t => {
+  customElements.define('x-removed', class extends HTMLElement {
+    static get observedAttributes() { return ['data-attr']; }
+    attributeChangedCallback() { assert_unreached("callback called"); }
+  });
+  document.body.firstElementChild.setHTML(
+    "<x-removed data-attr='bla'></x-removed>");
+}, "Custom element that is removed during sanitization.");
+
+test(t => {
+  let flag = false;
+  customElements.define('x-allowed', class extends HTMLElement {
+    static get observedAttributes() { return ['data-attr']; }
+    attributeChangedCallback() { flag = true; }
+  });
+  document.body.firstElementChild.setHTML(
+    "<x-allowed data-attr='bla'></x-allowed>",
+    {sanitizer: {elements: ["x-allowed"]}});
+  assert_true(flag);
+}, "Custom element that is allowed.");
+
+test(t => {
+  let flag = false;
+  const registry = new CustomElementRegistry();
+  registry.define('x-scoped', class extends HTMLElement {
+    static get observedAttributes() { return ['data-attr']; }
+    attributeChangedCallback() { flag = true; }
+  });
+  const div = document.createElement("div", {customElementRegistry: registry});
+  div.setHTML(
+    "<x-scoped data-attr='bla'></x-scoped>",
+    {sanitizer: {elements: ["x-scoped"]}});
+  assert_true(flag);
+  assert_equals(div.firstElementChild.localName, "x-scoped");
+  assert_equals(div.firstElementChild.customElementRegistry, registry);
+}, "Scoped custom element registry still works.");
+</script>
+</body>

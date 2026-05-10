@@ -38,7 +38,7 @@ jobs:
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ env.NAME }}
       - name: Setup Python
@@ -62,17 +62,19 @@ jobs:
             --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json
             ${{ inputs.wpt-args }}
       - name: Archive results (filtered)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-filtered-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
+          if-no-files-found: error
       - name: Archive results (full)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-full-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
+          if-no-files-found: error
 
   report-test-results:
     name: Process WPT Results
@@ -81,13 +83,13 @@ jobs:
     needs: mac-wpt
     steps:
       - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-filtered-logs-${{ env.NAME }}
           pattern: wpt-filtered-logs-${{ env.NAME }}-*
           delete-merged: true
       - name: Merge logs (full)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-full-logs-${{ env.NAME }}
           pattern: wpt-full-logs-${{ env.NAME }}-*
@@ -103,11 +105,12 @@ jobs:
           cat results/${{ env.NAME }}/*.log > stable-unexpected-results.log || true
       - name: Upload aggregated results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: stable-unexpected-results-${{ env.NAME }}
           path: stable-unexpected-results.log
-      - uses: actions/download-artifact@v4
+          if-no-files-found: error
+      - uses: actions/download-artifact@v8
         if: ${{ !cancelled() }}
         with:
           name: wpt-filtered-logs-${{ env.NAME }}

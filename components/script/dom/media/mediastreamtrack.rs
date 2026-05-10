@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 
 use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::MediaStreamTrackMethods;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaStreamTrack {
@@ -35,15 +35,15 @@ impl MediaStreamTrack {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
-        can_gc: CanGc,
     ) -> DomRoot<MediaStreamTrack> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(MediaStreamTrack::new_inherited(id, ty)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -71,7 +71,7 @@ impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone>
-    fn Clone(&self) -> DomRoot<MediaStreamTrack> {
-        MediaStreamTrack::new(&self.global(), self.id, self.ty, CanGc::note())
+    fn Clone(&self, cx: &mut js::context::JSContext) -> DomRoot<MediaStreamTrack> {
+        MediaStreamTrack::new(cx, &self.global(), self.id, self.ty)
     }
 }

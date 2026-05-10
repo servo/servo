@@ -13,7 +13,7 @@ dictionary ImageEncodeOptions {
   unrestricted double quality;
 };
 
-//enum OffscreenRenderingContextId { "2d", "bitmaprenderer", "webgl", "webgl2" };
+enum OffscreenRenderingContextId { "2d", "bitmaprenderer", "webgl", "webgl2", "experimental-webgl", "experimental-webgl2" };
 
 [Exposed=(Window,Worker), Transferable, Pref="dom_offscreen_canvas_enabled"]
 interface OffscreenCanvas : EventTarget {
@@ -21,7 +21,7 @@ interface OffscreenCanvas : EventTarget {
   attribute [EnforceRange] unsigned long long width;
   attribute [EnforceRange] unsigned long long height;
 
-  [Throws] OffscreenRenderingContext? getContext(DOMString contextId, optional any options = null);
+  [Throws] OffscreenRenderingContext? getContext(OffscreenRenderingContextId contextId, optional any options = null);
   [Throws] ImageBitmap transferToImageBitmap();
   Promise<Blob> convertToBlob(optional ImageEncodeOptions options = {});
 };

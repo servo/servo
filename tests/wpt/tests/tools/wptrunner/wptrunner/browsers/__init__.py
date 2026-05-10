@@ -21,24 +21,3 @@ a dictionary with the fields
 All classes and functions named in the above dict must be imported into the
 module global scope.
 """
-
-product_list = ["android_webview",
-                "chrome",
-                "chrome_android",
-                "chrome_ios",
-                "chromium",
-                "edge",
-                "firefox",
-                "firefox_android",
-                "headless_shell",
-                "safari",
-                "sauce",
-                "servo",
-                "servo_legacy",
-                "opera",
-                "webkit",
-                "webkitgtk_minibrowser",
-                "wpewebkit_minibrowser",
-                "wktr",
-                "epiphany",
-                "ladybird"]

@@ -20,8 +20,9 @@ from collections.abc import Generator
 COMPATIBLE_MSVC_VERSIONS = {
     "2019": "16.0",
     "2022": "17.0",
+    "2026": "18.0",
 }
-MSVC_REDIST_VERSIONS = ["VC141", "VC142", "VC143", "VC150", "VC160"]
+MSVC_REDIST_VERSIONS = ["VC141", "VC142", "VC143", "VC145", "VC150", "VC160"]
 
 PROGRAM_FILES = os.environ.get("PROGRAMFILES", "C:\\Program Files")
 PROGRAM_FILES_X86 = os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")

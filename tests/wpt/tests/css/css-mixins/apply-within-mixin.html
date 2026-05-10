@@ -7,16 +7,20 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
       @mixin --m1() {
-        &.a {
-          @apply --m2;
+        @result {
+          &.a {
+            @apply --m2;
+          }
         }
       }
       .c {
         @apply --m1;
       }
       @mixin --m2() {
-        &.b {
-          color: green;
+        @result {
+          &.b {
+            color: green;
+          }
         }
       }
     </style>

@@ -83,7 +83,7 @@ function popupOpeningScript(popup_via, popup_url, popup_origin, headers,
       `;
   }
 
-  assert_not_reached('Unrecognized popup opening method.');
+  assert_unreached('Unrecognized popup opening method.');
 }
 
 function promise_test_parallel(promise, description) {
@@ -233,7 +233,7 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
           break;
         }
         default:
-          assert_not_reached('Unrecognized opener state: ' +
+          assert_unreached('Unrecognized opener state: ' +
             expected_opener_state);
       }
     }, `${description} with ${popup_via}`);

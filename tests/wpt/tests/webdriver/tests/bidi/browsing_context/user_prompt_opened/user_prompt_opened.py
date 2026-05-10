@@ -1,15 +1,13 @@
 import pytest
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
-
 
 pytestmark = pytest.mark.asyncio
 
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-async def test_unsubscribe(bidi_session, inline, new_tab):
+async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_bidi_events):
     await bidi_session.session.subscribe(events=[USER_PROMPT_OPENED_EVENT])
     await bidi_session.session.unsubscribe(events=[USER_PROMPT_OPENED_EVENT])
 
@@ -29,7 +27,7 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -111,6 +109,7 @@ async def test_subscribe_to_one_context(
     subscribe_events,
     inline,
     wait_for_event,
+    wait_for_bidi_events,
     wait_for_future_safe,
     type_hint,
 ):
@@ -142,7 +141,7 @@ async def test_subscribe_to_one_context(
 
     # Make sure we don't receive this event.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     # Open a prompt in the subscribed context.
     await bidi_session.browsing_context.navigate(

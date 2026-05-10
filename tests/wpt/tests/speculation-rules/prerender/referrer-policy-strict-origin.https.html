@@ -12,7 +12,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 // Tests that the referrer on the prerendering navigation request is the
 // triggering page's origin when the referrer policy is set to strict-origin.

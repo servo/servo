@@ -62,6 +62,38 @@
         });
       });
     }, "visualviewport.onscrollend fires when the visual viewport is panned.");
+
+    promise_test(async (t) => {
+      const preScrollVisualViewportOffsetTop = visualViewport.offsetTop;
+      const preScrollWindowScrollOffset = window.scrollY;
+
+      let vv_scrollend_timestamp = null;
+      let window_scrollend_timestamp = null;
+
+      visualViewport.addEventListener("scrollend", (e) => {
+        vv_scrollend_timestamp = e.timeStamp;
+      }, { once: true});
+
+      let window_scrollend_promise = new Promise(resolve => {
+        window.addEventListener("scrollend", (e) => {
+          window_scrollend_timestamp = e.timeStamp;
+          resolve();
+        }, { once: true});
+      });
+
+      // A scroll that exceeds the visual viewport size should trigger a
+      // window scrollend and a visual viewport scrollend event.
+      const scrollAmount = 200;
+      await touchScrollInTarget(scrollAmount, document.documentElement, "down");
+
+      // Wait for the window scrollend promise, and the visual viewport
+      // scrollend should have been fired before the window scrollend
+      await window_scrollend_promise;
+
+      assert_less_than(vv_scrollend_timestamp, window_scrollend_timestamp,
+        "the visualViewport scrollend event is fired first");
+
+    }, "visualviewport.onscrollend  and window scrollend order.");
   }
 </script>
 </body>

@@ -23,11 +23,14 @@ enum FontFaceSetLoadStatus { "loading" , "loaded" };
 interface FontFaceSet : EventTarget {
   // constructor(sequence<FontFace> initialFaces);
 
-  // setlike<FontFace>;
+  [Pref="dom_fontface_enabled"]
+  setlike<FontFace>;
   [Pref="dom_fontface_enabled"]
   FontFaceSet add(FontFace font);
-  // boolean delete(FontFace font);
-  // undefined clear();
+  [Pref="dom_fontface_enabled"]
+  boolean delete(FontFace font);
+  [Pref="dom_fontface_enabled"]
+  undefined clear();
 
   // events for when loading state changes
   // attribute EventHandler onloading;

@@ -8,10 +8,10 @@ use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use webrender_api::ExternalScrollId;
 
 use crate::WebViewPoint;
 
+/// An opaque id for an [`InputEvent`].
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct InputEventId(usize);
 
@@ -24,6 +24,7 @@ impl InputEventId {
 }
 
 bitflags! {
+    /// Flags representing the state of an [`InputEvent`] after Servo has handled it.
     #[derive(Clone, Copy, Default, Deserialize, PartialEq, Serialize)]
     pub struct InputEventResult: u8 {
         /// Whether or not this input event's default behavior was prevented via script.
@@ -34,7 +35,17 @@ bitflags! {
         /// behavior (such as keybindings) when the WebView has already consumed the event for its
         /// own purpose.
         const Consumed = 1 << 1;
+        /// Whether or not the input event failed to dispatch. This can happen when an event
+        /// is sent while Servo is shutting down or when it is in an intermediate state.
+        /// Typically these events should be considered to be consumed.
+        const DispatchFailed = 1 << 2;
     }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct InputEventOutcome {
+    pub id: InputEventId,
+    pub result: InputEventResult,
 }
 
 /// An input event that is sent from the embedder to Servo.
@@ -48,7 +59,6 @@ pub enum InputEvent {
     MouseButton(MouseButtonEvent),
     MouseLeftViewport(MouseLeftViewportEvent),
     MouseMove(MouseMoveEvent),
-    Scroll(ScrollEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
 }
@@ -89,7 +99,6 @@ impl InputEvent {
             InputEvent::MouseLeftViewport(_) => None,
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
-            InputEvent::Scroll(..) => None,
         }
     }
 }
@@ -152,6 +161,7 @@ impl MouseButtonEvent {
     }
 }
 
+/// The types of mouse buttons.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButton {
     Left,
@@ -189,18 +199,21 @@ impl From<MouseButton> for i16 {
     }
 }
 
-/// The types of mouse events
+/// The types of mouse events.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButtonAction {
-    /// Mouse button down
+    /// Mouse button down.
     Down,
-    /// Mouse button up
+    /// Mouse button up.
     Up,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: WebViewPoint,
+    #[doc(hidden)]
+    // An internal flag used to avoid refreshing the cursor in response to move
+    // events for touch devices since they are simulated in Servo using mouse events.
     pub is_compatibility_event_for_touch: bool,
 }
 
@@ -212,6 +225,7 @@ impl MouseMoveEvent {
         }
     }
 
+    #[doc(hidden)]
     pub fn new_compatibility_for_touch(point: WebViewPoint) -> Self {
         Self {
             point,
@@ -241,23 +255,23 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
-    pub id: TouchId,
+    pub touch_id: TouchId,
     pub point: WebViewPoint,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
 }
 
 impl TouchEvent {
-    pub fn new(event_type: TouchEventType, id: TouchId, point: WebViewPoint) -> Self {
+    pub fn new(event_type: TouchEventType, touch_id: TouchId, point: WebViewPoint) -> Self {
         TouchEvent {
             event_type,
-            id,
+            touch_id,
             point,
             cancelable: true,
         }
@@ -274,23 +288,25 @@ impl TouchEvent {
     }
 }
 
-/// Mode to measure WheelDelta floats in
+/// Unit of a [`WheelDelta`].
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WheelMode {
-    /// Delta values are specified in pixels
+    /// Delta values are specified in pixels.
     DeltaPixel = 0x00,
-    /// Delta values are specified in lines
+    /// Delta values are specified in lines.
     DeltaLine = 0x01,
-    /// Delta values are specified in pages
+    /// Delta values are specified in pages.
     DeltaPage = 0x02,
 }
 
-/// The Wheel event deltas in every direction
+/// The wheel event deltas for every direction.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
-    /// Delta in the left/right direction
+    /// Delta in the left/right direction. A positive value means that the view scrolls left,
+    /// revealing more content to the left of the current viewport.
     pub x: f64,
-    /// Delta in the up/down direction
+    /// Delta in the up/down direction. A positive value means that the view scrolls up, revealing
+    /// more content above the current viewport.
     pub y: f64,
     /// Delta in the direction going into/out of the screen
     pub z: f64,
@@ -310,11 +326,7 @@ impl WheelEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct ScrollEvent {
-    pub external_id: ExternalScrollId,
-}
-
+/// The types of an input method event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ImeEvent {
     Composition(CompositionEvent),
@@ -325,34 +337,35 @@ pub enum ImeEvent {
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-/// Index of gamepad in list of system's connected gamepads
+/// Index of gamepad in list of system's connected gamepads.
 pub struct GamepadIndex(pub usize);
 
 #[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The minimum and maximum values that can be reported for axis or button input from this gamepad
+/// The minimum and maximum values that can be reported for axis or button input from this gamepad.
 pub struct GamepadInputBounds {
-    /// Minimum and maximum axis values
+    /// Minimum and maximum axis values.
     pub axis_bounds: (f64, f64),
-    /// Minimum and maximum button values
+    /// Minimum and maximum button values.
     pub button_bounds: (f64, f64),
 }
 
 #[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The haptic effects supported by this gamepad
+/// The haptic effects supported by this gamepad.
 pub struct GamepadSupportedHapticEffects {
-    /// Gamepad support for dual rumble effects
+    /// Whether gamepad has support for dual rumble effects.
     pub supports_dual_rumble: bool,
-    /// Gamepad support for trigger rumble effects
+    /// Whether gamepad has support for trigger rumble effects.
     pub supports_trigger_rumble: bool,
 }
 
 #[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad event
+/// The types of Gamepad event.
 pub enum GamepadEvent {
-    /// A new gamepad has been connected
+    /// A new gamepad has been connected.
+    ///
     /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
     Connected(
         GamepadIndex,
@@ -360,22 +373,26 @@ pub enum GamepadEvent {
         GamepadInputBounds,
         GamepadSupportedHapticEffects,
     ),
-    /// An existing gamepad has been disconnected
+    /// An existing gamepad has been disconnected.
+    ///
     /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
     Disconnected(GamepadIndex),
-    /// An existing gamepad has been updated
+    /// An existing gamepad has been updated.
+    ///
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     Updated(GamepadIndex, GamepadUpdateType),
 }
 
 #[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad input being updated
+/// The type of Gamepad input being updated.
 pub enum GamepadUpdateType {
-    /// Axis index and input value
+    /// Axis index and input value.
+    ///
     /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
     Axis(usize, f64),
-    /// Button index and input value
+    /// Button index and input value.
+    ///
     /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
     Button(usize, f64),
 }

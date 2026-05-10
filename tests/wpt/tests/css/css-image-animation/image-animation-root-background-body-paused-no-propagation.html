@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>animated image for root background does not pause when image-animation is on body</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-root-background-body-paused-no-propagation-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  takeScreenshotDelayed(300);
+</script>
+
+<style>
+  html {
+    background-image: url("../../images/anim-gr.gif");
+  }
+  body {
+    image-animation: paused;
+  }
+</style>
+
+</html>

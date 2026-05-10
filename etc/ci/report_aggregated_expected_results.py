@@ -272,8 +272,12 @@ def main():
 
         pr_number = get_pr_number()
         if pr_number:
-            process = subprocess.Popen(["gh", "pr", "comment", pr_number, "-F", "-"], stdin=subprocess.PIPE)
-            print(process.communicate(input=html_string.encode("utf-8"))[0])
+            process = subprocess.Popen(
+                ["gh", "pr", "comment", pr_number, "-F", "-"],
+                stdin=subprocess.PIPE,
+                text=True,
+            )
+            print(process.communicate(input=html_string)[0])
         else:
             print("Could not find PR number in environment. Not making GitHub comment.")
 

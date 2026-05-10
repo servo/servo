@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width initial-scale=1">
+<style>
+html {
+  scrollbar-width: none;
+}
+body {
+  width: 200vw;
+  margin: 0px;
+}
+div {
+  width: 50vw;
+  height: 100px;
+  display: inline-block;
+  background: blue;
+}
+.last {
+  background: red;
+}
+</style>
+<div></div><div></div><div></div><div class="last"></div>
+<script>
+document.querySelector(".last").scrollIntoView({ behavior: "instant" });
+document.documentElement.classList.remove("reftest-wait");
+</script>
+</html>

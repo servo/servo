@@ -202,17 +202,14 @@ fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Erro
                 } else {
                     NameTestComparisonMode::XHtml
                 };
-                let actual_name = QualName::new(
-                    element.prefix(),
-                    element.namespace().clone(),
-                    element.local_name().clone(),
-                );
+                let actual_name =
+                    QualName::new(element.prefix(), element.namespace(), element.local_name());
                 element_name_test(expected_name, actual_name, comparison_mode)
             } else if let Some(attribute) = node.as_attribute() {
                 let actual_name = QualName::new(
                     attribute.prefix(),
-                    attribute.namespace().clone(),
-                    attribute.local_name().clone(),
+                    attribute.namespace(),
+                    attribute.local_name(),
                 );
                 // attributes are always compared with strict namespace matching
                 let comparison_mode = NameTestComparisonMode::XHtml;

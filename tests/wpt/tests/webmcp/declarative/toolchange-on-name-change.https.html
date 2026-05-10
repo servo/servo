@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolchange event on name change</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <form toolname="my_tool" tooldescription="desc">
+    <input id="input1" type="text" name="input_name">
+    <input id="input2" type="checkbox" name="checkbox_name">
+    <select id="select1" name="select_name">
+      <option value="a">A</option>
+      <option value="b">B</option>
+    </select>
+    <textarea id="textarea1" name="textarea_name"></textarea>
+  </form>
+  <script>
+    function waitForToolChange() {
+      return new Promise(resolve => {
+        navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+      });
+    }
+
+    promise_test(async t => {
+      const testMutations = [
+        // input1 (text)
+        { id: 'input1', action: el => el.setAttribute('name', 'new_input_name') },
+        { id: 'input1', action: el => el.type = 'number' },
+        { id: 'input1', action: el => el.required = true },
+        { id: 'input1', action: el => el.setAttribute('toolparamdescription', 'new desc') },
+
+        // input2 (checkbox)
+        { id: 'input2', action: el => el.setAttribute('name', 'new_checkbox_name') },
+        { id: 'input2', action: el => el.type = 'radio' },
+        { id: 'input2', action: el => el.required = true },
+        { id: 'input2', action: el => el.setAttribute('toolparamdescription', 'new desc') },
+
+        // select1
+        { id: 'select1', action: el => el.setAttribute('name', 'new_select_name') },
+        { id: 'select1', action: el => el.multiple = true },
+        { id: 'select1', action: el => el.required = true },
+        { id: 'select1', action: el => el.setAttribute('toolparamdescription', 'new desc') },
+
+        // textarea1
+        { id: 'textarea1', action: el => el.setAttribute('name', 'new_textarea_name') },
+        { id: 'textarea1', action: el => el.required = true },
+        { id: 'textarea1', action: el => el.setAttribute('toolparamdescription', 'new desc') }
+      ];
+
+      for (let i = 0; i < testMutations.length; i++) {
+        const m = testMutations[i];
+        const el = document.getElementById(m.id);
+        assert_true(!!el, `Element ${m.id} should exist`);
+
+        const promise = waitForToolChange();
+        m.action(el);
+        await promise;
+        // If we reach here, the event was fired.
+      }
+    }, "Test that toolchange event fires on various mutations of form controls");
+  </script>
+</body>

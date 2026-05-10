@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Display: Parsing display with valid values</title>
 <link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
-<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/#masonry-containers">
+<link rel="help" href="https://www.w3.org/TR/css-grid-3/#grid-lanes-containers">
 <meta name="assert" content="display supports the new values 'grid-lanes | inline-grid-lanes'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -12,9 +12,14 @@
 </head>
 <body>
 <script>
-// https://tabatkins.github.io/specs/css-masonry/#masonry-containers
+// https://www.w3.org/TR/css-grid-3/#grid-lanes-containers
 test_valid_value("display", "grid-lanes");
+test_valid_value("display", "block grid-lanes", "grid-lanes");
+test_valid_value("display", "grid-lanes block", "grid-lanes");
 test_valid_value("display", "inline-grid-lanes");
+test_valid_value("display", "inline grid-lanes");
+test_valid_value("display", "grid-lanes inline", "inline grid-lanes");
+
 </script>
 </body>
 </html>

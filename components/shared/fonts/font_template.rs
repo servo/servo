@@ -249,7 +249,9 @@ impl FontTemplate {
         if let Some(font_face_rule) = &self.font_face_rule {
             // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
             // descriptor in the @font-face rule are applied.
-            if let Some(variation_settings) = font_face_rule.variation_settings.as_ref() {
+            if let Some(variation_settings) =
+                font_face_rule.descriptors.font_variation_settings.as_ref()
+            {
                 variation_settings
                     .0
                     .iter()

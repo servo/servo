@@ -21,14 +21,16 @@ promise_test(async () => {
   assert_in_array(availability, kAvailableAvailabilities);
 }, 'Rewriter.availability() returns available with supported options');
 
-promise_test(async () => {
-  const availability = await Rewriter.availability({
+promise_test(async t => {
+  const options = {
     tone: 'as-is',
     format: 'as-is',
     length: 'as-is',
     expectedInputLanguages: ['zu'], // not supported
     expectedContextLanguages: ['en'],
     outputLanguage: 'zu', // not supported
-  });
+  };
+  const availability = await Rewriter.availability(options);
   assert_equals(availability, 'unavailable');
-}, 'Rewriter.availability() returns unavailable for unsupported languages');
+  await promise_rejects_dom(t, 'NotSupportedError', Rewriter.create(options));
+}, 'Rewriter.availability() returns unavailable for unsupported languages and create() rejects');

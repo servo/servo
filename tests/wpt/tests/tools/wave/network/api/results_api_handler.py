@@ -75,7 +75,7 @@ class ResultsApiHandler(ApiHandler):
     def read_results_api_wpt_multi_report_uri(self, request, response):
         try:
             uri_parts = self.parse_uri(request)
-            api = uri_parts[2]
+            api = uri_parts.query
             query = self.parse_query_parameters(request)
             tokens = query["tokens"].split(",")
             uri = self._results_manager.read_results_wpt_multi_report_uri(

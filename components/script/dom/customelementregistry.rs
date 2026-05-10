@@ -13,14 +13,19 @@ use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
+use js::realm::AutoRealm;
+use js::rust::wrappers::{Construct1, JS_GetProperty};
+use js::rust::wrappers2::SameValue;
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::DomTypeHolder;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
 };
@@ -32,9 +37,8 @@ use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -46,7 +50,7 @@ use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::script_thread::ScriptThread;
 
@@ -188,7 +192,7 @@ impl CustomElementRegistry {
             // Step 10.2
             if !prototype.is_object() {
                 return Err(Error::Type(
-                    "constructor.prototype is not an object".to_owned(),
+                    c"constructor.prototype is not an object".to_owned(),
                 ));
             }
         }
@@ -206,6 +210,7 @@ impl CustomElementRegistry {
         Ok(LifecycleCallbacks {
             connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
             disconnected_callback: get_callback(cx, prototype, c"disconnectedCallback")?,
+            connected_move_callback: get_callback(cx, prototype, c"connectedMoveCallback")?,
             adopted_callback: get_callback(cx, prototype, c"adoptedCallback")?,
             attribute_changed_callback: get_callback(cx, prototype, c"attributeChangedCallback")?,
 
@@ -267,7 +272,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -305,7 +310,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -343,7 +348,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -372,7 +377,9 @@ fn get_callback(
         // Step 10.4.2
         if !callback.is_undefined() {
             if !callback.is_object() || !IsCallable(callback.to_object()) {
-                return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+                return Err(Error::Type(
+                    c"Lifecycle callback is not callable".to_owned(),
+                ));
             }
             Ok(Some(Function::new(cx, callback.to_object())))
         } else {
@@ -406,19 +413,25 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
             return Err(Error::Type(
-                "Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
+                c"Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
             ));
         }
 
         // Step 2. If name is not a valid custom element name, then throw a "SyntaxError" DOMException.
         if !is_valid_custom_element_name(&name) {
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some(format!(
+                "{} name is not a valid custom element name",
+                name
+            ))));
         }
 
         // Step 3. If this's custom element definition set contains an item with name name,
         // then throw a "NotSupportedError" DOMException.
         if self.definitions.borrow().contains_key(&name) {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(format!(
+                "{} has already been defined as a custom element",
+                name
+            ))));
         }
 
         // Step 4. If this's custom element definition set contains an
@@ -605,9 +618,11 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
-            Some(definition) => definition
-                .constructor
-                .safe_to_jsval(cx, retval, CanGc::note()),
+            Some(definition) => {
+                definition
+                    .constructor
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note())
+            },
             None => retval.set(UndefinedValue()),
         }
     }
@@ -677,6 +692,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 pub(crate) struct LifecycleCallbacks {
     #[conditional_malloc_size_of]
     connected_callback: Option<Rc<Function>>,
+
+    #[conditional_malloc_size_of]
+    connected_move_callback: Option<Rc<Function>>,
 
     #[conditional_malloc_size_of]
     disconnected_callback: Option<Rc<Function>>,
@@ -790,12 +808,18 @@ impl CustomElementDefinition {
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
-            let _script_guard = AutoEntryScript::new(window.upcast());
-            let _callback_guard = AutoIncumbentScript::new(window.upcast());
-            let args = HandleValueArray::empty();
-            if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
-                return Err(Error::JSFailed);
-            }
+            run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+                run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
+                    let args = HandleValueArray::empty();
+                    if unsafe {
+                        !Construct1(*cx, constructor.handle(), &args, element.handle_mut())
+                    } {
+                        Err(Error::JSFailed)
+                    } else {
+                        Ok(())
+                    }
+                })
+            })?;
         }
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
@@ -804,7 +828,7 @@ impl CustomElementDefinition {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
-                        "Constructor did not return a DOM node".to_owned(),
+                        c"Constructor did not return a DOM node".to_owned(),
                     ));
                 },
                 _ => return Err(Error::JSFailed),
@@ -847,9 +871,9 @@ impl CustomElementDefinition {
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 pub(crate) fn upgrade_element(
+    cx: &mut js::context::JSContext,
     definition: Rc<CustomElementDefinition>,
     element: &Element,
-    can_gc: CanGc,
 ) {
     // Step 1. If element's custom element state is not "undefined" or "uncustomized", then return.
     let state = element.get_custom_element_state();
@@ -867,7 +891,7 @@ pub(crate) fn upgrade_element(
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
     // attribute's namespace ».
     let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-    for attr in element.attrs().iter() {
+    for attr in element.attrs().borrow().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
@@ -895,7 +919,7 @@ pub(crate) fn upgrade_element(
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Steps 7-8, successful case
-    let result = run_upgrade_constructor(&definition, element, can_gc);
+    let result = run_upgrade_constructor(cx, &definition, element);
 
     // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
@@ -910,49 +934,54 @@ pub(crate) fn upgrade_element(
 
         // Step 8.exception.3
         let global = GlobalScope::current().expect("No current global");
-        let cx = GlobalScope::get_cx();
-        let ar = enter_realm(&*global);
-        throw_dom_exception(cx, &global, error, can_gc);
-        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+
+        let in_realm_proof = cx.into();
+        let in_realm = InRealm::Already(&in_realm_proof);
+
+        throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
+        report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
 
         return;
     }
 
     // Step 9: handle with form-associated custom element
-    if let Some(html_element) = element.downcast::<HTMLElement>() {
-        if html_element.is_form_associated_custom_element() {
-            // We know this element is is form-associated, so we can use the implementation of
-            // `FormControl` for HTMLElement, which makes that assumption.
-            // Step 9.1: Reset the form owner of element
-            html_element.reset_form_owner(can_gc);
-            if let Some(form) = html_element.form_owner() {
-                // Even though the tree hasn't structurally mutated,
-                // HTMLCollections need to be invalidated.
-                form.upcast::<Node>().rev_version();
-                // The spec tells us specifically to enqueue a formAssociated reaction
-                // here, but it also says to do that for resetting form owner in general,
-                // and we don't need two reactions.
-            }
+    if let Some(html_element) = element.downcast::<HTMLElement>() &&
+        html_element.is_form_associated_custom_element()
+    {
+        // We know this element is is form-associated, so we can use the implementation of
+        // `FormControl` for HTMLElement, which makes that assumption.
+        // Step 9.1: Reset the form owner of element
+        html_element.reset_form_owner(CanGc::from_cx(cx));
+        if let Some(form) = html_element.form_owner() {
+            // Even though the tree hasn't structurally mutated,
+            // HTMLCollections need to be invalidated.
+            form.upcast::<Node>().rev_version();
+            // The spec tells us specifically to enqueue a formAssociated reaction
+            // here, but it also says to do that for resetting form owner in general,
+            // and we don't need two reactions.
+        }
 
-            // Either enabled_state or disabled_state needs to be set,
-            // and the possibility of a disabled fieldset ancestor needs
-            // to be accounted for. (In the spec, being disabled is
-            // a fact that's true or false about a node at a given time,
-            // not a flag that belongs to the node and is updated,
-            // so it doesn't describe this check as an action.)
-            element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control();
-            element.update_read_write_state_from_readonly_attribute();
+        // Either enabled_state or disabled_state needs to be set,
+        // and the possibility of a disabled fieldset ancestor needs
+        // to be accounted for. (In the spec, being disabled is
+        // a fact that's true or false about a node at a given time,
+        // not a flag that belongs to the node and is updated,
+        // so it doesn't describe this check as an action.)
+        element.check_disabled_attribute();
+        element.check_ancestors_disabled_state_for_form_control();
+        element.update_read_write_state_from_readonly_attribute();
 
-            // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
-            // with element.
-            if element.disabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    Some(definition.clone()),
-                )
-            }
+        // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
+        // with element.
+        if element.disabled_state() {
+            ScriptThread::enqueue_callback_reaction(
+                element,
+                CallbackReaction::FormDisabled(true),
+                Some(definition),
+            )
         }
     }
 
@@ -964,18 +993,16 @@ pub(crate) fn upgrade_element(
 /// Steps 9.1-9.4
 #[expect(unsafe_code)]
 fn run_upgrade_constructor(
+    cx: &mut js::context::JSContext,
     definition: &CustomElementDefinition,
     element: &Element,
-    // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
-    can_gc: CanGc,
 ) -> ErrorResult {
     let constructor = &definition.constructor;
     let window = element.owner_window();
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
-    rooted!(in(*cx) let mut element_val = UndefinedValue());
-    element.safe_to_jsval(cx, element_val.handle_mut(), can_gc);
-    rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
+    rooted!(&in(cx) let constructor_val = ObjectValue(constructor.callback()));
+    rooted!(&in(cx) let mut element_val = UndefinedValue());
+    element.safe_to_jsval(cx.into(), element_val.handle_mut(), CanGc::from_cx(cx));
+    rooted!(&in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
         // then throw a "NotSupportedError" DOMException.
@@ -984,35 +1011,39 @@ fn run_upgrade_constructor(
         }
 
         // Go into the constructor's realm
-        let _ac = JSAutoRealm::new(*cx, constructor.callback());
+        let mut realm = AutoRealm::new(cx, std::ptr::NonNull::new(constructor.callback()).unwrap());
+        let cx = &mut *realm;
+
         let args = HandleValueArray::empty();
         // Step 8.2. Set element's custom element state to "precustomized".
         element.set_custom_element_state(CustomElementState::Precustomized);
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
-        {
-            let _script_guard = AutoEntryScript::new(window.upcast());
-            let _callback_guard = AutoIncumbentScript::new(window.upcast());
-            if unsafe {
-                !Construct1(
-                    *cx,
-                    constructor_val.handle(),
-                    &args,
-                    construct_result.handle_mut(),
-                )
-            } {
-                return Err(Error::JSFailed);
-            }
-        }
+        run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+            run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
+                if unsafe {
+                    !Construct1(
+                        cx.raw_cx(),
+                        constructor_val.handle(),
+                        &args,
+                        construct_result.handle_mut(),
+                    )
+                } {
+                    Err(Error::JSFailed)
+                } else {
+                    Ok(())
+                }
+            })
+        })?;
 
         let mut same = false;
-        rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
+        rooted!(&in(cx) let construct_result_val = ObjectValue(construct_result.get()));
 
         // Step 9.4. If SameValue(constructResult, element) is false, then throw a TypeError.
         if unsafe {
             !SameValue(
-                *cx,
+                cx,
                 construct_result_val.handle(),
                 element_val.handle(),
                 &mut same,
@@ -1022,7 +1053,7 @@ fn run_upgrade_constructor(
         }
         if !same {
             return Err(Error::Type(
-                "Returned element is not SameValue as the upgraded element".to_string(),
+                c"Returned element is not SameValue as the upgraded element".to_owned(),
             ));
         }
     }
@@ -1058,22 +1089,22 @@ pub(crate) enum CustomElementReaction {
 
 impl CustomElementReaction {
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    pub(crate) fn invoke(&self, element: &Element, can_gc: CanGc) {
+    pub(crate) fn invoke(&self, cx: &mut js::context::JSContext, element: &Element) {
         // Step 2.1
         match *self {
             CustomElementReaction::Upgrade(ref definition) => {
-                upgrade_element(definition.clone(), element, can_gc)
+                upgrade_element(cx, definition.clone(), element)
             },
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
                 let arguments = arguments.iter().map(|arg| arg.as_handle_value()).collect();
-                rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
+                rooted!(&in(cx) let mut value: JSVal);
                 let _ = callback.Call_(
+                    cx,
                     element,
                     arguments,
                     value.handle_mut(),
                     ExceptionHandling::Report,
-                    can_gc,
                 );
             },
         }
@@ -1088,6 +1119,7 @@ pub(crate) enum CallbackReaction {
     FormAssociated(Option<DomRoot<HTMLFormElement>>),
     FormDisabled(bool),
     FormReset,
+    ConnectedMove,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#processing-the-backup-element-queue>
@@ -1123,12 +1155,12 @@ impl CustomElementReactionStack {
         self.stack.borrow_mut().push(ElementQueue::new());
     }
 
-    pub(crate) fn pop_current_element_queue(&self, can_gc: CanGc) {
+    pub(crate) fn pop_current_element_queue(&self, cx: &mut js::context::JSContext) {
         rooted_vec!(let mut stack);
         mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
 
         if let Some(current_queue) = stack.last() {
-            current_queue.invoke_reactions(can_gc);
+            current_queue.invoke_reactions(cx);
         }
         stack.pop();
 
@@ -1138,9 +1170,9 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
     /// Step 4
-    pub(crate) fn invoke_backup_element_queue(&self, can_gc: CanGc) {
+    pub(crate) fn invoke_backup_element_queue(&self, cx: &mut js::context::JSContext) {
         // Step 4.1
-        self.backup_queue.invoke_reactions(can_gc);
+        self.backup_queue.invoke_reactions(cx);
 
         // Step 4.2
         self.processing_backup_element_queue
@@ -1178,13 +1210,14 @@ impl CustomElementReactionStack {
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
     ) {
-        // Step 1
+        // Step 1. Let definition be element's custom element definition.
         let definition = match definition.or_else(|| element.get_custom_element_definition()) {
             Some(definition) => definition,
             None => return,
         };
 
-        // Step 2
+        // Step 2. Let callback be the value of the entry in definition's lifecycle callbacks with
+        // key callbackName.
         let (callback, args) = match reaction {
             CallbackReaction::Connected => {
                 (definition.callbacks.connected_callback.clone(), Vec::new())
@@ -1200,7 +1233,7 @@ impl CustomElementReactionStack {
                 (definition.callbacks.adopted_callback.clone(), args)
             },
             CallbackReaction::AttributeChanged(local_name, old_val, val, namespace) => {
-                // Step 4
+                // Step 5.
                 if !definition
                     .observed_attributes
                     .iter()
@@ -1217,22 +1250,26 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(*cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::note());
+                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::deprecated_note());
 
                 rooted!(in(*cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::note());
+                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::deprecated_note());
                 }
 
                 rooted!(in(*cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::note());
+                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::deprecated_note());
                 }
 
                 rooted!(in(*cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    namespace.safe_to_jsval(cx, namespace_value.handle_mut(), CanGc::note());
+                    namespace.safe_to_jsval(
+                        cx,
+                        namespace_value.handle_mut(),
+                        CanGc::deprecated_note(),
+                    );
                 }
 
                 let args = vec![
@@ -1270,18 +1307,55 @@ impl CustomElementReactionStack {
             CallbackReaction::FormReset => {
                 (definition.callbacks.form_reset_callback.clone(), Vec::new())
             },
+            CallbackReaction::ConnectedMove => {
+                let callback = definition.callbacks.connected_move_callback.clone();
+                // Step 3. If callbackName is "connectedMoveCallback" and callback is null:
+                if callback.is_none() {
+                    // Step 3.1. Let disconnectedCallback be the value of the entry in
+                    // definition's lifecycle callbacks with key "disconnectedCallback".
+                    let disconnected_callback = definition.callbacks.disconnected_callback.clone();
+
+                    // Step 3.2. Let connectedCallback be the value of the entry in
+                    // definition's lifecycle callbacks with key "connectedCallback".
+                    let connected_callback = definition.callbacks.connected_callback.clone();
+
+                    // Step 3.3. If connectedCallback and disconnectedCallback are null,
+                    // then return.
+                    if disconnected_callback.is_none() && connected_callback.is_none() {
+                        return;
+                    }
+
+                    // Step 3.4. Set callback to the following steps:
+                    // Step 3.4.1. If disconnectedCallback is not null, then call
+                    // disconnectedCallback with no arguments.
+                    if let Some(disconnected_callback) = disconnected_callback {
+                        element.push_callback_reaction(disconnected_callback, Box::new([]));
+                    }
+                    // Step 3.4.2. If connectedCallback is not null, then call
+                    // connectedCallback with no arguments.
+                    if let Some(connected_callback) = connected_callback {
+                        element.push_callback_reaction(connected_callback, Box::new([]));
+                    }
+
+                    self.enqueue_element(element);
+                    return;
+                }
+
+                (callback, Vec::new())
+            },
         };
 
-        // Step 3
+        // Step 4. If callback is null, then return.
         let callback = match callback {
             Some(callback) => callback,
             None => return,
         };
 
-        // Step 5
+        // Step 6. Add a new callback reaction to element's custom element reaction queue, with
+        // callback function callback and arguments args.
         element.push_callback_reaction(callback, args.into_boxed_slice());
 
-        // Step 6
+        // Step 7. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(element);
     }
 
@@ -1315,10 +1389,10 @@ impl ElementQueue {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    fn invoke_reactions(&self, can_gc: CanGc) {
+    fn invoke_reactions(&self, cx: &mut js::context::JSContext) {
         // Steps 1-2
         while let Some(element) = self.next_element() {
-            element.invoke_reactions(can_gc)
+            element.invoke_reactions(cx)
         }
         self.queue.borrow_mut().clear();
     }

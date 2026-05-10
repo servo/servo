@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<style>
+  .hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  async_test(t => {
+    const unreached = t.unreached_func(
+      "Not-rendered audio elements with loading=lazy should not attempt to load."
+    );
+
+    // No controls attribute
+    const audio1 = document.createElement("audio");
+    audio1.loading = "lazy";
+    audio1.src = "/media/sine440.mp3";
+    audio1.addEventListener("loadstart", unreached);
+    audio1.addEventListener("error", unreached);
+    document.body.appendChild(audio1);
+
+    // Hidden attribute
+    const audio2 = document.createElement("audio");
+    audio2.setAttribute("hidden", "");
+    audio2.loading = "lazy";
+    audio2.src = "/media/sine440.mp3";
+    audio2.addEventListener("loadstart", unreached);
+    audio2.addEventListener("error", unreached);
+    document.body.appendChild(audio2);
+
+    // Class hidden (display: none)
+    const audio3 = document.createElement("audio");
+    audio3.className = "hidden";
+    audio3.loading = "lazy";
+    audio3.src = "/media/sine440.mp3";
+    audio3.addEventListener("loadstart", unreached);
+    audio3.addEventListener("error", unreached);
+    document.body.appendChild(audio3);
+
+    t.step_timeout(t.done, 2000);
+  }, "In-viewport audio with loading=lazy and no controls attribute, or display:none or hidden attribute should never load");
+</script>
+</body>

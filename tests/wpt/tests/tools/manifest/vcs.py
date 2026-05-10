@@ -160,7 +160,7 @@ class CacheFile(metaclass=abc.ABCMeta):
     def dump(self) -> None:
         if not self.modified:
             return
-        with open(self.path, 'w') as f:
+        with open(self.path, 'w', encoding='utf8') as f:
             jsonlib.dump_local(self.data, f)
 
     def load(self, rebuild: bool = False) -> Dict[Text, Any]:

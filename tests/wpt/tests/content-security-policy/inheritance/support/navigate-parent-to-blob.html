@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline'">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
   </head>
   <body>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
     <script>
-      const blob_payload = `
-        <!doctype html>
-         <script>
-           var i = false;
-           try {
-             eval('i = true');
-           } catch {}
-           opener.postMessage(i ? "eval allowed" : "eval blocked", '*');
-         </scr` + `ipt>
-         `;
-      var blob_url = URL.createObjectURL(
-          new Blob([blob_payload], { type: 'text/html' }));
-      parent.location = blob_url;
+      test_driver.set_test_context(top.opener);
+      test_driver.bless("User activation to allow frame to navigate parent").then(()=> {
+        const blob_payload = `
+          <!doctype html>
+          <script>
+            var i = false;
+            try {
+              eval('i = true');
+            } catch {}
+            opener.postMessage(i ? "eval allowed" : "eval blocked", '*');
+          </scr` + `ipt>
+          `;
+        var blob_url = URL.createObjectURL(
+            new Blob([blob_payload], { type: 'text/html' }));
+        parent.location = blob_url;
+      });
     </script>
   </body>
 </html>

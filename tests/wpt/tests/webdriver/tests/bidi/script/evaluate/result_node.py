@@ -3,8 +3,9 @@ from webdriver.bidi.modules.script import ContextTarget, SerializationOptions
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -146,7 +147,6 @@ async def test_element_node(bidi_session, get_test_page, top_context, expression
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -200,7 +200,6 @@ async def test_attribute_node(bidi_session, get_test_page, top_context, expressi
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -236,7 +235,6 @@ async def test_text_node(bidi_session, get_test_page, top_context, expression, e
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -274,7 +272,6 @@ async def test_cdata_node(bidi_session, inline, new_tab, expression, expected):
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -314,7 +311,6 @@ async def test_processing_instruction_node(
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -350,7 +346,6 @@ async def test_comment_node(bidi_session, get_test_page, top_context, expression
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -404,7 +399,6 @@ async def test_document_node(bidi_session, get_test_page, top_context, expressio
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -439,7 +433,6 @@ async def test_doctype_node(bidi_session, get_test_page, top_context, expression
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -493,7 +486,6 @@ async def test_document_fragment_node(
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -632,7 +624,6 @@ async def test_node_embedded_within(
     recursive_compare(expected, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, expected",
     [
@@ -701,7 +692,6 @@ async def test_node_within_dom_collection(
 
 
 @pytest.mark.parametrize("shadow_root_mode", ["open", "closed"])
-@pytest.mark.asyncio
 async def test_custom_element_with_shadow_root(
     bidi_session, get_test_page, top_context, shadow_root_mode
 ):

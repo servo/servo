@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test: background-clip: border-area text</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-text-ref.html">
+<meta name="assert" content="When both border-area and text are specified, the background is clipped to the union of the border area and the text.">
+<meta name="fuzzy" content="maxDifference=0-130; totalPixels=0-2000">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 30px solid transparent;
+        font: bold 60px/90px monospace;
+        color: transparent;
+        background-clip: border-area text;
+        background-image: linear-gradient(blue, blue);
+    }
+
+    .rounded {
+        border-radius: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="test">Text</div>
+<div class="test rounded">Text</div>
+
+</body>
+</html>

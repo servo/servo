@@ -28,6 +28,14 @@ test_computed_value("overflow-clip-margin", "border-box");
 test_computed_value("overflow-clip-margin", "border-box 0px", "border-box");
 test_computed_value("overflow-clip-margin", "border-box 10px");
 test_computed_value("overflow-clip-margin", "10px border-box", "border-box 10px");
+
+test_computed_value("overflow-clip-margin", "calc(100px - 50px)", "50px");
+test_computed_value("overflow-clip-margin", "calc(100px - 100px)", "0px");
+test_computed_value("overflow-clip-margin", "calc(0.5em + 100px)", "108px");
+
+test_computed_value("overflow-clip-margin", "padding-box calc(0.5em + 100px)", "108px");
+test_computed_value("overflow-clip-margin", "padding-box calc(100px - 100px)", "0px");
+test_computed_value("overflow-clip-margin", "border-box calc(0.5em + 100px)", "border-box 108px");
 </script>
 </body>
 </html>

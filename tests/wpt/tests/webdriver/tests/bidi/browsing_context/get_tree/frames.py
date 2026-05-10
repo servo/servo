@@ -1,6 +1,5 @@
 import pytest
 
-from tests.bidi import wait_for_bidi_events
 from .. import assert_browsing_context
 
 pytestmark = pytest.mark.asyncio
@@ -103,6 +102,7 @@ async def test_user_context(
     create_user_context,
     subscribe_events,
     wait_for_event,
+    wait_for_bidi_events,
     wait_for_future_safe,
     inline,
     user_context,
@@ -137,7 +137,7 @@ async def test_user_context(
     )
 
     # Wait until all iframes have been loaded.
-    await wait_for_bidi_events(bidi_session, events, 3)
+    await wait_for_bidi_events(events, 3)
 
     top_level_context_id = context["context"]
     all_contexts = await bidi_session.browsing_context.get_tree(

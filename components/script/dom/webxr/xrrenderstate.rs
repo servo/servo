@@ -6,12 +6,13 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::SubImages;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::window::Window;
@@ -78,7 +79,7 @@ impl XRRenderState {
             self.inline_vertical_fov.get(),
             self.base_layer.get().as_deref(),
             self.layers.borrow().iter().map(|x| &**x).collect(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 

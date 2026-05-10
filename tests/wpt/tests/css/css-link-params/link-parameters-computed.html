@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Linked Parameters Module Level 1: getComputedStyle().linkParameters</title>
+<link rel="author" title="Tyler Thrailkill" href="mailto:tyler@programming.dev">
+<link rel="help" href="https://drafts.csswg.org/css-link-params-1/#link-param-prop">
+<meta name="assert" content="link-parameters computed value is as specified">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_computed_value("link-parameters", "none");
+
+    test_computed_value("link-parameters", "param(--a, orange)");
+    test_computed_value("link-parameters", "param(--a, orange), param(--b, blue)");
+
+    test_computed_value("link-parameters", "param(--a, )");
+    test_computed_value("link-parameters", "param(--a, ), param(--b, )");
+
+    test_computed_value("link-parameters", "param(--a)");
+    test_computed_value("link-parameters", "param(--a), param(--b)");
+</script>
+</body>
+</html>

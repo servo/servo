@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: overflow clipping preserves background visible through transparent borders</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-clip">
+<link rel="match" href="overflow-clipped-transparent-border-clip-ref.html">
+<style>
+.outer-hidden {
+  width: 100px;
+  height: 100px;
+  border: 10px solid transparent;
+  overflow: hidden;
+  background: green;
+}
+.outer-clip {
+  width: 100px;
+  height: 100px;
+  border: 10px solid transparent;
+  overflow: clip;
+  background: green;
+}
+.inner {
+  width: 120px;
+  height: 120px;
+  margin: -10px;
+  background: blue;
+}
+.outer-clip-y {
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  background: green;
+  border: 20px solid transparent;
+  box-sizing: border-box;
+  overflow-y: clip;
+}
+.inner-clip-y {
+  width: 140px;
+  height: 140px;
+  margin: -20px;
+  background: blue;
+}
+</style>
+<p>Test passes if you see two blue squares with green borders, followed by
+  a green-blue-green striped rectangle where the blue stripe overflows to the right.</p>
+<div class="outer-hidden">
+  <div class="inner"></div>
+</div>
+<div class="outer-clip">
+  <div class="inner"></div>
+</div>
+<br>
+<div class="outer-clip-y">
+  <div class="inner-clip-y"></div>
+</div>

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>prefers-color-scheme in cross-origin frame inherits color-scheme from embedding element</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7493">
+<link rel="match" href="color-scheme-iframe-preferred-ref.html">
+<style>
+  iframe {
+    display: block;
+    border: none;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<iframe style="color-scheme: dark" src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-color-adjust/rendering/dark-color-scheme/support/prefers-color-scheme-blue-purple.html"></iframe>
+<iframe style="color-scheme: light" src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-color-adjust/rendering/dark-color-scheme/support/prefers-color-scheme-blue-purple.html"></iframe>

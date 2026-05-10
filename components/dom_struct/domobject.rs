@@ -60,6 +60,9 @@ pub(crate) fn expand_dom_object(
             unsafe fn init_reflector<Actual>(&self, obj: *mut js::jsapi::JSObject) {
                 self.#first_field_name.init_reflector::<Actual>(obj);
             }
+            unsafe fn init_reflector_without_associated_memory(&self, obj: *mut js::jsapi::JSObject) {
+                self.#first_field_name.init_reflector_without_associated_memory(obj);
+            }
         }
 
         impl #impl_generics Eq for #name #ty_generics #where_clause {}

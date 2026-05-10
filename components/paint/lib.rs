@@ -7,12 +7,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::RoutedReceiver;
-use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, ShutdownState};
 use paint_api::{PaintMessage, PaintProxy};
 use profile_traits::{mem, time};
+use servo_base::generic_channel::RoutedReceiver;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
 
@@ -30,6 +30,7 @@ mod refresh_driver;
 mod render_notifier;
 mod screenshot;
 mod touch;
+mod web_content_animation;
 mod webrender_external_images;
 mod webview_renderer;
 

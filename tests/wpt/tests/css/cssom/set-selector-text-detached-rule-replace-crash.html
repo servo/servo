@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Crash when mutating selector test on detached rule tree (replace)</title>
+<link rel="help" href="https://issues.chromium.org/issues/499784386">
+<script>
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync('.a { .b { .c {} } } }');
+  const a = sheet.cssRules[0];
+  const b = a.cssRules[0];
+  b.cssRules[0];
+  sheet.replaceSync('');
+  b.selectorText = '.bb';
+  b.insertRule('.r {}');
+  a.selectorText = '.aa';
+</script>

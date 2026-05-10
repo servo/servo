@@ -83,6 +83,8 @@
     assert_throws_dom('InvalidCharacterError', () =>
       // ' ' is invalid
       dtmfSender.insertDTMF('# *'));
+    assert_throws_dom('InvalidCharacterError', () =>
+      dtmfSender.insertDTMF('🎶8675309🎶'));
   }, 'insertDTMF() should throw InvalidCharacterError if tones contains invalid DTMF characters');
 
   /*

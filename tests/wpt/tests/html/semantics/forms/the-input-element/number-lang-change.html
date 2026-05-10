@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2014584">
+<title>Changing language and accessing validationMessage shouldn't cause assertion failure.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body lang="en">
+  <input id="input" type="number" value="11" max="10,5">
+  <div id="container" lang="de"></div>
+  <script>
+    test(t => {
+      t.add_cleanup(() => {
+        document.body.lang = "en";
+      });
+      input.validity.validationMessage;
+      document.body.lang = "de";
+      input.validity.validationMessage;
+    }, "Setting parent language");
+
+    test(t => {
+      t.add_cleanup(() => {
+        document.body.insertBefore(input, container);
+      });
+      input.validity.validationMessage;
+      container.appendChild(input);
+      input.validity.validationMessage;
+    }, "Moving to container with different language");
+  </script>
+</body>

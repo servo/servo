@@ -15,7 +15,7 @@ jobs:
       try_string: ${{ steps.try_string.outputs.result }}
     steps:
       - name: Collect Labels
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         id: try_string
         with:
           result-encoding: string
@@ -87,7 +87,7 @@ jobs:
            } >> $GITHUB_OUTPUT
       - name: Comment Run Start
         if: ${{ steps.try_string.outputs.result }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           result-encoding: string
           script: |

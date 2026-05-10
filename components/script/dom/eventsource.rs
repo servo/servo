@@ -8,6 +8,7 @@ use std::str::{Chars, FromStr};
 use std::time::Duration;
 
 use dom_struct::dom_struct;
+use encoding_rs::{Decoder, UTF_8};
 use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
@@ -16,18 +17,19 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{GlobalCspReporting, Violation};
@@ -107,9 +109,9 @@ enum ParserState {
     Eol,
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct EventSourceContext {
-    incomplete_utf8: Option<utf8::Incomplete>,
+    decoder: Decoder,
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
     parser_state: ParserState,
@@ -119,6 +121,23 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
+}
+
+impl Clone for EventSourceContext {
+    fn clone(&self) -> Self {
+        EventSourceContext {
+            decoder: UTF_8.new_decoder_with_bom_removal(),
+            event_source: self.event_source.clone(),
+            gen_id: self.gen_id,
+            parser_state: self.parser_state.clone(),
+            field: self.field.clone(),
+            value: self.value.clone(),
+            origin: self.origin.clone(),
+            event_type: self.event_type.clone(),
+            data: self.data.clone(),
+            last_event_id: self.last_event_id.clone(),
+        }
+    }
 }
 
 impl EventSourceContext {
@@ -131,11 +150,11 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         global.task_manager().remote_event_task_source().queue(
-            task!(announce_the_event_source_connection: move || {
+            task!(announce_the_event_source_connection: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::note());
+                    event_source.upcast::<EventTarget>().fire_event(cx, atom!("open"));
                 }
             }),
         );
@@ -161,7 +180,7 @@ impl EventSourceContext {
         let trusted_event_source = self.event_source.clone();
         let global = event_source.global();
         let event_source_context = EventSourceContext {
-            incomplete_utf8: None,
+            decoder: UTF_8.new_decoder_with_bom_removal(),
             event_source: self.event_source.clone(),
             gen_id: self.gen_id,
             parser_state: ParserState::Eol,
@@ -173,7 +192,7 @@ impl EventSourceContext {
             last_event_id: String::from(event_source.last_event_id.borrow().clone()),
         };
         global.task_manager().remote_event_task_source().queue(
-            task!(reestablish_the_event_source_onnection: move || {
+            task!(reestablish_the_event_source_onnection: move |cx| {
                 let event_source = trusted_event_source.root();
 
                 // Step 1.1.
@@ -185,7 +204,7 @@ impl EventSourceContext {
                 event_source.ready_state.set(ReadyState::Connecting);
 
                 // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                event_source.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
                 // Step 2.
                 let duration = event_source.reconnection_time.get();
@@ -232,7 +251,7 @@ impl EventSourceContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dispatchMessage>
-    fn dispatch_event(&mut self, can_gc: CanGc) {
+    fn dispatch_event(&mut self, cx: &mut js::context::JSContext) {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.borrow_mut() = DOMString::from(self.last_event_id.clone());
@@ -243,10 +262,10 @@ impl EventSourceContext {
             return;
         }
         // Step 3
-        if let Some(last) = self.data.pop() {
-            if last != '\n' {
-                self.data.push(last);
-            }
+        if let Some(last) = self.data.pop() &&
+            last != '\n'
+        {
+            self.data.push(last);
         }
         // Step 6
         let type_ = if !self.event_type.is_empty() {
@@ -257,9 +276,9 @@ impl EventSourceContext {
         // Steps 4-5
         let event = {
             let _ac = enter_realm(&*event_source);
-            rooted!(in(*GlobalScope::get_cx()) let mut data = UndefinedValue());
+            rooted!(&in(cx) let mut data = UndefinedValue());
             self.data
-                .safe_to_jsval(GlobalScope::get_cx(), data.handle_mut(), can_gc);
+                .safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
             MessageEvent::new(
                 &event_source.global(),
                 type_,
@@ -270,7 +289,7 @@ impl EventSourceContext {
                 None,
                 event_source.last_event_id.borrow().clone(),
                 Vec::with_capacity(0),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         };
         // Step 7
@@ -282,17 +301,17 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
         global.task_manager().remote_event_task_source().queue(
-            task!(dispatch_the_event_source_event: move || {
+            task!(dispatch_the_event_source_event: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::note());
+                    event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::from_cx(cx));
                 }
             }),
         );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-stream-interpretation>
-    fn parse(&mut self, stream: Chars, can_gc: CanGc) {
+    fn parse(&mut self, cx: &mut js::context::JSContext, stream: Chars) {
         let mut stream = stream.peekable();
 
         while let Some(ch) = stream.next() {
@@ -329,12 +348,12 @@ impl EventSourceContext {
                     self.process_field();
                 },
 
-                ('\n', &ParserState::Eol) => self.dispatch_event(can_gc),
+                ('\n', &ParserState::Eol) => self.dispatch_event(cx),
                 ('\r', &ParserState::Eol) => {
                     if let Some(&'\n') = stream.peek() {
                         continue;
                     }
-                    self.dispatch_event(can_gc);
+                    self.dispatch_event(cx);
                 },
 
                 ('\n', &ParserState::Comment) => self.parser_state = ParserState::Eol,
@@ -366,11 +385,12 @@ impl FetchResponseListener for EventSourceContext {
         // TODO
     }
 
-    fn process_request_eof(&mut self, _: RequestId) {
-        // TODO
-    }
-
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         match metadata {
             Ok(fm) => {
                 let meta = match fm {
@@ -411,40 +431,37 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        let mut input = &*chunk;
-        if let Some(mut incomplete) = self.incomplete_utf8.take() {
-            match incomplete.try_complete(input) {
-                None => return,
-                Some((result, remaining_input)) => {
-                    self.parse(result.unwrap_or("\u{FFFD}").chars(), CanGc::note());
-                    input = remaining_input;
-                },
-            }
-        }
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
+        let mut output = String::with_capacity(chunk.len());
+        let mut input = &chunk[..];
 
-        while !input.is_empty() {
-            match utf8::decode(input) {
-                Ok(s) => {
-                    self.parse(s.chars(), CanGc::note());
+        loop {
+            if input.is_empty() {
+                return;
+            }
+            let (result, bytes_read) =
+                self.decoder
+                    .decode_to_string_without_replacement(input, &mut output, false);
+            match result {
+                encoding_rs::DecoderResult::InputEmpty => {
+                    self.parse(cx, output.chars());
                     return;
                 },
-                Err(utf8::DecodeError::Invalid {
-                    valid_prefix,
-                    remaining_input,
-                    ..
-                }) => {
-                    self.parse(valid_prefix.chars(), CanGc::note());
-                    self.parse("\u{FFFD}".chars(), CanGc::note());
-                    input = remaining_input;
+                encoding_rs::DecoderResult::Malformed(_, _) => {
+                    self.parse(cx, output.chars());
+                    self.parse(cx, "\u{FFFD}".chars());
+                    output.clear();
+                    input = &input[bytes_read..];
                 },
-                Err(utf8::DecodeError::Incomplete {
-                    valid_prefix,
-                    incomplete_suffix,
-                }) => {
-                    self.parse(valid_prefix.chars(), CanGc::note());
-                    self.incomplete_utf8 = Some(incomplete_suffix);
-                    return;
+                encoding_rs::DecoderResult::OutputFull => {
+                    self.parse(cx, output.chars());
+                    output.clear();
+                    input = &input[bytes_read..];
                 },
             }
         }
@@ -452,18 +469,26 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        if self.incomplete_utf8.take().is_some() {
-            self.parse("\u{FFFD}".chars(), CanGc::note());
+        let mut output = String::new();
+        let (result, _) = self
+            .decoder
+            .decode_to_string_without_replacement(&[], &mut output, true);
+        if !output.is_empty() {
+            self.parse(cx, "\u{FFFD}".chars());
+        }
+        if matches!(result, encoding_rs::DecoderResult::Malformed(_, _)) {
+            self.parse(cx, "\u{FFFD}".chars());
         }
         if response.is_ok() {
             self.reestablish_the_connection();
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -524,11 +549,11 @@ impl EventSource {
         let global = self.global();
         let event_source = Trusted::new(self);
         global.task_manager().remote_event_task_source().queue(
-            task!(fail_the_event_source_connection: move || {
+            task!(fail_the_event_source_connection: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                    event_source.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 }
             }),
         );
@@ -552,11 +577,10 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
-        // TODO: Step 2 relevant settings object
-        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
-        // relative to settings.
-        let base_url = global.api_base_url();
-        let url_record = match base_url.join(&url.str()) {
+        // Step 2. Let settings be the relevant settings object for the `EventSource` constructor.
+        // Bindings pass that environment as `global`.
+        // Step 3. Let urlRecord be the result of encoding-parsing a URL given url, relative to settings.
+        let url_record = match global.encoding_parse_a_url(&url.str()) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
@@ -582,7 +606,8 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         // Step 8 Let request be the result of creating a potential-CORS request
         // given urlRecord, the empty string, and corsAttributeState.
-        // TODO: Step 9 set request's client settings
+        // Step 9. Set request's client to the environment settings object and other state;
+        // `with_global_scope` supplies client, origin, policy container, etc.
         let mut request = create_a_potential_cors_request(
             global.webview_id(),
             url_record,
@@ -613,7 +638,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         ));
 
         let context = EventSourceContext {
-            incomplete_utf8: None,
+            decoder: UTF_8.new_decoder_with_bom_removal(),
             event_source: Trusted::new(&event_source),
             gen_id: event_source.generation_id.get(),
             parser_state: ParserState::Eol,

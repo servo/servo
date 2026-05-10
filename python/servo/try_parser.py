@@ -36,7 +36,7 @@ class JobConfig(object):
     name: str
     workflow: Workflow = Workflow.LINUX
     wpt: bool = False
-    profile: str = "release"
+    profile: str = "checked-release"
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
@@ -78,7 +78,7 @@ class JobConfig(object):
         elif self.workflow is Workflow.OHOS:
             self.name = "OpenHarmony"
         modifier = []
-        if self.profile != "release":
+        if self.profile != "checked-release":
             modifier.append(self.profile.title())
         if self.unit_tests:
             modifier.append("Unit Tests")
@@ -124,14 +124,9 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             "WebDriver",
             Workflow.LINUX,
             wpt=True,
-            wpt_args=" ".join(
-                [
-                    "./tests/wpt/tests/webdriver/tests/classic/",
-                    "--processes 1",
-                ]
-            ),
+            wpt_args="./tests/wpt/tests/webdriver/tests/classic/",
             unit_tests=False,
-            number_of_wpt_chunks=2,
+            number_of_wpt_chunks=1,
         )
     elif any(word in s for word in ["vello"]):
         return JobConfig(
@@ -163,6 +158,10 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.build_libservo = True
     if "production" in s:
         config.profile = "production"
+    elif "release" in s:
+        config.profile = "release"
+    elif "debug" in s:
+        config.profile = "dev"
     if "bencher" in s:
         config.bencher = True
     if "coverage" in s:
@@ -205,8 +204,9 @@ class Config(object):
                 words.extend(["linux-wpt"])
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
-                words.extend(["windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(["linux-unit-tests", "windows-unit-tests", "macos-arm-unit-tests"])
+                words.extend(["linux-wpt", "linux-bencher"])
+                words.extend(["android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "windows-build-libservo"])
                 continue  # skip over keyword
             if word == "bencher":
@@ -228,9 +228,9 @@ class Config(object):
                         "macos-production-bencher",
                         "macos-arm-production-bencher",
                         "windows-production-bencher",
+                        "ohos-production-bencher",
                     ]
                 )
-                words.extend(["ohos-production-bencher"])
                 continue  # skip over keyword
             if word in ["cov", "coverage", "test-coverage"]:
                 words.extend(["linux-coverage"])
@@ -276,7 +276,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "name": "Linux (Unit Tests)",
                         "number_of_wpt_chunks": 20,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": True,
                         "build_libservo": False,
                         "workflow": "linux",
@@ -299,7 +299,7 @@ class TestParser(unittest.TestCase):
                         "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
                         "workflow": "linux",
                         "wpt": True,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": True,
@@ -312,9 +312,22 @@ class TestParser(unittest.TestCase):
                         "name": "Windows (Unit Tests, Build libservo)",
                         "workflow": "windows",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": True,
                         "build_libservo": True,
+                        "bencher": False,
+                        "build_args": "",
+                        "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
+                    },
+                    {
+                        "name": "MacOS Arm64 (Unit Tests)",
+                        "workflow": "macos-arm64",
+                        "wpt": False,
+                        "profile": "checked-release",
+                        "unit_tests": True,
+                        "build_libservo": False,
                         "bencher": False,
                         "build_args": "",
                         "coverage": False,
@@ -325,7 +338,7 @@ class TestParser(unittest.TestCase):
                         "name": "Android",
                         "workflow": "android",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -338,7 +351,7 @@ class TestParser(unittest.TestCase):
                         "name": "OpenHarmony",
                         "workflow": "ohos",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -351,7 +364,7 @@ class TestParser(unittest.TestCase):
                         "name": "Lint",
                         "workflow": "lint",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -374,7 +387,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "name": "Linux (WPT)",
                         "number_of_wpt_chunks": 20,
-                        "profile": "release",
+                        "profile": "checked-release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "workflow": "linux",

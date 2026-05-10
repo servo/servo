@@ -19,19 +19,29 @@
     width: 100px;
     height: 100px;
     background: black;
-    box-shadow: 10px 50px 5px red;
+    box-shadow: 50px 50px 5px green;
   }
 
   .spacer {
     width: 100px;
     height: 150px;
   }
+
+  .fail {
+    width: 10px;
+    height: 10px;
+    background: red;
+    position: absolute;
+    z-index: -1;
+  }
 </style>
 <div class="parent" style="overflow-x: clip; overflow-y: visible">
   <div class="child"></div>
 </div>
+<div class="fail" style="left: 70px; top: 120px;"></div>
 <div class="spacer"></div>
 <div class="parent" style="overflow-x: visible; overflow-y: clip">
   <div class="child"></div>
 </div>
+<div class="fail" style="left: 120px; top: 320px;"></div>
 </script>

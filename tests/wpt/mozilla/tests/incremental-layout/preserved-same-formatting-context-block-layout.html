@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <p id="p1">Example1</p>
+  <p id="p2">Example2</p>
+  <p id="p3">Example3</p>
+  <p id="p4">Example4</p>
+  <p id="p5">Example5</p>
+</div>
+
+<script>
+setup({explicit_done:true});
+
+window.onload = () => {
+    test((t) => {
+        ServoTestUtils.forceLayout();
+        p1.innerText = "Changed";
+
+        let result = ServoTestUtils.forceLayout();
+
+        // text fragment + p1 + div + body + root
+        assert_equals(result.rebuiltFragmentCount, 5, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+        // p2 + p3 + p4 + p5
+        assert_equals(result.possiblyMovedFragmentCount, 4, "possiblyMovedFragmentCount");
+
+    }, "Updating a sibling should not cause fragments to be rebuilt");
+
+    done();
+}
+</script>

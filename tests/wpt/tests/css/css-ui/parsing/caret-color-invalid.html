@@ -2,10 +2,10 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS UI Level 3: parsing caret-color with invalid values</title>
+<title>CSS UI Level 4: parsing caret-color with invalid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
-<link rel="help" href="https://drafts.csswg.org/css-ui-3/#caret-color">
-<meta name="assert" content="caret-color supports only the grammar 'auto | <color>'.">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<meta name="assert" content="caret-color supports only the grammar '[ auto | <color> ] [auto | <color>]?'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -15,7 +15,22 @@
 test_invalid_value("caret-color", "none");
 test_invalid_value("caret-color", "invert");
 test_invalid_value("caret-color", "50%");
-test_invalid_value("caret-color", "red green");
+
+// Two-value form: only [ auto | <color> ] [auto | <color>]? is allowed.
+test_invalid_value("caret-color", "red green blue");
+test_invalid_value("caret-color", "red, green");
+test_invalid_value("caret-color", "red  none");
+test_invalid_value("caret-color", "red  invert");
+test_invalid_value("caret-color", "red  50%");
+
+// More than two tokens.
+test_invalid_value("caret-color", "auto auto auto");
+test_invalid_value("caret-color", "red green blue yellow");
+
+// Trailing non-color junk after a valid first value.
+test_invalid_value("caret-color", "red /");
+test_invalid_value("caret-color", "auto !");
+
 </script>
 </body>
 </html>

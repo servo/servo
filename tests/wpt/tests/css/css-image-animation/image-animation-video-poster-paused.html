@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>pausing animated image for video poster</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-video-poster-paused-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  takeScreenshotDelayed(300);
+</script>
+
+<style>
+  video {
+    width:20px;
+    height:10px;
+    object-fit:fill;
+    image-animation: paused;
+  }
+</style>
+
+<video poster="../../images/anim-gr.gif"></video>
+<video poster="../../images/anim-gr.png"></video>
+
+</html>

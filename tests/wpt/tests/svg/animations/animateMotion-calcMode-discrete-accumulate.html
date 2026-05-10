@@ -1,0 +1,64 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete", repeatCount, and accumulate="sum"</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="2s" fill="freeze"
+      repeatCount="2" accumulate="sum"
+      from="0,0" to="100,0" />
+  </rect>
+</svg>
+
+<script>
+// from-to discrete with accumulate="sum" and repeatCount=2.
+// dur=2s, so each repeat is 2s. Total animation: 4s.
+//
+// First repeat (t=0..2s):
+//   t in [0, 1): from=(0,0) [discrete first half]
+//   t in [1, 2): to=(100,0) [discrete second half]
+//
+// Second repeat (t=2..4s), with accumulate="sum", adds end-of-duration
+// value (100,0) from first repeat:
+//   t in [2, 3): from=(0,0) + (100,0)*1 = (100, 0)
+//   t in [3, 4]: to=(100,0) + (100,0)*1 = (200, 0)
+
+const rootSVGElement = document.querySelector("svg");
+const rect = document.querySelector("rect");
+
+function sample1() {
+    // First repeat, first half => (0, 0)
+    assert_equals(rect.getCTM().e, 0, "x (origin)");
+    assert_equals(rect.getCTM().f, 0, "y (origin)");
+}
+function sample2() {
+    // First repeat, second half => (100, 0)
+    assert_equals(rect.getCTM().e, 100, "x (r1 to)");
+    assert_equals(rect.getCTM().f, 0, "y (r1 to)");
+}
+function sample3() {
+    // Second repeat, first half => (0,0) + (100,0) = (100, 0)
+    assert_equals(rect.getCTM().e, 100, "x (r2 from)");
+    assert_equals(rect.getCTM().f, 0, "y (r2 from)");
+}
+function sample4() {
+    // Second repeat, second half / freeze => (100,0) + (100,0) = (200, 0)
+    assert_equals(rect.getCTM().e, 200, "x (r2 to)");
+    assert_equals(rect.getCTM().f, 0, "y (r2 to)");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.0,   sample1],
+        ["anim", 0.5,   sample1],
+        ["anim", 1.5,   sample2],
+        ["anim", 2.5,   sample3],
+        ["anim", 3.5,   sample4],
+        ["anim", 4.0,   sample4],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="writing-mode-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  display: inline-block;
+  white-space: pre;
+  inline-size: 120px;
+  margin: 10px;
+  font: 10px/normal Ahem;
+  border: 2px solid blue;
+
+  text-fit: grow consistent;
+}
+</style>
+<body>
+<div class="target" style="writing-mode:vertical-rl">ABCDEF
+GHI</div>
+<div class="target" style="writing-mode:vertical-lr">ABCDEF
+GHI</div>
+<div class="target" style="writing-mode:sideways-rl">ABCDEF
+GHI</div>
+<div class="target" style="writing-mode:sideways-lr">ABCDEF
+GHI</div>
+
+</body>

@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Lists Reference: nested counter-reset: reversed() with counter-set and increment</title>
+<style>
+  li { display: block }
+  li::before { content: attr(data-marker) ". "; }
+</style>
+<ol>
+  <li data-marker="3">Three</li>
+  <li data-marker="2">Two
+    <ol>
+      <li data-marker="11">Eleven</li>
+      <li data-marker="9">Nine</li>
+      <li data-marker="8">Eight</li>
+    </ol>
+  </li>
+  <li data-marker="1">One</li>
+</ol>

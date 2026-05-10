@@ -7,11 +7,12 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, mem, ptr};
 
-use js::gc::Traceable as JSTraceable;
-use js::jsapi::{JSObject, JSTracer};
+use js::gc::{Handle, Traceable as JSTraceable};
+use js::jsapi::{Heap, JSObject, JSTracer};
+use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use style::thread_state;
 
+use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
 use crate::inheritance::Castable;
 use crate::reflector::{DomObject, MutDomObject, Reflector};
@@ -190,7 +191,6 @@ impl<T> Hash for Dom<T> {
 
 impl<T> Clone for Dom<T> {
     #[inline]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn clone(&self) -> Self {
         assert_in_script();
         Dom { ptr: self.ptr }
@@ -199,7 +199,6 @@ impl<T> Clone for Dom<T> {
 
 impl<T: DomObject> Dom<T> {
     /// Create a `Dom<T>` from a `&T`
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn from_ref(obj: &T) -> Dom<T> {
         assert_in_script();
         Dom {
@@ -255,7 +254,6 @@ where
     ///
     /// # Safety
     /// TODO: unclear why this is marked unsafe.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub unsafe fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
@@ -327,7 +325,6 @@ impl<T: DomObject> DomRoot<T> {
     ///
     /// This should never be used to create on-stack values. Instead these values should always
     /// end up as members of other DOM objects.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn as_traced(&self) -> Dom<T> {
         Dom::from_ref(self)
     }
@@ -446,10 +443,6 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     });
 }
 
-pub fn assert_in_script() {
-    debug_assert!(thread_state::get().is_script());
-}
-
 /// Get a slice of references to DOM objects.
 pub trait DomSlice<T>
 where
@@ -468,4 +461,18 @@ where
         let _ = mem::transmute::<Dom<T>, &T>;
         unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
     }
+}
+
+/// Returns a handle to a Heap member of a reflected DOM object.
+/// The provided callback acts as a projection of the rooted-ness of
+/// the provided DOM object; it must return a reference to a Heap
+/// member of the DOM object.
+pub fn rooted_heap_handle<'a, T: DomObject, U: GCMethods + Copy>(
+    object: &'a T,
+    f: impl Fn(&'a T) -> &'a Heap<U>,
+) -> Handle<'a, U> {
+    // SAFETY: Heap::handle is safe to call when the Heap is a member
+    //   of a rooted object. Our safety invariants for DOM objects
+    //   ensure that a &T is obtained via a root of T.
+    unsafe { Handle::from_raw(f(object).handle()) }
 }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-backdrop-root-animation-in-effect-ref.html">
+<style>
+  body {
+    background: black;
+    color: white;
+  }
+
+  .container {
+    width: 100px;
+    height: 100px;
+    animation: fadeIn 1s steps(3, jump-none) -0.9s;
+    /* According to
+    https://drafts.csswg.org/web-animations-1/#side-effects-section, for
+    animation effects that stay in effect after finishing, the user agent must
+    act as though the target element has a corresponding will-change property.
+    In this case, that means treating it as 'will-change: opacity'. */
+    animation-fill-mode: forwards;
+  }
+
+  .filterbox {
+    width: 100%;
+    height: 100%;
+    backdrop-filter: invert(1);
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+  <div>
+    <p>Expected: Black screen.</p>
+  </div>
+  <div class="container">
+    <div class="filterbox"></div>
+  </div>
+  <script>
+    document.getAnimations()[0].finished.then(takeScreenshot);
+  </script>
+</body>
+
+</html>

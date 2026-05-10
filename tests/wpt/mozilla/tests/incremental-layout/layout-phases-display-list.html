@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+    setup({explicit_done:true});
+    window.onload = () => {
+        test((t) => {
+            document.body.style.backgroundColor = 'red';
+            t.add_cleanup(() => {
+                document.body.style.backgroundColor = '';
+            });
+
+            assert_array_equals(ServoTestUtils.forceLayout().phases, ["BuiltDisplayList"])
+        }, "Updating background color on body triggers BuiltDisplayList only");
+
+        done();
+    }
+</script>

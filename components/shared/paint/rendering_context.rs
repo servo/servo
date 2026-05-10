@@ -14,7 +14,7 @@ use embedder_traits::RefreshDriver;
 use euclid::default::{Rect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Size2D};
 use gleam::gl::{self, Gl};
-use glow::NativeFramebuffer;
+use glow::{HasContext, NativeFramebuffer};
 use image::RgbaImage;
 use log::{debug, trace, warn};
 use raw_window_handle::{DisplayHandle, WindowHandle};
@@ -22,7 +22,8 @@ pub use surfman::Error;
 use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
-    NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
+    GLVersion, NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture,
+    SurfaceType,
 };
 use webrender_api::units::{DeviceIntRect, DevicePixel};
 
@@ -128,7 +129,12 @@ impl SurfmanRenderingContext {
         };
         let context_descriptor =
             device.create_context_descriptor(&ContextAttributes { flags, version })?;
-        let context = device.create_context(&context_descriptor, None)?;
+
+        let context = device
+            .create_context(&context_descriptor, None)
+            .inspect_err(|_| {
+                print_diagnostics_information_on_context_creation_failure(&device, gl_api, version)
+            })?;
 
         #[expect(unsafe_code)]
         let gleam_gl = {
@@ -183,6 +189,11 @@ impl SurfmanRenderingContext {
     }
 
     fn resize_surface(&self, size: PhysicalSize<u32>) -> Result<(), Error> {
+        if size.width == 0 || size.height == 0 {
+            log::error!("Unable to resize to size under 1x1 ({size:?} provided)");
+            return Err(Error::Failed);
+        }
+
         let size = Size2D::new(size.width as i32, size.height as i32);
         let device = &mut self.device.borrow_mut();
         let context = &mut self.context.borrow_mut();
@@ -303,6 +314,13 @@ pub struct SoftwareRenderingContext {
 
 impl SoftwareRenderingContext {
     pub fn new(size: PhysicalSize<u32>) -> Result<Self, Error> {
+        if size.width == 0 || size.height == 0 {
+            log::error!(
+                "Unable to create SoftwareRenderingContext with size under 1x1 ({size:?} provided)"
+            );
+            return Err(Error::Failed);
+        }
+
         let connection = Connection::new()?;
         let adapter = connection.create_software_adapter()?;
         let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter, None)?;
@@ -344,6 +362,11 @@ impl RenderingContext for SoftwareRenderingContext {
     }
 
     fn resize(&self, size: PhysicalSize<u32>) {
+        assert!(
+            size.width > 0 && size.height > 0,
+            "Dimensions must be at least 1x1, got {size:?}",
+        );
+
         if self.size.get() == size {
             return;
         }
@@ -395,8 +418,8 @@ impl RenderingContext for SoftwareRenderingContext {
 /// A [`RenderingContext`] that uses the `surfman` library to render to a
 /// `raw-window-handle` identified window. `surfman` will attempt to create an
 /// OpenGL context and surface for this window. This is a simple implementation
-/// of the [`RenderingContext`] crate, but by default it paints to the entire window
-/// surface.
+/// of the [`RenderingContext`] trait, but by default it paints to the entire
+/// window surface.
 ///
 /// If you would like to paint to only a portion of the window, consider using
 /// [`OffscreenRenderingContext`] by calling [`WindowRenderingContext::offscreen_context`].
@@ -435,6 +458,13 @@ impl WindowRenderingContext {
         size: PhysicalSize<u32>,
         refresh_driver: Option<Rc<dyn RefreshDriver>>,
     ) -> Result<Self, Error> {
+        if size.width == 0 || size.height == 0 {
+            log::error!(
+                "Unable to create WindowRenderingContext with size under 1x1 ({size:?} provided)"
+            );
+            return Err(Error::Failed);
+        }
+
         let connection = Connection::from_display_handle(display_handle)?;
         let adapter = connection.create_adapter()?;
         let surfman_context = SurfmanRenderingContext::new(&connection, &adapter, refresh_driver)?;
@@ -727,6 +757,11 @@ type RenderToParentCallback = Box<dyn Fn(&glow::Context, Rect<i32>) + Send + Syn
 
 impl OffscreenRenderingContext {
     fn new(parent_context: Rc<WindowRenderingContext>, size: PhysicalSize<u32>) -> Self {
+        assert!(
+            size.width != 0 && size.height != 0,
+            "Dimensions must be at least 1x1, got {size:?}",
+        );
+
         let framebuffer = RefCell::new(Framebuffer::new(parent_context.gleam_gl_api(), size));
         Self {
             parent_context,
@@ -804,6 +839,11 @@ impl RenderingContext for OffscreenRenderingContext {
     }
 
     fn resize(&self, new_size: PhysicalSize<u32>) {
+        assert!(
+            new_size.width != 0 && new_size.height != 0,
+            "Dimensions must be at least 1x1, got {new_size:?}",
+        );
+
         let old_size = self.size.get();
         if old_size == new_size {
             return;
@@ -881,6 +921,50 @@ impl RenderingContext for OffscreenRenderingContext {
     }
 }
 
+fn print_diagnostics_information_on_context_creation_failure(
+    device: &Device,
+    desired_api: GLApi,
+    desired_version: GLVersion,
+) {
+    println!("===============================================================");
+    println!(
+        "Could not create a {desired_api:?} {:?}.{:?} context when starting Servo.",
+        desired_version.major, desired_version.minor
+    );
+
+    let version = surfman::GLVersion { major: 1, minor: 0 };
+    match device
+        .create_context_descriptor(&ContextAttributes {
+            flags: ContextAttributeFlags::empty(),
+            version,
+        })
+        .and_then(|context_descriptor| device.create_context(&context_descriptor, None))
+    {
+        Ok(mut context) => {
+            #[expect(unsafe_code)]
+            let glow_gl = unsafe {
+                glow::Context::from_loader_function(|function_name| {
+                    device.get_proc_address(&context, function_name)
+                })
+            };
+
+            println!(
+                "It's likely that your version of OpenGL ({:?}.{:?}) is too old.",
+                glow_gl.version().major,
+                glow_gl.version().minor
+            );
+            println!("If not, please file a bug at https://github.com/servo/servo/issues.");
+            let _ = device.destroy_context(&mut context);
+        },
+        Err(_) => {
+            println!("Could not create any {desired_api:?} context.");
+            println!("Ensure that OpenGL is working on your system.");
+            println!("If it is, please file a bug at https://github.com/servo/servo/issues.");
+        },
+    }
+    println!("===============================================================\n");
+}
+
 #[cfg(test)]
 mod test {
     use dpi::PhysicalSize;
@@ -890,6 +974,7 @@ mod test {
     use surfman::{Connection, ContextAttributeFlags, ContextAttributes, Error, GLApi, GLVersion};
 
     use super::Framebuffer;
+    use crate::rendering_context::SoftwareRenderingContext;
 
     #[test]
     #[expect(unsafe_code)]
@@ -935,5 +1020,17 @@ mod test {
         device.destroy_context(&mut context)?;
 
         Ok(())
+    }
+
+    #[test]
+    fn test_minimum_size_error() {
+        let result = SoftwareRenderingContext::new(PhysicalSize {
+            width: 0,
+            height: 1,
+        });
+        match result {
+            Err(surfman::Error::Failed) => (),
+            _ => panic!("Expected {:?}", surfman::Error::Failed),
+        }
     }
 }

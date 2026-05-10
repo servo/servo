@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("user_activation", [True, False])
 async def test_userActivation(bidi_session, top_context, user_activation):
     # Consume any previously set activation.
@@ -22,7 +23,6 @@ async def test_userActivation(bidi_session, top_context, user_activation):
     assert result == {"type": "boolean", "value": user_activation}
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("user_activation", [True, False])
 async def test_userActivation_copy(bidi_session, top_context, user_activation):
     # Consume any previously set activation.

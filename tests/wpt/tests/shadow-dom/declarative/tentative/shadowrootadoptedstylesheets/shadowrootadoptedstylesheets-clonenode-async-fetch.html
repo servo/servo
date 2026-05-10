@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>cloneNode of a host with an async-fetched shadowrootadoptedstylesheets specifier</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-clone">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helpers.js"></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Build a host whose shadowrootadoptedstylesheets references a URL
+    // that has not yet been fetched. This produces a placeholder
+    // CSSStyleSheet at index 0 of the original's adoptedStyleSheets.
+    // Cloning before the fetch resolves should also produce a clone
+    // with one entry (a placeholder), and cloning after resolution
+    // should yield the resolved sheet.
+    //
+    // createStylesheetHost() does NOT add shadowrootclonable, so we
+    // build the host markup directly via setHTMLUnsafe to make sure
+    // cloneNode actually clones the shadow root.
+    const cssUrl = new URL("./support/styles.css?clonenode_async",
+                           location.href).href;
+    document.body.setHTMLUnsafe(
+      `<div id="host_pre">` +
+        `<template shadowrootmode="open" shadowrootclonable ` +
+                  `shadowrootadoptedstylesheets="${cssUrl}">` +
+          `<span id="t">async pre-clone</span>` +
+        `</template>` +
+      `</div>`
+    );
+    const preHost = document.getElementById("host_pre");
+    assert_equals(preHost.shadowRoot.adoptedStyleSheets.length, 1,
+      "Original has 1 placeholder before fetch resolves.");
+    assert_equals(preHost.shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Original placeholder has 0 rules before resolution.");
+
+    // Clone BEFORE the fetch completes. The clone should have its own
+    // placeholder at index 0 (also empty).
+    const clonePre = preHost.cloneNode(true);
+    assert_true(!!clonePre.shadowRoot,
+      "Pre-resolution clone has a shadow root.");
+    assert_equals(clonePre.shadowRoot.adoptedStyleSheets.length, 1,
+      "Pre-resolution clone has 1 entry (placeholder) at the same index.");
+
+    // Drive the fetch to completion.
+    await fetchAndWait(cssUrl);
+
+    assertSheetRule(preHost.shadowRoot, 0, "span { color: blue; }",
+      "Original after fetch");
+
+    // Clone AFTER the fetch resolves. The cloned shadow root should
+    // resolve synchronously from the now-cached module map and end up
+    // with the same resolved CSSStyleSheet instance.
+    const clonePost = preHost.cloneNode(true);
+    assert_true(!!clonePost.shadowRoot,
+      "Post-resolution clone has a shadow root.");
+    assert_equals(clonePost.shadowRoot.adoptedStyleSheets.length, 1,
+      "Post-resolution clone has 1 adopted stylesheet.");
+    assertSheetRule(clonePost.shadowRoot, 0, "span { color: blue; }",
+      "Post-resolution clone");
+    assert_equals(
+      clonePost.shadowRoot.adoptedStyleSheets[0],
+      preHost.shadowRoot.adoptedStyleSheets[0],
+      "Post-resolution clone shares the original's resolved CSSStyleSheet " +
+      "instance (single module-map entry per URL)."
+    );
+  }, "cloneNode handles both placeholder and resolved async-fetched adoptedStyleSheets.");
+</script>
+</body>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_touch_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    promise_test(async () => {
+        // Get the initial max touch points.
+        const initial_max_touch_points = navigator.maxTouchPoints;
+
+        // Set the max touch points override
+        await test_driver.bidi.emulation.set_touch_override({
+            maxTouchPoints: 2
+        });
+        // Assert the max touch points matches the override.
+        assert_equals(navigator.maxTouchPoints, 2);
+
+        // Set another max touch points override
+        await test_driver.bidi.emulation.set_touch_override({
+            maxTouchPoints: 5
+        });
+
+        // Assert the max touch points matches the override.
+        assert_equals(navigator.maxTouchPoints, 5);
+
+        // Clear the touch override.
+        await test_driver.bidi.emulation.set_touch_override({});
+        // Assert max touch points is set to the original value.
+        assert_equals(navigator.maxTouchPoints, initial_max_touch_points);
+    }, "emulate touch and clear override");
+
+</script>

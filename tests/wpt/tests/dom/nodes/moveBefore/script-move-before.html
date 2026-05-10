@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>ScriptElement moveBefore synchronous script execution</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script id="htmlScript"></script>
+<svg><script id="svgScript"></script></svg>
+<script>
+  test(() => {
+    const htmlScript = document.getElementById('htmlScript');
+    window.__ranHTMLInsideMoveBefore = false;
+    const textNode = document.createTextNode(`
+      window.__ranHTMLInsideMoveBefore = true;
+    `);
+    document.body.appendChild(textNode);
+
+    htmlScript.moveBefore(textNode, null);
+
+    assert_false(window.__ranHTMLInsideMoveBefore, "<html:script> does not define moving steps which allow script execution.");
+  }, "Synchronous script execution in HTMLScriptElement during moveBefore should be blocked");
+
+  test(() => {
+    const svgScript = document.getElementById('svgScript');
+    window.__ranSVGInsideMoveBefore = false;
+    const textNode = document.createTextNode(`
+      window.__ranSVGInsideMoveBefore = true;
+    `);
+    document.body.appendChild(textNode);
+
+    svgScript.moveBefore(textNode, null);
+
+    assert_false(window.__ranSVGInsideMoveBefore, "<svg:script> does not define moving steps which allow script execution.");
+  }, "Synchronous script execution in SVGScriptElement during moveBefore should be blocked");
+</script>
+</body>

@@ -20,11 +20,11 @@ use base64::Engine;
 use futures::stream::StreamExt;
 use http::HeaderMap;
 use http::header::{self, HeaderName, HeaderValue};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
+use servo_base::generic_channel::CallbackSetter;
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
 use tokio::select;
@@ -145,12 +145,11 @@ fn process_ws_response(
         if !ServoCookie::is_valid_name_or_value(cookie_bytes) {
             continue;
         }
-        if let Ok(s) = std::str::from_utf8(cookie_bytes) {
-            if let Some(cookie) =
+        if let Ok(s) = std::str::from_utf8(cookie_bytes) &&
+            let Some(cookie) =
                 ServoCookie::from_cookie_string(s, resource_url, CookieSource::HTTP)
-            {
-                jar.push(cookie, resource_url, CookieSource::HTTP);
-            }
+        {
+            jar.push(cookie, resource_url, CookieSource::HTTP);
         }
     }
 
@@ -171,39 +170,36 @@ enum DomMsg {
 /// Initialize a listener for DOM actions. These are routed from the IPC channel
 /// to a tokio channel that the main WS client task uses to receive them.
 fn setup_dom_listener(
-    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    dom_action_receiver: CallbackSetter<WebSocketDomAction>,
     initiated_close: Arc<AtomicBool>,
 ) -> UnboundedReceiver<DomMsg> {
     let (sender, receiver) = unbounded_channel();
 
-    ROUTER.add_typed_route(
-        dom_action_receiver,
-        Box::new(move |message| {
-            let dom_action = message.expect("Ws dom_action message to deserialize");
-            trace!("handling WS DOM action: {:?}", dom_action);
-            match dom_action {
-                WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data.into()))) {
-                        warn!("Error sending websocket message: {:?}", e);
-                    }
-                },
-                WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data.into()))) {
-                        warn!("Error sending websocket message: {:?}", e);
-                    }
-                },
-                WebSocketDomAction::Close(code, reason) => {
-                    if initiated_close.fetch_or(true, Ordering::SeqCst) {
-                        return;
-                    }
-                    let frame = code.map(move |c| (c, reason.unwrap_or_default()));
-                    if let Err(e) = sender.send(DomMsg::Close(frame)) {
-                        warn!("Error closing websocket: {:?}", e);
-                    }
-                },
-            }
-        }),
-    );
+    dom_action_receiver.set_callback(move |message| {
+        let dom_action = message.expect("Ws dom_action message to deserialize");
+        trace!("handling WS DOM action: {:?}", dom_action);
+        match dom_action {
+            WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
+                if let Err(e) = sender.send(DomMsg::Send(Message::Text(data.into()))) {
+                    warn!("Error sending websocket message: {:?}", e);
+                }
+            },
+            WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
+                if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data.into()))) {
+                    warn!("Error sending websocket message: {:?}", e);
+                }
+            },
+            WebSocketDomAction::Close(code, reason) => {
+                if initiated_close.fetch_or(true, Ordering::SeqCst) {
+                    return;
+                }
+                let frame = code.map(move |c| (c, reason.unwrap_or_default()));
+                if let Err(e) = sender.send(DomMsg::Close(frame)) {
+                    warn!("Error closing websocket: {:?}", e);
+                }
+            },
+        }
+    });
 
     receiver
 }
@@ -312,7 +308,7 @@ pub(crate) async fn start_websocket(
     protocols: &[String],
     client: &net_traits::request::Request,
     tls_config: TlsConfig,
-    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    dom_action_receiver: CallbackSetter<WebSocketDomAction>,
 ) -> Result<Response, Error> {
     trace!("starting WS connection to {}", client.url());
 

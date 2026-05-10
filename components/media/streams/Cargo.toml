@@ -1,0 +1,19 @@
+[package]
+name = "servo-media-streams"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_media_streams"
+path = "lib.rs"
+
+[dependencies]
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }

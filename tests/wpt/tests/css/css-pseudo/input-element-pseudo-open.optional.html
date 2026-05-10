@@ -8,8 +8,7 @@
 
 <!-- This test is marked as optional because the specification does not mandate
      which particular elements support pickers or not. Picker support for elements
-     varies across browsers and platforms. This test reflects picker support in
-     desktop chromium. -->
+     varies across browsers and platforms. -->
 
 <button>reset</button>
 
@@ -49,8 +48,16 @@ document.querySelectorAll('.supported > input').forEach(input => {
 // TODO(crbug.com/383306186): Support :open for <input type=text list=datalist>
 promise_test(async () => {
   const input = document.querySelector('input[list]');
-  await test_driver.click(input);
   assert_false(input.matches(':open'),
-    ':open is not supported yet.');
+    'Should not match :open at the start of the test.');
+
+  await test_driver.bless();
+  input.showPicker();
+  assert_true(input.matches(':open'),
+    'Should match :open after opening the list.');
+
+  await test_driver.click(document.querySelector('button'));
+  assert_false(input.matches(':open'),
+    'Should not match :open after closing the list.');
 }, 'CSS :open for <input type=text list=datalist>');
 </script>

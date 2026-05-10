@@ -15,8 +15,9 @@ from .. import (
     PHASE_TO_EVENT_MAP,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_frame_context(
@@ -68,7 +69,6 @@ async def test_frame_context(
     assert_network_event(event, expected_event={"isBlocked": True})
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_other_context(
     bidi_session,
@@ -124,7 +124,6 @@ async def test_other_context(
     await asyncio.ensure_future(fetch(text_url_other, context=other_context))
 
 
-@pytest.mark.asyncio
 async def test_other_context_with_event_subscription(
     bidi_session,
     url,
@@ -172,7 +171,6 @@ async def test_other_context_with_event_subscription(
     assert_before_request_sent_event(event, expected_event={"isBlocked": False})
 
 
-@pytest.mark.asyncio
 async def test_two_contexts_same_intercept(
     bidi_session,
     url,
@@ -221,7 +219,6 @@ async def test_two_contexts_same_intercept(
     )
 
 
-@pytest.mark.asyncio
 async def test_two_contexts_global_intercept(
     bidi_session,
     url,

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: cross-origin(anonymous) for @font-face</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-cross-origin-modifier">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: "TestFont";
+  src: url("http://{{hosts[][]}}:{{ports[http][1]}}/fonts/Ahem.ttf?pipe=header(Access-Control-Allow-Origin,*)" cross-origin(anonymous)) format("truetype");
+}
+.test { font-family: "TestFont" }
+</style>
+<div class="test">X</div>
+<script>
+promise_test(async t => {
+  await document.fonts.ready;
+  const loaded = document.fonts.check("16px TestFont");
+  assert_true(loaded, "Cross-origin font with cross-origin(anonymous) should load");
+}, "cross-origin(anonymous) allows cross-origin font loading with CORS headers");
+</script>

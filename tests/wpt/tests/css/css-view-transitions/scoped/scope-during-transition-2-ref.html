@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<style>
+  #outer {
+    box-sizing: border-box;
+    border: 5px solid black;
+    background-color: green;
+    height: 300px;
+    width: 300px;
+    position: relative;
+    view-transition-name: outer;
+  }
+
+  #inner {
+    box-sizing: border-box;
+    border: 5px solid black;
+    background-color: rebeccapurple;
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    view-transition-name: inner;
+  }
+</style>
+<body>
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</body>
+</html>

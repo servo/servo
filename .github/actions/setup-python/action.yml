@@ -15,7 +15,7 @@ runs:
     # symlink to this version.
     - name: Setup system python
       if: ${{ inputs.skip-python-setup != 'true' }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version-file: ${{ inputs.python-version-file-path }}
     - name: Install uv

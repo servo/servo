@@ -35,7 +35,7 @@
       let oldOffset = getSelection().focusOffset;
       await test_driver.click(div);
       assert_not_equals(oldOffset, getSelection().focusOffset, "Selection should've moved on click.");
-      getSelection().focusOffet = 0;
+      getSelection().collapse(div);
     }, `selection for ${value}`);
   }
 </script>

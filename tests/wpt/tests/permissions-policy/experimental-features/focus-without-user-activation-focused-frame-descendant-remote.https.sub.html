@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>focus-without-user-activation: inclusive descendant check with cross-origin child</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./resources/common.js"></script>
+
+  <script>
+    "use strict";
+
+    const cross_origin = "https://{{domains[www]}}:{{ports[https][0]}}";
+    const delegation_helper_url = "/permissions-policy/experimental-features/" +
+      "resources/focus-without-user-activation-focused-frame-delegation-" +
+      "helper.html?child_origin=" + encodeURIComponent(cross_origin);
+
+    async function createDelegationIframe(t) {
+      const iframe = createIframe(document.body, {
+        src: delegation_helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      const ready = new Promise(resolve => {
+        function handler(e) {
+          if (e.source === iframe.contentWindow &&
+              e.data && e.data.action === "ready") {
+            window.removeEventListener("message", handler);
+            resolve();
+          }
+        }
+        window.addEventListener("message", handler);
+      });
+      await wait_for_load(iframe);
+      await ready;
+      t.add_cleanup(() => iframe.remove());
+      return iframe;
+    }
+
+    // Test: B delegates focus to cross-origin child C, then B takes
+    // focus back. The inclusive-descendant check must see that C
+    // (cross-origin to B) has focus, so B is allowed to reclaim it.
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+
+      // Give B focus from the main frame (no user activation).
+      iframe.focus();
+
+      // B delegates focus to cross-origin child C.
+      const r1 = await sendAndReceive(iframe, {
+        action: "delegate-focus-to-child"
+      });
+      assert_true(r1.iframeFocused,
+        "B should be able to delegate focus to cross-origin child C");
+
+      // B tries to take focus back from cross-origin C.
+      const r2 = await sendAndReceive(iframe, {
+        action: "focus-input"
+      });
+      assert_true(r2.focused,
+        "B should be able to take focus back from cross-origin child C " +
+        "(C is a descendant of B)");
+    }, "Iframe with policy denied can take focus back from cross-origin " +
+       "child iframe (inclusive-descendant check)");
+  </script>
+</body>

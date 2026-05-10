@@ -10,7 +10,7 @@
 // place.
 const [key1, key2] = parseKeylist();
 
-const result_val = document.featurePolicy.allowsFeature('attribution-reporting');
+const result_val = document.permissionsPolicy.allowsFeature('attribution-reporting');
 if (location.origin == get_host_info().ORIGIN) {
   writeValueToServer(key1, result_val);
 

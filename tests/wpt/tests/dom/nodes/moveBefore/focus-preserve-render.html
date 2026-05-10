@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="reftest-wait">
+  <title>moveBefore should retain visual indication of current focus</title>
+  <link rel="match" href="focus-preserve-render-ref.html" />
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    :focus-visible {
+      outline: 2px solid green;
+    }
+  </style>
+  <body>
+    <div class="outer">
+      <div id="mv">
+        <input id="inp" />
+      </div>
+    </div>
+    <div class="outer" id="move_to"></div>
+    <script>
+      window.onload = () => {
+        requestAnimationFrame(() => {
+          inp.focus();
+          requestAnimationFrame(() => {
+            move_to.moveBefore(mv, null);
+            requestAnimationFrame(() => takeScreenshot());
+          });
+        });
+      };
+    </script>
+  </body>
+</html>

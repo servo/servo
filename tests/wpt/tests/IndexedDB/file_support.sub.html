@@ -58,4 +58,99 @@ promise_test(async (testCase) => {
   db.close();
 }, "Saves and loads back File objects from IndexedDB");
 
+promise_test(async (testCase) => {
+  const input = document.getElementById("file_input");
+  await test_driver.send_keys(input, String.raw`{{fs_path(resources/file_to_save.txt)}}`);
+  assert_equals(input.files.length, 1);
+
+  const file = input.files[0];
+  const originalText = await file.text();
+  assert_greater_than(originalText.length, 10,
+                      "Test file must be long enough to slice");
+
+  const sliceStart = 5;
+  const sliceEnd = originalText.length - 5;
+  const slicedBlob = file.slice(sliceStart, sliceEnd);
+  const expectedText = originalText.substring(sliceStart, sliceEnd);
+
+  assert_equals(slicedBlob.size, sliceEnd - sliceStart,
+                "Sliced blob size should match the slice range");
+
+  const db = await createDatabase(testCase, db => {
+    db.createObjectStore('objectStore');
+  });
+
+  const writeTxn = db.transaction(['objectStore'], 'readwrite');
+  writeTxn.objectStore('objectStore').add(slicedBlob, 'slicedKey');
+  await promiseForTransaction(testCase, writeTxn);
+
+  const readTxn = db.transaction(['objectStore'], 'readonly');
+  const idbBlob = await promiseForRequest(
+      testCase, readTxn.objectStore('objectStore').get('slicedKey'));
+
+  assert_equals(idbBlob.size, slicedBlob.size,
+                "Retrieved blob size should match the sliced blob");
+
+  const directText = await idbBlob.text();
+  assert_equals(directText, expectedText,
+                "Direct read should match the sliced content");
+
+  const blobUrl = URL.createObjectURL(idbBlob);
+  testCase.add_cleanup(() => URL.revokeObjectURL(blobUrl));
+  const response = await fetch(blobUrl);
+  const fetchedText = await response.text();
+  assert_equals(fetchedText, expectedText,
+                "Fetched content should match the sliced content");
+
+  db.close();
+}, "Sliced file can be stored and retrieved from IndexedDB");
+
+promise_test(async (testCase) => {
+  const input = document.getElementById("file_input");
+  await test_driver.send_keys(input, String.raw`{{fs_path(resources/file_to_save.txt)}}`);
+  assert_equals(input.files.length, 1);
+
+  const file = input.files[0];
+  const originalText = await file.text();
+  assert_greater_than(originalText.length, 10,
+                      "Test file must be long enough to slice");
+
+  const mid = Math.floor(originalText.length / 2);
+  const slice1 = file.slice(0, mid);
+  const slice2 = file.slice(mid);
+  const composedBlob = new Blob([slice1, slice2]);
+  const expectedText = originalText;
+
+  assert_equals(composedBlob.size, originalText.length,
+                "Composed blob size should equal the full file size");
+
+  const db = await createDatabase(testCase, db => {
+    db.createObjectStore('objectStore');
+  });
+
+  const writeTxn = db.transaction(['objectStore'], 'readwrite');
+  writeTxn.objectStore('objectStore').add(composedBlob, 'composedKey');
+  await promiseForTransaction(testCase, writeTxn);
+
+  const readTxn = db.transaction(['objectStore'], 'readonly');
+  const idbBlob = await promiseForRequest(
+      testCase, readTxn.objectStore('objectStore').get('composedKey'));
+
+  assert_equals(idbBlob.size, composedBlob.size,
+                "Retrieved blob size should match the composed blob");
+
+  const directText = await idbBlob.text();
+  assert_equals(directText, expectedText,
+                "Direct read should match the original file content");
+
+  const blobUrl = URL.createObjectURL(idbBlob);
+  testCase.add_cleanup(() => URL.revokeObjectURL(blobUrl));
+  const response = await fetch(blobUrl);
+  const fetchedText = await response.text();
+  assert_equals(fetchedText, expectedText,
+                "Fetched content should match the original file content");
+
+  db.close();
+}, "Composed slices of a file can be stored and retrieved from IndexedDB");
+
 </script>

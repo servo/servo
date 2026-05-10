@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM - StyleSheetList does not include adopted style sheets in shadow roots</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom/#css-style-sheet-collections">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const shadow = host.attachShadow({mode: 'open'});
+
+        const style = document.createElement('style');
+        style.textContent = ':host { color: red }';
+        shadow.appendChild(style);
+
+        const sheet = new CSSStyleSheet();
+        shadow.adoptedStyleSheets = [sheet];
+
+        var styleSheets = shadow.styleSheets;
+        assert_equals(styleSheets.length, 1);
+        assert_equals(styleSheets[0], style.sheet);
+      }, 'shadowRoot.styleSheets does not include adopted style sheets');
+    </script>
+  </body>
+</html>

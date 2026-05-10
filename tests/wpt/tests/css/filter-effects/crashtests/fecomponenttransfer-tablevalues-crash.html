@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+  Having lots of tableValues shouldn't crash.
+</title>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background: red;
+  filter: url(#f);
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0">
+  <filter id="f">
+    <feComponentTransfer>
+      <feFuncR id="func" type="table"/>
+    </feComponentTransfer>
+  </filter>
+</svg>
+<div id="target"></div>
+<script>
+const N = 16777220;
+const tv = "0 ".repeat(N).slice(0, -1);
+document.getElementById("func").setAttribute("tableValues", tv);
+document.body.offsetHeight;
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.documentElement.classList.add("done");
+  });
+});
+</script>
+</body>
+</html>

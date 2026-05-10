@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::pub_domains::is_same_site;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
@@ -12,7 +13,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, SafeFromJSValConvertible, StringificationBehavior, root_from_handlevalue,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -112,7 +112,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
     fn From(cx: JSContext, global: &GlobalScope, value: HandleValue) -> Fallible<DomRoot<Origin>> {
-        let can_gc = CanGc::note();
+        let can_gc = CanGc::deprecated_note();
 
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.
@@ -130,7 +130,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
                 can_gc,
             ) {
                 Ok(ConversionResult::Success(s)) => s,
-                _ => return Err(Error::Type("Failed to convert value to string".to_string())),
+                _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };
 
             // Step 2.1. Let parsedURL be the result of basic URL parsing value.
@@ -138,13 +138,13 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             //           origin is set to parsedURL's origin.
             match ServoUrl::parse(&s.to_string()) {
                 Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
-                Err(_) => return Err(Error::Type("Failed to parse URL".to_string())),
+                Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }
         }
 
         // Step 3. Throw a TypeError.
         Err(Error::Type(
-            "Value must be a string or a platform object with an origin".to_string(),
+            c"Value must be a string or a platform object with an origin".to_owned(),
         ))
     }
 

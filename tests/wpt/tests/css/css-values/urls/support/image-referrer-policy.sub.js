@@ -10,8 +10,8 @@ function test_image_referrer_policy(descriptor) {
   var style = document.createElement("style");
   style.innerHTML = `
   .test {
-    width: 200px;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     background-color: blue;
     background-image: ${make_test_url(descriptor.load_type, descriptor.referrer_policy, descriptor.expected_referrer)};
   };`;

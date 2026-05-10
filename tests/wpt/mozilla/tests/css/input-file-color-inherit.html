@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS: input[type=file] should inherit 'color' by default</title>
+<link rel="help" href="https://github.com/servo/servo/issues/44427">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container { color: rgb(255, 255, 255); }
+</style>
+<div id="container">
+  <input id="inp" type="file">
+</div>
+<script>
+  test(() => {
+    const style = getComputedStyle(inp);
+    assert_equals(style.color, "rgb(255, 255, 255)",
+      "input[type=file] should inherit color from its parent");
+  }, "input[type=file] value part should inherit 'color' by default");
+</script>

@@ -14,6 +14,7 @@ import json
 import os
 import os.path as path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -64,9 +65,9 @@ class MachCommands(CommandBase):
         category="bootstrap",
     )
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
-    def bootstrap_gstreamer(self, force: bool = False) -> int:
+    def bootstrap_gstreamer(self, force: bool = False, yes: bool = False) -> int:
         try:
-            servo.platform.get().bootstrap_gstreamer(force)
+            servo.platform.get().bootstrap_gstreamer(force, yes)
         except NotImplementedError as exception:
             print(exception)
             return 1
@@ -75,7 +76,7 @@ class MachCommands(CommandBase):
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
     def bootstrap_hsts_preload(self, force: bool = False) -> None:
         preload_filename = "hsts_preload.fstmap"
-        preload_path = path.join(self.context.topdir, "resources")
+        preload_path = path.join(self.context.topdir, "components", "default-resources", "resources")
 
         chromium_hsts_url = (
             "https://chromium.googlesource.com/chromium/src"
@@ -108,12 +109,18 @@ class MachCommands(CommandBase):
 
     @Command(
         "update-pub-domains",
-        description="Download the public domains list and update resources/public_domains.txt",
+        description="Download the public domains list and update the copy in servo-default-resources",
         category="bootstrap",
     )
     def bootstrap_pub_suffix(self, force: bool = False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
+        dst_filename = path.join(
+            self.context.topdir,
+            "components",
+            "default-resources",
+            "resources",
+            "public_domains.txt",
+        )
         not_implemented_case = re.compile(r"^[^*]+\*")
 
         try:
@@ -146,6 +153,9 @@ class MachCommands(CommandBase):
                 old_toolchains.append(toolchain)
 
         removing_anything = False
+        if shutil.which("rustup") is None:
+            print("rustup not found. Cannot list or remove old toolchains.")
+            return
         stdout = subprocess.check_output(["rustup", "toolchain", "list"])
         for toolchain_with_host in stdout.split():
             for old in old_toolchains:

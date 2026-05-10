@@ -139,7 +139,7 @@
                 on_event(target1, "pointermove", function (event) {
                     test(function() {
                         assert_false(isPointerCapture, "pointermove shouldn't trigger for this target when capture is enabled");
-                    }, "pointermove shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                    }, `pointermove shouldn't trigger for the purple rectangle while the black rectangle has capture, isPointerCapture=${isPointerCapture}`);
 
                     if(!pointermoveNoCaptureGot1) {
                         actions_promise3 = actions_promise2.then( () => {

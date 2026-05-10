@@ -6,11 +6,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{GenericSender, channel};
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use servo_base::generic_channel::{GenericSender, channel};
+use servo_base::id::PipelineId;
 use servo_url::ServoUrl;
 
 use crate::StreamId;
@@ -41,6 +42,7 @@ pub(crate) struct SourcesReply {
     pub sources: Vec<SourceForm>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct SourceManager {
     source_actor_names: AtomicRefCell<BTreeSet<String>>,
 }
@@ -58,11 +60,11 @@ impl SourceManager {
             .insert(actor_name.to_owned());
     }
 
-    pub fn source_forms(&self, actors: &ActorRegistry) -> Vec<SourceForm> {
+    pub fn source_forms(&self, registry: &ActorRegistry) -> Vec<SourceForm> {
         self.source_actor_names
             .borrow()
             .iter()
-            .map(|actor_name| actors.find::<SourceActor>(actor_name).source_form())
+            .map(|source_name| registry.find::<SourceActor>(source_name).source_form())
             .collect()
     }
 
@@ -71,17 +73,17 @@ impl SourceManager {
         registry: &ActorRegistry,
         source_url: &str,
     ) -> Option<DowncastableActorArc<SourceActor>> {
-        for name in self.source_actor_names.borrow().iter() {
-            let source = registry.find::<SourceActor>(name);
-            if source.url == ServoUrl::from_str(source_url).ok()? {
-                return Some(source);
+        for source_name in self.source_actor_names.borrow().iter() {
+            let source_actor = registry.find::<SourceActor>(source_name);
+            if source_actor.url == ServoUrl::from_str(source_url).ok()? {
+                return Some(source_actor);
             }
         }
         None
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SourceActor {
     /// Actor name.
     name: String,
@@ -141,30 +143,9 @@ struct GetBreakpointPositionsRequest {
 }
 
 impl SourceActor {
-    pub fn new(
-        name: String,
-        url: ServoUrl,
-        content: Option<String>,
-        content_type: Option<String>,
-        spidermonkey_id: u32,
-        introduction_type: String,
-        script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> SourceActor {
-        SourceActor {
-            name,
-            url,
-            content: AtomicRefCell::new(content),
-            content_type,
-            is_black_boxed: false,
-            spidermonkey_id,
-            introduction_type,
-            script_sender,
-        }
-    }
-
     #[expect(clippy::too_many_arguments)]
-    pub fn new_registered(
-        actors: &ActorRegistry,
+    pub fn register(
+        registry: &ActorRegistry,
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
@@ -173,21 +154,20 @@ impl SourceActor {
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let source_actor_name = actors.new_name::<Self>();
-
-        let source_actor = SourceActor::new(
-            source_actor_name.clone(),
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             url,
-            content,
+            content: AtomicRefCell::new(content),
             content_type,
+            is_black_boxed: false,
             spidermonkey_id,
             introduction_type,
             script_sender,
-        );
-        actors.register(source_actor);
-        actors.register_source_actor(pipeline_id, &source_actor_name);
-
-        source_actor_name
+        };
+        registry.register::<Self>(actor);
+        registry.register_source_actor(pipeline_id, &name);
+        name
     }
 
     pub fn source_form(&self) -> SourceForm {
@@ -302,23 +282,23 @@ impl Actor for SourceActor {
 }
 
 impl SourceActor {
-    pub fn find_offset(&self, line: u32, column: u32) -> (u32, u32) {
-        let (tx, rx) = channel().unwrap();
+    pub fn find_offset(&self, line: u32, column: u32) -> Option<(u32, u32)> {
+        let (tx, rx) = channel()?;
         self.script_sender
             .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
                 self.spidermonkey_id,
                 tx,
             ))
-            .unwrap();
-        let result = rx.recv().unwrap();
+            .ok()?;
+        let result = rx.recv().ok()?;
         for location in result {
             // Line number are one-based. Column numbers are zero-based.
             // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
             if location.line_number == line && location.column_number - 1 == column {
-                return (location.script_id, location.offset);
+                return Some((location.script_id, location.offset));
             }
         }
-        panic!("There should be an entry with this column and line numbers");
+        None
     }
 }

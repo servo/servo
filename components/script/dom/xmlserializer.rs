@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use xml5ever::serialize::{SerializeOpts, TraversalScope, serialize};
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -65,9 +65,9 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
             },
         ) {
             Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-            Err(_) => Err(Error::Type(String::from(
-                "root must be a Node or an Attr object",
-            ))),
+            Err(_) => Err(Error::Type(
+                c"root must be a Node or an Attr object".to_owned(),
+            )),
         }
     }
 }

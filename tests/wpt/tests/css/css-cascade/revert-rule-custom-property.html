@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#test1 {
+  --a: red;
+  --b: green;
+}
+#test1 {
+  --a: green;
+  --b: revert-rule;
+}
+#test1 {
+  --a: revert-rule;
+  --b: revert-rule;
+}
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).getPropertyValue("--a"), 'green')
+    assert_equals(getComputedStyle(test1).getPropertyValue("--b"), 'green')
+
+  }, 'revert-rule in a custom property');
+</script>

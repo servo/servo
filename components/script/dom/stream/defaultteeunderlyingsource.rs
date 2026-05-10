@@ -7,18 +7,19 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::dom::types::{ReadableStream, ReadableStreamDefaultReader};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum DefaultTeeCancelAlgorithm {
@@ -45,11 +46,9 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     #[conditional_malloc_size_of]
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[expect(clippy::redundant_allocation)]
-    reason_1: Rc<Box<Heap<Value>>>,
+    reason_1: Rc<Heap<Value>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[expect(clippy::redundant_allocation)]
-    reason_2: Rc<Box<Heap<Value>>>,
+    reason_2: Rc<Heap<Value>>,
     #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
@@ -57,7 +56,7 @@ pub(crate) struct DefaultTeeUnderlyingSource {
 
 impl DefaultTeeUnderlyingSource {
     #[expect(clippy::too_many_arguments)]
-    #[expect(clippy::redundant_allocation)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: &ReadableStreamDefaultReader,
         stream: &ReadableStream,
@@ -66,8 +65,8 @@ impl DefaultTeeUnderlyingSource {
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
-        reason_1: Rc<Box<Heap<Value>>>,
-        reason_2: Rc<Box<Heap<Value>>>,
+        reason_1: Rc<Heap<Value>>,
+        reason_2: Rc<Heap<Value>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
         can_gc: CanGc,
@@ -104,15 +103,13 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    pub(crate) fn pull_algorithm(&self, can_gc: CanGc) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            return Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc);
+            return Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx));
         }
 
         // Set reading to true.
@@ -130,7 +127,7 @@ impl DefaultTeeUnderlyingSource {
             self.clone_for_branch_2.clone(),
             self.cancel_promise.clone(),
             self,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Rooting: the tee read request is rooted above.
@@ -139,11 +136,10 @@ impl DefaultTeeUnderlyingSource {
         };
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
-        self.reader.read(cx, &read_request, can_gc);
+        self.reader.read(cx, &read_request);
 
         // Return a promise resolved with undefined.
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc)
+        Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
@@ -152,10 +148,9 @@ impl DefaultTeeUnderlyingSource {
     /// Let cancel2Algorithm be the following steps, taking a reason argument
     pub(crate) fn cancel_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match self.tee_cancel_algorithm {
             DefaultTeeCancelAlgorithm::Cancel1Algorithm => {
@@ -167,7 +162,7 @@ impl DefaultTeeUnderlyingSource {
 
                 // If canceled_2 is true,
                 if self.canceled_2.get() {
-                    self.resolve_cancel_promise(cx, global, can_gc);
+                    self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
@@ -181,7 +176,7 @@ impl DefaultTeeUnderlyingSource {
 
                 // If canceled_1 is true,
                 if self.canceled_1.get() {
-                    self.resolve_cancel_promise(cx, global, can_gc);
+                    self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
@@ -190,22 +185,21 @@ impl DefaultTeeUnderlyingSource {
     }
 
     #[expect(unsafe_code)]
-    fn resolve_cancel_promise(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
+    fn resolve_cancel_promise(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
         rooted_vec!(let mut reasons_values);
         reasons_values.push(self.reason_1.get());
         reasons_values.push(self.reason_2.get());
 
         let reasons_values_array = HandleValueArray::from(&reasons_values);
-        rooted!(in(*cx) let reasons = unsafe { NewArrayObject(*cx, &reasons_values_array) });
-        rooted!(in(*cx) let reasons_value = ObjectValue(reasons.get()));
+        rooted!(&in(cx) let reasons = unsafe { NewArrayObject(cx.raw_cx(), &reasons_values_array) });
+        rooted!(&in(cx) let reasons_value = ObjectValue(reasons.get()));
 
         // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-        let cancel_result = self
-            .stream
-            .cancel(cx, global, reasons_value.handle(), can_gc);
+        let cancel_result = self.stream.cancel(cx, global, reasons_value.handle());
 
         // Resolve cancelPromise with cancelResult.
-        self.cancel_promise.resolve_native(&cancel_result, can_gc);
+        self.cancel_promise
+            .resolve_native(&cancel_result, CanGc::from_cx(cx));
     }
 }

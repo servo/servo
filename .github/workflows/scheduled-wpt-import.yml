@@ -29,11 +29,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: wpt-full-logs-linux
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Prep environment
         run: |
           sudo apt update

@@ -6,8 +6,16 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 
-use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::jsval::NullValue;
+use script_bindings::cell::DomRefCell;
+use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -16,23 +24,25 @@ use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
 use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::StringOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-const INVALID_ENTRY_NAMES: &[&str] = &[
+pub(crate) const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
     "unloadEventStart",
     "unloadEventEnd",
@@ -69,12 +79,13 @@ impl PerformanceEntryList {
         PerformanceEntryList { entries }
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dfn-filter-buffer-map-by-name-and-type>
     pub(crate) fn get_entries_by_name_and_type(
         &self,
         name: Option<DOMString>,
         entry_type: Option<EntryType>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
-        let mut res = self
+        let mut result = self
             .entries
             .iter()
             .filter(|e| {
@@ -85,12 +96,16 @@ impl PerformanceEntryList {
             })
             .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
-        res.sort_by(|a, b| {
+
+        // Step 6. Sort results's entries in chronological order with respect to startTime
+        result.sort_by(|a, b| {
             a.start_time()
                 .partial_cmp(&b.start_time())
                 .unwrap_or(Ordering::Equal)
         });
-        res
+
+        // Step 7. Return result.
+        result
     }
 
     pub(crate) fn clear_entries_by_name_and_type(
@@ -141,12 +156,15 @@ pub(crate) struct Performance {
     /// The `timeOrigin` as described in
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-time-origin>.
     time_origin: CrossProcessInstant,
-    /// <https://w3c.github.io/performance-timeline/#dfn-maxbuffersize>
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-size-limit>
     /// The max-size of the buffer, set to 0 once the pipeline exits.
     /// TODO: have one max-size per entry type.
     resource_timing_buffer_size_limit: Cell<usize>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-current-size>
     resource_timing_buffer_current_size: Cell<usize>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-full-event-pending-flag>
     resource_timing_buffer_pending_full_event: Cell<bool>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-secondary-buffer>
     resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
 }
 
@@ -175,6 +193,10 @@ impl Performance {
             global,
             can_gc,
         )
+    }
+
+    pub(crate) fn time_origin(&self) -> CrossProcessInstant {
+        self.time_origin
     }
 
     pub(crate) fn to_dom_high_res_time_stamp(
@@ -243,8 +265,8 @@ impl Performance {
                 self.global()
                     .task_manager()
                     .performance_timeline_task_source()
-                    .queue(task!(notify_performance_observers: move || {
-                        owner.root().notify_observers();
+                    .queue(task!(notify_performance_observers: move |cx| {
+                        owner.root().notify_observers(cx);
                     }));
             }
         }
@@ -295,13 +317,13 @@ impl Performance {
         // Add the performance entry to the list of performance entries that have not
         // been notified to each performance observer owner, filtering the ones it's
         // interested in.
-        for o in self
+        for observer in self
             .observers
             .borrow()
             .iter()
             .filter(|o| o.entry_types.contains(&entry.entry_type()))
         {
-            o.observer.queue_entry(entry);
+            observer.observer.queue_entry(entry);
         }
 
         // Step 4.
@@ -328,8 +350,8 @@ impl Performance {
         self.global()
             .task_manager()
             .performance_timeline_task_source()
-            .queue(task!(notify_performance_observers: move || {
-                owner.root().notify_observers();
+            .queue(task!(notify_performance_observers: move |cx| {
+                owner.root().notify_observers(cx);
             }));
 
         Some(entry_last_index)
@@ -339,7 +361,7 @@ impl Performance {
     ///
     /// Algorithm spec (step 7):
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub(crate) fn notify_observers(&self) {
+    fn notify_observers(&self, cx: &mut JSContext) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -357,12 +379,15 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify(CanGc::note());
+            o.notify(cx);
         }
     }
 
+    /// <https://w3c.github.io/resource-timing/#performance-can-add-resource-timing-entry>
     fn can_add_resource_timing_entry(&self) -> bool {
-        self.resource_timing_buffer_current_size.get() <=
+        // Step 1. If resource timing buffer current size is smaller than resource timing buffer size limit, return true.
+        // Step 2. Return false.
+        self.resource_timing_buffer_current_size.get() <
             self.resource_timing_buffer_size_limit.get()
     }
 
@@ -392,15 +417,15 @@ impl Performance {
             }
         }
     }
-    // `fire a buffer full event` paragraph of
-    /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    fn fire_buffer_full_event(&self, can_gc: CanGc) {
+
+    /// <https://w3c.github.io/resource-timing/#dfn-fire-a-buffer-full-event>
+    fn fire_buffer_full_event(&self, cx: &mut js::context::JSContext) {
         while !self.resource_timing_secondary_entries.borrow().is_empty() {
             let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
 
             if !self.can_add_resource_timing_entry() {
                 self.upcast::<EventTarget>()
-                    .fire_event(atom!("resourcetimingbufferfull"), can_gc);
+                    .fire_event(cx, atom!("resourcetimingbufferfull"));
             }
             self.copy_secondary_resource_timing_buffer();
             let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
@@ -425,6 +450,7 @@ impl Performance {
                 // Step 1.c. Return.
                 return true;
             }
+
             // Step 2.a. Set resource timing buffer full event pending flag to true.
             self.resource_timing_buffer_pending_full_event.set(true);
             // Step 2.b. Queue a task on the performance timeline task source to run fire a buffer full event.
@@ -432,14 +458,16 @@ impl Performance {
             self.global()
                 .task_manager()
                 .performance_timeline_task_source()
-                .queue(task!(fire_a_buffer_full_event: move || {
-                    performance.root().fire_buffer_full_event(CanGc::note());
+                .queue(task!(fire_a_buffer_full_event: move |cx| {
+                    performance.root().fire_buffer_full_event(cx);
                 }));
         }
+
         // Step 3. Add new entry to the resource timing secondary buffer.
         self.resource_timing_secondary_entries
             .borrow_mut()
             .push_back(DomRoot::from_ref(entry));
+
         // Step 4. Increase resource timing secondary buffer current size by 1.
         //   This is tracked automatically via `.len()`.
         false
@@ -450,11 +478,117 @@ impl Performance {
             *e = DomRoot::from_ref(entry);
         }
     }
+
+    /// <https://w3c.github.io/user-timing/#convert-a-name-to-a-timestamp>
+    fn convert_a_name_to_a_timestamp(&self, name: &str) -> Fallible<CrossProcessInstant> {
+        // Step 1. If the global object is not a Window object, throw a TypeError.
+        let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
+            return Err(Error::Type(cformat!(
+                "Cannot use {name} from non-window global"
+            )));
+        };
+
+        // Step 2. If name is navigationStart, return 0.
+        if name == "navigationStart" {
+            return Ok(self.time_origin);
+        }
+
+        // Step 3. Let startTime be the value of navigationStart in the PerformanceTiming interface.
+        // FIXME: We don't implement this value yet, so we assume it's zero (and then we don't need it at all)
+
+        // Step 4. Let endTime be the value of name in the PerformanceTiming interface.
+        // NOTE: We store all performance values on the document
+        let document = window.Document();
+        let end_time = match name {
+            "unloadEventStart" => document.get_unload_event_start(),
+            "unloadEventEnd" => document.get_unload_event_end(),
+            "domInteractive" => document.get_dom_interactive(),
+            "domContentLoadedEventStart" => document.get_dom_content_loaded_event_start(),
+            "domContentLoadedEventEnd" => document.get_dom_content_loaded_event_end(),
+            "domComplete" => document.get_dom_complete(),
+            "loadEventStart" => document.get_load_event_start(),
+            "loadEventEnd" => document.get_load_event_end(),
+            "redirectStart" => document.get_redirect_start(),
+            "redirectEnd" => document.get_redirect_end(),
+            "secureConnectionStart" => document.get_secure_connection_start(),
+            other => {
+                if cfg!(debug_assertions) {
+                    unreachable!("{other:?} is not the name of a timestamp");
+                }
+                return Err(Error::Operation(None));
+            },
+        };
+        // Step 5. If endTime is 0, throw an InvalidAccessError.
+        let Some(end_time) = end_time else {
+            return Err(Error::InvalidAccess(Some(format!(
+                "{name} hasn't happened yet"
+            ))));
+        };
+
+        // Step 6. Return result of subtracting startTime from endTime.
+        Ok(end_time)
+    }
+
+    /// <https://w3c.github.io/user-timing/#convert-a-mark-to-a-timestamp>
+    fn convert_a_mark_to_a_timestamp(
+        &self,
+        mark: &StringOrDouble,
+    ) -> Fallible<CrossProcessInstant> {
+        match mark {
+            StringOrDouble::String(name) => {
+                // Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
+                // PerformanceTiming interface, let end time be the value returned by running the convert
+                // a name to a timestamp algorithm with name set to the value of mark.
+                // TODO: These aren't all fields because servo doesn't support some of them yet
+                if matches!(
+                    &*name.str(),
+                    "navigationStart" |
+                        "unloadEventStart" |
+                        "unloadEventEnd" |
+                        "domInteractive" |
+                        "domContentLoadedEventStart" |
+                        "domContentLoadedEventEnd" |
+                        "domComplete" |
+                        "loadEventStart" |
+                        "loadEventEnd" |
+                        "redirectStart" |
+                        "redirectEnd" |
+                        "secureConnectionStart"
+                ) {
+                    self.convert_a_name_to_a_timestamp(&name.str())
+                }
+                // Step 2. Otherwise, if mark is a DOMString, let end time be the value of the startTime
+                // attribute from the most recent occurrence of a PerformanceMark object in the performance entry
+                // buffer whose name is mark. If no matching entry is found, throw a SyntaxError.
+                else {
+                    self.buffer
+                        .borrow()
+                        .get_last_entry_start_time_with_name_and_type(name.clone(), EntryType::Mark)
+                        .ok_or(Error::Syntax(Some(format!(
+                            "No PerformanceMark named {name} exists"
+                        ))))
+                }
+            },
+            // Step 3. Otherwise, if mark is a DOMHighResTimeStamp:
+            StringOrDouble::Double(timestamp) => {
+                // Step 3.1 If mark is negative, throw a TypeError.
+                if timestamp.is_sign_negative() {
+                    return Err(Error::Type(c"Time stamps must not be negative".to_owned()));
+                }
+
+                // Step 3.2 Otherwise, let end time be mark.
+                // NOTE: I think the spec wants us to return the value.
+                Ok(
+                    self.time_origin +
+                        Duration::microseconds(timestamp.mul_add(1000.0, 0.0) as i64),
+                )
+            },
+        }
+    }
 }
 
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
-    // FIXME(avada): this should be deprecated in the future, but some sites still use it
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute>
+    /// <https://w3c.github.io/navigation-timing/#dom-performance-timing>
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
         if !entries.is_empty() {
@@ -469,10 +603,10 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::note())
+        PerformanceNavigation::new(&self.global(), CanGc::deprecated_note())
     }
 
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now>
+    /// <https://w3c.github.io/hr-time/#dom-performance-now>
     fn Now(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(CrossProcessInstant::now())
     }
@@ -484,6 +618,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries>
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
+        // > Returns a PerformanceEntryList object returned by the filter buffer map by name and type
+        // > algorithm with name and type set to null.
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, None)
@@ -520,25 +656,22 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-mark>
-    fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
-        let global = self.global();
-        // Step 1.
-        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
-            return Err(Error::Syntax(None));
-        }
+    fn Mark(
+        &self,
+        cx: &mut JSContext,
+        mark_name: DOMString,
+        mark_options: RootedTraceableBox<PerformanceMarkOptions>,
+    ) -> Fallible<DomRoot<PerformanceMark>> {
+        // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
+        let entry =
+            PerformanceMark::new_with_proto(cx, &self.global(), None, mark_name, mark_options)?;
 
-        // Steps 2 to 6.
-        let entry = PerformanceMark::new(
-            &global,
-            mark_name,
-            CrossProcessInstant::now(),
-            Duration::ZERO,
-        );
-        // Steps 7 and 8.
+        // Step 2. Queue a PerformanceEntry entry.
+        // Step 3. Add entry to the performance entry buffer. (This is done in queue_entry itself)
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
-        // Step 9.
-        Ok(())
+        // Step 4. Return entry.
+        Ok(entry)
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmarks>
@@ -551,42 +684,169 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     /// <https://w3c.github.io/user-timing/#dom-performance-measure>
     fn Measure(
         &self,
+        cx: &mut JSContext,
         measure_name: DOMString,
-        start_mark: Option<DOMString>,
+        start_or_measure_options: StringOrPerformanceMeasureOptions,
         end_mark: Option<DOMString>,
-    ) -> Fallible<()> {
-        // Steps 1 and 2.
-        let end_time = end_mark
-            .map(|name| {
-                self.buffer
-                    .borrow()
-                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
-                    .unwrap_or(self.time_origin)
-            })
-            .unwrap_or_else(CrossProcessInstant::now);
+    ) -> Fallible<DomRoot<PerformanceMeasure>> {
+        // Step 1. If startOrMeasureOptions is a PerformanceMeasureOptions object and at least one of start,
+        // end, duration, and detail exist, run the following checks:
+        if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
+            &start_or_measure_options &&
+            (options.start.is_some() ||
+                options.duration.is_some() ||
+                options.end.is_some() ||
+                options.detail.get().is_object_or_null())
+        {
+            // Step 1.1 If endMark is given, throw a TypeError.
+            if end_mark.is_some() {
+                return Err(Error::Type(
+                    c"Must not provide endMark if PerformanceMeasureOptions is also provided"
+                        .to_owned(),
+                ));
+            }
 
-        // Step 3.
-        let start_time = start_mark
-            .and_then(|name| {
-                self.buffer
-                    .borrow()
-                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
-            })
-            .unwrap_or(self.time_origin);
+            // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
+            if options.start.is_none() && options.end.is_none() {
+                return Err(Error::Type(
+                    c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided"
+                        .to_owned(),
+                ));
+            }
 
-        // Steps 4 to 8.
+            // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
+            if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
+                return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
+            }
+        }
+
+        // Step 2. Compute end time as follows:
+        // Step 2.1 If endMark is given, let end time be the value returned
+        // by running the convert a mark to a timestamp algorithm passing in endMark.
+        let end_time = if let Some(end_mark) = end_mark {
+            self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(end_mark))?
+        } else {
+            match &start_or_measure_options {
+                StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) => {
+                    // Step 2.2 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                    // and if its end member exists, let end time be the value returned by running the
+                    // convert a mark to a timestamp algorithm passing in startOrMeasureOptions’s end.
+                    if let Some(end) = &options.end {
+                        self.convert_a_mark_to_a_timestamp(end)?
+                    }
+                    // Step 2.3 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                    // and if its start and duration members both exist:
+                    else if let Some((start, duration)) =
+                        options.start.as_ref().zip(options.duration)
+                    {
+                        // Step 2.3.1 Let start be the value returned by running the convert a mark to a timestamp
+                        // algorithm passing in start.
+                        let start = self.convert_a_mark_to_a_timestamp(start)?;
+
+                        // Step 2.3.2 Let duration be the value returned by running the convert a mark to a timestamp
+                        // algorithm passing in duration.
+                        let duration = self
+                            .convert_a_mark_to_a_timestamp(&StringOrDouble::Double(duration))? -
+                            self.time_origin;
+
+                        // Step 2.3.3 Let end time be start plus duration.
+                        start + duration
+                    } else {
+                        // Step 2.4 Otherwise, let end time be the value that would be returned by the
+                        // Performance object’s now() method.
+                        CrossProcessInstant::now()
+                    }
+                },
+                _ => {
+                    // Step 2.4 Otherwise, let end time be the value that would be returned by the
+                    // Performance object’s now() method.
+                    CrossProcessInstant::now()
+                },
+            }
+        };
+
+        // Step 3. Compute start time as follows:
+        let start_time = match &start_or_measure_options {
+            StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) => {
+                // Step 3.1 If startOrMeasureOptions is a PerformanceMeasureOptions object, and if its start member exists,
+                // let start time be the value returned by running the convert a mark to a timestamp algorithm passing in
+                // startOrMeasureOptions’s start.
+                if let Some(start) = &options.start {
+                    self.convert_a_mark_to_a_timestamp(start)?
+                }
+                // Step 3.2 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                // and if its duration and end members both exist:
+                else if let Some((duration, end)) = options.duration.zip(options.end.as_ref()) {
+                    // Step 3.2.1 Let duration be the value returned by running the convert a mark to a timestamp
+                    // algorithm passing in duration.
+                    let duration = self
+                        .convert_a_mark_to_a_timestamp(&StringOrDouble::Double(duration))? -
+                        self.time_origin;
+
+                    // Step 3.2.2 Let end be the value returned by running the convert a mark to a timestamp algorithm
+                    // passing in end.
+                    let end = self.convert_a_mark_to_a_timestamp(end)?;
+
+                    // Step 3.3.3 Let start time be end minus duration.
+                    end - duration
+                }
+                // Step 3.4 Otherwise, let start time be 0.
+                else {
+                    self.time_origin
+                }
+            },
+            StringOrPerformanceMeasureOptions::String(string) => {
+                // Step 3.3 Otherwise, if startOrMeasureOptions is a DOMString, let start time be the value returned
+                // by running the convert a mark to a timestamp algorithm passing in startOrMeasureOptions.
+                self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(string.clone()))?
+            },
+        };
+
+        // Step 4. Create a new PerformanceMeasure object (entry) with this’s relevant realm.
+        // Step 5. Set entry’s name attribute to measureName.
+        // Step 6. Set entry’s entryType attribute to DOMString "measure".
+        // Step 7. Set entry’s startTime attribute to start time.
+        // Step 8. Set entry’s duration attribute to the duration from start time to end time.
+        // The resulting duration value MAY be negative.
+
         let entry = PerformanceMeasure::new(
             &self.global(),
             measure_name,
             start_time,
             end_time - start_time,
+            Default::default(),
         );
 
-        // Step 9 and 10.
+        // Step 9. Set entry’s detail attribute as follows:
+        rooted!(&in(cx) let mut detail = NullValue());
+        // Step 9.1. If startOrMeasureOptions is a PerformanceMeasureOptions object and startOrMeasureOptions’s detail member exists:
+        if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
+            &start_or_measure_options &&
+            !options.detail.get().is_null_or_undefined()
+        {
+            // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
+            let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
+
+            // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
+            structuredclone::read(
+                &self.global(),
+                record,
+                detail.handle_mut(),
+                CanGc::from_cx(cx),
+            )?;
+        }
+        // Step 9.2. Otherwise, set it to null.
+        //
+        // Note: This is already the default value we set when creating the detail above
+
+        entry.set_detail(detail.handle());
+
+        // Step 10. Queue a PerformanceEntry entry.
+        // Step 11. Add entry to the performance entry buffer. (This is done in queue_entry itself)
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
-        // Step 11.
-        Ok(())
+        // Step 12. Return entry.
+        Ok(entry)
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmeasures>
@@ -603,7 +863,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         self.resource_timing_buffer_current_size.set(0);
     }
 
-    /// <https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize>
+    /// <https://w3c.github.io/resource-timing/#performance-setresourcetimingbuffersize>
     fn SetResourceTimingBufferSize(&self, max_size: u32) {
         self.resource_timing_buffer_size_limit
             .set(max_size as usize);

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input filter=select>
+<select id=select size=4>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</select>
+
+<style>
+input, select {
+  appearance: base;
+}
+</style>
+
+<script>
+function visibleOptions() {
+  return Array.from(document.querySelectorAll('option:not(:filtered)'));
+}
+
+promise_test(async () => {
+  const input = document.querySelector('input');
+  const select = document.querySelector('select');
+  const optionOne = document.querySelector('.one');
+  const optionTwo = document.querySelector('.two');
+  const optionThree = document.querySelector('.three');
+
+  assert_array_equals(visibleOptions(), [optionOne, optionTwo, optionThree],
+    'No options should be filtered out at the start of the test.');
+
+  input.value = 'z';
+  assert_array_equals(visibleOptions(), [],
+    'All options should be filtered out after setting value to z.');
+
+  input.value = 't';
+  assert_array_equals(visibleOptions(), [optionTwo, optionThree],
+    'Options two and three should be visible after setting value to t.');
+
+  let beforefilters = 0;
+  input.onbeforefilter = event => {
+    beforefilters++;
+    event.preventDefault();
+  };
+  input.value = 'z';
+  assert_equals(beforefilters, 1,
+    'The beforefilter event should fire when assigning to input.value.');
+  assert_array_equals(visibleOptions(), [optionTwo, optionThree],
+    'Filtering should not change after preventing beforefilter event.');
+}, 'beforefilter event for customizable combobox.');
+</script>

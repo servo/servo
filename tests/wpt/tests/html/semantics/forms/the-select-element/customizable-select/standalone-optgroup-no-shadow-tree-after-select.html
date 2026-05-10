@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-optgroup-element">
+<link rel=match href="standalone-optgroup-no-shadow-tree-ref.html">
+<meta name=assert content="An optgroup element moved out of a select element should not render a UA shadow tree and should render its child text content.">
+
+<select><optgroup label="label attribute">child text</optgroup></select>
+<script>
+const select = document.querySelector("select");
+const optgroup = document.querySelector("optgroup");
+select.offsetTop;
+document.body.appendChild(optgroup);
+select.remove();
+</script>

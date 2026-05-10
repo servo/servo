@@ -17,16 +17,13 @@ from .. import (
     any_list,
     any_string,
     any_string_or_null,
+    assert_bytes_value,
+    assert_cookie,
     assert_cookies,
     int_interval,
     number_interval,
     recursive_compare,
 )
-
-
-def assert_bytes_value(bytes_value):
-    assert bytes_value["type"] in ["string", "base64"]
-    any_string(bytes_value["value"])
 
 
 def assert_headers(event_headers, expected_headers):
@@ -92,8 +89,6 @@ def assert_request_data(request_data, expected_request, expected_time_range):
         request_data,
     )
 
-    for cookie in request_data["cookies"]:
-        assert_bytes_value(cookie["value"])
 
     if "cookies" in expected_request:
         assert_cookies(request_data["cookies"], expected_request["cookies"])
@@ -102,6 +97,10 @@ def assert_request_data(request_data, expected_request, expected_time_range):
         # We don't want to assert all headers and cookies, so we do a custom
         # assert for each and then delete it before using recursive_compare.
         del expected_request["cookies"]
+    else:
+        # Otherwise still check the cookies have the expected shape.
+        for cookie in request_data["cookies"]:
+            assert_cookie(cookie)
 
     for header in request_data["headers"]:
         assert_bytes_value(header["value"])

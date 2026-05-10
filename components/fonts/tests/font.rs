@@ -7,12 +7,12 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use app_units::Au;
-use euclid::num::Zero;
 use fonts::platform::font::PlatformFont;
 use fonts::{
     Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
     PlatformFontMethods, ShapingFlags, ShapingOptions,
 };
+use icu_locid::subtags::Language;
 use servo_url::ServoUrl;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -76,8 +76,9 @@ fn test_font_can_do_fast_shaping() {
     // Fast shaping requires a font with a kern table and no GPOS or GSUB tables.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Latin,
+        language: Language::UND,
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -86,8 +87,9 @@ fn test_font_can_do_fast_shaping() {
     // Non-Latin script should never have fast shaping.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Cherokee,
+        language: Language::UND,
         flags: ShapingFlags::empty(),
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
@@ -96,8 +98,9 @@ fn test_font_can_do_fast_shaping() {
     // Right-to-left text should never use fast shaping.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Latin,
+        language: Language::UND,
         flags: ShapingFlags::RTL_FLAG,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));

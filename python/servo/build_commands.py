@@ -122,7 +122,6 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
 
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
@@ -218,7 +217,7 @@ class MachCommands(CommandBase):
             # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
             # like Instruments.app.
             try:
-                import Cocoa  # pyrefly: ignore[import-error]
+                import Cocoa  # pyrefly: ignore[missing-import]
 
                 icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                 icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -302,13 +301,9 @@ class MachCommands(CommandBase):
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
 
-            # Set servo style thread stack size to 8 MB for ASAN builds since the stack usage is higher.
-            # We don't care about efficiency, we just want to avoid crashes.
-            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = str(1024 * 8)
-
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
-            self.features.append("servo_allocator/use-system-allocator")
+            self.features.append("servo-allocator/use-system-allocator")
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
                 print(

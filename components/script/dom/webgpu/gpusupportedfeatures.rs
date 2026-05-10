@@ -7,15 +7,15 @@
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
+use script_bindings::like::Setlike;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use wgpu_types::Features;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUFeatureName, GPUSupportedFeaturesMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::like::Setlike;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -156,7 +156,7 @@ impl Setlike for GPUSupportedFeatures {
     fn get_index(&self, index: u32) -> Option<Self::Key> {
         self.internal
             .get_index(index)
-            .map(|k| DOMString::from_string(k.as_str().to_owned()))
+            .map(|key| key.as_str().into())
     }
     #[inline(always)]
     fn size(&self) -> u32 {

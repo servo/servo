@@ -6,13 +6,14 @@
 
 use std::cell::Cell;
 
-use base::id::PipelineId;
-use constellation_traits::ScriptToConstellationMessage;
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use libc::c_void;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PipelineId;
+use servo_constellation_traits::ScriptToConstellationMessage;
 use style::animation::{
     Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
     KeyframesIterationState, Transition,
@@ -21,7 +22,6 @@ use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::animationevent::AnimationEvent;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
@@ -145,11 +145,24 @@ impl Animations {
         ));
     }
 
-    /// Processes any new animations that were discovered after reflow. Collect messages
-    /// that trigger events for any animations that changed state.
+    /// This does three things:
+    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering.
+    ///  - Process any new animations that were discovered after reflow.
+    ///  - Collect pending events for any animations that changed state.
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {
-        let pipeline_id = window.pipeline_id();
         let mut sets = self.sets.sets.write();
+        {
+            let rooted_nodes = self.rooted_nodes.borrow();
+            for (key, set) in sets.iter_mut() {
+                if rooted_nodes.get(&NoTrace(key.node)).is_some_and(|node| {
+                    !node.is_being_rendered_or_delegates_rendering(key.pseudo_element)
+                }) {
+                    set.cancel_all_animations();
+                }
+            }
+        }
+
+        let pipeline_id = window.pipeline_id();
         self.root_newly_animating_dom_nodes(&sets);
 
         for (key, set) in sets.iter_mut() {
@@ -462,7 +475,7 @@ impl Animations {
 
     /// An implementation of the final steps of
     /// <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn send_pending_events(&self, window: &Window, can_gc: CanGc) {
+    pub(crate) fn send_pending_events(&self, window: &Window, cx: &mut js::context::JSContext) {
         // > 4. Let events to dispatch be a copy of doc’s pending animation event queue.
         // > 5. Clear doc’s pending animation event queue.
         //
@@ -529,9 +542,9 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                TransitionEvent::new(&window, event_atom, &event_init, can_gc)
+                TransitionEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), can_gc);
+                    .fire(node.upcast(), CanGc::from_cx(cx));
             } else {
                 let event_init = AnimationEventInit {
                     parent,
@@ -539,9 +552,9 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                AnimationEvent::new(&window, event_atom, &event_init, can_gc)
+                AnimationEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), can_gc);
+                    .fire(node.upcast(), CanGc::from_cx(cx));
             }
         }
 

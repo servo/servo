@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Crash when setting invalid CSSUnparsedValue</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13547">
+<div id=target></div>
+<script>
+  let examples = [
+    'var()',
+    'var(,)',
+    'var(0)',
+    'env()',
+    'env(,)',
+    'env(0)',
+    'attr()',
+    'attr(,)',
+    'attr(0)',
+    'if()',
+    'if(,)',
+    'if(0)',
+    '--f()',
+    '--f(,)',
+    '--f(0)',
+    'thing!!!',
+    'var(--x) !important',
+  ];
+  // Some of the above cases may be valid. That's fine; just don't crash.
+
+  for (let e of examples) {
+    try {
+      let value = new CSSUnparsedValue([e]);
+      target.attributeStyleMap.set('width', value);
+      // One of the two above statements should likely throw an exception.
+      // If they don't, then we should at least not crash on get():
+      target.attributeStyleMap.get('width');
+    } catch (e) {
+      // Intentionally empty.
+    }
+    target.offsetTop;
+  }
+</script>

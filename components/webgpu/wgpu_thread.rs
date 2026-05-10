@@ -8,11 +8,11 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
-use base::id::PipelineId;
 use log::{info, warn};
 use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::{
     Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
@@ -26,13 +26,14 @@ use wgc::id;
 use wgc::id::DeviceId;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::BufferMapOperation;
+pub use wgpu_core as wgc;
 use wgpu_core::command::RenderPassDescriptor;
 use wgpu_core::device::DeviceError;
 use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
 use wgpu_core::resource::BufferAccessResult;
+pub use wgpu_types as wgt;
 use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
-pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::canvas_context::WebGpuExternalImageMap;
 use crate::poll_thread::Poller;
@@ -970,20 +971,20 @@ impl WGPU {
                     },
                     WebGPURequest::UnmapBuffer { buffer_id, mapping } => {
                         let global = &self.global;
-                        if let Some(mapping) = mapping {
-                            if let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
+                        if let Some(mapping) = mapping &&
+                            let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
                                 buffer_id,
                                 mapping.range.start,
                                 Some(mapping.range.end - mapping.range.start),
-                            ) {
-                                unsafe {
-                                    slice::from_raw_parts_mut(
-                                        slice_pointer.as_ptr(),
-                                        range_size as usize,
-                                    )
-                                }
-                                .copy_from_slice(&mapping.data);
+                            )
+                        {
+                            unsafe {
+                                slice::from_raw_parts_mut(
+                                    slice_pointer.as_ptr(),
+                                    range_size as usize,
+                                )
                             }
+                            .copy_from_slice(&mapping.data);
                         }
                         // Ignore result because this operation always succeed from user perspective
                         let _result = global.buffer_unmap(buffer_id);

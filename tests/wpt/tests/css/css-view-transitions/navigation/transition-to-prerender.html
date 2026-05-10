@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <title>View transitions: basic cross-document navigation to a prerender</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="author" href="mailto:bokan@chromium.org">
-<link rel="match" href="transition-to-prerender-ref.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/common/reftest-wait.js"></script>
 <script src="/speculation-rules/resources/utils.js"></script>
 <script src="/speculation-rules/prerender/resources/utils.js"></script>
 <style>
@@ -24,62 +23,62 @@ html.incoming {
 ::view-transition {
   background-color: limegreen;
 }
-::view-transition-new(root) {
-  transform: translateY(55vh);
-  animation: none;
-  opacity: 1;
-}
-::view-transition-old(root) {
-  transform: translateY(-55vh);
-  animation: none;
-  opacity: 1;
-}
-::view-transition-group(root) {
-  animation-duration: 300s;
-}
 </style>
 <script>
 const params = new URLSearchParams(location.search);
 const uid = params.has('uid') ? params.get('uid') : token();
-const ready_channel = new PrerenderChannel('ready-to-activate', uid);
+const mode = params.get('mode') || 'test';
 
-if (!implementsSpeculationRules()) {
-  onload = () => {
-    document.body.innerText = 'This test requires speculation rules.';
-    takeScreenshot();
-  }
-} else {
-  if (!params.has('next')) {
-    onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+if (mode === 'test') {
+  promise_test(async t => {
+    if (!implementsSpeculationRules())
+      return;
+
+    const result = await new Promise(resolve => {
+      const channel = new PrerenderChannel('result', uid);
+      channel.addEventListener('message', e => resolve(e.data), {once: true});
+
+      const url = `?mode=runner&uid=${uid}`;
+      const popup = window.open(url);
+      t.add_cleanup(() => popup.close());
+    });
+    assert_equals(result, "pass");
+  });
+} else if (mode === 'runner') {
+  // This is the "old" page running in the popup
+  const ready_channel = new PrerenderChannel('ready-to-activate', uid);
+
+  onload = async () => {
+    document.documentElement.classList.add('outgoing');
+    const next_url =
+        new URL(`?mode=next&uid=${uid}`, window.location).href;
+
+    const ready_to_activate = new Promise(resolve => {
+      ready_channel.addEventListener('message', resolve, {once: true});
+    });
+
+    startPrerendering(next_url);
+
+    await ready_to_activate;
+
+    window.location.replace(new URL(next_url, window.location));
+  };
+} else if (mode === 'next') {
+  // This is the "new" page (prerendered -> activated)
+  const ready_channel = new PrerenderChannel('ready-to-activate', uid);
+  const result_channel = new PrerenderChannel('result', uid);
+
+  if (document.prerendering) {
+    ready_channel.postMessage('readyToActivateMessage');
+    ready_channel.close();
   } else {
-    onload = prerenderedPage;
-  }
-}
-
-async function runTest() {
-  document.documentElement.classList.add('outgoing');
-  const next_url =
-      new URL(`transition-to-prerender.html?next&uid=${uid}`, window.location).href;
-
-  const ready_to_activate = new Promise(resolve => {
-    ready_channel.addEventListener('message', resolve, {once: true});
-  });
-
-  startPrerendering(next_url);
-
-  await ready_to_activate;
-
-  window.location.replace(new URL(next_url, window.location));
-}
-
-function prerenderedPage() {
-  document.addEventListener('prerenderingchange', () => {
     document.documentElement.classList.add('incoming');
-    requestAnimationFrame(takeScreenshot);
-  });
-
-  ready_channel.postMessage('readyToActivateMessage');
-  ready_channel.close();
+    // We expect a view transition
+    addEventListener('pagereveal', e => {
+        result_channel.postMessage(e.viewTransition ? "pass" : "fail: no transition");
+        result_channel.close();
+    });
+  }
 }
 
 function implementsSpeculationRules() {
@@ -87,4 +86,3 @@ function implementsSpeculationRules() {
       HTMLScriptElement.supports('speculationrules');
 }
 </script>
-</html>

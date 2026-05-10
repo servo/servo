@@ -6,11 +6,9 @@ use std::cell::OnceCell;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::mem;
 use std::sync::Arc;
-use std::{mem, thread};
 
-use base::id::{PipelineId, WebViewId};
-use base::threadpool::ThreadPool;
 use imsz::imsz_from_reader;
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
@@ -31,7 +29,8 @@ use profile_traits::path;
 use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
 use rustc_hash::FxHashMap;
-use servo_config::pref;
+use servo_base::id::{PipelineId, WebViewId};
+use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
@@ -39,7 +38,7 @@ use webrender_api::units::DeviceIntSize;
 // We bake in rippy.png as a fallback, in case the embedder does not provide a broken
 // image icon resource. This version is 229 bytes, so don't exchange it against
 // something of higher resolution.
-const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
+const FALLBACK_RIPPY: &[u8] = include_bytes!("resources/rippy.png");
 
 /// The current SVG stack relies on `resvg` to provide the natural dimensions of
 /// the SVG, which it automatically infers from the width/height/viewBox properties
@@ -466,7 +465,6 @@ struct ImageCacheStore {
     broken_image_icon_image: OnceCell<Option<Arc<RasterImage>>>,
 
     /// Cross-process `Paint` API instance.
-    #[ignore_malloc_size_of = "Channel from another crate"]
     paint_api: CrossProcessPaintApi,
 
     /// The [`WebView`] of the `Webview` associated with this [`ImageCache`].
@@ -498,14 +496,12 @@ impl ImageCacheStore {
     /// If a key is available the image will be immediately loaded, otherwise it will load then the next batch of
     /// keys is received. Only call this if the image does not have a `LoadKey` yet.
     fn load_image_with_keycache(&mut self, pending_image: PendingKey) {
-        if let PendingKey::Svg((pending_id, ref _raster_image, requested_size)) = pending_image {
-            if self
-                .key_cache
+        if let PendingKey::Svg((pending_id, ref _raster_image, requested_size)) = pending_image &&
+            self.key_cache
                 .evicted_images
                 .remove(&(pending_id, requested_size))
-            {
-                return;
-            }
+        {
+            return;
         };
         match self.key_cache.cache {
             KeyCacheState::PendingBatch => {
@@ -649,16 +645,14 @@ impl ImageCacheStore {
     ) {
         if let Some(loaded_image) =
             self.completed_loads
-                .remove(&(url.clone(), origin.clone(), *cors_setting))
+                .remove(&(url.clone(), origin.clone(), *cors_setting)) &&
+            let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response &&
+            let Some(id) = image.id
         {
-            if let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response {
-                if image.id.is_some() {
-                    self.paint_api.update_images(
-                        self.webview_id.into(),
-                        vec![ImageUpdate::DeleteImage(image.id.unwrap())].into(),
-                    );
-                }
-            }
+            self.paint_api.update_images(
+                self.webview_id.into(),
+                vec![ImageUpdate::DeleteImage(id)].into(),
+            );
         }
     }
 
@@ -671,17 +665,19 @@ impl ImageCacheStore {
             .rasterized_vector_images
             .remove(&(*image_id, *device_size))
         {
-            // If there is no corresponding rasterized_vector_image result,
-            // then the vector image is either being rasterized or is in
-            // self.store.key_cache.pending_image_keys. Either way, we need to notify the
-            // KeyCache that it was evicted.
-            if entry.result.is_none() {
+            if let Some(result) = entry.result {
+                if let Some(image_id) = result.id {
+                    self.paint_api.update_images(
+                        self.webview_id.into(),
+                        vec![ImageUpdate::DeleteImage(image_id)].into(),
+                    );
+                }
+            } else {
+                // If there is no corresponding rasterized_vector_image result,
+                // then the vector image is either being rasterized or is in
+                // self.store.key_cache.pending_image_keys. Either way, we need to notify the
+                // KeyCache that it was evicted.
                 self.evict_image_from_keycache(image_id, device_size);
-            } else if let Some(image_id) = entry.result.as_ref().unwrap().id {
-                self.paint_api.update_images(
-                    self.webview_id.into(),
-                    vec![ImageUpdate::DeleteImage(image_id)].into(),
-                );
             }
         }
     }
@@ -732,21 +728,12 @@ pub struct ImageCacheFactoryImpl {
 impl ImageCacheFactoryImpl {
     pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
-
-        // Uses an estimate of the system cpus to decode images
-        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
-        // If no information can be obtained about the system, uses 4 threads as a default
-        let thread_count = thread::available_parallelism()
-            .map(|i| i.get())
-            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
-
         let mut fontdb = fontdb::Database::new();
         fontdb.load_system_fonts();
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
-            thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
+            thread_pool: ThreadPool::global(),
             fontdb: Arc::new(fontdb),
         }
     }
@@ -986,17 +973,15 @@ impl ImageCache for ImageCacheImpl {
             return Some(result.clone());
         }
 
-        if let Some(svg_id) = svg_id {
-            if let Some(old_mapped_image_id) =
-                self.svg_id_image_id_map.lock().insert(svg_id, image_id)
-            {
-                if old_mapped_image_id != image_id {
-                    store.vector_images.remove(&old_mapped_image_id);
-                    store
-                        .rasterized_vector_images
-                        .remove(&(old_mapped_image_id, requested_size));
-                }
-            }
+        if let Some(svg_id) = svg_id &&
+            let Some(old_mapped_image_id) =
+                self.svg_id_image_id_map.lock().insert(svg_id, image_id) &&
+            old_mapped_image_id != image_id
+        {
+            store.vector_images.remove(&old_mapped_image_id);
+            store
+                .rasterized_vector_images
+                .remove(&(old_mapped_image_id, requested_size));
         }
         if let Some(requested_sizes_for_id) = self.image_id_size_map.lock().get_mut(&image_id) {
             requested_sizes_for_id.push(requested_size);
@@ -1099,7 +1084,6 @@ impl ImageCache for ImageCacheImpl {
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg) {
         match (action, id) {
             (FetchResponseMsg::ProcessRequestBody(..), _) |
-            (FetchResponseMsg::ProcessRequestEOF(..), _) |
             (FetchResponseMsg::ProcessCspViolations(..), _) => (),
             (FetchResponseMsg::ProcessResponse(_, response), _) => {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);

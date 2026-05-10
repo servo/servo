@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:said@apple.com">
+<link rel=help href="https://drafts.csswg.org/css-forms-1">
+<link rel=match href="meter-base-appearance-custom-style-value-dynamic-rendering-ref.tentative.html">
+<style>
+    meter::slider-track {
+        font: 16px system-ui;
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+        border: darkgray 1px solid;
+        border-radius: 999em;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #ddd, #eee 20%, #ccc 45%, #ccc 55%, #ddd);
+    }
+
+    meter::slider-fill {
+        height: 100%;
+        width: 100%;
+        block-size: 100%;
+        box-sizing: border-box;
+        border-radius: 999em;
+        overflow: hidden;
+    }
+
+    meter::slider-track {
+        height: 100%;
+    }
+
+    meter:even-less-good::slider-fill {
+        background: linear-gradient(to bottom, #f77, #fcc 20%, #d44 45%, #d44 55%, #f77);
+    }
+
+    meter:suboptimum::slider-fill {
+        background: linear-gradient(to bottom, #fe7, #ffc 20%, #db3 45%, #db3 55%, #fe7);
+    }
+
+    meter:optimum::slider-fill {
+        background: linear-gradient(to bottom, #ad7, #cea 20%, #7a3 45%, #7a3 55%, #ad7);
+    }
+
+    .base {
+        appearance: base;
+    }
+
+     meter {
+        width: 400px;
+        height: 40px;
+        margin-bottom: 10px;
+    }
+</style>
+<body>
+    <div>
+        <meter class="base" min="0" max="100" low="33" high="66" optimum="80" value="10"></meter>
+    </div>
+    <div>
+        <meter class="base" min="0" max="100" low="33" high="66" optimum="80" value="33"></meter>
+    </div>
+    <div>
+        <meter class="base" min="0" max="100" low="33" high="66" optimum="80" value="66"></meter>
+    </div>
+    <script>
+        window.requestAnimationFrame(() => {
+            let meter1 = document.querySelector("meter[value='10']");
+            let meter2 = document.querySelector("meter[value='33']");
+            let meter3 = document.querySelector("meter[value='66']");
+
+            meter1.setAttribute("value", 33);
+            meter2.setAttribute("value", 66);
+            meter3.setAttribute("value", 10);
+        });
+    </script>
+</body>

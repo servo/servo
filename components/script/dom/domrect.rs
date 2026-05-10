@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{DomRectId, DomRectIndex};
-use constellation_traits::DomRect;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use servo_base::id::{DomRectId, DomRectIndex};
+use servo_constellation_traits::DomRect;
 
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
     DOMRectInit, DOMRectReadOnlyMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -80,10 +81,10 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
 
     // https://drafts.fxtf.org/geometry/#dom-domrect-fromrect
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMRect> {
+    fn FromRect(cx: &mut JSContext, global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRect> {
         let rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(Self { rect }), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(Self { rect }), global, cx)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domrect-x>

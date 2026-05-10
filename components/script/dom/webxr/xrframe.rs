@@ -7,13 +7,14 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::Float32Array;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Frame, LayerId, SubImages};
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::dom::xrhittestresult::XRHitTestResult;
@@ -31,7 +32,6 @@ use crate::script_runtime::CanGc;
 pub(crate) struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "defined in webxr_api"]
     #[no_trace]
     data: Frame,
     active: Cell<bool>,
@@ -198,7 +198,14 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(self.global().as_window(), *r, self, CanGc::note()))
+            .map(|r| {
+                XRHitTestResult::new(
+                    self.global().as_window(),
+                    *r,
+                    self,
+                    CanGc::deprecated_note(),
+                )
+            })
             .collect()
     }
 
@@ -220,7 +227,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if joint_spaces.len() > radii.len() {
             return Err(Error::Type(
-                "Length of radii does not match length of joint spaces".to_string(),
+                c"Length of radii does not match length of joint spaces".to_owned(),
             ));
         }
 
@@ -269,7 +276,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if spaces.len() * 16 > transforms.len() {
             return Err(Error::Type(
-                "Transforms array length does not match 16 * spaces length".to_string(),
+                c"Transforms array length does not match 16 * spaces length".to_owned(),
             ));
         }
 

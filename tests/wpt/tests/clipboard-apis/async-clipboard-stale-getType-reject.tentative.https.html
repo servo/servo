@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard: getType() on stale ClipboardItem after clipboard.write()
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+
+<script>
+// Tests that getType() on a ClipboardItem obtained from clipboard.read()
+// rejects after clipboard.write() changes the clipboard content.
+// This verifies the browser detects stale clipboard data and prevents
+// reading data that no longer matches what was originally enumerated.
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
+
+  // Step 1: Write initial data to the clipboard.
+  const initialBlob = new Blob(['initial text'], {type: 'text/plain'});
+  const initialItem = new ClipboardItem({'text/plain': initialBlob});
+  await waitForUserActivation();
+  await navigator.clipboard.write([initialItem]);
+
+  // Step 2: Read the clipboard to obtain a ClipboardItem.
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read();
+  assert_equals(clipboardItems.length, 1);
+  const staleItem = clipboardItems[0];
+  assert_true(staleItem instanceof ClipboardItem);
+  assert_true(staleItem.types.includes('text/plain'));
+
+  // Step 3: Write new data to the clipboard, invalidating the old item.
+  const newBlob = new Blob(['overwritten text'], {type: 'text/plain'});
+  const newItem = new ClipboardItem({'text/plain': newBlob});
+  await waitForUserActivation();
+  await navigator.clipboard.write([newItem]);
+
+  // Step 4: getType() on the stale item should reject with DataError.
+  await promise_rejects_dom(t, 'DataError', staleItem.getType('text/plain'));
+}, 'getType() rejects with DataError on stale ClipboardItem after clipboard.write()');
+</script>

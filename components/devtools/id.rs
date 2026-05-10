@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub(crate) struct IdMap {
     browser_ids: FxHashMap<WebViewId, u32>,
     browsing_context_ids: FxHashMap<BrowsingContextId, u32>,
@@ -53,13 +54,13 @@ impl IdMap {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsBrowserId(u32);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsBrowsingContextId(u32);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsOuterWindowId(u32);
 
 impl DevtoolsBrowserId {
@@ -88,8 +89,8 @@ mod test {
     pub(crate) fn test_id_map() {
         use std::thread;
 
-        use base::id::{PipelineNamespace, PipelineNamespaceId};
         use crossbeam_channel::unbounded;
+        use servo_base::id::{PipelineNamespace, PipelineNamespaceId};
 
         macro_rules! test_sequential_id_assignment {
             ($id_type:ident, $new_id_function:expr, $map_id_function:expr) => {
@@ -162,7 +163,7 @@ mod test {
 
         test_sequential_id_assignment!(
             DevtoolsBrowserId,
-            || WebViewId::new(base::id::TEST_PAINTER_ID),
+            || WebViewId::new(servo_base::id::TEST_PAINTER_ID),
             |id_map: &mut IdMap, id| id_map.browser_id(id)
         );
         test_sequential_id_assignment!(

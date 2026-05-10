@@ -1,0 +1,99 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selectionchange event fires when deleting single character from contenteditable inline element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  const span = document.createElement('span');
+  span.contentEditable = 'true';
+  span.textContent = 'X';
+  span.id = 'target';
+  document.body.appendChild(span);
+  t.add_cleanup(() => span.remove());
+
+  let selectionChangeCount = 0;
+  document.addEventListener('selectionchange', () => {
+    selectionChangeCount++;
+  });
+
+  // Click to focus and move cursor to end
+  await new test_driver.click(span);
+  await new test_driver.send_keys(span, '\uE010'); // End key
+  await new Promise(resolve => step_timeout(resolve, 500));
+  const countBeforeDelete = selectionChangeCount;
+
+  // Delete the single character with backspace
+  await new test_driver.send_keys(span, '\uE003'); // Backspace
+  await new Promise(resolve => step_timeout(resolve, 500));
+
+  assert_greater_than(selectionChangeCount, countBeforeDelete,
+    'selectionchange should fire when deleting single character from inline contenteditable');
+  assert_equals(span.textContent, '', 'Text should be deleted');
+}, 'selectionchange fires for single character deletion from contenteditable inline element');
+
+promise_test(async t => {
+  const outerSpan = document.createElement('span');
+  outerSpan.contentEditable = 'true';
+  const innerSpan = document.createElement('span');
+  innerSpan.contentEditable = 'plaintext-only';
+  innerSpan.textContent = 'Y';
+  innerSpan.id = 'nested-target';
+  outerSpan.appendChild(innerSpan);
+  document.body.appendChild(outerSpan);
+  t.add_cleanup(() => outerSpan.remove());
+
+  let selectionChangeCount = 0;
+  document.addEventListener('selectionchange', () => {
+    selectionChangeCount++;
+  });
+
+  // Click to focus and move cursor to end
+  await new test_driver.click(innerSpan);
+  await new test_driver.send_keys(innerSpan, '\uE010'); // End key
+  await new Promise(resolve => step_timeout(resolve, 500));
+  const countBeforeDelete = selectionChangeCount;
+
+  // Delete the single character with backspace from nested element
+  await new test_driver.send_keys(innerSpan, '\uE003'); // Backspace
+  await new Promise(resolve => step_timeout(resolve, 500));
+
+  assert_greater_than(selectionChangeCount, countBeforeDelete,
+    'selectionchange should fire when deleting single character from nested contenteditable');
+  assert_equals(innerSpan.textContent, '', 'Text should be deleted from nested element');
+}, 'selectionchange fires for single character deletion from nested contenteditable elements');
+
+promise_test(async t => {
+  const span = document.createElement('span');
+  span.contentEditable = 'true';
+  span.textContent = 'AB';
+  span.id = 'two-char-target';
+  document.body.appendChild(span);
+  t.add_cleanup(() => span.remove());
+
+  let selectionChangeCount = 0;
+  document.addEventListener('selectionchange', () => {
+    selectionChangeCount++;
+  });
+
+  // Click to focus and move cursor to end
+  await new test_driver.click(span);
+  await new test_driver.send_keys(span, '\uE010'); // End key
+  await new Promise(resolve => step_timeout(resolve, 500));
+  const countBeforeDelete = selectionChangeCount;
+
+  // Delete one character with backspace
+  await new test_driver.send_keys(span, '\uE003'); // Backspace
+  await new Promise(resolve => step_timeout(resolve, 500));
+
+  assert_greater_than(selectionChangeCount, countBeforeDelete,
+    'selectionchange should fire when deleting multiple characters from inline contenteditable');
+  assert_equals(span.textContent, 'A', 'One character should remain');
+}, 'selectionchange fires for multi-character deletion from contenteditable inline element (baseline)');
+</script>
+</body>

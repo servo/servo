@@ -71,8 +71,8 @@
       function setupAnimationTrigger() {
         const trigger = new TimelineTrigger([{
               timeline: view_timeline,
-              entryRangeStart: `${TRIGGER_START_PX}px`,
-              entryRangeEnd: `${TRIGGER_END_PX}px`
+              activationRangeStart: `${TRIGGER_START_PX}px`,
+              activationRangeEnd: `${TRIGGER_END_PX}px`
             }]);
         return trigger;
       }

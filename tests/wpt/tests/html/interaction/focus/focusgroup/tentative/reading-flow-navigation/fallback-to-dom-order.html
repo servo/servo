@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div focusgroup="toolbar">
@@ -26,7 +27,7 @@
       document.getElementById("item3")
     ];
 
-    await assert_arrow_navigation_bidirectional(elementsInDOMOrder);
+    await assert_directional_navigation_bidirectional(elementsInDOMOrder);
   }, "Focusgroup navigation should fall back to DOM order when no reading-flow is specified.");
 
 </script>

@@ -4,7 +4,6 @@
 
 use std::str::FromStr;
 
-use base::id::WebViewId;
 use cssparser::match_ignore_ascii_case;
 use http::header::HeaderMap;
 use hyper_serde::Serde;
@@ -22,16 +21,15 @@ use net_traits::{
 };
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
+use servo_base::id::WebViewId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::IntoStaticStr;
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
@@ -39,7 +37,6 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_runtime::CanGc;
 
 trait ValueForKeyInLinkHeader {
     fn has_key_in_link_header(&self, key: &str) -> bool;
@@ -308,7 +305,7 @@ impl LinkProcessingOptions {
         // Step 9. Let controller be null.
         // Step 10. Let reportTiming given a Document document be to report timing for controller
         // given document's relevant global object.
-        let url = request.url.clone();
+        let url = request.url.url();
         let fetch_context = LinkFetchContext {
             url,
             link,
@@ -396,10 +393,10 @@ pub(crate) fn process_link_headers(
             continue;
         }
         // Step 2.5. If attribs["media"] exists and attribs["media"] does not match the environment, then continue.
-        if let Some(media) = link_object.value_for_key_in_link_header("media") {
-            if !MediaList::matches_environment(document, media) {
-                continue;
-            }
+        if let Some(media) = link_object.value_for_key_in_link_header("media") &&
+            !MediaList::matches_environment(document, media)
+        {
+            continue;
         }
         // Step 2.6. Let options be a new link processing options with
         let mut options = LinkProcessingOptions {
@@ -466,17 +463,21 @@ pub(crate) struct LinkFetchContext {
 impl FetchResponseListener for LinkFetchContext {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        mut chunk: Vec<u8>,
+    ) {
         if matches!(self.type_, LinkFetchContextType::Preload(..)) {
             self.response_body.append(&mut chunk);
         }
@@ -486,6 +487,7 @@ impl FetchResponseListener for LinkFetchContext {
     /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response_result: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -519,7 +521,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        submit_timing(&self, &response_result, &timing, CanGc::note());
+        submit_timing(cx, &self, &response_result, &timing);
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //
@@ -529,19 +531,13 @@ impl FetchResponseListener for LinkFetchContext {
         //
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
-            link.root()
-                .fire_event_after_response(response_result, CanGc::note());
+            link.root().fire_event_after_response(cx, response_result);
         }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        let source_position = self.link.as_ref().map(|link| {
-            let link = link.root();
-            link.upcast::<Element>()
-                .compute_source_position(link.line_number())
-        });
-        global.report_csp_violations(violations, None, source_position);
+        global.report_csp_violations(violations, None, None);
     }
 }
 

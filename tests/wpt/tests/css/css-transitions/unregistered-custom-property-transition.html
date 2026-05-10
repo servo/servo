@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions: unregistered custom property with allow-discrete</title>
+<link rel="author" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<style>
+  .target1 {
+    transition: --x 1s step-start;
+    transition-behavior: allow-discrete;
+  }
+  .target2 {
+    transition: --x 1s step-start;
+    transition-behavior: allow-discrete;
+    --x: a;
+  }
+  .target3 {
+    transition: --y 1s step-start;
+    transition-behavior: allow-discrete;
+    --y: a;
+  }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  const div = addDiv(t, { class: 'target1' });
+
+  let transitionCount = 0;
+  div.addEventListener('transitionstart', () => transitionCount++);
+
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--x').trim(), '',
+    'initial computed value is empty (property not set)');
+
+  div.style.setProperty('--x', 'a');
+  const anim = assertTransitionKeyframes(div, '--x', null, 'a');
+  await waitForAnimationFrames(2);
+  assert_equals(
+    transitionCount, 1, 'exactly one transitionstart event was fired');
+  anim.finish();
+  await anim.finished;
+
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--x').trim(), 'a',
+    'computed value equals new value after transition ends');
+}, 'unset -> first value transition with allow-discrete');
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'target2' });
+
+  let transitionCount = 0;
+  div.addEventListener('transitionstart', () => transitionCount++);
+
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--x').trim(), 'a',
+    'initial computed value is a (property set in stylesheet)');
+
+  div.style.setProperty('--x', 'unset');
+  const anim = assertTransitionKeyframes(div, '--x', 'a', '');
+  await waitForAnimationFrames(2);
+  assert_equals(
+    transitionCount, 1, 'exactly one transitionstart event was fired');
+  anim.finish();
+  await anim.finished;
+
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--x').trim(), '',
+    'computed value is empty after transition ends');
+}, 'first value -> unset transition with allow-discrete');
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'target3' });
+
+  let transitionCount = 0;
+  div.addEventListener('transitionstart', () => transitionCount++);
+
+  getComputedStyle(div).getPropertyValue('--y');
+  div.style.setProperty('--y', 'b');
+  const anim1 = assertTransitionKeyframes(div, '--y', 'a', 'b');
+  await waitForAnimationFrames(2);
+  assert_equals(
+    transitionCount, 1, 'exactly one transitionstart event was fired');
+  // While the transition is running, retarget to 'c'.
+  getComputedStyle(div).getPropertyValue('--y');
+  div.style.setProperty('--y', 'c');
+  anim1.finish();
+  await anim1.finished;
+
+  const anim2 = assertTransitionKeyframes(div, '--y', 'b', 'c');
+  await waitForAnimationFrames(2);
+  assert_equals(
+    transitionCount, 2, 'exactly two transitionstart events were fired');
+  anim2.finish();
+  await anim2.finished;
+
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--y').trim(), 'c',
+    'computed value equals the retargeted value after transition ends');
+}, 'retargeting a running transition with allow-discrete');
+</script>
+</body>
+</html>

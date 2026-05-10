@@ -22,7 +22,8 @@ promise_test(async t => {
   }, script =>
     script.invoker === new URL("resources/loaf-after-callback.js", location.href).href,
     t);
-  assert_greater_than_equal(script.duration, very_long_frame_duration);
+  // Allow small epsilon for time clamping.
+  assert_greater_than_equal(script.duration + 1, very_long_frame_duration);
 }, "a callback inside a script block should not mask LoAFs that come afterwards")
 
 promise_test(async t => {
@@ -35,7 +36,8 @@ promise_test(async t => {
   }, script =>
     script.invoker === new URL("resources/loaf-in-microtask-after-callback.js", location.href).href,
     t);
-  assert_greater_than_equal(script.duration, very_long_frame_duration);
+  // Allow small epsilon for time clamping.
+  assert_greater_than_equal(script.duration + 1, very_long_frame_duration);
 }, "a callback inside a script block should not mask LoAFs in a microtask")
 </script>
 </body>

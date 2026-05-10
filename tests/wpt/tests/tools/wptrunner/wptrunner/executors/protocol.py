@@ -353,6 +353,18 @@ class AccessibilityProtocolPart(ProtocolPart):
         :param element: A protocol-specific handle to an element."""
         pass
 
+    def get_accessibility_properties_for_element(self, element):
+        """Return the accessibility properties for a specific element.
+
+        :param element: A protocol-specific handle to an element."""
+        raise NotImplementedError
+
+    def get_accessibility_properties_for_accessibility_node(self, id):
+        """Return the properties for a specific accessibility node.
+
+        :param id: The id of the accessibility node."""
+        raise NotImplementedError
+
 
 class WebExtensionsProtocolPart(ProtocolPart):
     """Protocol part for managing WebExtensions"""
@@ -649,6 +661,26 @@ class BidiEmulationProtocolPart(ProtocolPart):
             contexts: List[str]) -> None:
         pass
 
+    @abstractmethod
+    async def set_touch_override(self,
+            max_touch_points: Optional[int],
+            contexts: List[str]) -> None:
+        pass
+
+
+class BidiUserAgentClientHintsProtocolPart(ProtocolPart):
+    """Protocol part for User Agent Client Hints"""
+    __metaclass__ = ABCMeta
+    name = "bidi_user_agent_client_hints"
+
+    @abstractmethod
+    async def set_client_hints_override(
+            self,
+            client_hints: Optional[Mapping[str, Any]],
+            contexts: Optional[List[str]],
+            user_contexts: Optional[List[str]]) -> None:
+        pass
+
 
 class BidiScriptProtocolPart(ProtocolPart):
     """Protocol part for executing BiDi scripts"""
@@ -856,7 +888,13 @@ class TestDriverProtocolPart(ProtocolPart):
 
             if isinstance(item, str):
                 if not first or item != initial_window:
-                    self.parent.base.set_window(item)
+                    try:
+                        self.parent.base.set_window(item)
+                    except Exception as e:
+                        if e.__class__.__name__ == "NoSuchWindowException":
+                            # This window has been closed since we got the handles, so continue
+                            continue
+                        raise
                 first = False
             else:
                 assert first is False
@@ -1178,7 +1216,7 @@ class ConnectionlessProtocol(Protocol):
         pass
 
 
-class WdspecProtocol(ConnectionlessProtocol):
+class PytestProtocol(ConnectionlessProtocol):
     implements = [ConnectionlessBaseProtocolPart]
 
     def __init__(self, executor, browser):

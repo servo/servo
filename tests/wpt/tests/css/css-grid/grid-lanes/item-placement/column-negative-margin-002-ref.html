@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(2, 50px);
+}
+</style>
+<body>
+  <p>If an item's negative margin is clamped to its own size, and it will never cause the running position to regress.</p>
+  <div class="grid">
+    <div>
+      <div style="background: aquamarine; height: 50px;" >
+        item 1
+      </div>
+      <div style="background: orange; height: 40px; margin-top: -10px; margin-bottom: -30px;">
+        item 7
+      </div>
+    </div>
+    <div style="grid-column: 2;">
+     <div style="background: lightsteelblue; height: 50px; margin-bottom: -10px; margin-top: -40px;" >
+        item 2
+      </div>
+      <div style="background: aquamarine; height: 50px;" >
+        item 3
+      </div>
+      <div style="background: lightblue; height: 20px;">
+        item 8
+      </div>
+    </div>
+    <div style="grid-column: 3;">
+      <div style="background: lightpink; height: 20px; margin-top: -20px;">
+        item 5
+      </div>
+      <div style="background: lightblue; height: 30px;" >
+        item 4
+      </div>
+      <div style="background: yellow; height: 20px;">
+        item 6
+      </div>
+    </div>
+  </div>
+</body>
+</html>

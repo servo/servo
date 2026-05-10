@@ -5,11 +5,11 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::DomObject;
 use script_bindings::structuredclone::MarkedAsSerializableInIdl;
+use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;

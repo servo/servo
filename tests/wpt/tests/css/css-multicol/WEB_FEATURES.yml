@@ -135,12 +135,6 @@ features:
   - column-height-003.html
   - column-height-008.html
   - column-height-009.html
-  - "!column-height-010.html"
-  - "!column-height-011.html"
-  - "!column-height-015.html"
-  - "!column-height-021.html"
-  - "!column-height-022.html"
-  - "!column-height-023.html"
   - "!column-rule-002.html"
   - "!columnfill-auto-max-height-*"
   - "!equal-gap-and-rule.html"
@@ -156,7 +150,6 @@ features:
   - "!large-actual-column-count.html"
   - "!multicol-br-inside-avoidcolumn-001.xht"
   - "!multicol-break-*"
-  - "!multicol-breaking-*"
   - "!multicol-breaking-*"
   - "!multicol-containing-003.html"
   - "!multicol-fill-000.xht"
@@ -174,7 +167,6 @@ features:
   - "!multicol-height-*"
   - "!multicol-list-item-008.html"
   - "!multicol-margin-*"
-  - "!multicol-margin-002.xht"
   - multicol-margin-003.html
   - "!multicol-nested-*"
   - multicol-nested-002.xht
@@ -214,8 +206,6 @@ features:
   - "!intrinsic-size-003.html"
   - "!intrinsic-size-004.html"
   - "!intrinsic-size-005.html"
-  - "!multicol-fill-auto-block-children-001.xht"
-  - "!multicol-fill-auto-block-children-002.xht"
   - "!multicol-width-004.html"
   - "!multicol-width-005.html"
   - "!spanning-legend-*"

@@ -2,7 +2,7 @@
 <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Text anchors and bidi control characters</title>
   <html:link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextAnchoringProperties"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchoringProperties"/>
   <html:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1906978"/>
   <html:link rel="match" href="text-bidi-controls-anchors-2-ref.svg"/>
   <g direction="rtl" transform="translate(200,20)" font-family="Arial, sans-serif" font-size="12px">

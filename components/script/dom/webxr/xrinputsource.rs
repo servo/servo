@@ -8,12 +8,13 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
@@ -28,7 +29,6 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     #[no_trace]
     info: InputSource,
     target_ray_space: MutNullableDom<XRSpace>,
@@ -146,7 +146,13 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(&global, &self.session, self, false, CanGc::note())
+            XRSpace::new_inputspace(
+                &global,
+                &self.session,
+                self,
+                false,
+                CanGc::deprecated_note(),
+            )
         })
     }
 
@@ -155,7 +161,13 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {
                 let global = self.global();
-                XRSpace::new_inputspace(&global, &self.session, self, true, CanGc::note())
+                XRSpace::new_inputspace(
+                    &global,
+                    &self.session,
+                    self,
+                    true,
+                    CanGc::deprecated_note(),
+                )
             }))
         } else {
             None
@@ -181,8 +193,9 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn GetHand(&self) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
-            self.hand
-                .or_init(|| XRHand::new(&self.global(), self, hand.clone(), CanGc::note()))
+            self.hand.or_init(|| {
+                XRHand::new(&self.global(), self, hand.clone(), CanGc::deprecated_note())
+            })
         })
     }
 }

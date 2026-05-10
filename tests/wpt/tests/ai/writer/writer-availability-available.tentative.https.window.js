@@ -21,14 +21,16 @@ promise_test(async () => {
   assert_in_array(availability, kAvailableAvailabilities);
 }, 'Writer.availability() returns available with supported options');
 
-promise_test(async () => {
-  const availability = await Writer.availability({
+promise_test(async t => {
+  const options = {
     tone: 'neutral',
     format: 'plain-text',
     length: 'medium',
     expectedInputLanguages: ['zu'], // not supported
     expectedContextLanguages: ['en'],
     outputLanguage: 'zu', // not supported
-  });
+  };
+  const availability = await Writer.availability(options);
   assert_equals(availability, 'unavailable');
-}, 'Writer.availability() returns unavailable for unsupported languages');
+  await promise_rejects_dom(t, 'NotSupportedError', Writer.create(options));
+}, 'Writer.availability() returns unavailable for unsupported languages and create() rejects');

@@ -89,4 +89,15 @@ test(function() {
   const shadow = host.attachShadow({mode: 'open'});
   assert_true(Array.isArray(shadow.adoptedStyleSheets));
 }, "adoptedStyleSheets should return true for isArray()");
+
+test(function() {
+  let backing = null;
+  Object.defineProperty(Array.prototype, "1", {
+    configurable: true,
+    set(v) { backing = this; }
+  });
+  document.adoptedStyleSheets = [new CSSStyleSheet(), new CSSStyleSheet()];
+  delete Array.prototype["1"];
+  assert_equals(backing, null);
+}, "adoptedStyleSheets should not expose its backing object via prototype");
 </script>

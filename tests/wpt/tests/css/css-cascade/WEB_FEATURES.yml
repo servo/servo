@@ -21,3 +21,7 @@ features:
 - name: inherit-value
   files:
   - inherit-initial.html
+- name: initial-value
+  files:
+  - initial-background-color.html
+  - initial-color-background-001.html

@@ -69,6 +69,14 @@
       "value": "10px 20px 30px 40px",
       "otherValues": ["20px 40px 60px 80px"]
     },
+    "scroll-padding": {
+      "value": "10px 20px 30px 40px",
+      "otherValues": ["20px 40px 60px 80px"]
+    },
+    "scroll-margin" : {
+      "value": "10px 20px 30px 40px",
+      "otherValues": ["20px 40px 60px 80px"]
+    },
     "text-decoration-thickness": {
       "value": "2px",
       "otherValues": ["4px"]
@@ -82,6 +90,10 @@
       "otherValues": ["4px"]
     },
     "-webkit-text-stroke-width": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    },
+    "stroke-width": {
       "value": "2px",
       "otherValues": ["4px"]
     },
@@ -117,11 +129,12 @@
 
     // cleanup
     svg.style.removeProperty(property);
+    target.style.removeProperty(property);
     target.style.removeProperty('zoom');
     if (requiredProperties) {
       for (const [prop, reqValue] of Object.entries(requiredProperties)) {
-        svg.style.removeProperty(reqValue);
-        target.style.removeProperty(reqValue);
+        svg.style.removeProperty(prop);
+        target.style.removeProperty(prop);
       }
     }
   }

@@ -12,7 +12,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 // Tests that the referrer on the prerendering navigation request is not sent
 // when the triggering page's referrer policy is set to no-referrer.

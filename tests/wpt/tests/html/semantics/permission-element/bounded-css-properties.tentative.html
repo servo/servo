@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<!--The permission element should have some limits for specific properties:
+<!--The usermedia element should have some limits for specific properties:
   * font-weight is adjusted to be at least 200.
   * font-style should only have "normal" or "italic" values.
   * word-spacing should be at most 0.5 of the font size, and non-negative.
@@ -36,9 +36,9 @@
 </style>
 
 
-<permission id="id-over-bounds" type="geolocation"></permission>
-<permission id="id-under-bounds" type="camera"></permission>
-<permission id="id-within-bounds" type="microphone"></permission>
+<usermedia id="id-over-bounds" type="camera microphone"></usermedia>
+<usermedia id="id-under-bounds" type="camera"></usermedia>
+<usermedia id="id-within-bounds" type="microphone"></usermedia>
 
 <script>
   test(function(){

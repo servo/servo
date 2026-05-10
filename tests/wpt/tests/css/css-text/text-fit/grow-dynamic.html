@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="grow-dynamic-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 120px;
+  margin-bottom: 10px;
+  font: 10px/normal Ahem;
+  border: 2px solid blue;
+  text-fit: none;
+}
+
+.scale-c {
+  text-fit: grow consistent;
+}
+.scale-pl {
+  text-fit: grow per-line;
+}
+.scale-pla {
+  text-fit: grow per-line-all;
+}
+</style>
+<body>
+<!-- none ==> grow consistent -->
+<div class="target">ABCDEF
+GHI</div>
+
+<!-- grow consistent ==> grow per-line -->
+<div class="target scale-c">ABCDEF
+GHI</div>
+
+<!-- grow per-line ==> grow per-line-all -->
+<div class="target scale-pl">ABCDEF
+GHI</div>
+
+<script>
+document.fonts.ready.then(() => {
+  const targets = document.querySelectorAll('.target');
+  targets[0].classList.add('scale-c');
+  targets[1].classList.replace('scale-c', 'scale-pl');
+  targets[2].classList.replace('scale-pl', 'scale-pla');
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

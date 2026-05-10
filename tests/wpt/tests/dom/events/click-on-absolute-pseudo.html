@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://w3c.github.io/uievents/#event-type-mouseup">
+  <link rel="help" href="https://w3c.github.io/uievents/#event-type-click">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    #target {
+      display: block;
+      width: 100px;
+      height: 100px;
+      background: red;
+    }
+    #target::after {
+      content: "AFTER";
+      display: block;
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+    #target.hide::after {
+      content: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    promise_test(async () => {
+      let clickCount = 0;
+      const target = document.getElementById('target');
+      let mousedownTarget = null;
+      let mousedownPseudoTarget = null;
+
+      target.addEventListener('click', (e) => {
+        clickCount++;
+        assert_equals(e.target, target, "Event target should be the element");
+        assert_equals(e.pseudoTarget, null, "pseudoTarget should be null since the pseudo-element was removed before click dispatch");
+      });
+
+      target.addEventListener('mousedown', (e) => {
+        mousedownTarget = e.target;
+        mousedownPseudoTarget = e.pseudoTarget;
+        target.classList.add('hide');
+      });
+
+      await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      assert_equals(clickCount, 1, "Click event should fire even if pseudo-element disappears on mousedown");
+      assert_equals(mousedownTarget, target, "mousedown target should be the element");
+      assert_equals(mousedownPseudoTarget, target.pseudo("::after"), "mousedown pseudoTarget should be the ::after pseudo-element");
+    }, "Click on pseudo-element that disappears on mousedown");
+  </script>
+</body>
+</html>

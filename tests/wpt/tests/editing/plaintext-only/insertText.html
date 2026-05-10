@@ -54,6 +54,20 @@ addEventListener("load", () => {
       expected: "a",
     },
     {
+      initialInnerHTML: "a[]<br>",
+      insertText: "b",
+      expected: ["ab", "ab<br>"],
+    },
+    // Some apps may refer the invisible preformatted linefeed for the further
+    // processing after inserting Text. Therefore, the following preformatted
+    // linefeed shouldn't be deleted even if it's unnecessary.
+    {
+      initialInnerHTML: "a[]\n",
+      skipIf: () => useBR,
+      insertText: "b",
+      expected: "ab\n",
+    },
+    {
       initialInnerHTML: "A[]B",
       insertText: "a",
       expected: "AaB",

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to background image</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<div id="main"></div>
+</body>
+
+<footer>
+<script>
+setup({"hide_test_state": true});
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    const body = document.getElementsByTagName('body')[0];
+    body.style.backgroundImage = 'url(resources/circles.png)';
+    window.onload = function() {
+        assertPaintTimingEntries(t, 20);
+    };
+}, "First contentful paint fires due to background image render.");
+</script>
+<footer>
+</html>

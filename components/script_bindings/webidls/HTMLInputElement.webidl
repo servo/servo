@@ -118,5 +118,5 @@ interface HTMLInputElement : HTMLElement {
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial
 partial interface HTMLInputElement {
   //         attribute DOMString align;
-  //         attribute DOMString useMap;
+  attribute DOMString useMap;
 };

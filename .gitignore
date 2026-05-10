@@ -29,6 +29,7 @@ servo.pftrace
 /glfw
 webrender-captures/
 /screenshots
+/etc/notarization/
 
 # Python setuptools
 /servo.egg-info

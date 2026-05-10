@@ -6,6 +6,8 @@ use std::cell::RefCell;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
 use style::parser::ParserContext;
@@ -16,14 +18,13 @@ use style_traits::{ParseError, ParsingMode, ToCss};
 use crate::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaList {
@@ -47,15 +48,15 @@ impl MediaList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         media_queries: Arc<Locked<StyleMediaList>>,
-        can_gc: CanGc,
     ) -> DomRoot<MediaList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -129,6 +130,7 @@ impl MediaList {
             /* namespaces = */ Default::default(),
             None,
             None,
+            /* attr_taint = */ Default::default(),
         );
         let mut parser_input = ParserInput::new(media_query);
         let mut parser = Parser::new(&mut parser_input);

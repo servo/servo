@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 120px;
+  margin-bottom: 10px;
+  font: 10px/normal Ahem;
+  border: 2px solid blue;
+  text-fit: none;
+}
+
+.scale-c {
+  text-fit: grow consistent;
+}
+.scale-pl {
+  text-fit: grow per-line;
+}
+.scale-pla {
+  text-fit: grow per-line-all;
+}
+</style>
+<body>
+<div class="target scale-c">ABCDEF
+GHI</div>
+
+<div class="target scale-pl">ABCDEF
+GHI</div>
+
+<div class="target scale-pla">ABCDEF
+GHI</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

@@ -19,29 +19,30 @@ test((t) => {
   );
 }, "Textarea wrapping transformation: Newlines should be normalized to LF.");
 
-test((t) => {
+function setupHardWrapTextarea(t) {
   const form = document.createElement("form");
   const textarea = document.createElement("textarea");
   textarea.name = "wrapTest";
   textarea.cols = 10;
   textarea.wrap = "hard";
-  textarea.textContent =
-    "Some text that is too long for the specified character width.";
+  textarea.style.cssText = "font-family: monospace; overflow: hidden;";
   form.appendChild(textarea);
   document.body.appendChild(form);
   t.add_cleanup(() => {
     document.body.removeChild(form);
   });
+  return { form, textarea };
+}
+
+test((t) => {
+  const { form, textarea } = setupHardWrapTextarea(t);
+  textarea.textContent =
+    "Some text that is too long for the specified character width.";
 
   assert_true(
     !textarea.textContent.includes("\n") &&
       !textarea.textContent.includes("\r"),
     "textContent shouldn't contain any newlines",
-  );
-  assert_true(
-    !textarea.textContent.includes("\n") &&
-      !textarea.textContent.includes("\r"),
-    "The API value shouldn't be line wrapped.",
   );
 
   const formData = new FormData(form);
@@ -57,18 +58,18 @@ test((t) => {
   );
 }, "Textarea wrapping transformation: Wrapping happens with LF newlines.");
 
+
+test((t) => {
+  const { form, textarea } = setupHardWrapTextarea(t);
+  textarea.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const formData = new FormData(form);
+  assert_equals(formData.get("wrapTest"),'ABCDEFGHIJ\nKLMNOPQRST\nUVWXYZ');
+}, "Textarea hard-wrapping should honor the col count unconditionally,");
+
 function assert_roundtrips(text, exact = false) {
   test((t) => {
-    const form = document.createElement("form");
-    const textarea = document.createElement("textarea");
-    textarea.name = "wrapTest";
-    textarea.cols = 10;
-    textarea.wrap = "hard";
-    form.appendChild(textarea);
-    document.body.appendChild(form);
-    t.add_cleanup(() => {
-      document.body.removeChild(form);
-    });
+    const { form, textarea } = setupHardWrapTextarea(t);
+    // cols = 10 is shorter than "intermingled"
     textarea.value = text;
     const formDataValue = new FormData(form).get("wrapTest");
     if (exact) {
@@ -84,4 +85,4 @@ assert_roundtrips("Some text that is too long for the specified character width.
 assert_roundtrips("Some text that is too long for the\n\n\nspecified character width.");
 assert_roundtrips("exact  len", /* exact = */ true);
 assert_roundtrips("exact  len\nand then\nsome", /* exact = */ true);
-assert_roundtrips("One\ntwo\nthree\intermingled\n\nlines\nand so", /* exact = */ true);
+assert_roundtrips("One\ntwo\nthree\nintermingled\n\nlines\nand so", /* exact = */ false);

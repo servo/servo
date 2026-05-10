@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import error
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def refresh(session):
@@ -120,3 +120,24 @@ def test_refresh_switches_to_parent_browsing_context(session, create_frame, inli
     assert_success(response)
 
     session.find.css("#foo", all=False)
+
+
+def test_reload_resets_iframe_location(session, inline):
+    iframe_url = inline("frame")
+    session.url = inline("<iframe src='about:blank'></iframe>")
+
+    # Navigate iframe by updating src from parent and waiting for load
+    session.execute_async_script(f"""
+        let resolve = arguments[0];
+        let iframe = document.querySelector("iframe");
+        iframe.addEventListener("load", resolve, {{ once: true }});
+        iframe.src = '{iframe_url}';
+    """)
+
+    response = refresh(session)
+    assert_success(response)
+
+    frame = session.find.css("iframe", all=False)
+    session.switch_to_frame(frame)
+    after_refresh_url = session.execute_script("return document.location.href")
+    assert after_refresh_url == "about:blank"

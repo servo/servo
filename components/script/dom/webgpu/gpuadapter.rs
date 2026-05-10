@@ -6,6 +6,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
+use script_bindings::cformat;
+use script_bindings::like::Maplike;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
@@ -17,8 +20,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::like::Setlike;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -32,7 +34,6 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -125,7 +126,7 @@ impl GPUAdapter {
         // adapterInfo.vendor to the empty string or a reasonable approximation of the vendor as a
         // normalized identifier string.
         let vendor = if info.vendor != 0 {
-            DOMString::from_string(info.vendor.to_string())
+            info.vendor.to_string().into()
         } else {
             DOMString::new()
         };
@@ -144,7 +145,7 @@ impl GPUAdapter {
         // agent may instead set adapterInfo.device to to the empty string or a reasonable
         // approximation of a vendor-specific identifier as a normalized identifier string.
         let device = if info.device != 0 {
-            DOMString::from_string(info.device.to_string())
+            info.device.to_string().into()
         } else {
             DOMString::new()
         };
@@ -153,7 +154,7 @@ impl GPUAdapter {
         // adapter as reported by the driver. To preserve privacy, the user agent may instead set
         // adapterInfo.description to the empty string or a reasonable approximation of a
         // description.
-        let description = DOMString::from_string(info.name.clone());
+        let description = info.name.clone().into();
 
         // Step 6. If "subgroups" is supported, set subgroupMinSize to the smallest supported
         // subgroup size. Otherwise, set this value to 4.
@@ -207,7 +208,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
                 required_features.insert(feature);
             } else {
                 promise.reject_error(
-                    Error::Type(format!("{} is not supported feature", ext.as_str())),
+                    Error::Type(cformat!("{} is not supported feature", ext.as_str())),
                     can_gc,
                 );
                 return promise;
@@ -275,9 +276,9 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
     /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPUDeviceResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             // 3.1 Let device be a new device with the capabilities described by descriptor.
@@ -292,17 +293,18 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     device_id,
                     queue_id,
                     descriptor.label.unwrap_or_default(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 self.global().add_gpu_device(&device);
-                promise.resolve_native(&device, can_gc);
+                promise.resolve_native(&device, CanGc::from_cx(cx));
             },
             // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
-                Error::Type(
-                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f).to_string(),
-                ),
-                can_gc,
+                Error::Type(cformat!(
+                    "{}",
+                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f)
+                )),
+                CanGc::from_cx(cx),
             ),
             // 2. If limits are not supported reject promise with an OperationError.
             (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
@@ -310,7 +312,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
                 );
-                promise.reject_error(Error::Operation(None), can_gc)
+                promise.reject_error(Error::Operation(None), CanGc::from_cx(cx))
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
@@ -325,11 +327,11 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     device_id,
                     queue_id,
                     String::new(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // 2. Lose the device(device, "unknown").
                 device.lose(GPUDeviceLostReason::Unknown, e);
-                promise.resolve_native(&device, can_gc);
+                promise.resolve_native(&device, CanGc::from_cx(cx));
             },
         }
     }

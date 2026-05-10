@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::checkmark & web animations (checkbox)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#checkmark">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/">
+<meta name="assert" content="This test checks that ::checkmark on checkbox inputs can be animated with Web Animations.">
+<style>
+#checkbox { appearance: base; }
+#checkbox::checkmark { all: unset; content: "x"; }
+</style>
+
+<input type="checkbox" id="checkbox" checked>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const cs = getComputedStyle(checkbox, "::checkmark");
+  const anim = checkbox.animate([
+    {color: "rgb(0, 100, 200)"},
+    {color: "rgb(200, 0, 100)"},
+  ], {
+    pseudoElement: "::checkmark",
+    duration: 2,
+    delay: -1,
+  });
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+}, "::checkmark pseudo-element animates");
+</script>

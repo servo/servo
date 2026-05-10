@@ -5,15 +5,18 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
-use base::generic_channel;
-use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
+use servo_base::generic_channel;
+use servo_canvas_traits::webgl::{
+    WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel,
+};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
@@ -106,7 +109,7 @@ impl Drop for DroppableWebGLBuffer {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLBuffer {
     webgl_object: WebGLObject,
     /// The target to which this buffer was bound the first time
@@ -178,6 +181,8 @@ impl WebGLBuffer {
         }
 
         self.capacity.set(data.len());
+        self.reflector()
+            .update_memory_size(self, self.capacity.get());
         self.usage.set(usage);
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.upcast()
@@ -221,12 +226,11 @@ impl WebGLBuffer {
 
     /// <https://registry.khronos.org/webgl/specs/latest/2.0/#5.1>
     fn can_bind_to(&self, new_target: u32) -> bool {
-        if let Some(current_target) = self.target.get() {
-            if [current_target, new_target]
+        if let Some(current_target) = self.target.get() &&
+            [current_target, new_target]
                 .contains(&WebGLRenderingContextConstants::ELEMENT_ARRAY_BUFFER)
-            {
-                return target_is_copy_buffer(new_target) || new_target == current_target;
-            }
+        {
+            return target_is_copy_buffer(new_target) || new_target == current_target;
         }
         true
     }

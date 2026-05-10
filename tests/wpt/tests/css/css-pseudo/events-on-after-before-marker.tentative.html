@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: CSSPseudoElement interface for ::after, ::before, ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  div {
+    margin: 20px;
+  }
+
+  div::after {
+    content: "A";
+    padding: 10px;
+    background: red;
+  }
+
+  div::before {
+    content: "B";
+    padding: 10px;
+    background: blue;
+  }
+
+  li::marker {
+    content: "M";
+    background: green;
+    padding: 5px;
+  }
+
+  #target-nested::after {
+    content: "L";
+    display: list-item;
+    list-style-position: inside;
+    list-style-type: disc;
+    background: orange;
+    padding: 10px;
+  }
+
+  #lca-container {
+    margin: 20px;
+    background: lightyellow;
+    padding: 5px;
+  }
+  #lca-after-host::after {
+    content: "PSEUDO";
+    display: block;
+    background: pink;
+    padding: 15px;
+  }
+  #lca-other {
+    background: lightblue;
+    padding: 15px;
+  }
+</style>
+<div id="target-after">Test after</div>
+<div id="target-before">Test before</div>
+<ul>
+  <li id="target-marker">Test marker</li>
+</ul>
+<div id="target-nested"></div>
+<div id="lca-container">
+  <div id="lca-after-host"></div>
+  <div id="lca-other">other element</div>
+</div>
+<script>
+  const targetAfter = document.getElementById("target-after");
+  const targetBefore = document.getElementById("target-before");
+  const targetMarker = document.getElementById("target-marker");
+
+  let clickPseudoTarget = null;
+  let mouseoverPseudoTarget = null;
+
+  const clickHandler = (e) => (clickPseudoTarget = e.pseudoTarget);
+  targetAfter.addEventListener("click", clickHandler);
+  targetBefore.addEventListener("click", clickHandler);
+  targetMarker.addEventListener("click", clickHandler);
+
+  const mouseoverHandler = (e) => (mouseoverPseudoTarget = e.pseudoTarget);
+  targetAfter.addEventListener("mouseover", mouseoverHandler);
+  targetBefore.addEventListener("mouseover", mouseoverHandler);
+  targetMarker.addEventListener("mouseover", mouseoverHandler);
+
+  async function testPseudoTarget(target, pseudoType) {
+    const pseudo = target.pseudo(pseudoType);
+    const quads = pseudo.getBoxQuads();
+    const rect = quads[0].getBounds();
+    const x = rect.x + rect.width / 2;
+    const y = rect.y + rect.height / 2;
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(clickPseudoTarget, pseudo, `click on ${pseudoType} sets pseudoTarget`);
+    assert_equals(mouseoverPseudoTarget, null, "mouseover never sets pseudoTarget");
+  }
+
+  promise_test(async t => {
+    await testPseudoTarget(targetAfter, "::after");
+    await testPseudoTarget(targetBefore, "::before");
+    await testPseudoTarget(targetMarker, "::marker");
+  }, "click on ::before/::after/::marker sets event.pseudoTarget");
+
+  // Clicking on a nested ::after::marker pseudo:
+  //   - event.pseudoTarget must be the CSSPseudoElement for ::marker
+  //   - markerCSSPseudo.parent must be the ::after CSSPseudoElement
+  //   - afterCSSPseudo.parent must be the originating element
+  promise_test(async t => {
+    const target = document.getElementById("target-nested");
+
+    const afterCSSPseudo = target.pseudo("::after");
+    assert_not_equals(afterCSSPseudo, null, "::after must be accessible via element.pseudo()");
+
+    const markerCSSPseudo = afterCSSPseudo.pseudo("::marker");
+    assert_not_equals(markerCSSPseudo, null,
+      "::after::marker must be accessible via afterCSSPseudo.pseudo('::marker')");
+
+    // Click on the innermost pseudo (::marker) and verify pseudoTarget.
+    let clickPseudoOnNested = undefined;
+    const handler = (e) => { clickPseudoOnNested = e.pseudoTarget; };
+    target.addEventListener("click", handler);
+    t.add_cleanup(() => target.removeEventListener("click", handler));
+
+    const markerQuads = markerCSSPseudo.getBoxQuads();
+    assert_greater_than(markerQuads.length, 0, "::after::marker must have layout quads");
+    const markerRect = markerQuads[0].getBounds();
+    const x = markerRect.x + markerRect.width / 2;
+    const y = markerRect.y + markerRect.height / 2;
+
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    // The click on ::after::marker must surface the ::marker as pseudoTarget.
+    assert_equals(clickPseudoOnNested, markerCSSPseudo,
+      "click on ::after::marker sets event.pseudoTarget to the ::marker CSSPseudoElement");
+
+    // Parent chain: ::marker's parent is ::after, ::after's parent is the element.
+    assert_equals(markerCSSPseudo.parent, afterCSSPseudo,
+      "::after::marker CSSPseudoElement.parent must be the ::after CSSPseudoElement");
+    assert_equals(afterCSSPseudo.parent, target,
+      "::after CSSPseudoElement.parent must be the originating element");
+  }, "nested ::after::marker: click sets pseudoTarget and parent chain is correct");
+
+  // When a click starts on ::after::marker but releases on the parent ::after
+  // (but outside the ::marker area), LCA would be ::after.
+  promise_test(async t => {
+    const target = document.getElementById("target-nested");
+
+    const afterCSSPseudo = target.pseudo("::after");
+    const markerCSSPseudo = afterCSSPseudo.pseudo("::marker");
+
+    let clickTarget;
+    let clickPseudo;
+    const handler = (e) => { clickTarget = e.target; clickPseudo = e.pseudoTarget; };
+    target.addEventListener("click", handler);
+    t.add_cleanup(() => target.removeEventListener("click", handler));
+
+    const markerRect = markerCSSPseudo.getBoxQuads()[0].getBounds();
+    const afterRect  = afterCSSPseudo.getBoxQuads()[0].getBounds();
+
+    // Start on ::marker, release on the right side of ::after (outside ::marker).
+    const startX = markerRect.x + markerRect.width / 2;
+    const startY = markerRect.y + markerRect.height / 2;
+    const endX   = afterRect.x + afterRect.width - 2;
+    const endY   = afterRect.y + afterRect.height / 2;
+
+    await new test_driver.Actions()
+      .pointerMove(startX, startY)
+      .pointerDown()
+      .pointerMove(endX, endY)
+      .pointerUp()
+      .send();
+
+    // CommonAncestor(::marker, ::after) = ::after.
+    // The click is on ::after, so pseudoTarget is set.
+    assert_equals(clickTarget, target,
+      "click target is the originating element of ::after");
+    assert_equals(clickPseudo, afterCSSPseudo,
+      "event.pseudoTarget is ::after when click starts on ::marker and releases on ::after");
+  }, "click from ::after::marker to ::after fires on ::after with pseudoTarget");
+
+  // When a click starts on a ::after pseudo but the pointer moves to a sibling
+  // before releasing, the click event fires on the LCA of the two endpoints.
+  // Since the LCA is not a pseudo, event.pseudoTarget must be null.
+  promise_test(async t => {
+    const afterHost = document.getElementById("lca-after-host");
+    const other = document.getElementById("lca-other");
+    const container = document.getElementById("lca-container");
+
+    let clickTarget = undefined;
+    let clickPseudo = undefined;
+    const handler = (e) => { clickTarget = e.target; clickPseudo = e.pseudoTarget; };
+    // Listen on the container so we catch the click regardless of where it fires.
+    container.addEventListener("click", handler);
+    t.add_cleanup(() => container.removeEventListener("click", handler));
+
+    const afterCSSPseudo = afterHost.pseudo("::after");
+    const afterQuads = afterCSSPseudo.getBoxQuads();
+    const afterRect = afterQuads[0].getBounds();
+    const startX = afterRect.x + afterRect.width / 2;
+    const startY = afterRect.y + afterRect.height / 2;
+
+    const otherRect = other.getBoundingClientRect();
+    const endX = otherRect.x + otherRect.width / 2;
+    const endY = otherRect.y + otherRect.height / 2;
+
+    await new test_driver.Actions()
+      .pointerMove(startX, startY)
+      .pointerDown()
+      .pointerMove(endX, endY)
+      .pointerUp()
+      .send();
+
+    // Click must have fired: pointerdown was on ::after (resolves to #lca-after-host),
+    // pointerup on #lca-other — the spec fires click on their LCA = #lca-container.
+    assert_equals(clickTarget, container,
+      "click target is the LCA of mousedown and mouseup elements");
+    // The LCA is not a pseudo, so pseudoTarget must be null.
+    assert_equals(clickPseudo, null,
+      "event.pseudoTarget is null when click target is not a pseudo-element");
+  }, "click exiting ::after gives LCA as target and null pseudoTarget");
+</script>

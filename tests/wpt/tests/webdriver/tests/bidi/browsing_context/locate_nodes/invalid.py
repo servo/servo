@@ -258,7 +258,6 @@ async def test_params_start_nodes_dom_node_not_element(
         )
 
 
-@pytest.mark.asyncio
 async def test_locate_by_context_invalid_context(bidi_session, inline, top_context, iframe):
     page_url = inline(iframe(iframe("<div>foo</div>")))
 

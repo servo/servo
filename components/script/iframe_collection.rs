@@ -4,13 +4,13 @@
 
 use std::default::Default;
 
-use base::id::BrowsingContextId;
-use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use layout_api::IFrameSizes;
 use paint_api::PinchZoomInfos;
 use rustc_hash::FxHashMap;
 use script_bindings::script_runtime::CanGc;
+use servo_base::id::BrowsingContextId;
+use servo_constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -146,7 +146,7 @@ impl IFrameCollection {
                         PinchZoomInfos::new_from_viewport_size(viewport_details.size),
                         // Theoritically it wouldn't do GC since it is impossible to initialize
                         // the `VisualViewport` interface here.
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     )
                 });
 

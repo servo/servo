@@ -4,42 +4,51 @@
 
 use std::borrow::Cow;
 
-use constellation_traits::{LoadData, LoadOrigin};
 /// Used to determine which inline check to run
 pub use content_security_policy::InlineCheckType;
 /// Used to report CSP violations in Fetch handlers
 pub use content_security_policy::Violation;
 use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
-    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
+    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, Response as CspResponse,
+    ViolationResource,
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 use log::warn;
+use servo_constellation_traits::{LoadData, LoadOrigin};
+use url::Url;
 
 use super::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::trustedscript::TrustedScript;
+use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
-use crate::security_manager::CSPViolationReportTask;
 
 pub(crate) trait CspReporting {
     fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool;
     fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool;
     fn should_navigation_request_be_blocked(
         &self,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
-        can_gc: CanGc,
+    ) -> bool;
+    fn should_navigation_response_to_navigation_request_be_blocked(
+        &self,
+        window: &Window,
+        url: Url,
+        self_origin: &url::Origin,
     ) -> bool;
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
@@ -106,16 +115,18 @@ impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
     fn should_navigation_request_be_blocked(
         &self,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
-        can_gc: CanGc,
     ) -> bool {
         let Some(csp_list) = self else {
             return false;
         };
         let mut request = Request {
             url: load_data.url.clone().into_url(),
+            // TODO: Figure out how to propagate redirect data from LoadData into here
+            current_url: load_data.url.clone().into_url(),
             origin: match &load_data.load_origin {
                 LoadOrigin::Script(origin) => origin.immutable().clone().into_url_origin(),
                 _ => Origin::new_opaque(),
@@ -135,11 +146,11 @@ impl CspReporting for Option<CspList> {
             |script_source| {
                 // Step 4. Let convertedScriptSource be the result of executing
                 // Process value with a default policy algorithm, with the following arguments:
-                TrustedScript::get_trusted_script_compliant_string(
+                TrustedScript::get_trusted_type_compliant_string(
+                    cx,
                     global,
                     TrustedScriptOrString::String(script_source.into()),
                     "Location href",
-                    can_gc,
                 )
                 .ok()
                 .map(|s| s.into())
@@ -152,6 +163,66 @@ impl CspReporting for Option<CspList> {
         global.report_csp_violations(violations, element, None);
 
         result == CheckResult::Blocked
+    }
+
+    /// <https://w3c.github.io/webappsec-csp/#should-block-navigation-response>
+    fn should_navigation_response_to_navigation_request_be_blocked(
+        &self,
+        window: &Window,
+        url: Url,
+        self_origin: &url::Origin,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+
+        let mut window_proxy = window.window_proxy();
+        let mut parent_navigable_origins = vec![];
+        loop {
+            // Same-origin parents can go via their own script-thread (fast-path)
+            if let Some(container_element) = window_proxy.frame_element() {
+                let container_document = container_element.owner_document();
+                let parent_origin = Url::parse(
+                    &container_document
+                        .origin()
+                        .immutable()
+                        .ascii_serialization(),
+                )
+                .expect("Must always be able to parse document origin");
+                parent_navigable_origins.push(parent_origin);
+                window_proxy = container_document.window().window_proxy();
+                continue;
+            }
+            // Cross-origin parents go via the constellation (slower)
+            if let Some(parent_proxy) = window_proxy.parent() {
+                let Some(parent_origin) = parent_proxy.document_origin() else {
+                    break;
+                };
+                let parent_origin = Url::parse(&parent_origin)
+                    .expect("Must always be able to parse document origin");
+                parent_navigable_origins.push(parent_origin);
+                window_proxy = DomRoot::from_ref(parent_proxy);
+                continue;
+            }
+            // We don't have a parent, hence we stop traversing
+            break;
+        }
+
+        let (is_navigation_response_blocked, violations) = csp_list
+            .should_navigation_response_to_navigation_request_be_blocked(
+                &CspResponse {
+                    url,
+                    redirect_count: 0,
+                },
+                self_origin,
+                &parent_navigable_origins,
+            );
+
+        window
+            .as_global_scope()
+            .report_csp_violations(violations, None, None);
+
+        is_navigation_response_blocked == CheckResult::Blocked
     }
 
     /// <https://www.w3.org/TR/CSP/#should-block-inline>
@@ -167,7 +238,11 @@ impl CspReporting for Option<CspList> {
             return false;
         };
         let element = CspElement {
-            nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
+            nonce: if el.is_nonceable() {
+                Some(Cow::Owned(el.nonce_value().trim().to_owned()))
+            } else {
+                None
+            },
         };
         let (result, violations) =
             csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
@@ -282,13 +357,44 @@ pub(crate) trait GlobalCspReporting {
 
 #[expect(unsafe_code)]
 fn compute_scripted_caller_source_position() -> SourcePosition {
-    let scripted_caller =
-        unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+    match unsafe { describe_scripted_caller(*GlobalScope::get_cx()) } {
+        Ok(scripted_caller) => SourcePosition {
+            source_file: scripted_caller.filename,
+            line_number: scripted_caller.line,
+            column_number: scripted_caller.col + 1,
+        },
+        Err(()) => SourcePosition {
+            source_file: String::new(),
+            line_number: 0,
+            column_number: 0,
+        },
+    }
+}
 
-    SourcePosition {
-        source_file: scripted_caller.filename,
-        line_number: scripted_caller.line,
-        column_number: scripted_caller.col + 1,
+/// <https://www.w3.org/TR/CSP3/#obtain-violation-blocked-uri>
+fn obtain_blocked_uri_for_violation_resource_with_sample(
+    resource: ViolationResource,
+) -> (Option<String>, String) {
+    // Step 1. Assert: resource is a URL or a string.
+    //
+    // Already done since we destructure the relevant enum value
+
+    // Step 3. Return resource.
+    match resource {
+        ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
+        // Step 2. If resource is a URL, return the result of executing § 5.4 Strip URL for use in reports on resource.
+        ViolationResource::Url(url) => (
+            Some(String::new()),
+            ReportingObserver::strip_url_for_reports(url.into()),
+        ),
+        ViolationResource::TrustedTypePolicy { sample } => {
+            (Some(sample), "trusted-types-policy".to_owned())
+        },
+        ViolationResource::TrustedTypeSink { sample } => {
+            (Some(sample), "trusted-types-sink".to_owned())
+        },
+        ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
+        ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
     }
 }
 
@@ -307,18 +413,8 @@ impl GlobalCspReporting for GlobalScope {
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
-            let (sample, resource) = match violation.resource {
-                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (Some(String::new()), url.into()),
-                ViolationResource::TrustedTypePolicy { sample } => {
-                    (Some(sample), "trusted-types-policy".to_owned())
-                },
-                ViolationResource::TrustedTypeSink { sample } => {
-                    (Some(sample), "trusted-types-sink".to_owned())
-                },
-                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
-                ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
-            };
+            let (sample, resource) =
+                obtain_blocked_uri_for_violation_resource_with_sample(violation.resource);
             let report = CSPViolationReportBuilder::default()
                 .resource(resource)
                 .sample(sample)

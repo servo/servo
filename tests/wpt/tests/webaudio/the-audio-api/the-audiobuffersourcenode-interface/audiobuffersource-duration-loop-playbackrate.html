@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    Test AudioBufferSourceNode Looping Duration With PlaybackRate
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/webaudio/resources/audit-util.js"></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 96000, 48000);
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      buffer.getChannelData(0).fill(1);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 2.0,
+      });
+
+      source.connect(context.destination);
+
+      source.start(/*when=*/0, /*offset=*/0, /*duration=*/2.0);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 48000),
+        1,
+        'Output during playback (first 1.0s context time)');
+
+      assert_array_constant_value(
+        actual.subarray(48000),
+        0,
+        'Output after duration played (remaining 1.0s context time)');
+    }, 'loop and playbackRate with duration');
+
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 96000, 48000);
+
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      buffer.getChannelData(0).fill(1);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 3.0,
+      });
+
+      source.connect(context.destination);
+      source.start(0, 0, 3.0);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 48000),
+        1,
+        'Output during playback (first 1.0s context time)');
+
+      assert_array_constant_value(
+        actual.subarray(48000),
+        0,
+        'Output after duration played (remaining 1.0s context time)');
+    }, 'loop and playbackRate 3.0 with duration 3.0');
+
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 240000, 48000);
+
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      buffer.getChannelData(0).fill(1);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 0.5,
+      });
+
+      source.connect(context.destination);
+
+      source.start(0, 0, 2.0);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 192000),
+        1,
+        'Output during playback (first 4.0s context time)');
+
+      assert_array_constant_value(
+        actual.subarray(192000),
+        0,
+        'Output after duration played (final 1.0s context time)');
+    }, 'loop and playbackRate 0.5 with duration 2.0');
+
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 48000, 48000);
+
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      buffer.getChannelData(0).fill(1);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 2.0,
+      });
+
+      source.connect(context.destination);
+      source.start(0, 0, 1.501);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 36024),
+        1,
+        'Output during playback (first 36024 context frames)');
+
+      assert_array_constant_value(
+        actual.subarray(36024),
+        0,
+        'Output after duration played (remaining context frames)');
+    }, 'loop and playbackRate with fractional duration');
+
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 96000, 48000);
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      buffer.getChannelData(0).fill(1);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 1.0,
+      });
+
+      source.connect(context.destination);
+      source.playbackRate.setValueAtTime(2.0, 25600 / context.sampleRate);
+      source.start(0, 0, 1.5);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 48800),
+        1,
+        'Output during playback with dynamic rate');
+
+      assert_array_constant_value(
+        actual.subarray(48800),
+        0,
+        'Output after duration played with dynamic rate');
+    }, 'loop and duration with dynamic playbackRate automation');
+
+    promise_test(async () => {
+      const context = new OfflineAudioContext(1, 48000, 48000);
+
+      const buffer = new AudioBuffer({
+        numberOfChannels: 1,
+        length: 48000,
+        sampleRate: context.sampleRate
+      });
+      const data = buffer.getChannelData(0);
+      data.subarray(0, 24000).fill(1.0);
+      data.subarray(24000).fill(-1.0);
+
+      const source = new AudioBufferSourceNode(context, {
+        buffer,
+        loop: true,
+        playbackRate: 2.0,
+      });
+
+      source.connect(context.destination);
+      source.start(0, 0.5, 1.0);
+
+      const audioBuffer = await context.startRendering();
+      const actual = audioBuffer.getChannelData(0);
+
+      assert_array_constant_value(
+        actual.subarray(0, 12000),
+        -1.0,
+        'Output from offset 0.5 to 1.0 should be -1.0');
+
+      assert_array_constant_value(
+        actual.subarray(12000, 24000),
+        1.0,
+        'Output from looped offset 0.0 to 0.5 should be 1.0');
+
+      assert_array_constant_value(
+        actual.subarray(24000),
+        0,
+        'Output after duration played should be 0');
+    }, 'loop and duration with non-zero start offset');
+  </script>
+</body>
+
+</html>

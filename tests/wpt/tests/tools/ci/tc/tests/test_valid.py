@@ -136,6 +136,37 @@ def test_verify_payload():
                 raise e
 
 
+def update_event_commit_args(event):
+    event["pull_request"]["body"] += "\ntest-args: --test1\ntest-args:--test2=value\nother-args:--other"
+
+
+@pytest.mark.parametrize("event_path,event_update,task,expected", [
+    ("pr_event.json", None, {"name": "test-task", "command": "test"},"""
+~/start.sh   https://github.com/web-platform-tests/wpt.git   fetch_ref;
+
+cd web-platform-tests;
+./wpt tc-run --ref=fetch_ref --no-hosts -- test ;
+"""),
+    ("pr_event.json",
+     update_event_commit_args,
+     {"name": "test-task", "command": "test", "commit-args-name": "test-args"},"""
+~/start.sh   https://github.com/web-platform-tests/wpt.git   fetch_ref;
+
+cd web-platform-tests;
+./wpt tc-run --ref=fetch_ref --no-hosts -- test --test1 --test2=value;
+""")
+])
+def test_command(event_path, event_update, task, expected):
+    with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=("fetch_ref", None, None)):
+        with open(data_path(event_path), encoding="utf8") as event_file:
+            event = json.load(event_file)
+            if event_update is not None:
+                event_update(event)
+            command = decision.build_full_command(event, task)
+            full_expected = ['/bin/bash', '--login', '-xc', expected]
+            assert command == full_expected
+
+
 @pytest.mark.parametrize("event_path,is_pr,files_changed,expected", [
     ("master_push_event.json", False, None,
      ['download-firefox-nightly',
@@ -177,6 +208,22 @@ def test_verify_payload():
       'wpt-chrome-canary-wdspec-2',
       'wpt-firefox-nightly-crashtest-1',
       'wpt-chrome-canary-crashtest-1',
+      'wpt-firefox-nightly-test262-1',
+      'wpt-firefox-nightly-test262-2',
+      'wpt-firefox-nightly-test262-3',
+      'wpt-firefox-nightly-test262-4',
+      'wpt-firefox-nightly-test262-5',
+      'wpt-firefox-nightly-test262-6',
+      'wpt-firefox-nightly-test262-7',
+      'wpt-firefox-nightly-test262-8',
+      'wpt-chrome-canary-test262-1',
+      'wpt-chrome-canary-test262-2',
+      'wpt-chrome-canary-test262-3',
+      'wpt-chrome-canary-test262-4',
+      'wpt-chrome-canary-test262-5',
+      'wpt-chrome-canary-test262-6',
+      'wpt-chrome-canary-test262-7',
+      'wpt-chrome-canary-test262-8',
       'wpt-firefox-nightly-reftest-1',
       'wpt-firefox-nightly-reftest-2',
       'wpt-firefox-nightly-reftest-3',
@@ -194,11 +241,11 @@ def test_verify_payload():
       'lint']),
     ("pr_event.json", True, {".taskcluster.yml", ".travis.yml", "tools/ci/start.sh"},
      ['lint',
-      'tools/ unittests (Python 3.8)',
+      'tools/ unittests (Python 3.9)',
       'tools/ unittests (Python 3.14)',
-      'tools/ integration tests (Python 3.8)',
+      'tools/ integration tests (Python 3.9)',
       'tools/ integration tests (Python 3.14)',
-      'resources/ tests (Python 3.8)',
+      'resources/ tests (Python 3.9)',
       'resources/ tests (Python 3.14)',
       'download-firefox-nightly',
       'infrastructure/ tests (firefox)',
@@ -218,7 +265,7 @@ def test_verify_payload():
       'sink-task']),
     ("pr_event_tests_affected.json", True, {"resources/testharness.js"},
      ['lint',
-      'resources/ tests (Python 3.8)',
+      'resources/ tests (Python 3.9)',
       'resources/ tests (Python 3.14)',
       'download-firefox-nightly',
       'infrastructure/ tests (firefox)',
@@ -427,6 +474,78 @@ def test_verify_payload():
       'wpt-servo-nightly-crashtest-1',
       'wpt-firefox_android-nightly-crashtest-1',
       'wpt-firefox_android-stable-crashtest-1',
+      'wpt-firefox-beta-test262-1',
+      'wpt-firefox-beta-test262-2',
+      'wpt-firefox-beta-test262-3',
+      'wpt-firefox-beta-test262-4',
+      'wpt-firefox-beta-test262-5',
+      'wpt-firefox-beta-test262-6',
+      'wpt-firefox-beta-test262-7',
+      'wpt-firefox-beta-test262-8',
+      'wpt-firefox-stable-test262-1',
+      'wpt-firefox-stable-test262-2',
+      'wpt-firefox-stable-test262-3',
+      'wpt-firefox-stable-test262-4',
+      'wpt-firefox-stable-test262-5',
+      'wpt-firefox-stable-test262-6',
+      'wpt-firefox-stable-test262-7',
+      'wpt-firefox-stable-test262-8',
+      'wpt-chromium-nightly-test262-1',
+      'wpt-chromium-nightly-test262-2',
+      'wpt-chromium-nightly-test262-3',
+      'wpt-chromium-nightly-test262-4',
+      'wpt-chromium-nightly-test262-5',
+      'wpt-chromium-nightly-test262-6',
+      'wpt-chromium-nightly-test262-7',
+      'wpt-chromium-nightly-test262-8',
+      'wpt-chrome-stable-test262-1',
+      'wpt-chrome-stable-test262-2',
+      'wpt-chrome-stable-test262-3',
+      'wpt-chrome-stable-test262-4',
+      'wpt-chrome-stable-test262-5',
+      'wpt-chrome-stable-test262-6',
+      'wpt-chrome-stable-test262-7',
+      'wpt-chrome-stable-test262-8',
+      'wpt-webkitgtk_minibrowser-nightly-test262-1',
+      'wpt-webkitgtk_minibrowser-nightly-test262-2',
+      'wpt-webkitgtk_minibrowser-nightly-test262-3',
+      'wpt-webkitgtk_minibrowser-nightly-test262-4',
+      'wpt-webkitgtk_minibrowser-nightly-test262-5',
+      'wpt-webkitgtk_minibrowser-nightly-test262-6',
+      'wpt-webkitgtk_minibrowser-nightly-test262-7',
+      'wpt-webkitgtk_minibrowser-nightly-test262-8',
+      'wpt-wpewebkit_minibrowser-nightly-test262-1',
+      'wpt-wpewebkit_minibrowser-nightly-test262-2',
+      'wpt-wpewebkit_minibrowser-nightly-test262-3',
+      'wpt-wpewebkit_minibrowser-nightly-test262-4',
+      'wpt-wpewebkit_minibrowser-nightly-test262-5',
+      'wpt-wpewebkit_minibrowser-nightly-test262-6',
+      'wpt-wpewebkit_minibrowser-nightly-test262-7',
+      'wpt-wpewebkit_minibrowser-nightly-test262-8',
+      'wpt-servo-nightly-test262-1',
+      'wpt-servo-nightly-test262-2',
+      'wpt-servo-nightly-test262-3',
+      'wpt-servo-nightly-test262-4',
+      'wpt-servo-nightly-test262-5',
+      'wpt-servo-nightly-test262-6',
+      'wpt-servo-nightly-test262-7',
+      'wpt-servo-nightly-test262-8',
+      'wpt-firefox_android-nightly-test262-1',
+      'wpt-firefox_android-nightly-test262-2',
+      'wpt-firefox_android-nightly-test262-3',
+      'wpt-firefox_android-nightly-test262-4',
+      'wpt-firefox_android-nightly-test262-5',
+      'wpt-firefox_android-nightly-test262-6',
+      'wpt-firefox_android-nightly-test262-7',
+      'wpt-firefox_android-nightly-test262-8',
+      'wpt-firefox_android-stable-test262-1',
+      'wpt-firefox_android-stable-test262-2',
+      'wpt-firefox_android-stable-test262-3',
+      'wpt-firefox_android-stable-test262-4',
+      'wpt-firefox_android-stable-test262-5',
+      'wpt-firefox_android-stable-test262-6',
+      'wpt-firefox_android-stable-test262-7',
+      'wpt-firefox_android-stable-test262-8',
       'wpt-firefox-beta-reftest-1',
       'wpt-firefox-beta-reftest-2',
       'wpt-firefox-beta-reftest-3',

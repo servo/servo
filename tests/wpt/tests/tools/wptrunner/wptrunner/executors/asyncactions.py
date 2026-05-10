@@ -245,6 +245,31 @@ class BidiEmulationSetScreenOrientationOverrideAction:
             screen_orientation, contexts)
 
 
+class BidiEmulationSetTouchOverrideAction:
+    name = "bidi.emulation.set_touch_override"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        max_touch_points = payload['maxTouchPoints'] \
+            if 'maxTouchPoints' in payload \
+            else None
+
+        if "contexts" not in payload:
+            raise ValueError("Missing required parameter: contexts")
+        contexts = []
+        for context in payload["contexts"]:
+            contexts.append(get_browsing_context_id(context))
+        if len(contexts) == 0:
+            raise ValueError("At least one context must be provided")
+
+        return await self.protocol.bidi_emulation.set_touch_override(
+            max_touch_points, contexts)
+
+
 class BidiSessionSubscribeAction:
     name = "bidi.session.subscribe"
 
@@ -261,6 +286,24 @@ class BidiSessionSubscribeAction:
             for context in payload["contexts"]:
                 contexts.append(get_browsing_context_id(context))
         return await self.protocol.bidi_events.subscribe(events, contexts)
+
+
+class BidiUserAgentClientHintsSetClientHintsOverrideAction:
+    name = "bidi.user_agent_client_hints.set_client_hints_override"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        client_hints = payload.get("clientHints", None)
+
+        contexts = payload.get("contexts", None)
+        if contexts is not None:
+            contexts = [get_browsing_context_id(context) for context in contexts]
+        return await self.protocol.bidi_user_agent_client_hints.set_client_hints_override(
+            client_hints, contexts)
 
 
 class BidiSessionUnsubscribeAction:
@@ -314,8 +357,9 @@ async_actions = [
     BidiEmulationSetGeolocationOverrideAction,
     BidiEmulationSetLocaleOverrideAction,
     BidiEmulationSetScreenOrientationOverrideAction,
+    BidiEmulationSetTouchOverrideAction,
+    BidiUserAgentClientHintsSetClientHintsOverrideAction,
     BidiPermissionsSetPermissionAction,
     BidiSessionSubscribeAction,
     BidiSessionUnsubscribeAction,
-    BidiPermissionsSetPermissionAction,
-    BidiSessionSubscribeAction]
+    BidiPermissionsSetPermissionAction]

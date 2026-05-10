@@ -15,6 +15,8 @@ pytestmark = pytest.mark.asyncio
         [{}, {"b": "2"}],
         [{"a": "1", "b": "2"}, {"c": "3", "d": "4"}],
         [{"a": "1"}, {"a": "not-1"}],
+        [{}, {"x-diacritics": "ä"}],
+        [{}, {"x-unicode": "你好世界"}],
     ],
 )
 async def test_modify_headers(

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel=stylesheet href=resources/menu-elements-styles.css>
+
+<div class=menubar>
+  <button class=menuitem id=invoker popovertarget=menulist>show-menu</button>
+</div>
+<div popover class="menulist menulist-with-menubar-anchor" id=menulist></div>
+
+<script>
+  const menulist = document.getElementById('menulist');
+  const invoker = document.getElementById('invoker');
+  for (let i = 0; i < 200; i++) {
+    const menuitem = document.createElement('div');
+    menuitem.classList.add('menuitem');
+    menuitem.textContent = `menuitem ${i}`;
+    menulist.appendChild(menuitem);
+  }
+  menulist.showPopover({source: invoker});
+</script>

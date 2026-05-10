@@ -135,9 +135,11 @@ function test_loaf_script(cb, invoker, invokerType, label) {
         script.invoker.startsWith(invoker)), t);
 
     assert_true(!!entry, "Entry detected");
-    assert_greater_than_equal(entry.duration, script.duration);
-    assert_greater_than_equal(script.executionStart, script.startTime);
-    assert_greater_than_equal(script.startTime, entry.startTime)
+    // Allow small epsilon for independent time clamping of entry vs script.
+    const clamping_epsilon = 1;
+    assert_greater_than_equal(entry.duration + clamping_epsilon, script.duration);
+    assert_greater_than_equal(script.executionStart + clamping_epsilon, script.startTime);
+    assert_greater_than_equal(script.startTime + clamping_epsilon, entry.startTime)
     assert_equals(script.window, window);
     assert_equals(script.forcedStyleAndLayoutDuration, 0);
     assert_equals(script.windowAttribution, "self");

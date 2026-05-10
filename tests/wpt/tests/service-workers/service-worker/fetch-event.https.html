@@ -680,7 +680,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
     const page_url = 'resources/simple.html?isReloadNavigation';
-    const anotherUrl = new Request('resources/simple.html').url;
+    const anotherUrl = new Request('resources/simple.html?ignore').url;
     let frame = await with_iframe(page_url);
     t.add_cleanup(() => { frame.remove(); });
     assert_equals(frame.contentDocument.body.textContent,

@@ -17,7 +17,7 @@
   .grid-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: 20px 10px 20px 10px 20px 20px 10px 20px 10px;
+    grid-template-rows: 20px 10px 20px 10px 20px 10px 10px 10px 10px 10px 10px;
     background: lightgray;
     column-gap: 10px;
   }
@@ -26,7 +26,7 @@
     grid-template-columns: subgrid;
     grid-template-rows: subgrid;
     grid-column: 2 / -2;
-    grid-row: 3 / -3;
+    grid-row: 3 / 8;
   }
   .item {
     background: purple;
@@ -104,21 +104,22 @@
     </div>
   </div>
 
-  <div class="col-gap-group" style="left: 160px; height: 50px;">
+  <div class="col-gap-group" style="left: 160px; height: 60px; gap: 80px;">
     <div class="col-gap">
-      <div class="col-gap-segment"></div>
+      <div class="col-gap-segment" style="height: 30px;"></div>
       <div class="col-gap-segment"></div>
     </div>
     <div class="col-gap">
+      <div class="col-gap-segment" style="height: 30px;"></div>
       <div class="col-gap-segment"></div>
+    </div>
+  </div>
+
+  <div class="col-gap-group" style="left: 190px; height: 20px; top: 40px;">
+    <div class="col-gap">
       <div class="col-gap-segment"></div>
     </div>
     <div class="col-gap">
-      <div class="col-gap-segment"></div>
-      <div class="col-gap-segment"></div>
-    </div>
-    <div class="col-gap">
-      <div class="col-gap-segment"></div>
       <div class="col-gap-segment"></div>
     </div>
   </div>
@@ -157,7 +158,7 @@
     </div>
   </div>
 
-  <div class="row-gap-group" style="flex-direction: row; width: 140px;  left:140px;">
+  <div class="row-gap-group" style="flex-direction: row; width: 140px; top: 30px;  left:140px;">
     <div class="row-gap" style="width: 140px;">
       <div class="row-gap-segment"></div>
       <div class="row-gap-segment"></div>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+
+// Verify captureStream track removal and event ordering when playback reaches
+// the end, and that tracks are re-added when playback restarts.
+// https://w3c.github.io/mediacapture-fromelement/#methods
+
+function capturePromiseTest(label, filename, trackCount) {
+  promise_test(async t => {
+    const video = document.createElement("video");
+    video.src = "/media/" + filename;
+    video.onerror = t.unreached_func("<video> error");
+    assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+
+    // HTMLMediaElement should have correct track count.
+    const stream = video.captureStream();
+    await video.play();
+    assert_false(video.ended, `${label}: video not ended yet`);
+    assert_equals(stream.getTracks().length, trackCount, `${label}: track count is as expected`);
+
+    // From spec, "A captured MediaStreamTrack ends when playback ends (and the
+    // ended event fires)" All tracks should be removed.
+    const trackEndedPromises = stream.getTracks().map(async track => {
+      // From spec, "A MediaStreamTrack MUST end prior to being removed from
+      // the MediaStream".
+      await once(track, "ended");
+      await once(stream, "removetrack");
+    });
+    await Promise.all([once(video, "ended"), ...trackEndedPromises]);
+    assert_true(video.ended, `${label}: video ended`);
+    assert_equals(stream.getTracks().length, 0, `${label}: stream must have no tracks`);
+    assert_false(stream.active, `${label}: stream must be inactive`);
+
+    // From spec, "Similarly, restarting playback after playback ends causes a
+    // new set of captured MediaStreamTrack instances to be created."
+    await Promise.all([
+      waitForNEvents(stream, "addtrack", trackCount),
+      video.play(),
+    ]);
+    assert_equals(stream.getTracks().length, trackCount, `${label}: restart adds expected tracks`);
+    assert_true(stream.active, `${label}: stream must be active after restart`);
+  }, `${label}: captureStream() tracks end and are re-added after restart`);
+}
+
+capturePromiseTest("video-only", "test-v-128k-320x240-24fps-8kfr.webm", 1);
+capturePromiseTest("audio-only", "test-a-128k-44100Hz-1ch.webm", 1);
+capturePromiseTest("video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm", 2);
+
+// Helper functions
+function once(target, name) {
+  return new Promise(r => target.addEventListener(name, r, { once: true }));
+}
+
+function waitForNEvents(target, name, count) {
+  return new Promise(resolve => {
+    let seen = 0;
+    function onEvent(e) {
+      if (++seen >= count) {
+        target.removeEventListener(name, onEvent);
+        resolve();
+      }
+    }
+    target.addEventListener(name, onEvent);
+  });
+}
+
+</script>
+</body>
+</html>

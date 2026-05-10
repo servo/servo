@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Dynamic changes to map name and id attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+ body { margin: 0 }
+ img { display: block }
+</style>
+
+<img id="img" width="300" height="200" usemap="#testmap"
+     src="/images/threecolors.png"/>
+<map id="testmap">
+ <area id="area" shape="rect" coords="0,0,300,200" href="javascript:void(0)"/>
+</map>
+
+<script>
+const img = document.getElementById("img");
+const map = document.querySelector("map");
+
+// test_driver.click(element) checks that the element itself receives the click.
+// In an image map, the <area> element receives the click, causing WebDriver
+// to throw an "element click intercepted" error. Using the Actions API
+// bypasses this check.
+async function clickImageMap(element) {
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: element})
+        .pointerDown()
+        .pointerUp()
+        .send();
+}
+
+async function clickTargetsArea() {
+    let target = null;
+    function handler(e) {
+        e.preventDefault();
+        target = e.target;
+    }
+    document.addEventListener("click", handler, { once: true, capture: true });
+    await clickImageMap(img);
+    return target && target.tagName === "AREA";
+}
+
+promise_test(async () => {
+    assert_true(await clickTargetsArea());
+}, "Initial match by id attribute");
+
+promise_test(async () => {
+    map.id = "other";
+    assert_false(await clickTargetsArea());
+}, "Changing id away breaks the match");
+
+promise_test(async () => {
+    map.setAttribute("name", "testmap");
+    assert_true(await clickTargetsArea());
+}, "Setting name to match usemap restores the match");
+
+promise_test(async () => {
+    map.removeAttribute("name");
+    map.id = "testmap";
+    assert_true(await clickTargetsArea());
+}, "Removing name and restoring id matches by id");
+
+promise_test(async () => {
+    map.setAttribute("name", "testmap");
+    map.id = "testmap";
+    assert_true(await clickTargetsArea());
+}, "Both name and id matching usemap works");
+
+promise_test(async () => {
+    map.id = "other";
+    assert_true(await clickTargetsArea());
+}, "Changing id away while name still matches keeps the match");
+
+promise_test(async () => {
+    map.setAttribute("name", "other");
+    assert_false(await clickTargetsArea());
+}, "Changing name away too breaks the match");
+
+promise_test(async () => {
+    map.id = "testmap";
+    assert_true(await clickTargetsArea());
+}, "Restoring id matches again");
+</script>

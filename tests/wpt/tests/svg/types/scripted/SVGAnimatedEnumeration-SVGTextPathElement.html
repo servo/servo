@@ -6,9 +6,8 @@
 test(function() {
   // This test checks the use of SVGAnimatedEnumeration within SVGTextPathElement.
 
-  var textPathElement = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  let textPathElement = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
   textPathElement.setAttribute("method", "align");
-  textPathElement.setAttribute("spacing", "auto");
 
   // method
   // Check initial 'method' value.
@@ -38,6 +37,11 @@ test(function() {
   textPathElement.method.baseVal = SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN;
   assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
   assert_equals(textPathElement.getAttribute('method'), "align");
+});
+
+test(function() {
+  let textPathElement = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  textPathElement.setAttribute("spacing", "auto");
 
   // spacing
   // Check initial 'spacing' value.
@@ -67,5 +71,39 @@ test(function() {
   textPathElement.spacing.baseVal = SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO;
   assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
   assert_equals(textPathElement.getAttribute('spacing'), "auto");
+});
+
+test(function() {
+  let textPathElement = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  textPathElement.setAttribute("side", "left");
+
+  // side
+  // Check initial 'side' value.
+  assert_true(textPathElement.side instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(textPathElement.side.baseVal), "number");
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_LEFT);
+
+  // Switch to 'right'.
+  textPathElement.side.baseVal = SVGTextPathElement.TEXTPATH_SIDETYPE_RIGHT;
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_RIGHT);
+  assert_equals(textPathElement.getAttribute('side'), "right");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { textPathElement.side.baseVal = 3; });
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_RIGHT);
+  assert_equals(textPathElement.getAttribute('side'), "right");
+
+  assert_throws_js(TypeError, function() { textPathElement.side.baseVal = -1; });
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_RIGHT);
+  assert_equals(textPathElement.getAttribute('side'), "right");
+
+  assert_throws_js(TypeError, function() { textPathElement.side.baseVal = 0; });
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_RIGHT);
+  assert_equals(textPathElement.getAttribute('side'), "right");
+
+  // Switch to 'left'.
+  textPathElement.side.baseVal = SVGTextPathElement.TEXTPATH_SIDETYPE_LEFT;
+  assert_equals(textPathElement.side.baseVal, SVGTextPathElement.TEXTPATH_SIDETYPE_LEFT);
+  assert_equals(textPathElement.getAttribute('side'), "left");
 });
 </script>

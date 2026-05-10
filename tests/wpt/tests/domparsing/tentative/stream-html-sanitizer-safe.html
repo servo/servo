@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - streamHTMLUnsafe with sanitizer</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+  function create_target(type, t) {
+    const placeholder = document.createElement("div");
+    t.add_cleanup(() => placeholder.remove());
+    document.body.appendChild(placeholder);
+    switch (type) {
+      case "Element":
+        const ref = document.createElement("div");
+        placeholder.appendChild(ref);
+        return {placeholder, target: ref};
+      case "ShadowRoot":
+        return {placeholder, target: placeholder.attachShadow({ mode: "open" }), check: placeholder.shadowRoot};
+      case "Comment": {
+        const ref = document.createComment("comment");
+        placeholder.appendChild(ref);
+        return {placeholder, target: ref};
+      }
+      case "Text": {
+        const ref = document.createTextNode("");
+        placeholder.appendChild(ref);
+        return {placeholder, target: ref};
+      }
+    }
+  }
+
+  async function test_safe_sanitizer(method, type) {
+    for (const safe of [true, false]) {
+      const prop = safe ? method : method + "Unsafe";
+      promise_test(
+        async (t) => {
+          const {placeholder, target, check} = create_target(type, t);
+          const writer = target[prop]().getWriter();
+          const html = "<p>OK!</p><script>/**/<" + "/script>";
+          await writer.write(html);
+          await writer.close();
+          assert_equals((check || placeholder).textContent, safe ? "OK!" : "OK!/**/");
+        },
+        `${type}.${prop} should ${safe ? "use" : "not use"} the safe sanitizer`,
+      );
+    }
+
+  }
+  for (const method of [
+    "streamHTML",
+    "streamAppendHTML",
+    "streamPrependHTML",
+  ]) {
+    test_safe_sanitizer(method, "Element");
+    test_safe_sanitizer(method, "ShadowRoot");
+  }
+
+  for (const method of [
+    "streamBeforeHTML",
+    "streamAfterHTML",
+    "streamReplaceWithHTML",
+  ]) {
+    test_safe_sanitizer(method, "Element");
+    test_safe_sanitizer(method, "Comment");
+    test_safe_sanitizer(method, "Text");
+  }
+</script>

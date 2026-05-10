@@ -8,11 +8,6 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
-use base::id::{PipelineId, WebViewId};
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
-use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
@@ -22,6 +17,11 @@ use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use rustc_hash::FxHashSet;
 use script_traits::{Painter, ScriptThreadMessage};
+use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
+use servo_base::id::{PipelineId, WebViewId};
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth_traits::BluetoothRequest;
+use servo_constellation_traits::ScriptToConstellationMessage;
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
@@ -32,6 +32,7 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::csp::Violation;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
+use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
@@ -67,6 +68,7 @@ impl MixedMessage {
                 ScriptThreadMessage::SendInputEvent(_, id, _) => Some(*id),
                 ScriptThreadMessage::RefreshCursor(id, ..) => Some(*id),
                 ScriptThreadMessage::GetTitle(id) => Some(*id),
+                ScriptThreadMessage::GetDocumentOrigin(id, _) => Some(*id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottled(_, id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottledInContainingIframe(_, id, ..) => Some(*id),
@@ -75,12 +77,13 @@ impl MixedMessage {
                 ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(*id),
                 ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
-                ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
+
+                ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(id, ..) => Some(*id),
+                ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(id, ..) => Some(*id),
                 ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
-                ScriptThreadMessage::Unfocus(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
                 ScriptThreadMessage::TickAllAnimations(..) => None,
-                ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
+                ScriptThreadMessage::WebFontLoaded(id) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
                     parent: id,
@@ -104,8 +107,9 @@ impl MixedMessage {
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
                 ScriptThreadMessage::SetUserContents(..) => None,
                 ScriptThreadMessage::DestroyUserContentManager(..) => None,
-                ScriptThreadMessage::AccessibilityTreeUpdate(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
+                ScriptThreadMessage::SetAccessibilityActive(..) => None,
+                ScriptThreadMessage::TriggerGarbageCollection => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -204,6 +208,8 @@ impl fmt::Debug for CommonScriptMsg {
 pub(crate) enum ScriptEventLoopSender {
     /// A sender that sends to the main `ScriptThread` event loop.
     MainThread(Sender<MainThreadScriptMsg>),
+    /// A sender that sends to a `SharedWorker` event loop.
+    SharedWorker(Sender<SharedWorkerScriptMsg>),
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
@@ -221,6 +227,11 @@ impl ScriptEventLoopSender {
         match self {
             Self::MainThread(sender) => sender
                 .send(MainThreadScriptMsg::Common(message))
+                .map_err(|_| SendError(())),
+            Self::SharedWorker(sender) => sender
+                .send(SharedWorkerScriptMsg::CommonWorker(
+                    WorkerScriptMsg::Common(message),
+                ))
                 .map_err(|_| SendError(())),
             Self::ServiceWorker(sender) => sender
                 .send(ServiceWorkerScriptMsg::CommonWorker(
@@ -249,6 +260,8 @@ impl ScriptEventLoopSender {
 pub(crate) enum ScriptEventLoopReceiver {
     /// A receiver that receives messages to the main `ScriptThread` event loop.
     MainThread(Receiver<MainThreadScriptMsg>),
+    /// A receiver that receives messages to shared worker event loops.
+    SharedWorker(Receiver<SharedWorkerScriptMsg>),
     /// A receiver that receives messages to dedicated workers (such as a generic Web Worker) event loop.
     DedicatedWorker(Receiver<DedicatedWorkerScriptMsg>),
 }
@@ -259,6 +272,13 @@ impl ScriptEventLoopReceiver {
             Self::MainThread(receiver) => match receiver.recv() {
                 Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
                 Ok(_) => panic!("unexpected main thread event message!"),
+                Err(_) => Err(()),
+            },
+            Self::SharedWorker(receiver) => match receiver.recv() {
+                Ok(SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(message))) => {
+                    Ok(message)
+                },
+                Ok(_) => panic!("unexpected shared worker event message!"),
                 Err(_) => Err(()),
             },
             Self::DedicatedWorker(receiver) => match receiver.recv() {
@@ -302,18 +322,28 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id, task_source) = match script_msg {
+        let (event_category, task, pipeline_id, task_source) = match script_msg {
             CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
                 (category, boxed, pipeline_id, task_source)
             },
             _ => return None,
         };
-        Some((None, category, boxed, pipeline_id, task_source))
+        Some(QueuedTask {
+            worker: None,
+            event_category,
+            task,
+            pipeline_id,
+            task_source,
+        })
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
+        let script_msg = CommonScriptMsg::Task(
+            queued_task.event_category,
+            queued_task.task,
+            queued_task.pipeline_id,
+            queued_task.task_source,
+        );
         MainThreadScriptMsg::Common(script_msg)
     }
 
@@ -347,7 +377,7 @@ pub(crate) struct ScriptThreadSenders {
     #[cfg(feature = "bluetooth")]
     pub(crate) bluetooth_sender: GenericSender<BluetoothRequest>,
 
-    /// A [`Sender`] that sends messages to the `Constellation`.
+    /// A [`Sender`] that sends messages to the `ScriptThread`.
     #[no_trace]
     pub(crate) constellation_sender: GenericSender<ScriptThreadMessage>,
 

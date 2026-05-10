@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <title>SVG Geometry Properties: getComputedStyle().height</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#Sizing"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#Sizing"/>
     <h:link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values"/>
   </metadata>
   <h:script src="/resources/testharness.js"/>
@@ -84,14 +84,18 @@
       { value: 'auto', description: 'inline style but "display: none"' },
     ]
   },
+  // Negative test for nested <svg>: verify computed 'height' is auto when not specified explicitly.
+  // Nested <svg> don't support width and height as CSS style attributes.
+  //
+  // https://github.com/w3c/svgwg/issues/1057
   {
     element: 'svg',
     expected: [
-      { value: '100px', description: 'initial' },
-      { value: '200px', description: 'presentation attribute' },
-      { value: '100px', description: 'inline style (auto)' },
+      { value: 'auto', description: 'initial' },
+      { value: 'auto', description: 'presentation attribute' },
+      { value: 'auto', description: 'inline style (auto)' },
       { value: '200px', description: 'inline style (pixels)' },
-      { value: '50px', description: 'inline style (percentage)' },
+      { value: '50%', description: 'inline style (percentage)' },
       { value: 'auto', description: 'inline style but "display: none"' },
     ]
   },

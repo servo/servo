@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<!--The permission element should not allow setting negative outline-offset.
+<!--The usermedia element should not allow setting negative outline-offset.
 -->
 <style>
   #id1 {
@@ -32,13 +32,13 @@
   }
 </style>
 
-<permission id="id1" type="geolocation"></permission>
-<permission id="id2" type="camera"></permission>
-<permission id="id3" type="microphone"></permission>
-<permission id="id4" type="camera"></permission>
-<permission id="id5" type="geolocation"></permission>
-<permission id="id6" type="microphone"></permission>
-<permission id="id7" type="camera microphone"></permission>
+<usermedia id="id1" type="camera"></usermedia>
+<usermedia id="id2" type="camera"></usermedia>
+<usermedia id="id3" type="microphone"></usermedia>
+<usermedia id="id4" type="camera"></usermedia>
+<usermedia id="id5" type="microphone"></usermedia>
+<usermedia id="id6" type="microphone"></usermedia>
+<usermedia id="id7" type="camera microphone"></usermedia>
 
 <script>
   test(function(){

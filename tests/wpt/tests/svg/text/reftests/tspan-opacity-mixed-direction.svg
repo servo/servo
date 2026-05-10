@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
     <h:title>Opacity on tspan containing mixed direction text interleaving with other text</h:title>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html"/>
     <h:link rel="match" href="tspan-opacity-mixed-direction-ref.svg"/>
   </metadata>
   <text x="100" y="100" font-size="50">

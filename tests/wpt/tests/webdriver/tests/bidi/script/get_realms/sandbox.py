@@ -4,10 +4,12 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from ... import recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
+
 PAGE_ABOUT_BLANK = "about:blank"
 
 
-@pytest.mark.asyncio
 async def test_sandbox(bidi_session, top_context):
     evaluate_result = await bidi_session.script.evaluate(
         raw_result=True,
@@ -51,7 +53,6 @@ async def test_sandbox(bidi_session, top_context):
     )
 
 
-@pytest.mark.asyncio
 async def test_origin(bidi_session, inline, top_context, test_origin):
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(
@@ -100,7 +101,6 @@ async def test_origin(bidi_session, inline, top_context, test_origin):
     )
 
 
-@pytest.mark.asyncio
 async def test_type(bidi_session, top_context):
     evaluate_result = await bidi_session.script.evaluate(
         raw_result=True,
@@ -145,7 +145,6 @@ async def test_type(bidi_session, top_context):
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_multiple_top_level_contexts(
     bidi_session,

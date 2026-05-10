@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import WebElement
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def get_element_tag_name(session, element_id):
@@ -92,4 +92,4 @@ def test_get_element_tag_name(session, inline):
     element = session.find.css("input", all=False)
 
     result = get_element_tag_name(session, element.id)
-    assert_success(result, "input")
+    assert_success(result, "INPUT")

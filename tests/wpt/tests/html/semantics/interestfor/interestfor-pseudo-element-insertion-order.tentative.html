@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-insertion-order-ref.html">
+
+<div id="examples">
+  <a id="host" href="#" interestfor="target"><span>Link</span></a>
+  <div id="target"></div>
+</div>
+
+<style></style>
+
+<script>
+  const host = document.getElementById('host');
+  const styleContainer = document.querySelector('style');
+
+  // Step 1: Add ::after
+  styleContainer.textContent = "[interestfor]::after { content: 'AFTER'; border: 1px solid lime; }";
+  host.offsetTop;
+
+  // Step 2: Add ::interest-button
+  styleContainer.textContent += "[interestfor]::interest-button { content: 'INTEREST'; }";
+  host.offsetTop;
+
+  // Step 3: Add ::before
+  styleContainer.textContent += "[interestfor]::before { content: 'BEFORE'; border: 1px solid lime; }";
+  host.offsetTop;
+
+  // Pseudo elements should still be attached in the correct order.
+</script>

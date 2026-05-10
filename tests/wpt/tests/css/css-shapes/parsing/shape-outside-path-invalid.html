@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Shapes Module Level 1: parsing shape-outside with invalid path() values</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#funcdef-basic-shape-path">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<meta name="assert" content="Invalid path() values should not be accepted for shape-outside.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("shape-outside", "path()");
+test_invalid_value("shape-outside", "path('')");
+test_invalid_value("shape-outside", "path(evenodd)");
+test_invalid_value("shape-outside", "path(evenodd, 'not-a-path')");
+test_invalid_value("shape-outside", "path(badfillrule, 'M10,10')");
+test_invalid_value("shape-outside", "path(10, 20)");
+test_invalid_value("shape-outside", "path('M10,10', evenodd)");
+</script>

@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ResizeObserver causes image to no longer allow lazy loading</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#allows-auto-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2033652">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id="img" sizes="1px" style="width:16px;" loading="lazy">
+<script>
+"use strict";
+/*
+A browser might use resize observer to respond to size changes for sizes=auto images.
+If a resize observer from a page is notified before the browser one, and makes the
+image not allow auto-sizes anymore, the browser resize observer would
+still be notified for the now not sizes=auto image.
+*/
+promise_test(async t => {
+  let waitForLoad = new Promise(r => img.addEventListener('load', r, {once: true}));
+  img.srcset = "/images/green-1x1.png 1w, /images/green-16x16.png 16w, /images/green-256x256.png 256w";
+  await waitForLoad;
+  let resizeObserved = false;
+  let observer = new ResizeObserver(() => {
+    if (img.style.width === "1px") {
+      img.sizes = "256px";
+      resizeObserved = true;
+      observer.disconnect();
+    }
+  });
+  observer.observe(img);
+  let currentSrc = () => new URL(img.currentSrc).pathname;
+  assert_equals(currentSrc(), "/images/green-1x1.png",
+                "image's source should be set based on sizes=1px");
+  waitForLoad = new Promise(r => img.addEventListener('load', r, {once: true}));
+  img.sizes = "auto";
+  await waitForLoad;
+  assert_equals(currentSrc(), "/images/green-16x16.png",
+                "image's source should be set based on sizes=auto and content box width of 16px");
+  waitForLoad = new Promise(r => img.addEventListener('load', r, {once: true}));
+  img.style.width = "1px";
+  await waitForLoad;
+  assert_true(resizeObserved, "ResizeObserver should have been notified of resize");
+  assert_equals(currentSrc(), "/images/green-256x256.png",
+                "image's source should be set based on sizes=256px from ResizeObserver");
+});
+</script>

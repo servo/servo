@@ -30,6 +30,7 @@ from servo.command_base import (
     CommandBase,
     check_call,
     is_linux,
+    is_freebsd,
 )
 from servo.platform.build_target import is_android
 
@@ -101,8 +102,8 @@ class PostBuildCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
-            if not is_linux():
-                print("Software rendering is only supported on Linux at the moment.")
+            if not (is_linux() or is_freebsd()):
+                print("Software rendering is only supported on Linux and FreeBSD at the moment.")
                 return
 
             env["LIBGL_ALWAYS_SOFTWARE"] = "1"
@@ -144,7 +145,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
-            shell.communicate("\n".join(script) + "\n")
+            shell.communicate(("\n".join(script) + "\n").encode())
             return shell.wait()
 
         args = [servo_binary]
@@ -266,7 +267,7 @@ class PostBuildCommands(CommandBase):
         if not path.exists(docs):
             os.makedirs(docs)
 
-        # Document library crates to avoid package name conflict between severoshell
+        # Document library crates to avoid package name conflict between servoshell
         # and libservo. Besides, main.rs in servoshell is just a stub.
         params.insert(0, "--lib")
         # Documentation build errors shouldn't cause the entire build to fail. This

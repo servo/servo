@@ -26,7 +26,8 @@ def main(request, response):
 
   handler = lambda: util.get_template(u"document.html.template") % ({
       u"meta": meta,
-      u"error": error
+      u"error": error,
+      u"scriptOrigin": request.url_parts.scheme + u'://' + request.url_parts.hostname + u':' + str(request.url_parts.port)
   })
   util.respond(
       request,

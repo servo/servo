@@ -1,28 +1,52 @@
 <!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>Historical WebRTC features</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCConfiguration-helper.js"></script>
 <div id="log"></div>
 <script>
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
+if (interop2026) {
 [
   'reliable',
+].forEach((member) => {
+  test(() => {
+    assert_false(member in RTCDataChannel.prototype);
+  }, `RTCDataChannel member ${member} should not exist`);
+});
+}
+if (rest) {
+[
   'maxRetransmitTime',
 ].forEach((member) => {
   test(() => {
     assert_false(member in RTCDataChannel.prototype);
   }, `RTCDataChannel member ${member} should not exist`);
 });
+}
 
+if (interop2026) {
+[
+  "createDTMFSender",
+  "onremovestream",
+  "removeStream",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in RTCPeerConnection.prototype);
+  }, "RTCPeerConnection member " + name + " should not exist");
+});
+}
+if (rest) {
 [
   "addStream",
-  "createDTMFSender",
   "getLocalStreams",
   "getRemoteStreams",
   "getStreamById",
   "onaddstream",
-  "onremovestream",
-  "removeStream",
   "updateIce",
 ].forEach(function(name) {
   test(function() {
@@ -43,13 +67,22 @@
   "mozRTCIceCandidate",
   "mozRTCPeerConnection",
   "mozRTCSessionDescription",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in window);
+  }, name + " interface should not exist");
+});
+}
+if (interop2026) {
+[
   "webkitRTCPeerConnection",
 ].forEach(function(name) {
   test(function() {
     assert_false(name in window);
   }, name + " interface should not exist");
 });
-
+}
+if (rest) {
 // Blink and Gecko fall back to url, but it's not in the spec.
 config_test(makePc => {
   assert_throws_js(TypeError, () =>
@@ -57,4 +90,5 @@ config_test(makePc => {
       url: 'stun:stun1.example.net'
     }] }));
 }, 'with url field should throw TypeError');
+}
 </script>

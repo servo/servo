@@ -18,21 +18,13 @@ features:
 - name: text-wrap-pretty
   files:
   - text-wrap-pretty.html
-- name: text-wrap-style
-  files:
-  - text-wrap-style-*
 - name: white-space-collapse
   files:
   - white-space-collapse-*
 - name: text-wrap
   files:
-  # No wildcard here to avoid capturing text-wrap-mode-*.
-  - text-wrap-computed.html
-  - text-wrap-invalid.html
-  - text-wrap-valid.html
-- name: text-wrap-mode
-  files:
-  - text-wrap-mode-*
+  - text-wrap-*
+  - "!text-wrap-pretty.html"
 - name: word-spacing
   files:
   - word-spacing-*

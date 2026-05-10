@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{CssRuleType, CssRuleTypes, CssRules};
@@ -19,25 +20,24 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSGroupingRule {
-    cssrule: CSSRule,
-    rulelist: MutNullableDom<CSSRuleList>,
+    css_rule: CSSRule,
+    rule_list: MutNullableDom<CSSRuleList>,
 }
 
 impl CSSGroupingRule {
     pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSGroupingRule {
         CSSGroupingRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            rulelist: MutNullableDom::new(None),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            rule_list: MutNullableDom::new(None),
         }
     }
 
-    fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
+    fn rulelist(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
         let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
-        self.rulelist.or_init(|| {
+        self.rule_list.or_init(|| {
             let rules = if let Some(rule) = self.downcast::<CSSConditionRule>() {
                 rule.clone_rules()
             } else if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
@@ -48,20 +48,20 @@ impl CSSGroupingRule {
                 unreachable!()
             };
             CSSRuleList::new(
+                cx,
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Rules(rules),
-                can_gc,
             )
         })
     }
 
     pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
-        self.cssrule.parent_stylesheet()
+        self.css_rule.parent_stylesheet()
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
-        self.cssrule.shared_lock()
+        self.css_rule.shared_lock()
     }
 
     pub(crate) fn update_rules(
@@ -69,7 +69,7 @@ impl CSSGroupingRule {
         rules: &Arc<Locked<CssRules>>,
         guard: &SharedRwLockReadGuard,
     ) {
-        if let Some(rulelist) = self.rulelist.get() {
+        if let Some(rulelist) = self.rule_list.get() {
             rulelist.update_rules(RulesSource::Rules(rules.clone()), guard);
         }
     }
@@ -77,31 +77,31 @@ impl CSSGroupingRule {
 
 impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules>
-    fn CssRules(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
+    fn CssRules(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
         // XXXManishearth check origin clean flag
-        self.rulelist(can_gc)
+        self.rulelist(cx)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule>
-    fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
+    fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
         // TODO: this should accumulate the rule types of all ancestors.
-        let rule_type = self.cssrule.as_specific().ty();
+        let rule_type = self.css_rule.as_specific().ty();
         let containing_rule_types = CssRuleTypes::from(rule_type);
         let parse_relative_rule_type = match rule_type {
             CssRuleType::Style | CssRuleType::Scope => Some(rule_type),
             _ => None,
         };
-        self.rulelist(can_gc).insert_rule(
+        self.rulelist(cx).insert_rule(
+            cx,
             &rule,
             index,
             containing_rule_types,
             parse_relative_rule_type,
-            can_gc,
         )
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule>
-    fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
-        self.rulelist(can_gc).remove_rule(index)
+    fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
+        self.rulelist(cx).remove_rule(index)
     }
 }

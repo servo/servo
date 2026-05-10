@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#dominant-baseline-property">
+  <link rel="match" href="dominant-baseline-alignment-baseline-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="dominant-baseline sets the default alignment-baseline"/>
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=auto">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    .auto         .line { dominant-baseline: auto; }
+    .text-bottom  .line { dominant-baseline: text-bottom; }
+    .alphabetic   .line { dominant-baseline: alphabetic; }
+    .ideographic  .line { dominant-baseline: ideographic; }
+    .middle       .line { dominant-baseline: middle; }
+    .central      .line { dominant-baseline: central; }
+    .mathematical .line { dominant-baseline: mathematical; }
+    .hanging      .line { dominant-baseline: hanging; }
+    .text-top     .line { dominant-baseline: text-top; }
+
+    .line {
+      font: 150px/1 BaselineDiagnosticAlphabeticZero;
+    }
+  </style>
+</head>
+<body>
+  <div class="line">
+    X<span style="font-size: 200px">X</span><span>X</span><img src="/css/support/60x60-gg-rr.png">
+  </div>
+</body>
+</html>

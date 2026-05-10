@@ -2,21 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Ref;
-
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
 use script_bindings::like::Setlike;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_bindings::trace::CustomTraceable;
-use style::values::AtomIdent;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage};
 use crate::dom::window::Window;
@@ -42,18 +39,12 @@ impl CustomStateSet {
         reflect_dom_object(Box::new(Self::new_inherited(element)), window, can_gc)
     }
 
-    pub(crate) fn for_each_state<F>(&self, mut callback: F)
-    where
-        F: FnMut(&AtomIdent),
-    {
-        // FIXME: This creates new atoms whenever it is called, which is not optimal.
-        for state in self.internal.borrow().iter() {
-            callback(&AtomIdent::from(&*state.str()));
-        }
-    }
-
-    pub(crate) fn set<'a>(&'a self) -> Ref<'a, IndexSet<DOMString>> {
-        self.internal.borrow()
+    /// Returns a borrowed version of the set without the usual Ref wrapper.
+    /// Mutating the underlying refcell while this value is active is
+    /// undefined behaviour.
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn set_for_layout(&self) -> &IndexSet<DOMString> {
+        unsafe { self.internal.borrow_for_layout() }
     }
 
     fn states_did_change(&self) {

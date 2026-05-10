@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Container with margin-trim:block-end, block-start margin on its parent, and is self-collapsing with a child with block-start margin</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="display:flow-root; background:red;">
+    <div style="position:absolute; width:100px; height:70px; background:green;"></div>
+    <div style="margin-top:70px;">
+      <div style="margin-trim:block-end;">
+        <div style="margin-top:222px;"></div>
+      </div>
+      <div style="height:30px; background:green;"></div>
+    </div>
+  </div>
+</div>

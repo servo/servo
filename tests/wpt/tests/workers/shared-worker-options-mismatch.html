@@ -30,8 +30,8 @@ mismatch_test('module to default', { type: 'module' }, {});
 mismatch_test('classic to module', { type: 'classic' }, { type: 'module' });
 mismatch_test('module to classic', { type: 'module' }, { type: 'classic' });
 
-// Tests different credentials in classic and module.
 ['classic', 'module'].forEach(type => {
+  // Tests different credentials.
   mismatch_test('default to omit in ' + type,
                 { type },
                 { type, credentials: 'omit' });
@@ -62,6 +62,20 @@ mismatch_test('module to classic', { type: 'module' }, { type: 'classic' });
   mismatch_test('include to same-origin in ' + type,
                 { type, credentials: 'include' },
                 { type, credentials: 'same-origin' });
+
+  // Tests different extendedLifetime.
+  mismatch_test('default to extended in ' + type,
+                { type },
+                { type, extendedLifetime: true });
+  mismatch_test('extended to default in ' + type,
+                { type, extendedLifetime: true },
+                { type });
+  mismatch_test('true to false in ' + type,
+                { type, extendedLifetime: true },
+                { type, extendedLifetime: false });
+  mismatch_test('false to true in ' + type,
+                { type, extendedLifetime: false },
+                { type, extendedLifetime: true });
 });
 
 </script>

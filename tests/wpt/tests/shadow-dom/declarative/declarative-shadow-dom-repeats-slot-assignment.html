@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Declarative Shadow DOM: attachShadow on declarative root with slotAssignment
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/12267" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="manual1">
+  <template shadowrootmode="open" shadowrootslotassignment="manual"></template>
+</div>
+
+<script>
+  test((t) => {
+    const shadow = manual1.shadowRoot;
+    assert_true(!!shadow, "Shadow root should exist");
+    assert_equals(
+      shadow.slotAssignment,
+      "manual",
+      'slotAssignment should be "manual" from declarative attribute',
+    );
+    const returned = manual1.attachShadow({
+      mode: "open",
+      slotAssignment: "manual",
+    });
+    assert_equals(returned, shadow, "Same shadow root should be returned");
+    assert_equals(
+      returned.textContent,
+      "",
+      "Shadow should be empty after attachShadow",
+    );
+    assert_equals(
+      returned.slotAssignment,
+      "manual",
+      'slotAssignment should still be "manual"',
+    );
+  }, "attachShadow() on declarative shadow root with manual slotAssignment");
+</script>
+
+<div id="manual2">
+  <template shadowrootmode="open" shadowrootslotassignment="manual"></template>
+</div>
+
+<script>
+  test((t) => {
+    const shadow = manual2.shadowRoot;
+    assert_true(!!shadow, "Shadow root should exist");
+    assert_equals(shadow.slotAssignment, "manual");
+    const returned = manual2.attachShadow({
+      mode: "open",
+      slotAssignment: "named",
+    });
+    assert_equals(returned, shadow, "Same shadow root should be returned");
+    assert_equals(
+      returned.slotAssignment,
+      "manual",
+      'slotAssignment should remain "manual" even when "named" was requested',
+    );
+  }, "attachShadow() on declarative shadow root does not change slotAssignment");
+</script>

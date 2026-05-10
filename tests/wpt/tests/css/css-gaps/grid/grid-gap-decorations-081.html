@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: column-rule with overlap-join and no row-rule in a 2x3
+  grid. Dangling column-rule endpoints stretch through the row gap to meet at
+  center.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-081-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+body {
+  margin: 0;
+}
+.container {
+  display: grid;
+  grid-template: repeat(2, 100px) / repeat(3, 100px);
+  gap: 20px;
+  column-rule: 6px solid rgba(128 0 0 / 0.5);
+  rule-inset: overlap-join;
+  padding: 10px;
+  rule-break: intersection;
+}
+.item {
+  background: rgba(192 192 192 / 0.75);
+}
+</style>
+<div class="container">
+  <div class="item">A</div>
+  <div class="item">B</div>
+  <div class="item">C</div>
+  <div class="item">D</div>
+  <div class="item">E</div>
+  <div class="item">F</div>
+</div>

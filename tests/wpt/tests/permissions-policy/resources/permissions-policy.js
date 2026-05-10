@@ -463,7 +463,7 @@ function test_frame_policy(
   document.body.appendChild(frame);
   // frame_policy should be dynamically updated as allow and allowfullscreen is
   // updated.
-  var frame_policy = frame.featurePolicy;
+  var frame_policy = frame.permissionsPolicy;
   if (typeof allow !== 'undefined') {
     frame.setAttribute('allow', allow);
   }

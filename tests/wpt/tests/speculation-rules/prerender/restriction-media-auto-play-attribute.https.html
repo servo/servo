@@ -16,7 +16,7 @@ spec will allow loading and only disallow playback.
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 function RunTest(type, description) {
   promise_test(async t => {

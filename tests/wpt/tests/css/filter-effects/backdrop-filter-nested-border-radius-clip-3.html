@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>backdrop-filter should respect multiple nested rounded clips from ancestors</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-nested-border-radius-clip-3-ref.html">
+<meta name="fuzzy" content="maxDifference=0-100; totalPixels=0-200" />
+<style>
+#outer {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  padding: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #66ccff;
+}
+#middle {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #cccccc;
+}
+#inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 25px;
+  overflow: hidden;
+}
+#backdrop-source {
+  width: 100%;
+  height: 100%;
+  background-color: rgb(255, 127, 255);
+}
+#backdrop-filter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: invert(1);
+}
+</style>
+<!-- Test passes if there is a green rounded rectangle inside a gray rounded
+     border (#middle) inside a light blue rounded border (#outer), with no
+     artifacts in the corners.
+     The backdrop-filter area must be clipped by all ancestor border-radius
+     clips; in this case, specifically the #inner's border-radius. -->
+<div id="outer">
+  <div id="middle">
+    <div id="inner">
+      <div id="backdrop-source"></div>
+      <div id="backdrop-filter"></div>
+    </div>
+  </div>
+</div>

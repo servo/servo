@@ -24,6 +24,8 @@ LOAD_EVENT = "browsingContext.load"
         {},
         {"a": "1"},
         {"a": "1", "b": "2"},
+        {"x-diacritics": "ä"},
+        {"x-unicode": "你好世界"},
     ],
 )
 async def test_headers(

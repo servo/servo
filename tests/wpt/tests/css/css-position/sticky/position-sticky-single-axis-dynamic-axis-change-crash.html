@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-pos">
+<meta name="assert"
+      content="Changing a nested sticky ancestor from a block-axis sticky constraint to an inline-axis one inside a mixed-overflow scroller must not crash.">
+<style>
+#scroller {
+  overflow-y: scroll;
+  overflow-x: clip;
+  width: 100px;
+  height: 100px;
+}
+#outer {
+  position: sticky;
+  top: 0;
+  display: inline;
+}
+#inner {
+  position: sticky;
+  top: 0;
+  display: inline;
+}
+.spacer {
+  height: 1000px;
+}
+</style>
+<div id="scroller">
+  <div id="outer">
+    <div id="inner">STICKY</div>
+  </div>
+  <div class="spacer"></div>
+</div>
+<script>
+const scroller = document.getElementById("scroller");
+const outer = document.getElementById("outer");
+
+scroller.scrollTop = 50;
+outer.setAttribute(
+    "style", "position: sticky; top: auto; left: 0; display: inline");
+
+// Force lifecycle/layout update. Test passes if this does not crash.
+document.body.offsetTop;
+</script>

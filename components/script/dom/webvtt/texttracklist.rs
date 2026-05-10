@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::TextTrackListMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -86,10 +87,10 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
-                            CanGc::note()
+                            CanGc::deprecated_note()
                         );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
                     }
                 }));
             track.add_track_list(self);
@@ -99,13 +100,13 @@ impl TextTrackList {
     // FIXME(#22314, dlrobertson) allow TextTracks to be
     // removed from the TextTrackList.
     #[expect(dead_code)]
-    pub(crate) fn remove(&self, idx: usize, can_gc: CanGc) {
+    pub(crate) fn remove(&self, cx: &mut js::context::JSContext, idx: usize) {
         if let Some(track) = self.dom_tracks.borrow().get(idx) {
             track.remove_track_list();
         }
         self.dom_tracks.borrow_mut().remove(idx);
         self.upcast::<EventTarget>()
-            .fire_event(atom!("removetrack"), can_gc);
+            .fire_event(cx, atom!("removetrack"));
     }
 }
 
@@ -122,7 +123,7 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<TextTrack>> {
-        let id_str = String::from(id.clone());
+        let id_str = String::from(id);
         self.dom_tracks
             .borrow()
             .iter()

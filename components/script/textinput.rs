@@ -7,14 +7,14 @@
 use std::default::Default;
 use std::ops::Range;
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -301,24 +301,29 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.was_last_change_by_set_content
     }
 
-    /// Remove a character at the current editing point
+    /// If there is an uncollapsed selection, delete it, otherwise do nothing. Returns
+    /// true if any text was deleted.
+    fn delete_selection(&mut self) -> bool {
+        if self.selection_start() == self.selection_end() {
+            return false;
+        }
+        self.replace_selection(&DOMString::new());
+        true
+    }
+
+    /// If there is an uncollapsed selection, delete it. Otherwise delete the given [`unit`]
+    /// worth of text in [`direction`] Remove a character at the current editing point
     ///
-    /// Returns true if any character was deleted
-    pub fn delete_char(&mut self, direction: Direction) -> bool {
+    /// Returns true if any text was deleted.
+    pub fn delete_unit_or_selection(&mut self, unit: RopeMovement, direction: Direction) -> bool {
         if !self.has_uncollapsed_selection() {
             let amount = match direction {
                 Direction::Forward => 1,
                 Direction::Backward => -1,
             };
-            self.modify_selection(amount, RopeMovement::Grapheme);
+            self.modify_selection(amount, unit);
         }
-
-        if self.selection_start() == self.selection_end() {
-            return false;
-        }
-
-        self.replace_selection(&DOMString::new());
-        true
+        self.delete_selection()
     }
 
     /// Insert a string at the current editing point or replace the selection if
@@ -594,6 +599,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             Selection::NotSelected
         };
+
+        let alt_or_control = if macos {
+            Modifiers::ALT
+        } else {
+            Modifiers::CONTROL
+        };
+
         mods.remove(Modifiers::SHIFT);
         ShortcutMatcher::new(KeyState::Down, key.clone(), mods)
             .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'B', || {
@@ -627,7 +639,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             .shortcut(CMD_OR_CONTROL, 'X', || {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_text(text);
-                    self.delete_char(Direction::Backward);
+                    self.delete_selection();
                 }
                 KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputType::DeleteByCut)
             })
@@ -655,7 +667,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::Delete), || {
-                if self.delete_char(Direction::Forward) {
+                if self.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward) {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
@@ -666,7 +678,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::Backspace), || {
-                if self.delete_char(Direction::Backward) {
+                if self.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward) {
+                    KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::NotComposing,
+                        InputType::DeleteContentBackward,
+                    )
+                } else {
+                    KeyReaction::Nothing
+                }
+            })
+            .shortcut(alt_or_control, Key::Named(NamedKey::Backspace), || {
+                if self.delete_unit_or_selection(RopeMovement::Word, Direction::Backward) {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
@@ -728,11 +751,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     KeyReaction::RedrawSelection
                 },
             )
-            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowLeft), || {
+            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowLeft), || {
                 self.modify_selection_or_edit_point(-1, RopeMovement::Word, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowRight), || {
+            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowRight), || {
                 self.modify_selection_or_edit_point(1, RopeMovement::Word, maybe_select);
                 KeyReaction::RedrawSelection
             })
@@ -1054,7 +1077,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.clipboard_provider.set_text(text);
 
                 // Step 3.1.2 Remove the contents of the selection from the document and collapse the selection.
-                self.delete_char(Direction::Backward);
+                self.delete_selection();
 
                 // Step 3.1.3 Fire a clipboard event named clipboardchange
                 // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
@@ -1125,7 +1148,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let event = InputEvent::new(
                     window,
                     None,
-                    DOMString::from("input"),
+                    atom!("input"),
                     true,
                     false,
                     Some(window),
@@ -1133,11 +1156,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     data.map(DOMString::from),
                     is_composing.into(),
                     input_type.as_str().into(),
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
                 event.set_composed(true);
-                event.fire(&target, CanGc::note());
+                event.fire(&target, CanGc::deprecated_note());
             }),
         );
     }

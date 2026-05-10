@@ -2,7 +2,7 @@ import pytest
 from webdriver.client import WebElement, ShadowRoot
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.classic.asserts import assert_error, assert_same_element, assert_success
 
 
 def find_elements(session, shadow_id, using, value):

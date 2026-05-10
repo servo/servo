@@ -6,8 +6,10 @@ use std::rc::Rc;
 
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::request::InsecureRequestsPolicy;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::reflector::reflect_dom_object;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -17,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::XMLDocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CustomElementReactionStack;
@@ -49,6 +50,7 @@ impl XMLDocument {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        can_gc: CanGc,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -72,6 +74,7 @@ impl XMLDocument {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 window.Document().creation_sandboxing_flag_set(),
+                can_gc,
             ),
         }
     }
@@ -108,6 +111,7 @@ impl XMLDocument {
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
+                can_gc,
             )),
             window,
             can_gc,
@@ -122,8 +126,8 @@ impl XMLDocument {
 
 impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
-    fn GetLocation(&self) -> Option<DomRoot<Location>> {
-        self.upcast::<Document>().GetLocation()
+    fn GetLocation(&self, cx: &mut JSContext) -> Option<DomRoot<Location>> {
+        self.upcast::<Document>().GetLocation(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
@@ -132,7 +136,11 @@ impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
-        self.upcast::<Document>().NamedGetter(name, can_gc)
+    fn NamedGetter(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+    ) -> Option<NamedPropertyValue> {
+        self.upcast::<Document>().NamedGetter(cx, name)
     }
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>JPEG XL integration: video poster</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="html-video-poster-ref.html">
+<meta name="assert" content="A <video> poster can render from a JPEG XL image URL.">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  video {
+    width: 60px;
+    height: 60px;
+    image-rendering: pixelated;
+  }
+</style>
+
+<video poster="resources/3x3_srgb_lossless.jxl"></video>
+
+<script>
+const img = new Image();
+img.src = document.querySelector('video').poster;
+img.decode().then(() => {
+  requestAnimationFrame(takeScreenshot);
+});
+</script>
+</html>

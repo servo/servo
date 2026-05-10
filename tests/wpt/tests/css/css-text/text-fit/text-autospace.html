@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+.target {
+  white-space: pre;
+  background: lime;
+  margin-bottom: 10px;
+  width: 400px;
+  text-autospace: normal;
+  letter-spacing: 1px;
+}
+.scale {
+  text-fit: grow;
+}
+.scale-line {
+  text-fit: grow per-line-all;
+}
+.nospacing {
+  letter-spacing: 0;
+}
+.noautospace {
+  text-autospace: no-autospace;
+}
+</style>
+<body lang="ja">
+<!-- Specify letter-spacing:0 to the last letter to ensure it has no spacing. -->
+<div class="target scale">高輪Gatewa<span class="nospacing">y</span></div>
+<div class="target scale-line">高輪Gatewa<span class="nospacing">y</span></div>
+
+<div class="target scale noautospace">高輪Gatewa<span class="nospacing">y</span></div>
+<div class="target scale-line noautospace">高輪Gatewa<span class="nospacing">y</span></div>
+
+<script>
+test(() => {
+  const span = document.querySelector('.scale .nospacing');
+  assert_approx_equals(span.getBoundingClientRect().right, 400 - 1, 1,
+      'The last letter aligns with the right edge');
+
+  const spanRef = document.querySelector('.scale.noautospace .nospacing');
+  assert_not_equals(span.getBoundingClientRect().height,
+                    spanRef.getBoundingClientRect().height,
+                    'The used font-size is different from "no-autospace" case.');
+}, '"text-autospace" and "consistent" work fine');
+
+test(() => {
+  const span = document.querySelector('.scale-line .nospacing');
+  assert_approx_equals(span.getBoundingClientRect().right, 400 - 1, 1,
+      'The last letter aligns with the right edge');
+
+  const spanRef = document.querySelector('.scale-line.noautospace .nospacing');
+  assert_not_equals(span.getBoundingClientRect().height,
+                    spanRef.getBoundingClientRect().height,
+                    'The used font-size is different from "no-autospace" case.');
+}, '"text-autospace" and "per-line-all" work fine');
+</script>
+</body>

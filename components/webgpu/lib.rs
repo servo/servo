@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{self, GenericReceiver};
 use canvas_context::WebGpuExternalImageMap;
 pub use canvas_context::{ContextData, WebGpuExternalImages};
 use log::warn;
+use servo_base::generic_channel::{self, GenericReceiver};
 use webgpu_traits::{WebGPU, WebGPUMsg};
+pub use wgpu_core as wgc;
 use wgpu_thread::WGPU;
-pub use {wgpu_core as wgc, wgpu_types as wgt};
+pub use wgpu_types as wgt;
 
 mod poll_thread;
 mod wgpu_thread;

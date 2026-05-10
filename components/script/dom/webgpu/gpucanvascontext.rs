@@ -6,10 +6,12 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 
 use arrayvec::ArrayVec;
-use base::{Epoch, generic_channel};
 use dom_struct::dom_struct;
 use pixels::Snapshot;
+use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
     WebGPURequest,
@@ -28,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -48,7 +50,6 @@ fn supported_context_format(format: GPUTextureFormat) -> bool {
 struct DroppableGPUCanvasContext {
     #[no_trace]
     context_id: WebGPUContextId,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
 }
@@ -344,7 +345,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 4. If Supported context formats does not contain configuration.format, throw a TypeError
         if !supported_context_format(configuration.format) {
-            return Err(Error::Type(format!(
+            return Err(Error::Type(cformat!(
                 "Unsupported context format: {:?}",
                 configuration.format
             )));

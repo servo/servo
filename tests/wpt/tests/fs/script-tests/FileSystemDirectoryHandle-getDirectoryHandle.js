@@ -89,26 +89,22 @@ directory_test(async (t, dir) => {
   const second_subdir =
       await createDirectory(second_subdir_name, /*parent=*/ first_subdir);
 
-  for (let i = 0; i < kPathSeparators.length; ++i) {
-    const path_with_separator =
-        `${first_subdir_name}${kPathSeparators[i]}${second_subdir_name}`;
-    await promise_rejects_js(
-        t, TypeError, dir.getDirectoryHandle(path_with_separator),
-        `getDirectoryHandle() must reject names containing "${
-            kPathSeparators[i]}"`);
-  }
+  const path_with_separator =
+      `${first_subdir_name}/${second_subdir_name}`;
+  await promise_rejects_js(
+      t, TypeError, dir.getDirectoryHandle(path_with_separator),
+      `getDirectoryHandle() must reject names containing "/"`);
+
 }, 'getDirectoryHandle(create=false) with a path separator when the directory exists');
 
 directory_test(async (t, dir) => {
   const subdir_name = 'subdir-name';
   const subdir = await createDirectory(subdir_name, /*parent=*/ dir);
 
-  for (let i = 0; i < kPathSeparators.length; ++i) {
-    const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;
-    await promise_rejects_js(
-        t, TypeError,
-        dir.getDirectoryHandle(path_with_separator, {create: true}),
-        `getDirectoryHandle(true) must reject names containing "${
-            kPathSeparators[i]}"`);
-  }
+  const path_with_separator = `${subdir_name}/file_name`;
+  await promise_rejects_js(
+      t, TypeError,
+      dir.getDirectoryHandle(path_with_separator, {create: true}),
+      `getDirectoryHandle(true) must reject names containing "/"`);
+
 }, 'getDirectoryHandle(create=true) with a path separator');

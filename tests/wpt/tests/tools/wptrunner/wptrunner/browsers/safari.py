@@ -1,6 +1,7 @@
 # mypy: allow-untyped-defs
 
 import os
+import platform
 import plistlib
 from packaging.version import Version
 from shutil import which
@@ -10,7 +11,7 @@ import psutil
 from .base import WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
@@ -21,8 +22,9 @@ __wptrunner__ = {"product": "safari",
                  "browser": "SafariBrowser",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WdspecExecutor",
-                              "crashtest": "WebDriverCrashtestExecutor"},
+                              "wdspec": "PytestExecutor",
+                              "crashtest": "WebDriverCrashtestExecutor",
+                              "test262": "WebDriverTestharnessExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -72,7 +74,14 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {}
+    rv = {}
+
+    version, _, _ = platform.mac_ver()
+    if version:
+        if Version(version) >= Version("26.4"):
+            rv["enable_webtransport_h3"] = True
+
+    return rv
 
 
 def run_info_extras(logger, **kwargs):

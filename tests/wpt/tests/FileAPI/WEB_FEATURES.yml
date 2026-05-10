@@ -1,3 +1,4 @@
 features:
 - name: file
-  files: "**"
+  files:
+  - "*"

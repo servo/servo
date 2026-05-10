@@ -27,7 +27,8 @@ pub use font_context::{
 pub use font_store::FontTemplates;
 pub use fonts_traits::*;
 pub(crate) use glyph::*;
-pub use glyph::{GlyphInfo, GlyphStore};
+pub use glyph::{GlyphInfo, ShapedText, ShapedTextSlice, ShapedTextSlicer};
+use icu_locid::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
 pub use system_font_service::SystemFontService;
@@ -46,8 +47,7 @@ pub(crate) enum EmojiPresentationPreference {
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
-    #[cfg_attr(any(target_os = "android", target_os = "windows"), expect(dead_code))]
-    pub(crate) lang: Option<String>,
+    pub(crate) language: Language,
 }
 
 impl Default for FallbackFontSelectionOptions {
@@ -55,13 +55,13 @@ impl Default for FallbackFontSelectionOptions {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
-            lang: None,
+            language: Language::UND,
         }
     }
 }
 
 impl FallbackFontSelectionOptions {
-    pub(crate) fn new(character: char, next_character: Option<char>, lang: Option<String>) -> Self {
+    pub(crate) fn new(character: char, next_character: Option<char>, language: Language) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -89,7 +89,7 @@ impl FallbackFontSelectionOptions {
         Self {
             character,
             presentation_preference,
-            lang,
+            language,
         }
     }
 }

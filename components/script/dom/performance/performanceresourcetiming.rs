@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::ResourceFetchTiming;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 // TODO UA may choose to limit how many resources are included as PerformanceResourceTiming objects
 // recommended minimum is 150, can be changed by setResourceTimingBufferSize in performance
 // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
@@ -116,7 +117,6 @@ impl PerformanceResourceTiming {
     }
 
     // TODO fetch start should be in RFT
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn from_resource_timing(
         url: ServoUrl,
         initiator_type: InitiatorType,
@@ -156,14 +156,14 @@ impl PerformanceResourceTiming {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
         resource_timing: &ResourceFetchTiming,
-        can_gc: CanGc,
     ) -> DomRoot<PerformanceResourceTiming> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(PerformanceResourceTiming::from_resource_timing(
                 url,
                 initiator_type,
@@ -171,7 +171,7 @@ impl PerformanceResourceTiming {
                 resource_timing,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 

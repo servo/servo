@@ -1,0 +1,38 @@
+<!doctype html>
+<html class="reftest-wait">
+  <meta charset="utf-8" />
+  <style>
+    @font-face {
+      font-family: avar2test_variable;
+      src: url(../resources/avar/DesignSpaceWarpTest[opsz\,wdth\,wght].ttf);
+    }
+
+    body {
+      font-family: avar2test_variable, sans-serif;
+      font-size: 200px;
+    }
+
+    .light-expanded {
+      font-variation-settings:
+        "wght" 100,
+        "wdth" 125;
+    }
+
+    .bold-condensed {
+      font-variation-settings:
+        "wght" 900,
+        "wdth" 75;
+    }
+  </style>
+  <!-- The avar2test_variable font has no designspace distortions,
+     with no avar tables (neither avar format 1 nor avar format 2)
+-->
+  H
+  <span class="light-expanded">H</span>
+  <span class="bold-condensed">H</span>
+  <script>
+    document.fonts.ready.then(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</html>

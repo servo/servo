@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popover focus navigation with overflow:visible</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2022468">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+<button popovertarget="popover1" id="invoker">Invoker</button>
+<button id="after">After</button>
+<div popover="auto" style="overflow: visible;" id="popover1">
+  <a id="a" href="#">Focus me</a>
+  <input id="input">
+</div>
+<script>
+promise_test(async () => {
+  invoker.click();
+  await verifyFocusOrder([invoker, a, input, after],
+    "Focus should not be trapped inside overflow:visible popover");
+});
+</script>

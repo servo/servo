@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>Menu elements safe triangle behavior</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../interestfor/resources/invoker-utils.js"></script>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://open-ui.org/components/menu.explainer">
+<style>
+
+menuitem { interest-delay: 0ms; }
+
+</style>
+
+<menubar>
+  <menuitem>File</menuitem>
+  <menuitem>Edit</menuitem>
+  <menuitem command="toggle-menu" commandfor="view-menu">View</menuitem>
+  <menuitem>Help</menuitem>
+</menubar>
+
+<menulist id="view-menu">
+  <menuitem>Full Screen</menuitem>
+  <menuitem command="toggle-menu" commandfor="zoom-menu">Zoom</menuitem>
+</menulist>
+
+<menulist id="zoom-menu">
+  <menuitem>25%</menuitem>
+  <menuitem>50%</menuitem>
+  <menuitem>75%</menuitem>
+  <menuitem>90%</menuitem>
+  <menuitem>100%</menuitem>
+  <menuitem>110%</menuitem>
+  <menuitem>125%</menuitem>
+  <menuitem>150%</menuitem>
+  <menuitem>200%</menuitem>
+</menulist>
+
+<script>
+
+promise_test(async (t) => {
+  let view_item = document.querySelector("[commandfor='view-menu']");
+  let view_menu = document.getElementById("view-menu");
+  let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+  let zoom_menu = document.getElementById("zoom-menu");
+  let full_screen_item = zoom_item.previousElementSibling;
+  let actions = new test_driver.Actions();
+
+  assert_false(view_item.matches(":open"), "view menu closed before click");
+  await clickOn(view_item);
+  t.add_cleanup(async () => { await clickOn(view_item); });
+  assert_true(view_item.matches(":open"), "view menu open after click");
+  assert_false(zoom_item.matches(":open"), "zoom menu closed before hover");
+  await hoverOver(zoom_item);
+  assert_true(zoom_item.matches(":open"), "zoom menu open after hover");
+
+  let zoom_rect = zoom_item.getBoundingClientRect();
+  await hoverOver(full_screen_item);
+  assert_false(zoom_item.matches(":open"), "zoom menu closes after mouse move out of safe triangle");
+  assert_true(view_item.matches(":open"), "view menu still open after hover/dehover");
+
+  // TODO(https://crbug.com/406566432): We should also check that the view
+  // menu (which was opened by click) stays open when moving the pointer
+  // entirely out of it.  That doesn't work right now, though.
+}, 'moving mouse out of safe triangle lets menu close');
+
+promise_test(async (t) => {
+  let view_item = document.querySelector("[commandfor='view-menu']");
+  let view_menu = document.getElementById("view-menu");
+  let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+  let zoom_menu = document.getElementById("zoom-menu");
+  let actions = new test_driver.Actions();
+
+  assert_false(view_item.matches(":open"), "view menu closed before click");
+  await clickOn(view_item);
+  t.add_cleanup(async () => { await clickOn(view_item); });
+  assert_true(view_item.matches(":open"), "view menu open after click");
+  assert_false(zoom_item.matches(":open"), "zoom menu closed before hover");
+  await hoverOver(zoom_item);
+  assert_true(zoom_item.matches(":open"), "zoom menu open after hover");
+
+  let zoom_rect = zoom_item.getBoundingClientRect();
+  let zoom_menu_rect = zoom_menu.getBoundingClientRect();
+  await actions.pointerMove(zoom_rect.x + zoom_rect.width * 0.9, zoom_rect.y + zoom_rect.height * 1.2, {}).send();
+  await waitForRender();
+  assert_true(zoom_item.matches(":open"), "zoom menu still open after mouse move in safe triangle");
+  assert_false(zoom_menu.matches(":hover"), "zoom menu not yet being hovered");
+  await actions.pointerMove(zoom_menu_rect.x + zoom_menu_rect.width / 2, zoom_rect.y + zoom_rect.height * 1.2, {}).send();
+  await waitForRender();
+  assert_true(zoom_item.matches(":open"), "zoom menu still open after mouse move into submenu");
+  assert_true(zoom_menu.matches(":hover"), "zoom menu now being hovered");
+}, 'moving mouse within safe triangle keeps menu open');
+
+</script>

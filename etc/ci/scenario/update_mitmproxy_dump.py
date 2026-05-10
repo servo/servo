@@ -61,7 +61,7 @@ if __name__ == "__main__":
             "-w",
             args.dump_file,
             "-p",
-            common_function_for_servo_test.MITMPROXY_PORT,
+            str(common_function_for_servo_test.MITMPROXY_PORT),
             # "--mode", "upstream:<YOUR_PROXY_ADDRESS>",
             "--set",
             "ssl_insecure=true",

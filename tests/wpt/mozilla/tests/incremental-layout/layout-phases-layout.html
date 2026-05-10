@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+    setup({explicit_done:true});
+    window.onload = () => {
+        test((t) => {
+            const div = document.createElement('div');
+            div.textContent = 'Example';
+            document.body.appendChild(div);
+            t.add_cleanup(() => {
+                div.remove();
+            });
+
+            assert_array_equals(
+              ServoTestUtils.forceLayout().phases,
+              ["RanLayout", "CalculatedOverflow", "BuiltStackingContextTree", "BuiltDisplayList"]
+            )
+        }, "Adding div to body triggers full layout");
+
+        done();
+    }
+</script>

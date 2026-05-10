@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard: cached getType() data invalidated after clipboard.write()
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+
+<script>
+// Tests that getType() rejects on a ClipboardItem even when the data was
+// previously read and cached, after clipboard.write() invalidates the item.
+// This verifies that cached blob data does not bypass staleness checks.
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
+
+  // Step 1: Write initial data to the clipboard.
+  const initialBlob = new Blob(['initial text'], {type: 'text/plain'});
+  const initialItem = new ClipboardItem({'text/plain': initialBlob});
+  await waitForUserActivation();
+  await navigator.clipboard.write([initialItem]);
+
+  // Step 2: Read the clipboard to obtain a ClipboardItem.
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read();
+  assert_equals(clipboardItems.length, 1);
+  const item = clipboardItems[0];
+  assert_true(item.types.includes('text/plain'));
+
+  // Step 3: Call getType() to read and cache the data.
+  const blob = await item.getType('text/plain');
+  assert_equals(await blob.text(), 'initial text');
+
+  // Step 4: Write new data to the clipboard, invalidating the old item.
+  const newBlob = new Blob(['overwritten text'], {type: 'text/plain'});
+  const newItem = new ClipboardItem({'text/plain': newBlob});
+  await waitForUserActivation();
+  await navigator.clipboard.write([newItem]);
+
+  // Step 5: getType() on the now-stale item should reject with DataError,
+  // even though the data was previously read and cached in step 3.
+  await promise_rejects_dom(t, 'DataError', item.getType('text/plain'));
+}, 'getType() rejects with DataError on cached ClipboardItem after clipboard.write()');
+</script>

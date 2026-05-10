@@ -44,6 +44,7 @@
   test_cq_condition_known('style(var(--p) < calc(100 + 200))');
   test_cq_condition_known('style(attr(data-foo type(<number>)) < var(--p) < var(--q))');
   test_cq_condition_known('style(--foo < initial)');
+  test_cq_condition_known('style(10px <= env(safe-area-inset-top) < 20px)');
 
   test_cq_condition_unknown('style(--foo: bar;)');
   test_cq_condition_unknown('style(style(--foo: bar))');

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  #flexbox {
+    height: 400px;
+    width: 100px;
+    border: 2px solid #333;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .item {
+    width: 50px;
+    height: 70px;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+  }
+
+  .rule {
+    position: absolute;
+    left: 2px;
+    width: 50px;
+    height: 5px;
+    background: gold;
+  }
+</style>
+
+<div class="rule" style="top: 76.25px;"></div>
+<div class="rule" style="top: 157.75px;"></div>
+<div class="rule" style="top: 241.25px;"></div>
+<div class="rule" style="top: 322.75px;"></div>
+
+<div class="rule" style="left: 52px; top: 90px;"></div>
+<div class="rule" style="left: 52px; top: 200px;"></div>
+<div class="rule" style="left: 52px; top: 310px;"></div>
+
+<div id="flexbox">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

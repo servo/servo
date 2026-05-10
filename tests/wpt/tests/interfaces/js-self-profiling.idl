@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: JS Self-Profiling API (https://wicg.github.io/js-self-profiling/)
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface Profiler : EventTarget {
   readonly attribute DOMHighResTimeStamp sampleInterval;
   readonly attribute boolean stopped;

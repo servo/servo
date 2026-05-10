@@ -1,0 +1,35 @@
+{
+    "name": "Icons Localized Language Fallback Test",
+    "icons": [
+        {
+            "src": "fail.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "icons_localized": {
+        "en": [
+            {
+                "src": "pass.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ],
+        "fr": [
+            {
+                "src": "pass.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ],
+        "ja": [
+            {
+                "src": "pass.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ]
+    },
+    "start_url": "../icons_localized-member-language-fallback-manual.html",
+    "display": "fullscreen"
+}

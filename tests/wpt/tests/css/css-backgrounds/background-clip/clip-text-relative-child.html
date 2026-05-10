@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>background-clip:text with position:relative child</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-relative-child-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.clip {
+  font: 50px/1 Ahem;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+.relative {
+  position: relative;
+}
+</style>
+<!-- Test passes if there is a 10-character green text. -->
+<div class="clip">XXXXX<span class="relative">XXXXX</span></div>

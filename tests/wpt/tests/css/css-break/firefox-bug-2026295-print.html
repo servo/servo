@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2026295">
+<!-- This is a print crashtest, but wpt doesn't support that category of test.
+     We work around it by making this a print reftest which ensures the test
+     renders something non-blank. -->
+<link rel="mismatch" href="/common/blank.html">
+<style>
+.a {
+  position: absolute;
+  top: 500px;
+  height: 1000px;
+}
+.a, .b {
+  content: url(data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7);
+}
+time {
+  columns: 1;
+  transform: scaleY(1);
+}
+.c {
+  page-break-inside: avoid;
+  writing-mode: vertical-rl;
+  max-height: 0.1vmin;
+}
+</style>
+<time class="c">
+  <h6 class="b"></h6>
+  <font class="a">a</font>
+</time>

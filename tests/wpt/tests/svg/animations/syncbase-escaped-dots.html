@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Escaped dots in syncbase timing ID references</title>
+<link rel="help" href="https://www.w3.org/TR/SMIL3/smil-timing.html#Timing-ParsingTimingSpecifiers">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=42871">
+<meta name="assert" content="Per SMIL3 § Parsing timing specifiers, the reverse solidus '\' must be used to escape full stop '.' characters within Id-values in timing attributes, so that dots in element IDs are not confused with the Id/event separator.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <!-- Test 1: Single escaped dot -->
+  <rect width="10" height="10" fill="blue">
+    <animate attributeName="fill" from="yellow" to="red"
+             begin="indefinite" dur="10ms" id="my.anim" fill="freeze"/>
+  </rect>
+  <rect x="10" width="10" height="10" fill="blue">
+    <set attributeName="fill" to="green" begin="my\.anim.begin" id="dep1"/>
+  </rect>
+
+  <!-- Test 2: Multiple escaped dots -->
+  <rect x="20" width="10" height="10" fill="blue">
+    <animate attributeName="fill" from="yellow" to="red"
+             begin="indefinite" dur="10ms" id="a.b.c" fill="freeze"/>
+  </rect>
+  <rect x="30" width="10" height="10" fill="blue">
+    <set attributeName="fill" to="green" begin="a\.b\.c.begin" id="dep2"/>
+  </rect>
+
+</svg>
+
+<script>
+  async_test(t => {
+    const trigger = document.getElementById('my.anim');
+    const dep = document.getElementById('dep1');
+    dep.addEventListener('beginEvent', t.step_func_done(() => {
+        assert_equals(getComputedStyle(dep.parentElement).fill, 'rgb(0, 128, 0)');
+    }));
+    trigger.beginElement();
+  }, 'Single escaped dot in syncbase ID (begin="my\\.anim.begin")');
+
+  async_test(t => {
+    const trigger = document.getElementById('a.b.c');
+    const dep = document.getElementById('dep2');
+    dep.addEventListener('beginEvent', t.step_func_done(() => {
+        assert_equals(getComputedStyle(dep.parentElement).fill, 'rgb(0, 128, 0)');
+    }));
+    trigger.beginElement();
+  }, 'Multiple escaped dots in syncbase ID (begin="a\\.b\\.c.begin")');
+</script>

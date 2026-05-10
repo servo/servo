@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Box-shadow on display: table-row</title>
+<style>
+  body {
+    margin: 50px;
+    background: white;
+  }
+
+  .block {
+    width: 200px;
+    height: 200px;
+    background: #999;
+    box-shadow: 0 0 50px #000;
+  }
+
+  .block-red {
+    width: 200px;
+    height: 200px;
+    background: #999;
+    box-shadow: 0 0 50px red;
+  }
+
+  .block-green {
+    width: 200px;
+    height: 200px;
+    background: #999;
+    box-shadow: 0 0 50px green;
+  }
+
+  .block-blue {
+    width: 200px;
+    height: 200px;
+    background: #999;
+    box-shadow: 0 0 50px blue;
+  }
+
+  .group {
+    margin-bottom: 40px;
+  }
+</style>
+</head>
+<body>
+
+<div class="group">
+  <div class="block"></div>
+</div>
+
+<div class="group">
+  <div class="block"></div>
+  <div class="block"></div>
+</div>
+
+<div class="group">
+  <div class="block-red"></div>
+  <div class="block-green"></div>
+  <div class="block-blue"></div>
+</div>
+
+</body>
+</html>

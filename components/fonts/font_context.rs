@@ -9,7 +9,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
-use base::id::{PainterId, WebViewId};
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -17,6 +16,7 @@ use fonts_traits::{
 };
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
@@ -29,14 +29,15 @@ use paint_api::CrossProcessPaintApi;
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
+use style::device::Device;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
 };
-use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{
@@ -44,6 +45,7 @@ use style::stylesheets::{
 };
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
+use uuid::Uuid;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
@@ -171,7 +173,9 @@ impl FontContext {
 
     fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData> {
         match identifier {
-            FontIdentifier::Web(_) => self.font_data.read().get(identifier).cloned(),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                self.font_data.read().get(identifier).cloned()
+            },
             FontIdentifier::Local(_) => None,
         }
     }
@@ -264,6 +268,15 @@ impl FontContext {
             font_template, font_descriptor
         );
 
+        // Check one more time whether the font is cached or not. There's a potential race
+        // condition, where between the time we took the read lock above and now, another thread
+        // added the font to the cache. This check makes sense, because loading a font has memory
+        // implications and is much slower than checking the map again.
+        let mut fonts = self.fonts.write();
+        if let Some(font) = fonts.get(&cache_key).cloned() {
+            return font;
+        }
+
         // TODO: Inserting `None` into the cache here is a bit bogus. Instead we should somehow
         // mark this template as invalid so it isn't tried again.
         let font = self
@@ -273,7 +286,7 @@ impl FontContext {
                 synthesized_small_caps_font,
             )
             .ok();
-        self.fonts.write().insert(cache_key, font.clone());
+        fonts.insert(cache_key, font.clone());
         font
     }
 
@@ -344,13 +357,14 @@ impl FontContext {
                 font.variations().to_owned(),
                 painter_id,
             ),
-            FontIdentifier::Web(_) => self.create_web_font_instance(
-                font.template.clone(),
-                font.descriptor.pt_size,
-                font.webrender_font_instance_flags(),
-                font.variations().to_owned(),
-                painter_id,
-            ),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => self
+                .create_web_font_instance(
+                    font.template.clone(),
+                    font.descriptor.pt_size,
+                    font.webrender_font_instance_flags(),
+                    font.variations().to_owned(),
+                    painter_id,
+                ),
         }
     }
 
@@ -362,7 +376,7 @@ impl FontContext {
         variations: Vec<FontVariation>,
         painter_id: PainterId,
     ) -> FontInstanceKey {
-        let identifier = font_template.identifier().clone();
+        let identifier = font_template.identifier();
         let font_data = self
             .get_font_data(&identifier)
             .expect("Web font should have associated font data");
@@ -445,6 +459,35 @@ impl FontContext {
         }
 
         false
+    }
+
+    fn is_local_or_unknown_url_font(
+        &self,
+        family_name: &LowercaseFontFamilyName,
+        source: &Source,
+    ) -> bool {
+        match source {
+            Source::Url(url) => !url
+                .url
+                .url()
+                .cloned()
+                .map(ServoUrl::from)
+                .map(FontIdentifier::Web)
+                .filter(|font_identifier| self.font_data.read().contains_key(font_identifier))
+                .is_some_and(|font_identifier| {
+                    self.web_fonts
+                        .read()
+                        .families
+                        .get(family_name)
+                        .is_some_and(|templates| {
+                            templates
+                                .templates
+                                .iter()
+                                .any(|template| template.borrow().identifier == font_identifier)
+                        })
+                }),
+            Source::Local(_) => true,
+        }
     }
 }
 
@@ -604,7 +647,15 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             };
 
             let rule: &FontFaceRule = lock.read_with(guard);
-            let Some(font_face) = rule.font_face() else {
+
+            // Per https://github.com/w3c/csswg-drafts/issues/1133 an @font-face rule
+            // is valid as far as the CSS parser is concerned even if it doesn’t have
+            // a font-family or src declaration.
+            // However, both are required for the rule to represent an actual font face.
+            if rule.descriptors.font_family.is_none() {
+                continue;
+            }
+            let Some(ref sources) = rule.descriptors.src else {
                 continue;
             };
 
@@ -619,7 +670,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             number_loading += 1;
             self.start_loading_one_web_font(
                 Some(webview_id),
-                font_face.sources(),
+                sources,
                 css_font_face_descriptors,
                 WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
                 document_context,
@@ -756,6 +807,32 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 }
 
 impl FontContext {
+    pub fn construct_web_font_from_data(
+        &self,
+        data: &[u8],
+        descriptors: CSSFontFaceDescriptors,
+    ) -> Option<(LowercaseFontFamilyName, FontTemplate)> {
+        let bytes = fontsan::process(data)
+            .inspect_err(|error| {
+                debug!(
+                    "Sanitiser rejected FontFace font: family={} with {error:?}",
+                    descriptors.family_name,
+                );
+            })
+            .ok()?;
+        let font_data = FontData::from_bytes(&bytes);
+
+        let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
+        let handle =
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false).ok()?;
+
+        let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None, None);
+
+        self.font_data.write().insert(identifier, font_data);
+
+        Some((descriptors.family_name, new_template))
+    }
+
     fn start_loading_one_web_font(
         self: &Arc<FontContext>,
         webview_id: Option<WebViewId>,
@@ -769,6 +846,9 @@ impl FontContext {
             .iter()
             .rev()
             .filter(Self::is_supported_web_font_source)
+            .filter(|source| {
+                self.is_local_or_unknown_url_font(&css_font_face_descriptors.family_name, source)
+            })
             .cloned()
             .collect();
 
@@ -828,7 +908,7 @@ impl FontContext {
                     .flatten()
                     .and_then(|local_template| {
                         let template = FontTemplate::new_for_local_web_font(
-                            local_template.clone(),
+                            local_template,
                             &state.css_font_face_descriptors,
                             state.initiator.stylesheet().cloned(),
                             state.initiator.font_face_rule().cloned(),
@@ -907,7 +987,7 @@ impl RemoteWebFontDownloader {
 
         let request = RequestBuilder::new(
             state.webview_id,
-            url.clone().into(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone().into()),
             Referrer::ReferrerUrl(document_context.document_url.clone()),
         )
         .destination(Destination::Font)
@@ -1024,9 +1104,7 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-                DownloaderResponseResult::InProcess
-            },
+            FetchResponseMsg::ProcessRequestBody(..) => DownloaderResponseResult::InProcess,
             FetchResponseMsg::ProcessCspViolations(_request_id, violations) => {
                 self.state
                     .as_ref()

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Images Test: Invalidate currentcolor in gradient with relative color stop</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#relative-colors">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .test {
+    color: red;
+    width: 100px;
+    height: 50px;
+  }
+  #t1 {
+    background-image: linear-gradient(rgb(from currentcolor 0 g 0) 0 0);
+  }
+  #t2 {
+    background-image: conic-gradient(rgb(from currentcolor 0 g 0) 0 0);
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="t1" class="test"></div>
+<div id="t2" class="test"></div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t1.style.color = "#808080";
+    t2.style.color = "#808080";
+    takeScreenshot();
+  }));
+</script>

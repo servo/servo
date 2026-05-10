@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2025899">
+<title>Remove popover attribute during the popover focusing steps</title>
+<body>
+<div id="popover" popover=auto><input id="input" autofocus></div>
+<script>
+"use strict";
+promise_test(async () => {
+  let hasPopover, toggleEvent;
+  popover.addEventListener("toggle", (e) => {
+    assert_equals(toggleEvent, undefined, "only one toggle event should be dispatched");
+    hasPopover = popover.hasAttribute("popover");
+    toggleEvent = e;
+  });
+  input.addEventListener("focus", () => {
+    popover.removeAttribute("popover");
+  }, { once: true });
+  popover.showPopover();
+  // wait for events to fire
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_not_equals(toggleEvent, undefined, "toggle event should be dispatched");
+  // Despite the fact that the popover is now closed, only a toggle event with newState = open is fired.
+  // This is because nestedHide is true in "hide a popover", so fireEvents is set to false.
+  assert_equals(toggleEvent.oldState, "closed", "toggle event should have oldState = closed");
+  assert_equals(toggleEvent.newState, "open", "toggle event should have newState = open");
+  assert_false(hasPopover, "toggle event should be dispatched after removeAttribute is called");
+});
+</script>
+</body>
+

@@ -29,6 +29,10 @@ def main(request, response):
 <meta charset=utf-8>
 <title>Generate deprecation report</title>
 <script>
-  webkitRequestAnimationFrame(() => {});
+  if (typeof window.webkitRequestAnimationFrame === "function") {
+    window.webkitRequestAnimationFrame(() => {});
+  } else {
+    window.fullScreen;
+  }
 </script>
 """

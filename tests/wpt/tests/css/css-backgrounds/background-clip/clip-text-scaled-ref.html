@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>background-clip:text in a scaled element (reference)</title>
+<style>
+body { overflow: hidden; margin: 0; }
+.scaled {
+  transform: scale(2);
+  transform-origin: top left;
+}
+.text {
+  font-size: 50px;
+  color: blue;
+}
+</style>
+<div class="scaled">
+  <span class="text">This text should be nice and sharp.</span>
+</div>

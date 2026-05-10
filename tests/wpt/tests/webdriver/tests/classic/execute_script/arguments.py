@@ -2,7 +2,7 @@ import pytest
 
 from webdriver.client import ShadowRoot, WebElement, WebFrame, WebWindow
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from . import execute_script
 
 

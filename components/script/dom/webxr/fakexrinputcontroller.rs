@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     Handedness, InputId, MockButton, MockButtonType, MockDeviceMsg, MockInputMsg, SelectEvent,
     SelectKind, TargetRayMode,
@@ -18,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRTargetRayMode,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
@@ -30,7 +30,6 @@ pub(crate) struct FakeXRInputController {
     reflector: Reflector,
     #[no_trace]
     sender: GenericSender<MockDeviceMsg>,
-    #[ignore_malloc_size_of = "defined in webxr-api"]
     #[no_trace]
     id: InputId,
 }
@@ -156,10 +155,10 @@ impl FakeXRInputControllerMethods<crate::DomTypeHolder> for FakeXRInputControlle
     fn UpdateButtonState(&self, button_state: &FakeXRButtonStateInit) -> Fallible<()> {
         // https://immersive-web.github.io/webxr-test-api/#validate-a-button-state
         if (button_state.pressed || *button_state.pressedValue > 0.0) && !button_state.touched {
-            return Err(Error::Type("Pressed button must also be touched".into()));
+            return Err(Error::Type(c"Pressed button must also be touched".into()));
         }
         if *button_state.pressedValue < 0.0 {
-            return Err(Error::Type("Pressed value must be non-negative".into()));
+            return Err(Error::Type(c"Pressed value must be non-negative".into()));
         }
 
         // TODO: Steps 3-5 of updateButtonState

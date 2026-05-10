@@ -44,7 +44,8 @@ text
 <html onload="3 + 3"><div>a
 #config
 { "replaceWithChildrenElements": ["html"], "elements": ["head", "body", "div"] }
-#document
+#error
+TypeError
 
 </script>
 <script id="safe" type="html5lib-testcases">
@@ -84,19 +85,54 @@ text
 |   <head>
 |   <body>
 |     <div>
-|       "a"
-|       "b"
+|       "ab"
 
 #data
 <html onload="2 + 2"><div>a
 #config
 { "replaceWithChildrenElements": ["html"], "removeElements": [] }
+#error
+TypeError
+
+#data
+<br id="document">
+#config
+{"elements": [{ "name":"br", "attributes":[] }, "html", "body"]}
 #document
 | <html>
-|   <head>
 |   <body>
-|     <div>
-|       "a"
+|     <br>
+
+#data
+<br id="document">
+#config
+{"elements": [{ "name":"br", "attributes":[] }, "html", "body"], "attributes":[]}
+#document
+| <html>
+|   <body>
+|     <br>
+
+#data
+<p onclick="alert(document.cookie)">Click handler!</p>
+#config
+{"elements": [{ "name":"p", "attributes":["onclick"] }, "html", "body"], "attributes":[]}
+#document
+#document
+| <html>
+|   <body>
+|     <p>
+|      "Click handler!"
+
+#data
+<p onclick="alert(document.cookie)">Click handler!</p>
+#config
+{"elements": [{ "name":"p", "attributes":["onclick"] }, "html", "body"]}
+#document
+#document
+| <html>
+|   <body>
+|     <p>
+|      "Click handler!"
 
 </script>
 <script id="unsafe" type="html5lib-testcases">
@@ -149,13 +185,9 @@ text
 <html onload="2 + 2"><div>a
 #config
 { "replaceWithChildrenElements": ["html"], "removeElements": [] }
-#document
-| <html>
-|   onload="2 + 2"
-|   <head>
-|   <body>
-|     <div>
-|       "a"
+#error
+TypeError
+
 </script>
 <script id="document" type="html5lib-testcases">
 #data
@@ -176,7 +208,12 @@ function test_safe(testcase, index) {
     config = { sanitizer: JSON.parse(testcase.config) };
   }
   test(_ => {
-    assert_testcase(Document.parseHTML(testcase.data, config), testcase);
+    if (testcase.error) {
+      assert_throws_js(globalThis[testcase.error],
+                       () => Document.parseHTML(testcase.data, config));
+    } else {
+      assert_testcase(Document.parseHTML(testcase.data, config), testcase);
+    }
   }, `parseHTML testcase ${index}, "${testcase.data}"`);
 }
 function test_unsafe(testcase, index) {
@@ -185,7 +222,12 @@ function test_unsafe(testcase, index) {
     config = { sanitizer: JSON.parse(testcase.config) };
   }
   test(_ => {
-    assert_testcase(Document.parseHTMLUnsafe(testcase.data, config), testcase);
+    if (testcase.error) {
+      assert_throws_js(globalThis[testcase.error],
+                       () => Document.parseHTMLUnsafe(testcase.data, config));
+    } else {
+      assert_testcase(Document.parseHTMLUnsafe(testcase.data, config), testcase);
+    }
   }, `parseHTMLUnsafe testcase ${index}, "${testcase.data}"`);
 }
 

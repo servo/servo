@@ -11,18 +11,18 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use base::generic_channel::{self, GenericReceiver, GenericSender};
-use base::id::ScriptEventLoopId;
-use constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
-use ipc_channel::Error;
+use ipc_channel::IpcError;
 use layout_api::ScriptThreadFactory;
 use log::error;
 use media::WindowGLContext;
 use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
+use servo_base::id::ScriptEventLoopId;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
+use servo_constellation_traits::ServiceWorkerManagerFactory;
 
 use crate::sandboxing::spawn_multiprocess;
 use crate::{Constellation, UnprivilegedContent};
@@ -66,9 +66,9 @@ impl EventLoop {
     pub(crate) fn spawn<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         is_private: bool,
-    ) -> Result<Rc<Self>, Error> {
+    ) -> Result<Rc<Self>, IpcError> {
         let (script_chan, script_port) =
-            base::generic_channel::channel().expect("Pipeline script chan");
+            servo_base::generic_channel::channel().expect("Pipeline script chan");
 
         let embedder_chan = constellation.embedder_proxy.sender.clone();
         let eventloop_waker = constellation.embedder_proxy.event_loop_waker.clone();
@@ -153,7 +153,7 @@ impl EventLoop {
     fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, IpcError> {
         let script_chan = initial_script_state.constellation_to_script_sender.clone();
         let id = initial_script_state.id;
 
@@ -192,10 +192,8 @@ impl EventLoop {
     }
 
     /// Send a message to the event loop.
-    pub fn send(&self, msg: ScriptThreadMessage) -> Result<(), Error> {
-        self.script_chan
-            .send(msg)
-            .map_err(|_err| Box::new(ipc_channel::ErrorKind::Custom("SendError".into())))
+    pub fn send(&self, msg: ScriptThreadMessage) -> Result<(), SendError> {
+        self.script_chan.send(msg)
     }
 
     /// If this is [`EventLoop`] is in another process, send a message to its `BackgroundHangMonitor`,
@@ -204,10 +202,10 @@ impl EventLoop {
         &self,
         message: &BackgroundHangMonitorControlMsg,
     ) {
-        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender {
-            if let Err(error) = background_hang_monitor_sender.send(message.clone()) {
-                error!("Could not send message ({message:?}) to BHM: {error}");
-            }
+        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender &&
+            let Err(error) = background_hang_monitor_sender.send(message.clone())
+        {
+            error!("Could not send message ({message:?}) to BHM: {error}");
         }
     }
 }

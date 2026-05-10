@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="500" viewBox="0 0 400 500"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <!-- Clockwise circle, starting at 3 o'clock (230,100) -->
+    <path id="circle-cw" d="M 230,100 A 80,80 0 0,1 70,100 A 80,80 0 0,1 230,100"/>
+    <!-- Counter-clockwise circle from same start point: reversed CW = side="right" -->
+    <path id="circle-ccw" d="M 230,100 A 80,80 0 0,0 70,100 A 80,80 0 0,0 230,100"/>
+    <!-- Visual guide -->
+    <circle id="guide" cx="150" cy="100" r="80"/>
+  </defs>
+  <!-- Row 1: default (left) on CW circle -->
+  <g transform="translate(0,0)">
+    <use href="#guide" style="fill:none;stroke:lightblue"/>
+    <text fill="blue">
+      <textPath href="#circle-cw">ABCD</textPath>
+    </text>
+  </g>
+  <!-- Row 2: CCW circle = equivalent to side="right" on CW -->
+  <g transform="translate(0,220)">
+    <use href="#guide" style="fill:none;stroke:lightblue"/>
+    <text fill="green">
+      <textPath href="#circle-ccw">ABCD</textPath>
+    </text>
+  </g>
+</svg>

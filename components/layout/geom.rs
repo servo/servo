@@ -45,7 +45,7 @@ pub struct LogicalSides<T> {
     pub block_end: T,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 pub(crate) struct LogicalSides1D<T> {
     pub start: T,
     pub end: T,

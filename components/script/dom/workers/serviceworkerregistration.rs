@@ -4,25 +4,28 @@
 
 use std::cell::Cell;
 
-use base::id::ServiceWorkerRegistrationId;
-use constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::id::ServiceWorkerRegistrationId;
+use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
+use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::script_runtime::CanGc;
 
@@ -124,15 +127,27 @@ impl ServiceWorkerRegistration {
             pipeline_id: global.pipeline_id(),
         };
 
+        let webgl_chan = global
+            .downcast::<Window>()
+            .and_then(|window| window.webgl_chan_value());
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global, None, None);
+        let init = prepare_workerscope_init(global, None, Some(worker_id), webgl_chan);
+        let browsing_context_id = global
+            .downcast::<Window>()
+            .map(|w: &Window| w.window_proxy().browsing_context_id())
+            .expect("Service worker must be registered from a Window global");
+        let webview_id = global
+            .webview_id()
+            .expect("Service worker must have a WebViewId");
         ScopeThings {
             script_url,
             init,
             worker_load_origin,
             devtools_chan,
             worker_id,
+            browsing_context_id,
+            webview_id,
         }
     }
 
@@ -203,7 +218,8 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
 
     /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload>
     fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
-        self.navigation_preload
-            .or_init(|| NavigationPreloadManager::new(&self.global(), self, CanGc::note()))
+        self.navigation_preload.or_init(|| {
+            NavigationPreloadManager::new(&self.global(), self, CanGc::deprecated_note())
+        })
     }
 }

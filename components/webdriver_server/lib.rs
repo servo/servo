@@ -9,6 +9,7 @@
 mod actions;
 mod capabilities;
 mod script_argument_extraction;
+mod server;
 mod session;
 mod timeout;
 mod user_prompt;
@@ -22,8 +23,6 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use std::{env, fmt, process, thread};
 
-use base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
-use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
@@ -44,6 +43,9 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use server::{Session, SessionTeardownKind, WebDriverHandler};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
@@ -71,13 +73,14 @@ use webdriver::response::{
     CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
     NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
-use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{
-    ELEMENT_CLICK_BUTTON, InputSourceState, PendingPointerMove, PointerInputState,
-};
+use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
+
+/// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
+/// 2^53 - 1
+pub(crate) static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
@@ -183,8 +186,9 @@ struct Handler {
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
     pending_input_event_receivers: Vec<Receiver<()>>,
 
-    /// Moves that are currently in-progress and need to be ticked.
-    pending_pointer_moves: Vec<PendingPointerMove>,
+    /// Ongoing [`PointerMoveAction`] or [`WheelScrollAction`] that are being incrementally
+    /// processed across multiple execution cycles within the current tick.
+    pending_actions: Vec<PendingActions>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
@@ -468,7 +472,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
-            pending_pointer_moves: Default::default(),
+            pending_actions: Default::default(),
         }
     }
 
@@ -486,6 +490,7 @@ impl Handler {
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
     }
 
+    // FIXME: This should be completely removed after we revamp the touch chain.
     fn send_input_event_to_embedder(&self, input_event: InputEvent) {
         let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
             self.verified_webview_id(),
@@ -619,6 +624,7 @@ impl Handler {
         match self.focused_webview_id()? {
             Some(webview_id) => {
                 self.session_mut()?.set_webview_id(webview_id);
+                self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
             },
@@ -637,6 +643,7 @@ impl Handler {
                     .expect("IPC failure when creating new webview for new session");
                 self.focus_webview(webview_id)?;
                 self.session_mut()?.set_webview_id(webview_id);
+                self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
                 let _ = self.wait_document_ready(Some(DEFAULT_PAGE_LOAD_TIMEOUT));
@@ -1859,6 +1866,18 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = generic_channel::channel().unwrap();
 
+        // Step 6. cookie expiry time is not an integer type,
+        // or it less than 0 or greater than the maximum safe integer,
+        // return error with error code invalid argument.
+        if let Some(ref expiry) = params.expiry &&
+            expiry.0 > MAXIMUM_SAFE_INTEGER
+        {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "expiry time greater than maximum safe integer",
+            ));
+        }
+
         let mut cookie_builder =
             CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
                 .secure(params.secure)
@@ -1870,9 +1889,10 @@ impl Handler {
             cookie_builder = cookie_builder.path(path.clone());
         }
         if let Some(ref expiry) = params.expiry {
-            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
-                cookie_builder = cookie_builder.expires(datetime);
-            }
+            let datetime = OffsetDateTime::from_unix_timestamp(expiry.0 as i64).map_err(|_| {
+                WebDriverError::new(ErrorStatus::InvalidArgument, "invalid expiry time")
+            })?;
+            cookie_builder = cookie_builder.expires(datetime);
         }
         if let Some(ref same_site) = params.sameSite {
             cookie_builder = match same_site.as_str() {
@@ -1915,7 +1935,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         wait_for_ipc_response_flatten(receiver)?;
         Ok(WebDriverResponse::Void)
     }
@@ -2240,9 +2260,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
-                        event,
-                    )));
+                    self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                        ImeEvent::Composition(event),
+                    ));
                 },
             }
         }
@@ -2479,7 +2499,7 @@ impl Handler {
         // Step 5
         let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
 
-        // Step 6 return success with data encoded string.
+        // Step 6. return success with data encoded string.
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(encoded)?,
         )))
@@ -2619,6 +2639,37 @@ impl Handler {
         } else {
             Ok(())
         }
+    }
+
+    fn wait_until_browsing_context_is_open(
+        &self,
+        browsing_context_id: BrowsingContextId,
+    ) -> WebDriverResult<()> {
+        // We cannot use provided timeout from configuration, as `fn wait_until_browsing_context_is_open` is not a standard step in spec.
+        // Some tests use `page_load = 0` deliberately, which would always fail with the function.
+        const OPEN_BROWSING_CONTEXT_TIMEOUT: Duration =
+            Duration::from_millis(DEFAULT_PAGE_LOAD_TIMEOUT);
+        let now = Instant::now();
+        let timeouts = self.session()?.session_timeouts();
+
+        let sleep_interval = Duration::from_millis(timeouts.sleep_interval);
+
+        while now.elapsed() < OPEN_BROWSING_CONTEXT_TIMEOUT {
+            if self
+                .verify_browsing_context_is_open(browsing_context_id)
+                .is_ok()
+            {
+                return Ok(());
+            }
+
+            sleep(sleep_interval);
+        }
+        Err(WebDriverError::new(
+            ErrorStatus::Timeout,
+            format!(
+                "Timed out waiting for the top-level browsing context {browsing_context_id} to be ready"
+            ),
+        ))
     }
 
     fn focus_webview(&self, webview_id: WebViewId) -> WebDriverResult<()> {

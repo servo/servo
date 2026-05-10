@@ -1,0 +1,288 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - streaming with sanitizer</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+  for (const baseMethod of [
+    "",
+    "Append",
+    "Prepend",
+    "Before",
+    "After",
+    "ReplaceWith",
+  ]) {
+    for (const safe of [true, false]) {
+      const method = `stream${baseMethod}HTML${safe ? "" : "Unsafe"}`;
+      function assert_html_equals(parent, placeholder, expected) {
+        if (["", "Append", "Prepend"].includes(baseMethod)) {
+          assert_equals(placeholder.innerHTML, expected);
+        } else if (baseMethod === "ReplaceWith") {
+          assert_equals(parent.innerHTML, expected);
+        } else if (baseMethod === "Before") {
+          assert_equals(parent.innerHTML, expected + "<div></div>");
+        } else if (baseMethod === "After") {
+          assert_equals(parent.innerHTML, "<div></div>" + expected);
+        }
+      }
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: { removeElements: ["span"] },
+        }).getWriter();
+        await writer.write("<div>A</div><span>B</span>");
+        await writer.close();
+        assert_equals(parent.textContent, "A");
+      }, `element.${method} with sanitizer {removeElements}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: { elements: ["div"] },
+        }).getWriter();
+        await writer.write("<div>A</div><span>B</span>");
+        await writer.close();
+        assert_equals(parent.textContent, "A");
+      }, `element.${method} with sanitizer {elements}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["div"],
+          },
+        }).getWriter();
+        await writer.write("<div id=outer><span id=inner>A</span></div>");
+        await writer.close();
+        assert_not_equals(parent.querySelector("#inner"), null);
+        assert_equals(parent.querySelector("#outer"), null);
+      }, `element.${method} with sanitizer {replaceWithChildrenElements}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["div"],
+          },
+        }).getWriter();
+        await writer.write("<div id=outer>A</div>");
+        await writer.close();
+        assert_equals(parent.textContent, "A");
+        assert_equals(parent.querySelector("#outer"), null);
+      }, `element.${method} with sanitizer {replaceWithChildrenElements} and text`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            attributes: ["allowed"],
+          },
+        }).getWriter();
+        await writer.write("<span allowed=a forbidden=b>A</span>");
+        await writer.close();
+        const node = parent.querySelector("span");
+        assert_true(node.hasAttribute("allowed"));
+        assert_false(node.hasAttribute("forbidden"));
+      }, `element.${method} with sanitizer {attributes}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeAttributes: ["forbidden"],
+          },
+        }).getWriter();
+        await writer.write("<span allowed=a forbidden=b>A</span>");
+        await writer.close();
+        const node = parent.querySelector("span");
+        assert_true(node.hasAttribute("allowed"));
+        assert_false(node.hasAttribute("forbidden"));
+      }, `element.${method} with sanitizer {removeAttributes}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            elements: [{ name: "span", removeAttributes: ["forbidden"] }],
+          },
+        }).getWriter();
+        await writer.write("<span allowed=a forbidden=b>A</span>");
+        await writer.close();
+        const node = parent.querySelector("span");
+        assert_true(node.hasAttribute("allowed"));
+        assert_false(node.hasAttribute("forbidden"));
+      }, `element.${method} with sanitizer {element: [{removeAttributes}]}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            elements: [{ name: "span", attributes: ["allowed"] }],
+          },
+        }).getWriter();
+        await writer.write("<span allowed=a forbidden=b>A</span>");
+        await writer.close();
+        const node = parent.querySelector("span");
+        assert_true(node.hasAttribute("allowed"));
+        assert_false(node.hasAttribute("forbidden"));
+      }, `element.${method} with sanitizer {element: [{attributes}]}`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            elements: ["template", { name: "span", attributes: ["allowed"] }],
+          },
+        }).getWriter();
+        await writer.write(
+          "<template><span allowed=a forbidden=b>A</span></template>",
+        );
+        await writer.close();
+        const template = parent.querySelector("template");
+        const firstElementChild = template.content.firstElementChild;
+        assert_true(firstElementChild.hasAttribute("allowed"));
+        assert_false(firstElementChild.hasAttribute("forbidden"));
+      }, `element.${method} with sanitizer should sanitize template contents`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["template"],
+          },
+        }).getWriter();
+        await writer.write("<template><span allowed=a>A</span></template>");
+        await writer.close();
+        assert_equals(parent.querySelector("template"), null);
+      }, `element.${method}: sanitizer shouldn't allow escaping template`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["tr"],
+          },
+        }).getWriter();
+        await writer.write("<table><td>Content");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<table><tbody><td>Content</td></tbody></table>",
+        );
+      }, `element.${method}: sanitizer takes effect after foster parenting`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["tr"],
+          },
+        }).getWriter();
+        await writer.write("<table><p><p>Content<td>");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<p></p><p>Content</p><table><tbody><td></td></tbody></table>",
+        );
+      }, `element.${method}: sanitizer with foster parenting: replaceWithChildrenElements`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeElements: ["img"],
+          },
+        }).getWriter();
+        await writer.write("<table><img id=forbidden>");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<table></table>",
+        );
+      }, `element.${method}: sanitizer with foster parenting: removeElements`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeElements: ["i"],
+          },
+        }).getWriter();
+        await writer.write("<p>1<b>2<i>3</b>4</i>5</p>");
+        await writer.close();
+        assert_html_equals(parent, placeholder, "<p>1<b>2</b>5</p>");
+      }, `element.${method}: sanitizer takes effect after adoption agency (1)`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeElements: ["b"],
+          },
+        }).getWriter();
+        await writer.write("<p>1<b>2<i>3</b>4</i>5</p>");
+        await writer.close();
+        assert_html_equals(parent, placeholder, "<p>1<i>4</i>5</p>");
+      }, `element.${method}: sanitizer takes effect after adoption agency (2)`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const sanitizer = new Sanitizer();
+        const writer = placeholder[method]({ sanitizer }).getWriter();
+        await writer.write("<p>1</p>");
+        sanitizer.removeElement("p");
+        await writer.write("<p>2</p>");
+        await writer.close();
+        assert_equals(parent.textContent, "12");
+      }, `element.${method}: mutating the sanitizer while streaming does not effect the originally given sanitizer`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        assert_throws_js(TypeError, _ => {
+          placeholder[method]({sanitizer: {elements: ["div"], removeElements: ["div"]}});
+        });
+      }, `element.${method}: passing an invalid sanitizer config should not create the stream`);
+    }
+  }
+</script>

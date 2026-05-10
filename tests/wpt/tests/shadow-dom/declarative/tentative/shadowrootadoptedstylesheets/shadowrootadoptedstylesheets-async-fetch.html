@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets async fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Create a shadow root that references a CSS module specifier that hasn't
+    // been fetched yet. An empty placeholder sheet should be added to
+    // adoptedStyleSheets immediately, and populated when the fetch completes.
+    const cssUrl = "./support/styles.css?async_fetch";
+    const { shadowRoot, testElement } = createStylesheetHost(cssUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before fetch: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before fetch: placeholder at index 0 should be empty.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
+      "Styles should not yet be applied from the empty placeholder.");
+
+    await fetchAndWait(cssUrl);
+
+    assertSheetRule(shadowRoot, 0, "span { color: blue; }", "After fetch");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
+      "Styles were applied after async fetch.");
+  }, "Async-fetched CSS module replaces placeholder and applies styles.");
+</script>
+</body>

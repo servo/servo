@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -11,10 +15,10 @@ use crate::dom::bindings::codegen::Bindings::IDBVersionChangeEventBinding::{
 };
 use crate::dom::bindings::import::module::HandleObject;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -81,6 +85,44 @@ impl IDBVersionChangeEvent {
         }
         ev
     }
+
+    /// <https://w3c.github.io/IndexedDB/#fire-a-version-change-event>
+    pub(crate) fn fire_version_change_event(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        target: &EventTarget,
+        event_type: Atom,
+        old_version: u64,
+        new_version: Option<u64>,
+    ) -> bool {
+        // Step 1: Let event be the result of creating an event using IDBVersionChangeEvent.
+        // Step 2: Set event’s type attribute to e.
+        // Step 3: Set event’s bubbles and cancelable attributes to false.
+        // Step 4: Set event’s oldVersion attribute to oldVersion.
+        // Step 5: Set event’s newVersion attribute to newVersion.
+        let event = IDBVersionChangeEvent::new(
+            global,
+            event_type,
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            new_version,
+            CanGc::from_cx(cx),
+        );
+
+        // Step 6: Let legacyOutputDidListenersThrowFlag be false.
+        let legacy_output_did_listeners_throw = Cell::new(false);
+        // Step 7: Dispatch event at target with legacyOutputDidListenersThrowFlag.
+        let _ = event
+            .upcast::<Event>()
+            .fire_with_legacy_output_did_listeners_throw(
+                cx,
+                target,
+                &legacy_output_did_listeners_throw,
+            );
+        // Step 8: Return legacyOutputDidListenersThrowFlag.
+        legacy_output_did_listeners_throw.get()
+    }
 }
 
 impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEvent {
@@ -104,12 +146,12 @@ impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEven
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbversionchangeevent-oldversion>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbversionchangeevent-oldversion>
     fn OldVersion(&self) -> u64 {
         self.old_version
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbversionchangeevent-newversion>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbversionchangeevent-newversion>
     fn GetNewVersion(&self) -> Option<u64> {
         self.new_version
     }

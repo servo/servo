@@ -3,24 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::security::csp::CspReporting;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLBaseElement {
@@ -44,17 +44,17 @@ impl HTMLBaseElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLBaseElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -68,9 +68,7 @@ impl HTMLBaseElement {
         let document = self.owner_document();
         // Step 2. Let urlRecord be the result of parsing the value of element's href content attribute
         // with document's fallback base URL, and document's character encoding. (Thus, the base element isn't affected by itself.)
-        let attr = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"));
+        let attr = self.upcast::<Element>().get_attribute(&local_name!("href"));
         let Some(href_value) = attr.as_ref().map(|attr| attr.value()) else {
             unreachable!("Must always have a href set when setting frozen base URL");
         };
@@ -117,9 +115,7 @@ impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
         let document = self.owner_document();
 
         // Step 2. Let url be the value of the href attribute of this element, if it has one, and the empty string otherwise.
-        let attr = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"));
+        let attr = self.upcast::<Element>().get_attribute(&local_name!("href"));
         let value = attr.as_ref().map(|attr| attr.value());
         let url = value.as_ref().map_or("", |value| &**value);
 
@@ -148,10 +144,15 @@ impl VirtualMethods for HTMLBaseElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         if *attr.local_name() == local_name!("href") {
@@ -167,16 +168,16 @@ impl VirtualMethods for HTMLBaseElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();
         document.refresh_base_element();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();

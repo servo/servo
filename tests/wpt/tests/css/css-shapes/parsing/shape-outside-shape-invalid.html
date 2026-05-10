@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Shapes Module Level 2: parsing shape-outside with invalid shape() values</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<meta name="assert" content="Invalid shape() values should not be accepted for shape-outside.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("shape-outside", "shape(from 20px 40px line to 20px 30px)");
+test_invalid_value("shape-outside", "shape(from 20px 40px line to 20px 30px,)");
+test_invalid_value("shape-outside", "shape(from 20px, 40px, line to 20px, 30px)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, move to 20px 30px, hline to top)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, move to 20px 30px, vline to left)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, curve to 20px 20px, using 10px 30px)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, curve to 20px 20px with 10px 30px 12px 32px)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, arc by 20px 20px of 10% 20% small large)");
+test_invalid_value("shape-outside", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw ccw)");
+</script>

@@ -135,16 +135,6 @@ partial interface Window {
   [Replaceable] readonly attribute double devicePixelRatio;
 };
 
-// Proprietary extensions.
-partial interface Window {
-  [Pref="dom_servo_helpers_enabled"]
-  undefined debug(DOMString arg);
-  [Pref="dom_servo_helpers_enabled"]
-  undefined gc();
-  [Pref="dom_servo_helpers_enabled"]
-  undefined js_backtrace();
-};
-
 // WebDriver extensions
 partial interface Window {
   // Shouldn't be public, but just to make things work for now
@@ -158,13 +148,13 @@ partial interface Window {
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
 interface mixin WindowSessionStorage {
-  readonly attribute Storage sessionStorage;
+  [Throws] readonly attribute Storage sessionStorage;
 };
 Window includes WindowSessionStorage;
 
 // https://html.spec.whatwg.org/multipage/#dom-localstorage
 interface mixin WindowLocalStorage {
-  readonly attribute Storage localStorage;
+  [Throws] readonly attribute Storage localStorage;
 };
 Window includes WindowLocalStorage;
 

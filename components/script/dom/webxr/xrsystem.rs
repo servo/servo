@@ -5,17 +5,18 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::id::PipelineId;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
@@ -23,7 +24,7 @@ use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertib
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
@@ -88,13 +89,13 @@ impl XRSystem {
     /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
     pub(crate) fn end_session(&self, session: &XRSession) {
         // Step 3
-        if let Some(active) = self.active_immersive_session.get() {
-            if Dom::from_ref(&*active) == Dom::from_ref(session) {
-                self.active_immersive_session.set(None);
-                // Dirty the canvas, since it has been skipping this step whilst in immersive
-                // mode
-                session.dirty_layers();
-            }
+        if let Some(active) = self.active_immersive_session.get() &&
+            Dom::from_ref(&*active) == Dom::from_ref(session)
+        {
+            self.active_immersive_session.set(None);
+            // Dirty the canvas, since it has been skipping this step whilst in immersive
+            // mode
+            session.dirty_layers();
         }
         self.active_inline_sessions
             .borrow_mut()
@@ -256,7 +257,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 task_source.queue(task!(request_session: move || {
-                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::note());
+                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::deprecated_note());
                 }));
             }),
         );
@@ -269,7 +270,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn Test(&self) -> DomRoot<XRTest> {
         self.test
-            .or_init(|| XRTest::new(&self.global(), CanGc::note()))
+            .or_init(|| XRTest::new(&self.global(), CanGc::deprecated_note()))
     }
 }
 
@@ -298,7 +299,7 @@ impl XRSystem {
             session,
             mode,
             frame_receiver,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
@@ -319,13 +320,11 @@ impl XRSystem {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_sessionavailable_event: move || {
-                    // The sessionavailable event indicates user intent to enter an XR session
-                    let xr = xr.root();
-                        let _guard = ScriptThread::user_interacting_guard();
-                        xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
-                })
-            );
+            .queue(task!(fire_sessionavailable_event: move |cx| {
+                // The sessionavailable event indicates user intent to enter an XR session
+                let xr = xr.root();
+                    let _guard = ScriptThread::user_interacting_guard();
+                    xr.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("sessionavailable"));
+            }));
     }
 }

@@ -15,7 +15,6 @@ features:
   - "!document-adopt-base-url.html"
   - "!document-base-url.html"
   - "!image-base-url.html"
-  - "!image-loading-lazy-base-url.html"
   # Exclude `srcset`. Keep in sync with `srcset` mappings below.
   - "!responsive-image-select-print.html"
   - "!update-the-source-set.html"
@@ -31,6 +30,7 @@ features:
   - relevant-mutations-lazy.html
   - remove-element-and-scroll.html
   - scrolling-below-viewport-image-lazy-loading-in-iframe.html
+  - "!image-loading-lazy-base-url.html"
 - name: base
   files:
   # Keep in sync with `img` mappings.

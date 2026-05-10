@@ -1,0 +1,14 @@
+<meta charset=utf-8>
+<title>Test that body's rightmargin and bottommargin attributes are ignored in quirks mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body rightmargin=100 bottommargin=100>
+<script>
+test(() => {
+  const style = getComputedStyle(document.body);
+  assert_equals(style.marginTop, '8px');
+  assert_equals(style.marginRight, '8px');
+  assert_equals(style.marginBottom, '8px');
+  assert_equals(style.marginLeft, '8px');
+});
+</script>

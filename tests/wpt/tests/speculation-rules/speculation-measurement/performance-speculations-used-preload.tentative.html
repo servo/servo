@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - used preloads with various as/crossorigin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// Test matrix: combinations of "as" and "crossorigin" for used preloads.
+// Note: as=fetch without crossorigin is excluded because <link rel=preload
+// as=fetch> (no-cors mode) does not match fetch() (cors mode by default).
+// The crossorigin attribute must match between preload and consumption.
+const testCases = [
+  {as: 'script', crossorigin: null},
+  {as: 'script', crossorigin: 'anonymous'},
+  {as: 'script', crossorigin: 'use-credentials'},
+  {as: 'style',  crossorigin: null},
+  {as: 'style',  crossorigin: 'anonymous'},
+  {as: 'style',  crossorigin: 'use-credentials'},
+  {as: 'fetch',  crossorigin: 'anonymous'},
+  {as: 'fetch',  crossorigin: 'use-credentials'},
+];
+
+for (const {as, crossorigin} of testCases) {
+  const coLabel = crossorigin === null ? 'no crossorigin' :
+                                         `crossorigin=${crossorigin}`;
+  promise_test(async t => {
+    assert_true(isSpeculationMeasurementEnabled(),
+      "SpeculationMeasurement feature must be enabled");
+
+    const tag = `${as}-${crossorigin}-used`;
+    const href = supportFileUrl(as, tag);
+
+    const beforePreload = performance.now();
+    await addPreloadAndWait({t, as, crossorigin, href});
+
+    // Before use: preload should be tracked but unused.
+    let preload = findPreloadByUrl(performance.getSpeculations().preloads, tag);
+    assert_not_equals(preload, undefined, "preload entry should exist");
+    assert_equals(preload.used, null,
+      "preload should be unused before consumption");
+
+    // Consume the preloaded resource.
+    await usePreload({t, as, href, crossorigin});
+    const afterUse = performance.now();
+
+    // After use: preload should have a timestamp.
+    preload = findPreloadByUrl(performance.getSpeculations().preloads, tag);
+    assert_not_equals(preload, undefined,
+      "preload entry should still exist after use");
+    assert_equals(preload.as, as, `as should be '${as}'`);
+    assert_equals(preload.crossorigin, expectedCrossOriginMode(crossorigin),
+      `crossorigin should be '${expectedCrossOriginMode(crossorigin)}'`);
+    assert_not_equals(preload.used, null,
+      "used preload should have a timestamp, not null");
+    assert_equals(typeof preload.used, "number",
+      "used should be a DOMHighResTimeStamp (number)");
+    assert_greater_than_equal(preload.used, beforePreload,
+      "used timestamp should be >= beforePreload");
+    assert_less_than_equal(preload.used, afterUse,
+      "used timestamp should be <= afterUse");
+  }, `Used preload: as=${as}, ${coLabel}`);
+}
+</script>
+</body>

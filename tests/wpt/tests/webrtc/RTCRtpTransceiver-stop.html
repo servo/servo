@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
+
 // FIXME: Add a test adding a transceiver, stopping it and trying to create an empty offer.
 
 promise_test(async (t)=> {
@@ -144,8 +145,8 @@ promise_test(async (t) => {
   await exchangeOfferAnswer(pc1, pc2);
   assert_equals(pc1.getTransceivers().length, 1);
   assert_equals(pc2.getTransceivers().length, 1);
-  pc1Transceiver = pc1.getTransceivers()[0];
-  pc2Transceiver = pc2.getTransceivers()[0];
+  const [pc1Transceiver] = pc1.getTransceivers();
+  const [pc2Transceiver] = pc2.getTransceivers();
   pc1.getTransceivers()[0].stop();
   await exchangeOfferAnswer(pc1, pc2);
   assert_equals(pc1Transceiver.direction, 'stopped');

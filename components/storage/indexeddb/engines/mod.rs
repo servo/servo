@@ -4,18 +4,23 @@
 
 use std::collections::VecDeque;
 
-use storage_traits::indexeddb::{AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath};
-use tokio::sync::oneshot;
+use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
+use storage_traits::indexeddb::{
+    AsyncOperation, CreateObjectResult, IndexedDBIndex, IndexedDBTxnMode, KeyPath,
+};
 
 pub use self::sqlite::SqliteEngine;
 
 mod sqlite;
 
+#[derive(MallocSizeOf)]
 pub struct KvsOperation {
     pub store_name: String,
     pub operation: AsyncOperation,
 }
 
+#[derive(MallocSizeOf)]
 pub struct KvsTransaction {
     // Mode could be used by a more optimal implementation of transactions
     // that has different allocated threadpools for reading and writing
@@ -23,7 +28,7 @@ pub struct KvsTransaction {
     pub requests: VecDeque<KvsOperation>,
 }
 
-pub trait KvsEngine {
+pub trait KvsEngine: MallocSizeOf {
     type Error: std::error::Error;
 
     fn create_store(
@@ -38,15 +43,16 @@ pub trait KvsEngine {
     #[expect(dead_code)]
     fn close_store(&self, store_name: &str) -> Result<(), Self::Error>;
 
-    fn delete_database(self) -> Result<(), Self::Error>;
-
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>>;
+        on_complete: Box<dyn FnOnce() + Send + 'static>,
+    );
 
-    fn has_key_generator(&self, store_name: &str) -> bool;
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32>;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error>;
+    fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error>;
 
     fn create_index(
         &self,

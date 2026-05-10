@@ -2,8 +2,8 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
   <title>SVGGeometryElement.prototype.isPointInStroke</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGeometryElement"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__isPointInStroke"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#InterfaceSVGGeometryElement"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGeometryElement__isPointInStroke"/>
   </metadata>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>

@@ -8,7 +8,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <!-- Generic container (no explicit or native role) should inherit implied toolbar role. -->
-<div id=fgGeneric focusgroup="toolbar"><button>Item</button></div>
+<div id=fgGeneric focusgroup="toolbar"><button tabindex=0>Item</button></div>
 <!-- Explicit author role must win over implied role. -->
 <div id=fgExplicit role="list" focusgroup="toolbar"><div>Item</div></div>
 <!-- Native semantics (UL -> list) must win over implied role. -->

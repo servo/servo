@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+<div style="height: 800px;">Filler content above target</div>
+<div id="scroll-target" style="height: 50px; background: lightblue;">Scroll target</div>
+<input id="focus-target" type="text" value="focusable input">
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+window.addEventListener('load', () => {
+  const prerendering = document.prerendering;
+  const input = document.getElementById('focus-target');
+  const target = document.getElementById('scroll-target');
+
+  input.focus();
+  target.scrollIntoView({behavior: 'instant', block: 'center'});
+
+  const activeElementUpdated = document.activeElement === input;
+  const hasFocus = document.hasFocus();
+  const scrollTop = document.documentElement.scrollTop;
+
+  const iframeChannel = new PrerenderChannel('iframe-channel');
+  iframeChannel.postMessage({
+    prerendering: prerendering,
+    activeElementUpdated: activeElementUpdated,
+    hasFocus: hasFocus,
+    iframeScrollTop: scrollTop
+  });
+});
+</script>
+</body>

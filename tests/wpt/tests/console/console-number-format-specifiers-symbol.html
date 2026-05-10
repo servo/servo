@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Console Number Format Specifiers on Symbols - Automated Test</title>
+<link rel="help" href="https://console.spec.whatwg.org/#formatter">
+<meta name="assert" content="Console format specifiers on Symbols">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/console/helper.js"></script>
+
+<script>
+promise_test(async (t) => {
+  const unsubscribe = await test_driver.bidi.log.entry_added.subscribe({ contexts: [window] });
+  t.add_cleanup(async () => await unsubscribe());
+
+  const methods = ["log", "dirxml", "trace", "group", "groupCollapsed"];
+  const specifiers = ["%i", "%d", "%f"];
+  const expectedCount = methods.length * specifiers.length;
+  const sym = Symbol.for("description");
+  const entriesPromise = waitForConsoleEntries(t, {
+    count: expectedCount,
+    accept: (entry) => {
+      if (!Array.isArray(entry.args) || entry.args.length < 2) return false;
+      const arg = entry.args[0];
+      if (!arg || arg.type !== "string" || typeof arg.value !== "string") return false;
+
+      return specifiers.includes(arg.value);
+    }
+  });
+
+  for (const method of methods) {
+    for (const spec of specifiers) {
+      console[method](spec, sym);
+      if (method === "group" || method === "groupCollapsed")
+        console.groupEnd();
+    }
+  }
+
+  const entries = await entriesPromise;
+  assert_equals(entries.length, expectedCount);
+
+  for (const entry of entries) {
+    const firstLine = entry.text.split("\n", 1)[0].trim();
+    if (entry.method === "trace") {
+      assert_true(firstLine.endsWith("NaN"), `Expected trace first line to end with NaN, got: "${firstLine}"`);
+    } else {
+      assert_equals(firstLine, "NaN", `Expected first line to be "NaN", got: "${firstLine}"`);
+    }
+  }
+}, "Console numeric format specifiers on Symbols produce NaN");
+</script>

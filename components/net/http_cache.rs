@@ -14,10 +14,9 @@ use std::time::{Duration, Instant, SystemTime};
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
-use http::header::HeaderValue;
 use http::{HeaderMap, Method, StatusCode, header};
 use log::{debug, error};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
@@ -55,11 +54,15 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub struct CachedResource {
+    #[conditional_malloc_size_of]
     request_headers: Arc<ParkingLotMutex<HeaderMap>>,
+    #[conditional_malloc_size_of]
     body: Arc<ParkingLotMutex<ResponseBody>>,
+    #[conditional_malloc_size_of]
     aborted: Arc<AtomicBool>,
+    #[conditional_malloc_size_of]
     awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
@@ -70,27 +73,11 @@ pub struct CachedResource {
     last_validated: Instant,
 }
 
-impl MallocSizeOf for CachedResource {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // TODO: self.request_headers.unconditional_size_of(ops) +
-        self.body.unconditional_size_of(ops) +
-            self.aborted.unconditional_size_of(ops) +
-            self.awaiting_body.unconditional_size_of(ops) +
-            self.metadata.size_of(ops) +
-            self.location_url.size_of(ops) +
-            self.https_state.size_of(ops) +
-            self.status.size_of(ops) +
-            self.url_list.size_of(ops) +
-            self.expires.size_of(ops) +
-            self.last_validated.size_of(ops)
-    }
-}
-
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, MallocSizeOf)]
 struct CachedMetadata {
     /// Headers
-    #[ignore_malloc_size_of = "Defined in `http` and has private members"]
+    #[conditional_malloc_size_of]
     pub headers: Arc<ParkingLotMutex<HeaderMap>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -180,10 +167,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             return true;
         }
     }
-    if let Some(pragma) = headers.typed_get::<Pragma>() {
-        if pragma.is_no_cache() {
-            return false;
-        }
+    if let Some(pragma) = headers.typed_get::<Pragma>() &&
+        pragma.is_no_cache()
+    {
+        return false;
     }
     is_cacheable
 }
@@ -260,10 +247,10 @@ fn get_response_expiry(response: &Response) -> Duration {
             return heuristic_freshness;
         }
         // Other status codes can only use heuristic freshness if the public cache directive is present.
-        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-            if directives.public() {
-                return heuristic_freshness;
-            }
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() &&
+            directives.public()
+        {
+            return heuristic_freshness;
         }
     }
     // Requires validation upon first use as default.
@@ -711,36 +698,7 @@ pub fn refresh(
     constructed_response
 }
 
-/// Invalidation.
-/// <https://tools.ietf.org/html/rfc7234#section-4.4>
-pub(crate) async fn invalidate(
-    request: &Request,
-    response: &Response,
-    cached_resources: &mut [CachedResource],
-) {
-    // TODO(eijebong): Once headers support typed_get, update this to use them
-    if let Some(Ok(location)) = response
-        .headers
-        .get(header::LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    if let Some(Ok(content_location)) = response
-        .headers
-        .get(header::CONTENT_LOCATION)
-        .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(content_location).is_ok() {
-            invalidate_cached_resources(cached_resources).await;
-        }
-    }
-    invalidate_cached_resources(cached_resources).await;
-}
-
-async fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
+pub(crate) fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     for cached_resource in cached_resources.iter_mut() {
         cached_resource.expires = Duration::ZERO;
     }
@@ -859,7 +817,7 @@ impl HttpCache {
     async fn invalidate_entry(&self, key: &CacheKey) {
         if let Some(entry) = self.entries.get(key) {
             let mut guarded_resources = entry.write().await;
-            invalidate_cached_resources(guarded_resources.as_mut_slice()).await;
+            invalidate_cached_resources(guarded_resources.as_mut_slice());
         }
     }
 

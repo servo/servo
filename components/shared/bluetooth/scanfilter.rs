@@ -5,8 +5,8 @@
 use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
 
-use base::id::WebViewId;
 use serde::{Deserialize, Serialize};
+use servo_base::id::WebViewId;
 
 // A device name can never be longer than 29 bytes. An adv packet is at most
 // 31 bytes long. The length and identifier of the length field take 2 bytes.

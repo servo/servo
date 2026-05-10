@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait" style="background-color: red;">
+<head>
+    <meta charset="utf-8">
+    <title>Content clearing on documentElement removal</title>
+    <link rel="match" href="/css/reference/blank.html">
+    <script src="/common/reftest-wait.js"></script>
+</head>
+<body>
+    <p>This is a content which should not be displayed</p>
+    <script>
+        addEventListener("load", () => {
+            document.documentElement.remove();
+        });
+    </script>
+</body>
+</html>

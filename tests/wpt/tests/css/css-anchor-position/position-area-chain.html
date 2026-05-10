@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<title>Tests that chain of elements that anchor to each other using position-area works.</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    position: relative;
+    width: 500px;
+    height: 200px;
+  }
+
+  .box {
+    position: absolute;
+    anchor-name: --box;
+    position-area: center right;
+    position-anchor: --box;
+
+    width: 50px;
+    height: 50px;
+    border-right: 10px white solid;
+    background-color: green;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <p>You should see a row of five boxes in order.</p>
+
+  <div class="containing-block">
+    <div class="box target" data-offset-x="0" data-offset-y="0">1</div>
+    <div class="box target" data-offset-x="60" data-offset-y="0">2</div>
+    <div class="box target" data-offset-x="120" data-offset-y="0">3</div>
+    <div class="box target" data-offset-x="180" data-offset-y="0">4</div>
+    <div class="box target" data-offset-x="240" data-offset-y="0">5</div>
+  </div>
+</body>

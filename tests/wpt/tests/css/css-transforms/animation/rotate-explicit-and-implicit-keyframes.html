@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Animating the "rotate" property with explicit and implicit keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/">
+<link rel="match" href="rotate-explicit-and-implicit-keyframes-ref.html">
+<script src="../../../common/reftest-wait.js"></script>
+<style>
+
+div {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    background-color: black;
+    animation: none 100000s -25000s linear forwards;
+}
+
+div:after {
+    position: absolute;
+    content: "";
+    width: 50px;
+    height: 50px;
+    background-color: gray;
+}
+
+@keyframes explicit-from-and-to {
+    from { rotate: 80deg }
+    to   { rotate: 120deg}
+}
+
+@keyframes unspecified-from {
+    to { rotate: 360deg }
+}
+
+@keyframes base-value-from {
+    to { rotate: 120deg }
+}
+
+@keyframes unspecified-to {
+    from { rotate: 360deg }
+}
+
+@keyframes base-value-to {
+    from { rotate: 80deg }
+}
+
+#explicit-from-and-to {
+    animation-name: explicit-from-and-to;
+}
+
+#unspecifed-from {
+    animation-name: unspecified-from;
+}
+
+#base-value-from {
+    rotate: 80deg;
+    animation-name: base-value-from;
+}
+
+#unspecifed-to {
+    animation-name: unspecified-to;
+}
+
+#base-value-to {
+    rotate: 120deg;
+    animation-name: base-value-to;
+}
+
+</style>
+</head>
+<body>
+
+<div id="explicit-from-and-to"></div>
+<div id="unspecifed-from"></div>
+<div id="base-value-from"></div>
+<div id="unspecifed-to"></div>
+<div id="base-value-to"></div>
+
+<script>
+(async function() {
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    takeScreenshot();
+})();
+</script>
+</body>
+</html>

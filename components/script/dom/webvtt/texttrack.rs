@@ -5,13 +5,14 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::reflect_dom_object;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -75,8 +76,9 @@ impl TextTrack {
     }
 
     pub(crate) fn get_cues(&self) -> DomRoot<TextTrackCueList> {
-        self.cue_list
-            .or_init(|| TextTrackCueList::new(self.global().as_window(), &[], CanGc::note()))
+        self.cue_list.or_init(|| {
+            TextTrackCueList::new(self.global().as_window(), &[], CanGc::deprecated_note())
+        })
     }
 
     pub(crate) fn id(&self) -> &str {
@@ -138,7 +140,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         Some(TextTrackCueList::new(
             self.global().as_window(),
             &[],
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 

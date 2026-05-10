@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="match" href="textarea-caret-following-linebreak-last-line-ref.html">
+    <style>
+    textarea {
+        caret-animation: manual;
+    }
+    </style>
+</head>
+<body>
+    <textarea cols=50 rows="5">text&#13;</textarea>
+    <script>
+        const textarea = document.getElementsByTagName('textarea')[0];
+        textarea.setSelectionRange(5, 5);
+        textarea.focus();
+    </script>
+</body>

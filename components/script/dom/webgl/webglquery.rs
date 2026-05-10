@@ -4,39 +4,77 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 use dom_struct::dom_struct;
+use script_bindings::reflector::reflect_dom_object;
+use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
-pub(crate) struct WebGLQuery {
-    webgl_object: WebGLObject,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLQuery {
+    context: WeakRef<WebGLRenderingContext>,
     #[no_trace]
     gl_id: WebGLQueryId,
-    gl_target: Cell<Option<u32>>,
     marked_for_deletion: Cell<bool>,
+}
+
+impl DroppableWebGLQuery {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if !self.marked_for_deletion.get() {
+            self.marked_for_deletion.set(true);
+            self.send_with_fallibility(
+                WebGLCommand::DeleteQuery(self.gl_id),
+                operation_fallibility,
+            );
+        }
+    }
+}
+
+impl Drop for DroppableWebGLQuery {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
+
+#[dom_struct(associated_memory)]
+pub(crate) struct WebGLQuery {
+    webgl_object: WebGLObject,
+    gl_target: Cell<Option<u32>>,
     query_result_available: Cell<Option<u32>>,
     query_result: Cell<u32>,
+    droppable: DroppableWebGLQuery,
 }
 
 impl WebGLQuery {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLQueryId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            gl_id: id,
             gl_target: Cell::new(None),
-            marked_for_deletion: Cell::new(false),
             query_result_available: Cell::new(None),
             query_result: Cell::new(0),
+            droppable: DroppableWebGLQuery {
+                context: WeakRef::new(context),
+                gl_id: id,
+                marked_for_deletion: Cell::new(false),
+            },
         }
     }
 
@@ -56,14 +94,14 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         target: u32,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
-        if self.marked_for_deletion.get() {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
+        if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
-                return Err(InvalidOperation);
-            }
+        if let Some(current_target) = self.gl_target.get() &&
+            current_target != target
+        {
+            return Err(InvalidOperation);
         }
         match target {
             constants::ANY_SAMPLES_PASSED |
@@ -73,7 +111,7 @@ impl WebGLQuery {
         }
         self.gl_target.set(Some(target));
 
-        context.send_command(WebGLCommand::BeginQuery(target, self.gl_id));
+        context.send_command(WebGLCommand::BeginQuery(target, self.droppable.gl_id));
         Ok(())
     }
 
@@ -81,14 +119,14 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         target: u32,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
-        if self.marked_for_deletion.get() {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
+        if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
-                return Err(InvalidOperation);
-            }
+        if let Some(current_target) = self.gl_target.get() &&
+            current_target != target
+        {
+            return Err(InvalidOperation);
         }
         match target {
             constants::ANY_SAMPLES_PASSED |
@@ -101,17 +139,11 @@ impl WebGLQuery {
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if !self.marked_for_deletion.get() {
-            self.marked_for_deletion.set(true);
-            self.upcast().send_with_fallibility(
-                WebGLCommand::DeleteQuery(self.gl_id),
-                operation_fallibility,
-            );
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get() && self.target().is_some()
+        !self.droppable.marked_for_deletion.get() && self.target().is_some()
     }
 
     pub(crate) fn target(&self) -> Option<u32> {
@@ -122,7 +154,7 @@ impl WebGLQuery {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GetQueryState(
             sender,
-            self.gl_id,
+            self.droppable.gl_id,
             constants::QUERY_RESULT_AVAILABLE,
         ));
         let is_available = receiver.recv().unwrap();
@@ -134,7 +166,7 @@ impl WebGLQuery {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GetQueryState(
             sender,
-            self.gl_id,
+            self.droppable.gl_id,
             constants::QUERY_RESULT,
         ));
 
@@ -147,7 +179,7 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         pname: u32,
-    ) -> Result<u32, canvas_traits::webgl::WebGLError> {
+    ) -> Result<u32, servo_canvas_traits::webgl::WebGLError> {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }
@@ -179,11 +211,5 @@ impl WebGLQuery {
             constants::QUERY_RESULT_AVAILABLE => Ok(self.query_result_available.get().unwrap()),
             _ => unreachable!(),
         }
-    }
-}
-
-impl Drop for WebGLQuery {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }

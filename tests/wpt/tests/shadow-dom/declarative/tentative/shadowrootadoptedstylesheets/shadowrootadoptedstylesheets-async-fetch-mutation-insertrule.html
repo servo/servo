@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: insertRule on placeholder before fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    const url = "./support/styles-red.css?insertrule";
+    const { shadowRoot, testElement } = createStylesheetHost(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before insertRule: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before insertRule: placeholder at index 0 should be empty.");
+
+    const placeholder = shadowRoot.adoptedStyleSheets[0];
+    placeholder.insertRule("span { color: purple; }", 0);
+
+    assert_equals(placeholder.cssRules[0].cssText, "span { color: purple; }",
+      "The manually-added rule should be purple.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(128, 0, 128)",
+      "Purple should be applied before fetch.");
+
+    await fetchAndWait(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "adoptedStyleSheets should still have one entry after fetch.");
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "After fetch");
+    assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
+      "Red from the fetched module should be applied, not purple.");
+  }, "Fetched sheet replaces placeholder including manually-inserted rules.");
+</script>
+</body>

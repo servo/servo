@@ -7,7 +7,7 @@
 setup({explicit_done:true});
 onload = function() {
     test(function() {
-        assert_equals(document.characterSet, "ISO-2022-JP", 'Expected ISO-2022-JP');
+        assert_equals(document.characterSet, "windows-1252", 'Expected windows-1252 due to ISO-2022-JP no longer getting detected');
     }, "Check detection result");
       done();
 };

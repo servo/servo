@@ -18,6 +18,12 @@ use profile_traits::path;
 
 const JEMALLOC_HEAP_ALLOCATED_STR: &str = "jemalloc-heap-allocated";
 const SYSTEM_HEAP_ALLOCATED_STR: &str = "system-heap-allocated";
+const SYSTEM_HEAP_RESERVED_STR: &str = "system-heap-reserved";
+
+struct SystemHeapInfo {
+    allocated: Option<usize>,
+    reserved: Option<usize>,
+}
 
 /// Collects global measurements from the OS and heap allocators.
 pub fn collect_reports(request: ReporterRequest) {
@@ -47,7 +53,9 @@ pub fn collect_reports(request: ReporterRequest) {
 
         // Total number of bytes allocated by the application on the system
         // heap.
-        report(path![SYSTEM_HEAP_ALLOCATED_STR], system_heap_allocated());
+        let system_heap = system_heap_info();
+        report(path![SYSTEM_HEAP_ALLOCATED_STR], system_heap.allocated);
+        report(path![SYSTEM_HEAP_RESERVED_STR], system_heap.reserved);
 
         // The descriptions of the following jemalloc measurements are taken
         // directly from the jemalloc documentation.
@@ -93,9 +101,11 @@ pub struct struct_mallinfo {
 }
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
-fn system_heap_allocated() -> Option<usize> {
+fn system_heap_info() -> SystemHeapInfo {
     let info: struct_mallinfo = unsafe { mallinfo() };
 
+    // https://man7.org/linux/man-pages/man3/mallinfo.3.html
+    // TODO: Switch to mallinfo2 or malloc_info.
     // The documentation in the glibc man page makes it sound like |uordblks| would suffice,
     // but that only gets the small allocations that are put in the brk heap. We need |hblkhd|
     // as well to get the larger allocations that are mmapped.
@@ -104,16 +114,54 @@ fn system_heap_allocated() -> Option<usize> {
     // usage gets high enough. So don't report anything in that case. In the non-overflow case
     // we cast the two values to usize before adding them to make sure the sum also doesn't
     // overflow.
-    if info.hblkhd < 0 || info.uordblks < 0 {
-        None
-    } else {
+    let allocated = if info.hblkhd >= 0 && info.uordblks >= 0 {
         Some(info.hblkhd as usize + info.uordblks as usize)
+    } else {
+        None
+    };
+
+    let reserved = if info.arena >= 0 && info.hblkhd >= 0 {
+        Some(info.arena as usize + info.hblkhd as usize)
+    } else {
+        None
+    };
+
+    SystemHeapInfo {
+        allocated,
+        reserved,
     }
 }
 
-#[cfg(not(all(target_os = "linux", target_env = "gnu")))]
-fn system_heap_allocated() -> Option<usize> {
-    None
+#[cfg(target_os = "macos")]
+fn macos_malloc_statistics() -> libc::malloc_statistics_t {
+    let mut stats = libc::malloc_statistics_t {
+        blocks_in_use: 0,
+        size_in_use: 0,
+        max_size_in_use: 0,
+        size_allocated: 0,
+    };
+    unsafe {
+        // A null zone aggregates statistics across all malloc zones.
+        libc::malloc_zone_statistics(null_mut(), &mut stats);
+    }
+    stats
+}
+
+#[cfg(target_os = "macos")]
+fn system_heap_info() -> SystemHeapInfo {
+    let stats = macos_malloc_statistics();
+    SystemHeapInfo {
+        allocated: Some(stats.size_in_use),
+        reserved: Some(stats.size_allocated),
+    }
+}
+
+#[cfg(not(any(all(target_os = "linux", target_env = "gnu"), target_os = "macos")))]
+fn system_heap_info() -> SystemHeapInfo {
+    SystemHeapInfo {
+        allocated: None,
+        reserved: None,
+    }
 }
 
 #[cfg(not(any(target_os = "windows", target_env = "ohos")))]

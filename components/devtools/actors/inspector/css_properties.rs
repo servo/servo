@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 
 use devtools_traits::CssDatabaseProperty;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -15,6 +16,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
+#[derive(MallocSizeOf)]
 pub(crate) struct CssPropertiesActor {
     name: String,
     properties: HashMap<String, CssDatabaseProperty>,
@@ -55,7 +57,16 @@ impl Actor for CssPropertiesActor {
 }
 
 impl CssPropertiesActor {
-    pub fn new(name: String, properties: HashMap<String, CssDatabaseProperty>) -> Self {
-        Self { name, properties }
+    pub fn register(
+        registry: &ActorRegistry,
+        properties: HashMap<String, CssDatabaseProperty>,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            properties,
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }

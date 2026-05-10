@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS test reference</title>
+<style>
+fieldset::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: purple;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: calc(100% + 10px);
+}
+
+fieldset {
+  width: 200px;
+  border: 10px solid blue;
+  position: relative;
+}
+</style>
+<form>
+  <fieldset>
+    <legend>Legend</legend>
+  </fieldset>
+</form>

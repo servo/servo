@@ -1,28 +1,30 @@
 [package]
-name = "background_hang_monitor"
+name = "servo-background-hang-monitor"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
-name = "background_hang_monitor"
+name = "servo_background_hang_monitor"
 path = "lib.rs"
 test = false
 doctest = false
 
 [dependencies]
-background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
-base = { workspace = true }
 crossbeam-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 rustc-demangle = { version = "0.1", optional = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
+servo-background-hang-monitor-api = { workspace = true }
+servo-base = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach2 = { workspace = true, optional = true }

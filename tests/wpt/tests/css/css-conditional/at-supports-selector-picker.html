@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+	<head>
+		<title>CSS Test (Conditional Rules): @supports selector() with ::picker() pseudo-element</title>
+		<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-supports">
+		<link rel="match" href="at-supports-001-ref.html">
+		<style>
+			div {
+				background:red;
+				height:100px;
+				width:100px;
+			}
+			@supports selector(select::picker(select)) {
+				div { background-color:green; }
+			}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+		<div></div>
+	</body>
+</html>

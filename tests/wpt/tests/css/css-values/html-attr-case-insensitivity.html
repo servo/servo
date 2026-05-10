@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+
+<title>HTML attribute names are ASCII-case-insensitive</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-attr-name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/syntax.html#syntax">
+<link rel="match" href="html-attr-case-insensitivity-ref.html"/>
+
+<style>
+div.a {
+  color: attr(color-attr type(<color>), red);
+}
+div.b {
+  color: attr(CoLoR-attr type(<color>), red);
+}
+div.c {
+  color: attr(CØLØR-ÅTTR type(<color>), green);
+}
+div.d {
+  color: attr(CØLØR-ÅTTR type(<color>), red);
+}
+</style>
+
+<div class="a" coLor-attr="green">This should be green.</div>
+<div class="a" CoLoR-attr="green">This should be green.</div>
+<div class="a" COLOR-ATTR="green">This should be green.</div>
+
+<div class="b" coLor-attr="green">This should be green.</div>
+<div class="b" CoLoR-attr="green">This should be green.</div>
+<div class="b" COLOR-ATTR="green">This should be green.</div>
+
+<div class="c" cølør-åttr="red">This should be green.</div>
+<div class="c" CøLøR-åttr="red">This should be green.</div>
+<div class="d" CØLØR-ÅTTR="green">This should be green.</div>

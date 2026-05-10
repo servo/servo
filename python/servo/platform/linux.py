@@ -195,7 +195,7 @@ class Linux(Base):
     def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         return None
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         raise EnvironmentError(
             "Bootstrapping GStreamer on Linux is not supported. "
             + "Please install it using your distribution package manager."

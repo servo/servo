@@ -1,0 +1,86 @@
+<!doctype html>
+<title>
+  NavigateEvent: intercept() should not bypass focus-without-user-activation for
+  cross-origin iframes
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+  <input type="text" id="input" />
+  <script>
+    const wait_for_message = (expected_source) => {
+      return new Promise((resolve) => {
+        const handler = (e) => {
+          if (e.source === expected_source) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+          }
+        };
+        window.addEventListener("message", handler);
+      });
+    };
+
+    // Test 1: Without user activation
+    promise_test(async (t) => {
+      const input = document.querySelector("#input");
+
+      const iframe = document.createElement("iframe");
+      // Explicitly deny focus-without-user-activation
+      iframe.allow = "focus-without-user-activation 'none'";
+      iframe.src = new URL(
+        "/navigation-api/navigate-event/resources/intercept-cross-origin-focus-stealing.html",
+        get_host_info().REMOTE_ORIGIN,
+      );
+      document.body.appendChild(iframe);
+      input.focus();
+
+      t.add_cleanup(() => iframe.remove());
+
+      const msg = await wait_for_message(iframe.contentWindow);
+      assert_equals(msg, "done");
+
+      // Since the iframe is cross-origin and does not have focus-without-user-activation,
+      // the iframe's same-document navigation + intercept() should not steal focus from the top-level frame.
+      assert_equals(
+        document.activeElement,
+        input,
+        "Top-level document should not lose focus to the cross-origin iframe without user interaction.",
+      );
+    }, "Navigation API intercept() focus reset shouldn't bypass focus-without-user-activation permissions policy");
+
+    // Test 2: With user activation
+    promise_test(async (t) => {
+      const iframe = document.createElement("iframe");
+      iframe.style.width = "200px";
+      iframe.style.height = "200px";
+      // Explicitly deny focus-without-user-activation
+      iframe.allow = "focus-without-user-activation 'none'";
+      iframe.src = new URL(
+        "/navigation-api/navigate-event/resources/intercept-cross-origin-focus-stealing-user-initiated.html",
+        get_host_info().REMOTE_ORIGIN,
+      );
+      document.body.appendChild(iframe);
+      input.focus();
+      t.add_cleanup(() => iframe.remove());
+
+      const ready_msg = await wait_for_message(iframe.contentWindow);
+      assert_equals(ready_msg, "ready");
+
+      // Click the iframe to grant user activation and trigger the navigation.
+      // The iframe contains a button covering the whole viewport that initiates the navigation.
+      await test_driver.click(iframe);
+      input.focus();
+
+      const focus_msg = await wait_for_message(iframe.contentWindow);
+      assert_equals(
+        focus_msg,
+        "focused",
+        "Cross-origin iframe should gain focus if the navigation was user-initiated.",
+      );
+      assert_equals(document.activeElement, iframe);
+    }, "Navigation API intercept() focus reset should work if navigation was user-initiated");
+  </script>
+</body>

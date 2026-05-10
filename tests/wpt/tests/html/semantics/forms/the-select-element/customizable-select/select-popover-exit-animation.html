@@ -16,6 +16,10 @@
 select,::picker(select) {
   appearance: base-select;
 }
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
 select.animate::picker(select) {
   transition: display 10000s allow-discrete, overlay 10000s allow-discrete;
 }

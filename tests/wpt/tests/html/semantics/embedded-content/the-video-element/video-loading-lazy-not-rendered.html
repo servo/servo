@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<style>
+  .hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  async_test(t => {
+    const unreached = t.unreached_func(
+      "Not-rendered video elements with loading=lazy should not attempt to load."
+    );
+
+    // Hidden attribute
+    const video1 = document.createElement("video");
+    video1.setAttribute("hidden", "");
+    video1.loading = "lazy";
+    video1.src = "/media/A4.webm";
+    video1.addEventListener("loadstart", unreached);
+    video1.addEventListener("error", unreached);
+    document.body.appendChild(video1);
+
+    // Class hidden (display: none)
+    const video2 = document.createElement("video");
+    video2.className = "hidden";
+    video2.loading = "lazy";
+    video2.src = "/media/A4.webm";
+    video2.addEventListener("loadstart", unreached);
+    video2.addEventListener("error", unreached);
+    document.body.appendChild(video2);
+
+    t.step_timeout(t.done, 2000);
+  }, "In-viewport video with loading=lazy and no controls attribute, or display:none or hidden attribute should never load");
+</script>
+</body>

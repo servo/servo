@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../webrtc/RTCPeerConnection-helper.js></script>
+</head>
+<body>
+<video loop controls></video>
+<script>
+
+// Verify captureStream tracks are removed when src is reset, and updated when
+// the source is changed directly without an explicit reset. Both src and
+// srcObject attributes are tested. Tests run sequentially on the same video
+// element and stream.
+// https://w3c.github.io/mediacapture-fromelement/#methods
+
+const VIDEO_ONLY_TEST = {
+  filename : "test-v-128k-320x240-24fps-8kfr.webm",
+  trackCount : 1
+};
+const AUDIO_ONLY_TEST = {
+  filename : "test-a-128k-44100Hz-1ch.webm",
+  trackCount : 1
+};
+const AUDIO_VIDEO_TEST = {
+  filename : "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm",
+  trackCount : 2
+};
+const NO_TRACKS = 0;
+
+const video = document.querySelector("video");
+assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+const stream = video.captureStream();
+
+// Native streams used as srcObject sources. Kept alive across tests so that
+// their tracks remain active until explicitly replaced, ensuring removetrack
+// fires on the captured stream only when srcObject is changed.
+const nativeStreams = [];
+
+promise_test(async function testSrcVideoOnly(t) {
+  video.onerror = t.unreached_func("video error");
+  video.src = "/media/" + VIDEO_ONLY_TEST.filename;
+  await video.play();
+  assertStreamStatus(VIDEO_ONLY_TEST.trackCount);
+}, "src-video-only");
+
+promise_test(async function testSrcAudioOnly(t) {
+  const prevTrackCount = stream.getTracks().length;
+  video.onerror = t.unreached_func("video error");
+  video.src = "/media/" + AUDIO_ONLY_TEST.filename;
+  await waitForNEvents(stream, "removetrack", prevTrackCount);
+  assertStreamStatus(NO_TRACKS);
+  await video.play();
+  assertStreamStatus(AUDIO_ONLY_TEST.trackCount);
+}, "src-audio-only");
+
+promise_test(async function testSrcReset(t) {
+  const prevTrackCount = stream.getTracks().length;
+  video.src = "";
+  video.removeAttribute("src");
+  await waitForNEvents(stream, "removetrack", prevTrackCount);
+  assertStreamStatus(NO_TRACKS);
+}, "src-reset");
+
+promise_test(async function testSrcObjAudioVideo(t) {
+  video.onerror = t.unreached_func("video error");
+  const ns = await getNoiseStream({audio: true, video: true});
+  nativeStreams.push(ns);
+  video.srcObject = ns;
+  await video.play();
+  assertStreamStatus(AUDIO_VIDEO_TEST.trackCount);
+}, "srcObj-audio-video");
+
+promise_test(async function testSrcObjVideoOnly(t) {
+  const prevTrackCount = stream.getTracks().length;
+  video.onerror = t.unreached_func("video error");
+  const ns = await getNoiseStream({video: true});
+  nativeStreams.push(ns);
+  video.srcObject = ns;
+  await waitForNEvents(stream, "removetrack", prevTrackCount);
+  assertStreamStatus(NO_TRACKS);
+  await video.play();
+  assertStreamStatus(VIDEO_ONLY_TEST.trackCount);
+}, "srcObj-video-only");
+
+promise_test(async function testSrcAudioVideo(t) {
+  const prevTrackCount = stream.getTracks().length;
+  video.onerror = t.unreached_func("video error");
+  video.srcObject = null;
+  video.src = "/media/" + AUDIO_VIDEO_TEST.filename;
+  await waitForNEvents(stream, "removetrack", prevTrackCount);
+  assertStreamStatus(NO_TRACKS);
+  await video.play();
+  assertStreamStatus(AUDIO_VIDEO_TEST.trackCount);
+}, "src-audio-video");
+
+promise_test(async function testSrcObjAudioOnly(t) {
+  const prevTrackCount = stream.getTracks().length;
+  video.onerror = t.unreached_func("video error");
+  t.add_cleanup(() => {
+    for (const s of nativeStreams) {
+      s.getTracks().forEach(track => track.stop());
+    }
+    video.srcObject = null;
+    video.src = "";
+    video.removeAttribute("src");
+  });
+  const ns = await getNoiseStream({audio: true});
+  nativeStreams.push(ns);
+  video.srcObject = ns;
+  await waitForNEvents(stream, "removetrack", prevTrackCount);
+  assertStreamStatus(NO_TRACKS);
+  await video.play();
+  assertStreamStatus(AUDIO_ONLY_TEST.trackCount);
+}, "srcObj-audio-only");
+
+function assertStreamStatus(trackCount) {
+  assert_equals(stream.getTracks().length, trackCount, "stream track count");
+  if (trackCount > 0) {
+    assert_true(stream.active, "stream must be active");
+  } else {
+    assert_false(stream.active, "stream must be inactive");
+  }
+}
+
+function waitForNEvents(target, name, count) {
+  return new Promise(resolve => {
+    let seen = 0;
+    function onEvent(e) {
+      if (++seen >= count) {
+        target.removeEventListener(name, onEvent);
+        resolve();
+      }
+    }
+    target.addEventListener(name, onEvent);
+  });
+}
+
+</script>
+</body>
+</html>

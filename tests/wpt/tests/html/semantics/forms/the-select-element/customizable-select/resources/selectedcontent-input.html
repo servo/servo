@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<style>
+select,::picker(select) {
+  appearance: base-select;
+}
+</style>
+<form action="blank.html">
+  <select>
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option id=one>one</option>
+    <option id=two>two</option>
+  </select>
+</form>
+
+<script>
+window.createInput = () => {
+  const selectedcontent = document.querySelector('selectedcontent');
+  const input = document.createElement('input');
+  window.input = input;
+  input.name = 'input';
+  selectedcontent.innerHTML = '';
+  selectedcontent.appendChild(input);
+};
+window.createInput();
+</script>

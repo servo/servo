@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="org.servo.servoshell.MainActivity"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/toolbarButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintStart_toStartOf="parent"
+                >
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/history_back_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/arrow_back"
+                    android:contentDescription="@string/history_back"
+                    android:enabled="false"
+                    />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/history_forward_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    app:icon="@drawable/arrow_forward"
+                    android:contentDescription="@string/history_forward"
+                    android:enabled="false"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/refresh_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/refresh"
+                    app:icon="@drawable/refresh"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/cancel_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/cancel"
+                    app:icon="@drawable/cancel"
+                    android:visibility="gone"
+                    />
+
+
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/urlfield"
+                style="@android:style/Widget.Material.EditText"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:autofillHints="url"
+                android:hint="@string/url_or_search"
+                android:imeOptions="actionDone"
+                android:inputType="textUri"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintStart_toEndOf="@id/toolbarButtons"
+                app:layout_constraintEnd_toStartOf="@+id/progressbar"
+                app:layout_constraintHorizontal_bias="0.0"
+                tools:layout_editor_absoluteY="0dp" />
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/progressbar"
+                android:layout_width="0dp"
+                android:layout_height="22dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="0"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorSize="20dp"
+                app:layout_constraintEnd_toStartOf="@+id/redrawing"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/redrawing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:text="@string/idle"
+                android:textAlignment="center"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/settings_menu_item"
+                app:layout_constraintTop_toTopOf="parent"
+                android:visibility="visible" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settings_menu_item"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/options"
+                app:layout_constraintEnd_toStartOf="@id/history_menu_item"
+                app:layout_constraintTop_toTopOf="parent"
+                app:icon="@drawable/settings"
+                />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/history_menu_item"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/history_title"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:icon="@drawable/history"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <org.servo.servoview.ServoView
+        android:id="@+id/servoview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:focusable="true" />
+
+</LinearLayout>

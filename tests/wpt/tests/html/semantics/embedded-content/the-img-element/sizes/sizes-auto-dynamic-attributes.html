@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sizes=auto: size used for source selection changes when image sizes/source/loading changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#allows-auto-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1819581">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* 10px width ensures auto-sizes picks 50w; height keeps lazy images in viewport */
+  img { width: 10px; height: 10px; }
+</style>
+<div id="container"></div>
+<div id="log"></div>
+<script>
+"use strict";
+
+const container = document.getElementById('container');
+
+function waitLoad(img) {
+  return new Promise((resolve, reject) => {
+    img.addEventListener('load', resolve, {once: true});
+    img.onerror = reject;
+  });
+}
+
+function assertSmall(img, msg) {
+  assert_true(img.currentSrc.includes('red-16x16'), msg + ' (got: ' + img.currentSrc + ')');
+}
+
+function assertLarge(img, msg) {
+  assert_true(img.currentSrc.includes('green-16x16'), msg + ' (got: ' + img.currentSrc + ')');
+}
+
+const kSrcset = '/images/red-16x16.png?a 50w, /images/green-16x16.png?a 51w';
+
+async function makeAutoImg(parent = container, srcset = kSrcset) {
+  const img = document.createElement('img');
+  img.id = 'img';
+  img.setAttribute('loading', 'lazy');
+  img.setAttribute('sizes', 'auto');
+  if (srcset) { img.srcset = srcset; }
+  parent.appendChild(img);
+  await waitLoad(img);
+  assertSmall(img, 'initial');
+  return img;
+}
+
+// Changing sizes from "auto" to a concrete value should use that value, not the stale
+// auto-width.
+promise_test(async () => {
+  const img = await makeAutoImg();
+  img.setAttribute('sizes', '500px');
+  img.srcset = '/images/red-16x16.png?b 50w, /images/green-16x16.png?b 51w';
+  await waitLoad(img);
+  assertLarge(img, 'after sizes→500px');
+}, 'sizes=auto→500px: prior sizes=auto must not override new sizes value');
+
+// Removing lazy loading should make sizes=auto fall back to 100vw, not use the stale
+// auto-width.
+promise_test(async () => {
+  const img = await makeAutoImg();
+  img.setAttribute('loading', 'eager');
+  img.srcset = '/images/red-16x16.png?b 50w, /images/green-16x16.png?b 51w';
+  await waitLoad(img);
+  assertLarge(img, 'after loading→eager: sizes=auto falls back to 100vw');
+}, 'loading=lazy removed: prior loading=lazy must not override 100vw fallback for loading=eager');
+
+// When a <picture> source is removed and the img gains its own srcset, the
+// element's actual 10px width should be used, instead of falling back to 100vw.
+promise_test(async () => {
+  const picture = document.createElement('picture');
+  const source = document.createElement('source');
+  source.srcset = kSrcset;
+  picture.append(source);
+  container.appendChild(picture);
+  const img = await makeAutoImg(picture, null)
+
+  picture.removeChild(source);
+  img.srcset = kSrcset;
+  await waitLoad(img);
+  assertSmall(img, 'after source removal: new selector should use element width, not 100vw');
+}, 'picture source removal: new selector must not fall back to 100vw');
+</script>

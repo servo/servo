@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Single-axis scroll containers with scrollIntoView (RTL)</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12289">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #outer {
+    width: 100px;
+    height: 100px;
+    overflow-x: clip;
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+  #inner {
+    width: 100px;
+    height: 100px;
+    direction: rtl;
+    overflow-x: scroll;
+    overflow-y: clip;
+    scrollbar-width: none;
+  }
+  .inner-spacer {
+    height: 220px;
+  }
+  .spacer {
+    height: 100px;
+  }
+  #target {
+    width: 100px;
+    height: 60px;
+    /* In RTL, margin-right pushes the target to the visual left while keeping
+       it within inner's clipped block axis. The trailing spacer keeps #inner
+       vertically scrollable, so this test fails if the clipped axis is
+       scrolled instead of propagating the block-axis alignment to #outer. */
+    margin-right: 200px;
+    margin-top: 20px;
+  }
+</style>
+
+<div id="outer">
+  <!-- Spacer pushes #inner down, creating 300px of scrollable height inside #outer -->
+  <div class="spacer"></div>
+  <div id="inner">
+    <div id="target"></div>
+    <div class="inner-spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+test(() => {
+  const outer = document.querySelector('#outer');
+  const inner = outer.querySelector('#inner');
+  const target = outer.querySelector('#target');
+
+  // Attempt to scroll the target to the top-start (top-right in RTL) of the viewing area
+  target.scrollIntoView({block: 'start', inline: 'start', behavior: 'instant'});
+
+  // Check inner container (RTL, scrolls X, clips Y)
+  // Target is pushed 200px to the left, so inner must scroll -200px horizontally.
+  assert_equals(inner.scrollLeft, -200, 'inner scrolls horizontally to the target (negative in RTL)');
+  assert_equals(inner.scrollTop, 0, 'inner ignores the clipped vertical axis');
+  assert_equals(inner.scrollWidth, 300, 'inner scrollWidth retains overflowing content');
+  assert_equals(inner.scrollHeight, 300, 'inner scrollHeight retains overflowing content');
+
+  // Check outer container (LTR, clips X, scrolls Y)
+  // The target sits 20px below the top of #inner, so #outer must scroll the
+  // remaining 120px vertically when #inner cannot scroll the clipped axis.
+  assert_equals(outer.scrollLeft, 0, 'outer ignores the clipped horizontal axis');
+  assert_equals(outer.scrollTop, 120, 'outer scrolls vertically to the target');
+  assert_equals(outer.scrollWidth, 100, 'outer scrollWidth naturally fits client width');
+  assert_equals(outer.scrollHeight, 300, 'outer scrollHeight retains overflowing content');
+}, 'scrollIntoView() respects single-axis limits independently on each ancestor in RTL');
+</script>

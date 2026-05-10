@@ -12,6 +12,8 @@ features:
   - '!date*'
   - '!time*'
   - '!input-valueasdate*'
+  - '!files.html'
+  - '!file-manual.html'
   - '!type-change-file-to-text-crash.html'
   - '!input-value-invalidstateerr.html'
   - '!change-to-empty-value.html'
@@ -54,6 +56,8 @@ features:
   - input-valueasdate*
 - name: input-file
   files:
+  - files.html
+  - file-manual.html
   - type-change-file-to-text-crash.html
   - input-value-invalidstateerr.html
 - name: change-event

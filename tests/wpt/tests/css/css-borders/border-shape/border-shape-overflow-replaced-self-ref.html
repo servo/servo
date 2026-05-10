@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders Test: border-shape on replaced element reference</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<style>
+body {
+  margin: 0;
+  padding: 20px;
+}
+.outer {
+  width: 100px;
+  height: 100px;
+  border: 10px solid black;
+  border-shape: circle(50%);
+  overflow: hidden;
+}
+.inner {
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+</style>
+<div class="outer"><div class="inner"></div></div>

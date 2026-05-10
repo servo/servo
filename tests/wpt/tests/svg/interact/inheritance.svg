@@ -4,7 +4,7 @@
      width="800px" height="8000px">
   <title>Inheritance of pointer-events</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProperty"/>
     <h:meta name="assert" content="pointer-events inherits according to the spec."/>
     <h:meta name="assert" content="pointer-events has initial value auto."/>
   </metadata>

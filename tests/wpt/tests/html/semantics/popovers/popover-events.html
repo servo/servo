@@ -68,10 +68,12 @@ window.onload = () => {
           break;
         case "attribute":
           assert_false(popover.hasAttribute('onbeforetoggle'));
-          t.add_cleanup(() => popover.removeAttribute('onbeforetoggle'));
-          popover.onbeforetoggle = listener;
           assert_false(popover.hasAttribute('ontoggle'));
-          t.add_cleanup(() => popover.removeAttribute('ontoggle'));
+          t.add_cleanup(() => {
+            popover.onbeforetoggle = null;
+            popover.ontoggle = null;
+          });
+          popover.onbeforetoggle = listener;
           popover.ontoggle = listener;
           break;
         default: assert_unreached();
@@ -212,5 +214,39 @@ window.onload = () => {
     assertOnly('coalescedHide','Single coalesced event should have been fired, which is a "hide"');
     assert_false(popover.matches(':popover-open'));
   }, 'The "toggle" event is coalesced');
+
+  promise_test(async t => {
+    const {popover, signal} = getPopoverAndSignal(t);
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    const focusElement = document.createElement('button');
+    focusElement.autofocus = true;
+    popover.appendChild(focusElement);
+    t.add_cleanup(() => {
+      button.remove();
+      focusElement.remove();
+      popover.setAttribute('popover', 'auto');
+    });
+
+    // Set up event logging
+    let events = [];
+    popover.addEventListener('beforetoggle', (e) => events.push(`beforetoggle ${e.oldState} -> ${e.newState}`), {signal});
+    popover.addEventListener('toggle', (e) => events.push(`toggle ${e.oldState} -> ${e.newState}`), {signal});
+    button.addEventListener('blur', () => events.push('button blur'), {signal});
+    focusElement.addEventListener('focus', () => events.push('focusElement focus'), {signal});
+
+    button.focus();
+    button.addEventListener('blur', () => popover.removeAttribute('popover'), {signal});
+    popover.showPopover();
+    await waitForRender();
+    // The `autofocus` element should get focused during showPopover();
+
+    assert_array_equals(events,[
+      'beforetoggle closed -> open',
+      'button blur',
+      'focusElement focus',
+      'toggle closed -> open'
+    ]);
+  }, 'The toggle event is still fired if the popover is removed during focus/blur');
 };
 </script>

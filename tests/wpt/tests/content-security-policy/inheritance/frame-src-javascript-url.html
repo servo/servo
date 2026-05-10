@@ -10,6 +10,10 @@
   promise_test(async (t) => {
     await new Promise(r => window.onload = r);
 
+    window.addEventListener("securitypolicyviolation", t.step_func(
+      e => assert_unreached("Should be raised in iframe")
+    ));
+
     let url = `javascript:
 
       window.addEventListener('securitypolicyviolation', e => {

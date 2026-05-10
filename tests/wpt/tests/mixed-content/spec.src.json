@@ -22,10 +22,10 @@
             "video-tag"
           ],
           "origin": [
-            "cross-http",
-            "same-http"
+            "cross-http-downgrade",
+            "same-http-downgrade"
           ],
-          "expectation": "blocked"
+          "expectation": "upgraded"
         },
         {
           // opt-in-blocks-redirects
@@ -34,7 +34,7 @@
           "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
-          "redirection": "swap-scheme",
+          "redirection": "downgrade",
           "subresource": [
             "audio-tag",
             "img-tag",
@@ -44,7 +44,7 @@
             "same-https",
             "cross-https"
           ],
-          "expectation": "blocked"
+          "expectation": "allowed"
         },
         {
           // no-opt-in-allows
@@ -60,10 +60,10 @@
             "video-tag"
           ],
           "origin": [
-            "cross-http",
-            "same-http"
+            "cross-http-downgrade",
+            "same-http-downgrade"
           ],
-          "expectation": "allowed"
+          "expectation": "upgraded"
         }
       ]
     },
@@ -122,7 +122,7 @@
           "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
-          "redirection": "swap-scheme",
+          "redirection": "downgrade",
           "subresource": [
             "a-tag",
             "beacon",
@@ -270,8 +270,9 @@
         // this is not redundant because <meta> is not supported.
         "top",
         "srcdoc-inherit",
-        "iframe",
+        "iframe-inherit",
         "iframe-blank-inherit",
+        "iframe-data-inherit",
         "worker-classic-data",
         "worker-module-data",
         "sharedworker-classic-data",
@@ -293,7 +294,7 @@
       "delivery_value": "opt-in",
       "redirection": [
         "keep-scheme",
-        "swap-scheme"
+        "downgrade"
       ],
       "subresource": "*",
       "origin": "*",
@@ -305,7 +306,6 @@
       "source_scheme": "*",
       "source_context_list": [
         "req",
-        "srcdoc-inherit",
         "srcdoc",
         "iframe",
         "iframe-blank-inherit"
@@ -349,6 +349,39 @@
       "subresource": "*",
       "expectation": "*"
     },
+    {
+      // Service workers are currently not tested in data: iframes, as loading
+      // them from a data: iframe in the current setup would get blocked as a
+      // cross-origin request
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "iframe-data-inherit"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": [
+        "sharedworker-classic",
+        "sharedworker-import",
+        "sharedworker-import-data",
+        "sharedworker-module",
+        "worker-classic",
+        "worker-import",
+        "worker-import-data",
+        "worker-module",
+        "worklet-animation",
+        "worklet-animation-import-data",
+        "worklet-audio",
+        "worklet-audio-import-data",
+        "worklet-layout",
+        "worklet-layout-import-data",
+        "worklet-paint",
+        "worklet-paint-import-data"
+      ],
+      "expectation": "*"
+    }
   ],
   "source_context_schema": {
     "supported_delivery_type": {
@@ -357,13 +390,15 @@
         "meta"
       ],
       "iframe": [
-        "http-rp",
         "meta"
       ],
       "iframe-blank": [
         "meta"
       ],
       "srcdoc": [
+        "meta"
+      ],
+      "iframe-data": [
         "meta"
       ],
       "worker-classic": [
@@ -403,6 +438,7 @@
       "sharedworker-import": [],
       "sharedworker-import-data": [],
       "sharedworker-module": [],
+      "svg-a-tag": [],
       "video-tag": [],
       "websocket": [],
       "worker-classic": [],
@@ -431,7 +467,8 @@
     ],
     "expectation": [
       "allowed",
-      "blocked"
+      "blocked",
+      "upgraded"
     ]
   }
 }

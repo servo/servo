@@ -5,7 +5,10 @@
 pub mod font;
 mod freetype_face;
 
-#[cfg(all(target_os = "linux", not(target_env = "ohos"), not(ohos_mock)))]
+#[cfg(any(
+    all(target_os = "linux", not(target_env = "ohos"), not(ohos_mock)),
+    target_os = "freebsd"
+))]
 pub mod font_list;
 
 #[cfg(target_os = "android")]

@@ -3,19 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, ns};
+use html5ever::LocalName;
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::NodeTraits;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMTokenList {
@@ -42,24 +42,24 @@ impl DOMTokenList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         element: &Element,
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
-        can_gc: CanGc,
     ) -> DomRoot<DOMTokenList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DOMTokenList::new_inherited(
                 element,
                 local_name.clone(),
                 supported_tokens,
             )),
             &*element.owner_window(),
-            can_gc,
+            cx,
         )
     }
 
     fn attribute(&self) -> Option<DomRoot<Attr>> {
-        self.element.get_attribute(&ns!(), &self.local_name)
+        self.element.get_attribute(&self.local_name)
     }
 
     fn check_token_exceptions(&self, token: &DOMString) -> Fallible<Atom> {
@@ -74,21 +74,21 @@ impl DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-dtl-update>
-    fn perform_update_steps(&self, atoms: Vec<Atom>, can_gc: CanGc) {
+    fn perform_update_steps(&self, cx: &mut JSContext, atoms: Vec<Atom>) {
         // Step 1
         if !self.element.has_attribute(&self.local_name) && atoms.is_empty() {
             return;
         }
         // step 2
         self.element
-            .set_atomic_tokenlist_attribute(&self.local_name, atoms, can_gc)
+            .set_atomic_tokenlist_attribute(cx, &self.local_name, atoms)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-domtokenlist-validation>
     fn validation_steps(&self, token: &str) -> Fallible<bool> {
         match &self.supported_tokens {
             None => Err(Error::Type(
-                "This attribute has no supported tokens".to_owned(),
+                c"This attribute has no supported tokens".to_owned(),
             )),
             Some(supported_tokens) => {
                 let token = Atom::from(token).to_ascii_lowercase();
@@ -128,7 +128,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>
-    fn Add(&self, tokens: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
+    fn Add(&self, cx: &mut JSContext, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -136,12 +136,12 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
                 atoms.push(token);
             }
         }
-        self.perform_update_steps(atoms, can_gc);
+        self.perform_update_steps(cx, atoms);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-remove>
-    fn Remove(&self, tokens: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
+    fn Remove(&self, cx: &mut JSContext, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -150,12 +150,12 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
                 .position(|atom| *atom == token)
                 .map(|index| atoms.remove(index));
         }
-        self.perform_update_steps(atoms, can_gc);
+        self.perform_update_steps(cx, atoms);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-toggle>
-    fn Toggle(&self, token: DOMString, force: Option<bool>, can_gc: CanGc) -> Fallible<bool> {
+    fn Toggle(&self, cx: &mut JSContext, token: DOMString, force: Option<bool>) -> Fallible<bool> {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         let token = self.check_token_exceptions(&token)?;
         match atoms.iter().position(|atom| *atom == token) {
@@ -163,7 +163,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    self.perform_update_steps(atoms, can_gc);
+                    self.perform_update_steps(cx, atoms);
                     Ok(false)
                 },
             },
@@ -171,7 +171,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    self.perform_update_steps(atoms, can_gc);
+                    self.perform_update_steps(cx, atoms);
                     Ok(true)
                 },
             },
@@ -184,13 +184,18 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         self.element
-            .set_tokenlist_attribute(&self.local_name, value, can_gc);
+            .set_tokenlist_attribute(cx, &self.local_name, value);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-replace>
-    fn Replace(&self, token: DOMString, new_token: DOMString, can_gc: CanGc) -> Fallible<bool> {
+    fn Replace(
+        &self,
+        cx: &mut JSContext,
+        token: DOMString,
+        new_token: DOMString,
+    ) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
             return Err(Error::Syntax(None));
@@ -229,7 +234,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
             }
 
             // Step 5.
-            self.perform_update_steps(atoms, can_gc);
+            self.perform_update_steps(cx, atoms);
             result = true;
         }
         Ok(result)

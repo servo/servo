@@ -3,7 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="300" height="200">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#paths-PathDataClosePathCommand"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/single-page.html#paths-PathDataClosePathCommand"/>
     <h:link rel="match" href="segment-completing-ref.svg"/>
     <h:meta name="assert" content="initial subpath point used to complete segment."/>
   </metadata>

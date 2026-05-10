@@ -1,33 +1,29 @@
 # mypy: allow-untyped-defs
 
 import os
-import sys
 
-from os.path import dirname, join
 
 import pytest
 
-sys.path.insert(0, join(dirname(__file__), "..", ".."))
-
-from .. import browsers
+from ..products import get_all_products
 
 
-_products = browsers.product_list
+_products = set(get_all_products())
 _active_products = set()
 
 if "CURRENT_TOX_ENV" in os.environ:
-    current_tox_env_split = os.environ["CURRENT_TOX_ENV"].split("-")
+    current_tox_env_split = set(os.environ["CURRENT_TOX_ENV"].split("-"))
 
     tox_env_extra_browsers = {
         "chrome": {"chrome_android"},
         "servo": {"servo_legacy"},
     }
 
-    _active_products = set(_products) & set(current_tox_env_split)
+    _active_products = _products & set(current_tox_env_split)
     for product in frozenset(_active_products):
         _active_products |= tox_env_extra_browsers.get(product, set())
 else:
-    _active_products = set(_products)
+    _active_products = _products
 
 
 class all_products:

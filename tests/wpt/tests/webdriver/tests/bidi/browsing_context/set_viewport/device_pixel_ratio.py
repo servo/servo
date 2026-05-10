@@ -3,8 +3,9 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from ... import get_device_pixel_ratio, get_viewport_dimensions
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("device_pixel_ratio", [0.5, 2])
 async def test_device_pixel_ratio_only(bidi_session, inline, new_tab, device_pixel_ratio):
     viewport = await get_viewport_dimensions(bidi_session, new_tab)
@@ -32,7 +33,6 @@ async def test_device_pixel_ratio_only(bidi_session, inline, new_tab, device_pix
     assert await get_viewport_dimensions(bidi_session, new_tab) == viewport
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("device_pixel_ratio", [0.5, 2])
 async def test_device_pixel_ratio_with_viewport(
     bidi_session, inline, new_tab, device_pixel_ratio
@@ -56,7 +56,6 @@ async def test_device_pixel_ratio_with_viewport(
     assert await get_device_pixel_ratio(bidi_session, new_tab) == device_pixel_ratio
 
 
-@pytest.mark.asyncio
 async def test_reset_device_pixel_ratio(bidi_session, inline, new_tab):
     original_dpr = await get_device_pixel_ratio(bidi_session, new_tab)
     test_dpr = original_dpr + 1
@@ -80,7 +79,6 @@ async def test_reset_device_pixel_ratio(bidi_session, inline, new_tab):
     assert await get_device_pixel_ratio(bidi_session, new_tab) == original_dpr
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("device_pixel_ratio", [0.5, 2])
 @pytest.mark.parametrize(
     "use_horizontal_scrollbar, use_vertical_scrollbar",

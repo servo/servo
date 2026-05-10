@@ -14,6 +14,7 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest, HttpResponse};
 use headers::{ContentLength, HeaderMapExt};
 use http::HeaderMap;
+use malloc_size_of_derive::MallocSizeOf;
 use net::cookie::ServoCookie;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::{CookieSource, TlsSecurityInfo};
@@ -29,14 +30,14 @@ use crate::actors::watcher::WatcherActor;
 use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct NetworkEventActor {
     name: String,
     request: AtomicRefCell<Option<NetworkEventRequest>>,
     resource_id: u64,
     response: AtomicRefCell<Option<NetworkEventResponse>>,
     security_info: AtomicRefCell<TlsSecurityInfo>,
-    pub watcher: String,
+    pub watcher_name: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -188,14 +189,14 @@ struct ResponseContent {
     transferred_size: Option<u64>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CacheDetails {
     from_cache: bool,
     from_service_worker: bool,
 }
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize, MallocSizeOf)]
 pub(crate) struct Timings {
     blocked: usize,
     dns: usize,
@@ -312,6 +313,7 @@ impl From<&TlsSecurityInfo> for SecurityInfo {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct NetworkEventRequest {
     offsets: Timings,
     timings: Timings,
@@ -319,6 +321,7 @@ struct NetworkEventRequest {
     total_time: Duration,
 }
 
+#[derive(MallocSizeOf)]
 struct NetworkEventResponse {
     cache_details: CacheDetails,
     response: HttpResponse,
@@ -465,9 +468,10 @@ impl Actor for NetworkEventActor {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
                         let body_string = String::from_utf8_lossy(body).to_string();
-                        let long_string = LongStringActor::new(registry, body_string);
-                        let value = long_string.long_string_obj();
-                        registry.register(long_string);
+                        let long_string_name = LongStringActor::register(registry, body_string);
+                        let value = registry
+                            .find::<LongStringActor>(&long_string_name)
+                            .long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
                         let b64 = STANDARD.encode(&body.0);
@@ -532,13 +536,16 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String, resource_id: u64, watcher: String) -> NetworkEventActor {
-        NetworkEventActor {
-            name,
+    pub fn register(registry: &ActorRegistry, resource_id: u64, watcher_name: String) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = NetworkEventActor {
+            name: name.clone(),
             resource_id,
-            watcher,
+            watcher_name,
             ..Default::default()
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn add_request(&self, request: HttpRequest) {
@@ -621,9 +628,9 @@ impl NetworkEventActor {
     }
 
     pub fn resource_updates(&self, registry: &ActorRegistry) -> NetworkEventResource {
-        let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let watcher_actor = registry.find::<WatcherActor>(&self.watcher_name);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher_actor.browsing_context_name);
 
         NetworkEventResource {
             resource_id: self.resource_id,
@@ -634,7 +641,7 @@ impl NetworkEventActor {
                 response: self.response_fields(),
                 security: self.security_fields(),
             },
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             inner_window_id: 0,
         }
     }
@@ -695,17 +702,17 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
                 .as_millis() as i64,
         ) {
             LocalResult::None => "".to_owned(),
-            LocalResult::Single(date_time) => date_time.to_rfc3339().to_string(),
-            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
+            LocalResult::Single(date_time) => date_time.to_rfc3339(),
+            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
         };
 
-        let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let watcher_actor = registry.find::<WatcherActor>(&self.watcher_name);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher_actor.browsing_context_name);
 
         NetworkEventMsg {
             actor: self.name(),
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             cause: Cause {
                 type_: request.destination.as_str().to_string(),
                 loading_document_uri: None, // Set if available

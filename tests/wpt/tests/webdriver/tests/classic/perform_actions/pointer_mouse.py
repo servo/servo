@@ -12,7 +12,8 @@ from tests.classic.perform_actions.support.mouse import (
 )
 from tests.classic.perform_actions.support.refine import get_events
 from tests.support.asserts import assert_move_to_coordinates
-from tests.support.helpers import center_point, filter_dict
+from tests.support.classic.helpers import center_point
+from tests.support.helpers import filter_dict
 from tests.support.sync import Poll
 
 from . import assert_pointer_events, record_pointer_events
@@ -337,15 +338,6 @@ def test_move_to_origin_position_within_frame(
     # it's unclear what the actual spec requirements really are
     assert events[0][0] == pytest.approx(target_point[0], abs=1.0)
     assert events[0][1] == pytest.approx(target_point[1], abs=1.0)
-
-
-@pytest.mark.parametrize("missing", ["x", "y"])
-def test_missing_coordinates(session, test_actions_page, mouse_chain, missing):
-    outer = session.find.css("#outer", all=False)
-    actions = mouse_chain.pointer_move(x=0, y=0, origin=outer)
-    del actions._actions[-1][missing]
-    with pytest.raises(InvalidArgumentException):
-        actions.perform()
 
 
 def test_invalid_element_origin(session, test_actions_page, mouse_chain):

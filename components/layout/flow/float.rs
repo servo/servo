@@ -828,22 +828,21 @@ impl FloatBandLink {
     ///     A   B          B   R
     /// ```
     fn skew(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref left) = this.left.0 {
-                if this.level == left.level {
-                    return FloatBandLink(Some(Arc::new(FloatBandNode {
-                        level: this.level,
-                        left: left.left.clone(),
-                        band: left.band,
-                        right: FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level,
-                            left: left.right.clone(),
-                            band: this.band,
-                            right: this.right.clone(),
-                        }))),
-                    })));
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref left) = this.left.0 &&
+            this.level == left.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level,
+                left: left.left.clone(),
+                band: left.band,
+                right: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: left.right.clone(),
+                    band: this.band,
+                    right: this.right.clone(),
+                }))),
+            })));
         }
 
         (*self).clone()
@@ -858,24 +857,22 @@ impl FloatBandLink {
     ///         B   X    A   B
     /// ```
     fn split(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref right) = this.right.0 {
-                if let Some(ref right_right) = right.right.0 {
-                    if this.level == right_right.level {
-                        return FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level + 1,
-                            left: FloatBandLink(Some(Arc::new(FloatBandNode {
-                                level: this.level,
-                                left: this.left.clone(),
-                                band: this.band,
-                                right: right.left.clone(),
-                            }))),
-                            band: right.band,
-                            right: right.right.clone(),
-                        })));
-                    }
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref right) = this.right.0 &&
+            let Some(ref right_right) = right.right.0 &&
+            this.level == right_right.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level + 1,
+                left: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: this.left.clone(),
+                    band: this.band,
+                    right: right.left.clone(),
+                }))),
+                band: right.band,
+                right: right.right.clone(),
+            })));
         }
 
         (*self).clone()
@@ -991,12 +988,12 @@ impl SequentialLayoutState {
         self.bfc_relative_block_position + self.current_margin.solve()
     }
 
-    /// Collapses margins, moving the block position down by the collapsed value of `current_margin`
+    /// Commits margins, moving the block position down by the collapsed value of `current_margin`
     /// and resetting `current_margin` to zero.
     ///
     /// Call this method before laying out children when it is known that the start margin of the
     /// current fragment can't collapse with the margins of any of its children.
-    pub(crate) fn collapse_margins(&mut self) {
+    pub(crate) fn commit_margin(&mut self) {
         self.advance_block_position(self.current_margin.solve());
         self.current_margin = CollapsedMargin::zero();
     }

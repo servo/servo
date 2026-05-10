@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+.wrapper {
+  display: inline-block;
+  border: 1px solid;
+}
+.inner {
+  display: inline-block;
+  padding: 10px;
+  text-decoration: none;
+  background: green;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+.fixed-size {
+  width: 20px;
+  height: 20px;
+  background-color: blue;
+}
+</style>
+<div class="wrapper">
+  <div class="inner" style="width: 200px"><div class="fixed-size"></div></div>
+</div>
+<div class="wrapper">
+  <div class="inner" style="width: auto"><div class="fixed-size"></div></div>
+</div>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-5;totalPixels=0-25000">
+<title>backdrop-filter on child with filter on parent</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+<link rel="match" href="backdrop-filter-plus-filter-2-ref.html">
+<!-- The parent's filter:blur should still apply when a child has
+     backdrop-filter. The parent forms a backdrop root, so the child's
+     backdrop-filter only samples within the parent (transparent background),
+     making it a no-op. Expected: a blurred green rectangle with soft edges. -->
+<div class="parent">
+  <div class="child"></div>
+</div>
+<style>
+.parent {
+  width: 200px;
+  height: 200px;
+  filter: blur(5px);
+}
+.child {
+  width: 80%;
+  height: 80%;
+  background: rgba(0, 255, 0, 0.3);
+  backdrop-filter: blur(5px);
+}
+</style>

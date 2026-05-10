@@ -1,0 +1,90 @@
+<!doctype html>
+<title>'load' and 'error' events for SVG &lt;script></title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/embedded.html#ScriptElement">
+<link rel="help" href="https://www.w3.org/TR/SVG2/interact.html#LoadEvent">
+<link rel="help" href="https://www.w3.org/TR/SVG2/interact.html#ErrorEvent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+</svg>
+<script>
+  function newScriptElement() {
+    return document.createElementNS('http://www.w3.org/2000/svg', 'script');
+  }
+  function expectEvents(t, element, event) {
+    return new EventWatcher(t, element, ['load', 'error']).wait_for(event);
+  }
+  const DATA_URL_PAYLOAD =
+      '# comment';
+  const cookie = Date.now();
+  let counter = 0;
+  function makeCookie(index) {
+    return `${cookie}-${index}`;
+  }
+  function getUrl(type) {
+    const cookie = makeCookie(counter++);
+    switch (type) {
+    case 'existing':
+      return `./resources/load-error-events.py?test=test_script_load&${cookie}`;
+    case 'existing-data':
+      return `data:text/javascript,${DATA_URL_PAYLOAD}`;
+    case 'non-existing':
+      return `./resources/load-error-events.py?test=test_script_error&${cookie}`;
+    case 'existing-slow':
+      return `./resources/load-error-events.py?test=test_script_load&delay=1&${cookie}`;
+    case 'non-existing-slow':
+      return `./resources/load-error-events.py?test=test_error&delay=1&${cookie}`;
+    }
+  }
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const script = newScriptElement();
+    const watcher = expectEvents(t, script, ['load']);
+    const url = getUrl('existing');
+    svg.appendChild(script).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external reference, existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const script = newScriptElement();
+    const watcher = expectEvents(t, script, ['load']);
+    const url = getUrl('existing-data');
+    svg.appendChild(script).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external data: URL reference, existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const script = newScriptElement();
+    const watcher = expectEvents(t, script, ['error']);
+    const url = getUrl('non-existing');
+    svg.appendChild(script).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external reference, non-existing');
+
+  promise_test(async t => {
+    const svg = document.querySelector('svg');
+    const script = newScriptElement();
+    const watcher = expectEvents(t, script, ['load']);
+    const url = getUrl('existing-slow');
+    svg.appendChild(script).setAttribute('href', url);
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    script.remove();
+    await watcher;
+  }, document.title + ', external reference, existing, detached');
+
+  promise_test(async t => {
+    const svg = document.querySelector('svg');
+    const script = newScriptElement();
+    const watcher = expectEvents(t, script, ['error']);
+    const url = getUrl('non-existing-slow');
+    svg.appendChild(script).setAttribute('href', url);
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    script.remove();
+    await watcher;
+  }, document.title + ', external reference, non-existing, detached');
+
+</script>

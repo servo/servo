@@ -26,19 +26,27 @@
     --unregistered: 200px;
     --unregistered-keyword: fail;
     --unregistered-number: 200;
+    --unregistered-number-zero: 0;
     --registered: 200px;
     --registered-keyword: fail;
-    --registered-number: 0;
+    --registered-number: 200;
+    --registered-number-zero: 0;
   }
   #target {
+    --match-zero: no;
     --match-unknown: no;
     --match-unknown-fallback: no;
     --match-unregistered: no;
     --match-unregistered-keyword: no;
     --match-unregistered-number: no;
+    --match-unregistered-number-zero: no;
     --match-registered: no;
     --match-registered-keyword: no;
     --match-registered-number: no;
+    --match-registered-number-zero: no;
+  }
+  @container (width > 0) {
+    #target { --match-zero: yes; }
   }
   @container (width > var(--unknown)) {
     #target { --match-unknown: yes; }
@@ -55,6 +63,9 @@
   @container (width > var(--unregistered-number)) {
     #target { --match-unregistered-number: yes; }
   }
+  @container (width > var(--unregistered-number-zero)) {
+    #target { --match-unregistered-number-zero: yes; }
+  }
   @container (width > var(--registered)) {
     #target { --match-registered: yes; }
   }
@@ -64,6 +75,9 @@
   @container (width > var(--registered-number)) {
     #target { --match-registered-number: yes; }
   }
+  @container (width > var(--registered-number-zero)) {
+    #target { --match-registered-number-zero: yes; }
+  }
 </style>
 <div id="container">
   <div id="target"></div>
@@ -71,14 +85,23 @@
 <script>
   setup(() => assert_implements_size_container_queries());
 
-  for (let match of [["--match-unknown", "no"],
-                     ["--match-unknown-fallback", "yes"],
-                     ["--match-unregistered", "yes"],
-                     ["--match-unregistered-keyword", "no"],
-                     ["--match-unregistered-number", "no"],
-                     ["--match-registered", "yes"],
-                     ["--match-registered-keyword", "no"],
-                     ["--match-registered-number", "no"]]) {
+  for (let match of [
+    // Verify that comparing a <dimen> with <number> zero is allowed
+    // (see also *-number-zero cases below):
+    ["--match-zero", "yes"],
+    ["--match-unknown", "no"],
+    ["--match-unknown-fallback", "yes"],
+    ["--match-unregistered", "yes"],
+    ["--match-unregistered-keyword", "no"],
+    // <dimen> vs <number> is not valid...
+    ["--match-unregistered-number", "no"],
+    // ...unless the <number> is zero.
+    ["--match-unregistered-number-zero", "yes"],
+    ["--match-registered", "yes"],
+    ["--match-registered-keyword", "no"],
+    ["--match-registered-number", "no"],
+    ["--match-registered-number-zero", "yes"],
+  ]) {
     test(() => {
       assert_equals(getComputedStyle(target).getPropertyValue(match[0]), match[1]);
     }, `Matching ${match[0]}`);

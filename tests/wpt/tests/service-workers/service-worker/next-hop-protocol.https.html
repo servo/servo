@@ -31,9 +31,9 @@ async function runTest(t, base_url, expected_protocol) {
   assert_equals(await getNextHopProtocol(frame, `${base_url}?ignore`),
                 expected_protocol, 'nextHopProtocol is set on fallback');
   assert_equals(await getNextHopProtocol(frame, `${base_url}`),
-                expected_protocol, 'nextHopProtocol is set on pass-through');
+                '', 'nextHopProtocol is not set on pass-through');
   assert_equals(await getNextHopProtocol(frame, `${base_url}?cache`),
-                expected_protocol, 'nextHopProtocol is set on cached response');
+                '', 'nextHopProtocol is not set on cached response');
 }
 
 promise_test(async (t) => {

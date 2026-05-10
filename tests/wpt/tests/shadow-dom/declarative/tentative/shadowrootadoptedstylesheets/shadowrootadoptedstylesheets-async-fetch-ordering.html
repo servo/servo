@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets async fetch ordering</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Create a shadow root that references multiple CSS module specifiers that
+    // haven't been fetched yet. Empty placeholder sheets should be added to
+    // adoptedStyleSheets immediately in attribute order, and replaced with
+    // fetched sheets when each fetch completes.
+    const redUrl = "./support/styles-red.css?ordering";
+    const blueUrl = "./support/styles.css?ordering";
+    const greenUrl = "./support/styles-green.css?ordering";
+    const { shadowRoot, testElement } = createStylesheetHost(
+      [redUrl, blueUrl, greenUrl]);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "Before fetch: expected 3 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before fetch: placeholder at index 0 should be empty.");
+    assert_equals(shadowRoot.adoptedStyleSheets[1].cssRules.length, 0,
+      "Before fetch: placeholder at index 1 should be empty.");
+    assert_equals(shadowRoot.adoptedStyleSheets[2].cssRules.length, 0,
+      "Before fetch: placeholder at index 2 should be empty.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
+      "Styles should not yet be applied from empty placeholders.");
+
+    await fetchAndWait(redUrl, blueUrl, greenUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "adoptedStyleSheets should still have exactly three entries after all modules are fetched.");
+
+    // The last stylesheet in attribute order is styles-green.css, so green
+    // should win the cascade.
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 128, 0)",
+      "The last stylesheet in attribute order should win the cascade.");
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "Index 0");
+    assertSheetRule(shadowRoot, 1, "span { color: blue; }", "Index 1");
+    assertSheetRule(shadowRoot, 2, "span { color: green; }", "Index 2");
+  }, "Multiple async-fetched CSS modules maintain attribute order in adoptedStyleSheets.");
+</script>
+</body>

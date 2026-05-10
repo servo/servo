@@ -5,12 +5,12 @@
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::MutableHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{FingerJoint, Hand, Joint};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
@@ -107,9 +107,7 @@ const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
 #[dom_struct]
 pub(crate) struct XRHand {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webxr"]
     source: Dom<XRInputSource>,
-    #[ignore_malloc_size_of = "partially defind in webxr"]
     #[custom_trace]
     spaces: Hand<Dom<XRJointSpace>>,
 }
@@ -137,7 +135,16 @@ impl XRHand {
                 .find(|&&(_, value)| value == joint)
                 .map(|&(hand_joint, _)| hand_joint)
                 .expect("Invalid joint name");
-            field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint, CanGc::note()))
+            field.map(|_| {
+                XRJointSpace::new(
+                    global,
+                    session,
+                    id,
+                    joint,
+                    hand_joint,
+                    CanGc::deprecated_note(),
+                )
+            })
         });
         reflect_dom_object(
             Box::new(XRHand::new_inherited(source, &spaces)),

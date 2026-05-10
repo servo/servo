@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Abspos with intrinsic block size and height:100% child</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-max-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="
+  An absolutely positioned element with height:max-content should not collapse
+  when a child has height:100%. The percentage is cyclic and should behave as auto.
+">
+
+<style>
+.container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+}
+.abspos {
+    position: absolute;
+    height: max-content;
+    width: 100px;
+    background: green;
+}
+.child {
+    height: 100%;
+}
+.content {
+    height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+    <div class="abspos">
+        <div class="child">
+            <div class="content"></div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,51 @@
+[package]
+name = "servo-media-gstreamer"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_media_gstreamer"
+path = "lib.rs"
+
+[features]
+glx = ["servo-media-gstreamer-render-unix/gl-x11"]
+wayland = ["servo-media-gstreamer-render-unix/gl-wayland"]
+
+[dependencies]
+byte-slice-cast = { workspace = true }
+glib = { workspace = true }
+glib-sys = { workspace = true }
+gstreamer = { workspace = true }
+gstreamer-app = { workspace = true }
+gstreamer-audio = { workspace = true }
+gstreamer-video = { workspace = true }
+gstreamer-base = { workspace = true }
+gstreamer-play = { workspace = true }
+gstreamer-webrtc = { workspace = true }
+gstreamer-sdp = { workspace = true }
+gstreamer-sys = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+mime = { workspace = true }
+servo-media = { workspace = true }
+servo-media-audio = { workspace = true }
+servo-media-gstreamer-render = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-streams = { workspace = true }
+servo-media-traits = { workspace = true }
+servo-media-webrtc = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
+servo-media-gstreamer-render-unix = { workspace = true, features = [
+    "gl-egl",
+] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+servo-media-gstreamer-render-android = { workspace = true }

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Event handler attribute replacement via setAttribute preserves passive flag</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#event-handler-content-attributes">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Wheel event listeners on document/body are made passive by default by user
+// agents. When such a listener is replaced via setAttribute (e.g. setting the
+// onwheel attribute again), the passive flag should be preserved from the
+// existing listener rather than being reset to defaults.
+
+test(function() {
+    // Set onwheel on body via setAttribute for the first time.
+    // The UA may make this passive since wheel listeners on body are passive
+    // by default per spec recommendation.
+    document.body.setAttribute("onwheel",
+        "event.preventDefault(); window._defaultPrevented1 = event.defaultPrevented;");
+
+    var event1 = new Event("wheel", { cancelable: true });
+    document.body.dispatchEvent(event1);
+
+    var initialPassive = !window._defaultPrevented1;
+
+    // Now replace the onwheel handler via setAttribute again.
+    document.body.setAttribute("onwheel",
+        "event.preventDefault(); window._defaultPrevented2 = event.defaultPrevented;");
+
+    var event2 = new Event("wheel", { cancelable: true });
+    document.body.dispatchEvent(event2);
+
+    // The passive flag from the initial listener should be preserved after
+    // replacement via setAttribute.
+    assert_equals(window._defaultPrevented2, window._defaultPrevented1,
+        "preventDefault behavior should be the same before and after setAttribute replacement");
+
+    // Clean up.
+    document.body.removeAttribute("onwheel");
+    delete window._defaultPrevented1;
+    delete window._defaultPrevented2;
+}, "Replacing a wheel event handler attribute on body via setAttribute preserves its passive flag");
+
+test(function() {
+    document.documentElement.setAttribute("onwheel",
+        "event.preventDefault(); window._defaultPrevented3 = event.defaultPrevented;");
+
+    var event1 = new Event("wheel", { cancelable: true });
+    document.documentElement.dispatchEvent(event1);
+
+    document.documentElement.setAttribute("onwheel",
+        "event.preventDefault(); window._defaultPrevented4 = event.defaultPrevented;");
+
+    var event2 = new Event("wheel", { cancelable: true });
+    document.documentElement.dispatchEvent(event2);
+
+    assert_equals(window._defaultPrevented4, window._defaultPrevented3,
+        "preventDefault behavior should be the same before and after setAttribute replacement");
+
+    document.documentElement.removeAttribute("onwheel");
+    delete window._defaultPrevented3;
+    delete window._defaultPrevented4;
+}, "Replacing a wheel event handler attribute on document element via setAttribute preserves its passive flag");
+</script>
+</body>

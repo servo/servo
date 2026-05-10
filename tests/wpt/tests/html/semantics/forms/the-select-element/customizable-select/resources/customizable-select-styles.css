@@ -40,7 +40,7 @@
 }
 
 .customizable-select-option.disabled {
-  color: color-mix(in lab, currentColor 50%, transparent);
+  color: color-mix(currentColor 50%, transparent);
 }
 
 .customizable-select-option::before {
@@ -52,6 +52,7 @@
 
 .customizable-select-button {
   color: inherit;
+  font: inherit;
   background-color: transparent;
   appearance: none;
   padding-block: 0.25em;
@@ -62,8 +63,6 @@
   text-align: inherit;
   display: inline-flex;
   gap: 0.5em;
-  overflow-x: hidden;
-  overflow-y: hidden;
   /* min-size rules ensure that we meet accessibility guidelines for minimum target size.
    * https://github.com/openui/open-ui/issues/1026
    * https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
@@ -74,15 +73,15 @@
 }
 
 .customizable-select-button.disabled {
-  color: color-mix(in srgb, currentColor 50%, transparent);
+  color: color-mix(currentColor 50%, transparent);
 }
 
 .customizable-select-button.hover {
-  background-color: color-mix(in lab, currentColor 10%, transparent);
+  background-color: color-mix(currentColor 10%, transparent);
 }
 
 .customizable-select-button.active {
-  background-color: color-mix(in lab, currentColor 20%, transparent);
+  background-color: color-mix(currentColor 20%, transparent);
 }
 
 .customizable-select-button::after {

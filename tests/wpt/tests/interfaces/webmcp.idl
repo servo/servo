@@ -1,0 +1,42 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebMCP (https://webmachinelearning.github.io/webmcp/)
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute ModelContext modelContext;
+};
+
+[Exposed=Window, SecureContext]
+interface ModelContext {
+  undefined registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
+};
+
+dictionary ModelContextTool {
+  required DOMString name;
+  // Because `title` is for display in possibly native UIs, this must be a `USVString`.
+  // See https://w3ctag.github.io/design-principles/#idl-string-types.
+  USVString title;
+  required DOMString description;
+  object inputSchema;
+  required ToolExecuteCallback execute;
+  ToolAnnotations annotations;
+};
+
+dictionary ToolAnnotations {
+  boolean readOnlyHint = false;
+  boolean untrustedContentHint = false;
+};
+
+callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);
+
+dictionary ModelContextRegisterToolOptions {
+  AbortSignal signal;
+};
+
+[Exposed=Window, SecureContext]
+interface ModelContextClient {
+  Promise<any> requestUserInteraction(UserInteractionCallback callback);
+};
+
+callback UserInteractionCallback = Promise<any> ();

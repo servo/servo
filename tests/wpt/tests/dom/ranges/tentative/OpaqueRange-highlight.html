@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ['input', 'textarea'];
+
+function setupControl(type, value) {
+  CSS.highlights.clear();
+  document.body.innerHTML = (type === 'input')
+      ? '<input type="text">'
+      : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  return element;
+}
+
+controls.forEach(controlType => {
+  test(t => {
+    const el = setupControl(controlType, 'Hello');
+    const range = el.createValueRange(0, 5);
+    const highlight = new Highlight(range);
+
+    assert_true(highlight.has(range), 'Highlight contains OpaqueRange');
+    assert_equals(highlight.size, 1);
+
+    CSS.highlights.set('test-highlight', highlight);
+    assert_true(CSS.highlights.has('test-highlight'));
+    assert_equals(CSS.highlights.get('test-highlight'), highlight);
+
+    assert_true(highlight.delete(range));
+    assert_false(highlight.has(range));
+    assert_equals(highlight.size, 0);
+  }, `OpaqueRange can be added to and deleted from a Highlight (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello');
+    const opaqueRange = el.createValueRange(0, 3);
+    const div = document.createElement('div');
+    div.textContent = 'World';
+    document.body.appendChild(div);
+    const domRange = new Range();
+    domRange.selectNodeContents(div);
+
+    const highlight = new Highlight(opaqueRange, domRange);
+    assert_equals(highlight.size, 2);
+    assert_true(highlight.has(opaqueRange));
+    assert_true(highlight.has(domRange));
+  }, `OpaqueRange mixed with DOM Range in same Highlight (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello');
+    const range = el.createValueRange(1, 4);
+    const highlight = new Highlight(range);
+    CSS.highlights.set('test-highlight', highlight);
+
+    range.disconnect();
+    assert_true(highlight.has(range), 'still in Highlight after disconnect');
+    assert_true(range.collapsed);
+  }, `Disconnected OpaqueRange remains in Highlight but is collapsed (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello');
+    const range = el.createValueRange(0, 5);
+    const highlight = new Highlight(range);
+    CSS.highlights.set('test-highlight', highlight);
+
+    el.remove();
+    assert_true(highlight.has(range), 'still in Highlight after removal');
+    assert_true(range.collapsed);
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
+  }, `OpaqueRange in Highlight is collapsed after element removal (${controlType})`);
+});
+</script>

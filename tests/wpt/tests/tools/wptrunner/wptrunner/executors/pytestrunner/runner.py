@@ -52,6 +52,7 @@ def run(path, server_config, session_config, timeout=0):
 
             config = session_config.copy()
             config["wptserve"] = server_config.as_dict()
+            config["timeout"] = timeout
 
             with open(config_path, "w") as f:
                 json.dump(config, f)
@@ -144,6 +145,11 @@ class SubtestResultRecorder:
         self.record(report.nodeid, "ERROR", message, report.longrepr)
 
     def record_skip(self, report):
+        # Do not record a not applicable subtest, used
+        # for an `aamtest` subtest that is not applicable
+        # to the current platform.
+        if "NOT_APPLICABLE" in report.longrepr[2]:
+            return
         self.record(
             report.nodeid,
             "ERROR",

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#gap-decorations">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .section {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 170px;
+        height: 230px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+    .col-rule {
+        position: absolute;
+        height: 10px;
+        width: 170px;
+    }
+    .row-rule {
+        position: absolute;
+        width: 10px;
+        height: 230px;
+        top: 0px;
+    }
+</style>
+<!-- vertical-rl: inline=vertical T→B, block=horizontal R→L.
+     Column rules (horizontal) at y=50,110,170: red,green,blue.
+     Row rules (vertical) at x=110,50: orange,purple (block-start=right). -->
+<div class="section">
+    <div class="col-rule" style="top: 50px; background: red;"></div>
+    <div class="col-rule" style="top: 110px; background: green;"></div>
+    <div class="col-rule" style="top: 170px; background: blue;"></div>
+    <div class="row-rule" style="left: 110px; background: orange;"></div>
+    <div class="row-rule" style="left: 50px; background: purple;"></div>
+    <div class="flex" style="writing-mode: vertical-rl;">
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+    </div>
+</div>
+<!-- vertical-lr: inline=vertical T→B, block=horizontal L→R.
+     Column rules same as vertical-rl.
+     Row rules at x=50,110: orange,purple (block-start=left). -->
+<div class="section">
+    <div class="col-rule" style="top: 50px; background: red;"></div>
+    <div class="col-rule" style="top: 110px; background: green;"></div>
+    <div class="col-rule" style="top: 170px; background: blue;"></div>
+    <div class="row-rule" style="left: 50px; background: orange;"></div>
+    <div class="row-rule" style="left: 110px; background: purple;"></div>
+    <div class="flex" style="writing-mode: vertical-lr;">
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+    </div>
+</div>
+<!-- sideways-rl: same as vertical-rl. -->
+<div class="section">
+    <div class="col-rule" style="top: 50px; background: red;"></div>
+    <div class="col-rule" style="top: 110px; background: green;"></div>
+    <div class="col-rule" style="top: 170px; background: blue;"></div>
+    <div class="row-rule" style="left: 110px; background: orange;"></div>
+    <div class="row-rule" style="left: 50px; background: purple;"></div>
+    <div class="flex" style="writing-mode: sideways-rl;">
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+    </div>
+</div>
+<!-- sideways-lr: inline=vertical B→T, block=horizontal L→R.
+     Column rules reversed: red at y=170, green at y=110, blue at y=50.
+     Row rules same as vertical-lr. -->
+<div class="section">
+    <div class="col-rule" style="top: 170px; background: red;"></div>
+    <div class="col-rule" style="top: 110px; background: green;"></div>
+    <div class="col-rule" style="top: 50px; background: blue;"></div>
+    <div class="row-rule" style="left: 50px; background: orange;"></div>
+    <div class="row-rule" style="left: 110px; background: purple;"></div>
+    <div class="flex" style="writing-mode: sideways-lr;">
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+    </div>
+</div>

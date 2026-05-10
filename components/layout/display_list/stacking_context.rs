@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use core::f32;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use log::warn;
@@ -18,9 +15,12 @@ use paint_api::display_list::{
     AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
-use servo_config::opts::DiagnosticsLogging;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
+use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
+use servo_geometry::MaxRect;
 use style::Zero;
-use style::color::AbsoluteColor;
+use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -31,6 +31,7 @@ use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
+use style::values::specified::TransformStyle;
 use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
@@ -191,7 +192,7 @@ impl StackingContextTree {
         }
         root_stacking_context.sort();
 
-        if debug.stacking_context_tree {
+        if debug.is_enabled(DiagnosticsLoggingOption::StackingContextTree) {
             root_stacking_context.debug_print();
         }
 
@@ -520,7 +521,9 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
-            debug_print_items: debug.stacking_context_tree.then(|| vec![].into()),
+            debug_print_items: debug
+                .is_enabled(DiagnosticsLoggingOption::StackingContextTree)
+                .then(|| vec![].into()),
         }
     }
 
@@ -593,11 +596,13 @@ impl StackingContext {
         // actually need to create a stacking context, just avoid creating one.
         let style = fragment.style();
         let effects = style.get_effects();
+        let transform_style = style.get_used_transform_style();
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
             !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-            style.clone_clip_path() == ClipPath::None
+            style.clone_clip_path() == ClipPath::None &&
+            transform_style == TransformStyle::Flat
         {
             return false;
         }
@@ -630,7 +635,7 @@ impl StackingContext {
             spatial_id,
             style.get_webrender_primitive_flags(),
             clip_chain_id,
-            style.get_used_transform_style().to_webrender(),
+            transform_style.to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
             &[], // filter_datas
@@ -704,7 +709,23 @@ impl StackingContext {
         if background_color.alpha > 0.0 {
             let common = builder.common_properties(painting_area, &source_style);
             let color = super::rgba(background_color);
-            builder.wr().push_rect(&common, painting_area, color)
+            builder.wr().push_rect(&common, painting_area, color);
+
+            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+            // First paint ... includes non-default background paint and the enclosing box of an iframe.
+            // The spec is vague. See also: https://github.com/w3c/paint-timing/issues/122
+            let default_background_color = servo_config::pref!(shell_background_color_rgba);
+            let default_background_color = AbsoluteColor::new(
+                ColorSpace::Srgb,
+                default_background_color[0] as f32,
+                default_background_color[1] as f32,
+                default_background_color[2] as f32,
+                default_background_color[3] as f32,
+            )
+            .into_srgb_legacy();
+            if background_color != default_background_color {
+                builder.mark_is_paintable();
+            }
         }
 
         let mut fragment_builder = BuilderForBoxFragment::new(
@@ -1419,7 +1440,7 @@ impl BoxFragment {
         }
 
         if matches!(
-            self.specific_layout_info(),
+            self.specific_layout_info().as_deref(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
         ) {
             stacking_context
@@ -1519,12 +1540,14 @@ impl BoxFragment {
                 };
                 radii = offset_radii(builder.border_radius, offsets_from_border);
             } else if overflow.x != ComputedOverflow::Clip {
-                overflow_clip_rect.min.x = f32::MIN;
-                overflow_clip_rect.max.x = f32::MAX;
+                let max = LayoutRect::max_rect();
+                overflow_clip_rect.min.x = max.min.x;
+                overflow_clip_rect.max.x = max.max.x;
                 radii = BorderRadius::zero();
             } else {
-                overflow_clip_rect.min.y = f32::MIN;
-                overflow_clip_rect.max.y = f32::MAX;
+                let max = LayoutRect::max_rect();
+                overflow_clip_rect.min.y = max.min.y;
+                overflow_clip_rect.max.y = max.max.y;
                 radii = BorderRadius::zero();
             }
 
@@ -1616,7 +1639,7 @@ impl BoxFragment {
             offsets.bottom.map(|v| v.to_used_value(scroll_frame_height)),
             offsets.left.map(|v| v.to_used_value(scroll_frame_width)),
         );
-        *self.resolved_sticky_insets.borrow_mut() = Some(offsets);
+        self.ensure_rare_data().resolved_sticky_insets = Some(Box::new(offsets));
 
         if scroll_frame_size.is_none() {
             return None;

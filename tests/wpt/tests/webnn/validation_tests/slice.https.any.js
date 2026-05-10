@@ -86,6 +86,13 @@ const tests = [
     starts: [1, 2, 3],
     sizes: [1, 1, 1],
     strides: [0, 0, 0]
+  },
+  {
+    name: '[slice] Throw if the stride is greater than the size to slice in the same dimension.',
+    input: {dataType: 'float32', shape: [3, 4, 5]},
+    starts: [1, 2, 3],
+    sizes: [1, 1, 1],
+    strides: [1, 2, 1]
   }
 ];
 

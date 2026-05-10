@@ -23,8 +23,7 @@
   const hostInfo = get_host_info();
   const expectedInitiatorUrl = hostInfo["ORIGIN"] +
     "/resource-timing/tentative/initiator-url/promise.html";
-  const instant_promise = Promise.resolve();
-  instant_promise.then( function() {load_image(label, img)} );
+  Promise.resolve().then(function() {load_image(label, img)});
 
   initiator_url_test(resource, expectedInitiatorUrl, resource +
     " initiatorUrl from fullfilled promise", resource + " timeout");

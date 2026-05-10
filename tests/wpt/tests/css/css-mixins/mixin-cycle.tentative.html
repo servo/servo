@@ -7,16 +7,22 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
        @mixin --a() {
-         --last-processed: a;
-         @apply --b;
+         @result {
+           --last-processed: a;
+           @apply --b;
+         }
        }
        @mixin --b() {
-         --last-processed: b;
-         @apply --c;
+         @result {
+           --last-processed: b;
+           @apply --c;
+         }
        }
        @mixin --c() {
-         --last-processed: c;
-         @apply --b;
+         @result {
+           --last-processed: c;
+           @apply --b;
+         }
        }
        #target {
          @apply --a;

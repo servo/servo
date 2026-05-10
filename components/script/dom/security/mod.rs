@@ -4,4 +4,7 @@
 
 pub(crate) mod csp;
 pub(crate) mod csppolicyviolationreport;
+pub(crate) mod cspviolationreporttask;
+pub(crate) mod sanitizer;
 pub(crate) mod securitypolicyviolationevent;
+pub(crate) mod xframeoptions;

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLMapElementBinding::HTMLMapElementMethods;
@@ -15,7 +16,6 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMapElement {
@@ -37,17 +37,17 @@ impl HTMLMapElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLMapElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -64,18 +64,18 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
     make_getter!(Name, "name");
 
     // <https://html.spec.whatwg.org/multipage/#dom-map-name>
-    make_atomic_setter!(SetName, "name");
+    make_atomic_setter!(cx, SetName, "name");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-map-areas>
-    fn Areas(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Areas(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         // The areas attribute must return an HTMLCollection rooted at the map element, whose filter
         // matches only area elements.
         self.areas.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, _| element.is::<HTMLAreaElement>(),
-                can_gc,
             )
         })
     }

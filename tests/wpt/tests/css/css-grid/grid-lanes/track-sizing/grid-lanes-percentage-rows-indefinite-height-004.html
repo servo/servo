@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: percentage rows with indefinite height need additional pass</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="grid-lanes-percentage-rows-indefinite-height-004-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+    .grid-lanes {
+        display: grid-lanes;
+        flow-tolerance: 0;
+        position: relative;
+        font: 25px/1 Ahem;
+        color: transparent;
+        margin: 20px 0;
+        width: 50px;
+    }
+    .grid-lanes > div {
+        width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Intrinsic repeat pass: auto track resolves to 25px (from "X" at 25px Ahem),
+    giving auto-fill count = 1. Track list becomes [50%, auto].
+    Block size is indefinite, so 50% resolves to auto. Virtual items contribute
+    to all tracks, so both tracks get 25px. Total = 50px.
+    Additional pass (50% is dependent on available size): 50% of 50px = 25px,
+    auto = 25px. Same result — both tracks are 25px.
+  -->
+  <div class="grid-lanes" style="grid-template-rows: 50% repeat(auto-fill, auto); background: yellow;">
+      <div style="background: orange;">X</div>
+  </div>
+
+  <!--
+    intrinsic_block_size_ preserved as 50px (pre-additional-pass,
+    when 0% resolved to auto = 25px + min-content = 25px). After re-run,
+    tracks = [0px, 25px], but container height stays 50px. Item in 0% track
+    is 0px tall, so only yellow is visible.
+  -->
+  <div class="grid-lanes" style="grid-template-rows: 0% repeat(auto-fill, auto); background: yellow;">
+      <div style="background: orange;">X</div>
+  </div>
+</body>
+</html>

@@ -11,13 +11,13 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
 
-use base::generic_channel::{GenericCallback, GenericSender};
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {
@@ -66,7 +66,7 @@ where
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ProfilerChan(pub GenericSender<ProfilerMsg>);
 
 /// A handle that encompasses a registration with the memory profiler.
@@ -269,6 +269,7 @@ pub struct MemoryReport {
     /// The pid of the report
     pub pid: u32,
     /// Is this the main process
+    #[serde(rename = "isMainProcess")]
     pub is_main_process: bool,
     /// All the reports for this pid
     pub reports: Vec<Report>,

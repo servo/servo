@@ -8,6 +8,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::net::IpAddr;
 use std::time::SystemTime;
 
 use cookie::Cookie;
@@ -114,6 +115,14 @@ impl CookieStorage {
                 }
             }
         }
+    }
+
+    pub fn clear_session_cookies(&mut self) {
+        self.cookies_map
+            .values_mut()
+            .flat_map(|cookies| cookies.iter_mut())
+            .filter(|cookie| !cookie.persistent)
+            .for_each(|cookie| cookie.set_expiry_time_in_past());
     }
 
     pub fn clear_storage(&mut self, url: Option<&ServoUrl>) {
@@ -292,6 +301,14 @@ impl CookieStorage {
 }
 
 fn reg_host(url: &str) -> String {
+    let host_for_ip_parse = url
+        .strip_prefix('[')
+        .and_then(|url| url.strip_suffix(']'))
+        .unwrap_or(url);
+    if let Ok(address) = host_for_ip_parse.parse::<IpAddr>() {
+        return address.to_string().to_lowercase();
+    }
+
     reg_suffix(url).to_lowercase()
 }
 

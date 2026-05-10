@@ -25,13 +25,27 @@ window.onload = () => {
       document.body.appendChild(element);
       t.add_cleanup(() => element.remove());
       assertIsFunctionalPopover(element, true);
-    }, `A <${tag} popover> element should behave as a popover.`);
+    }, `A <${tag} popover> should behave as a popover.`);
+    for (let dir of ["ltr", "rtl"]) {
+      for (let wm of ["horizontal-tb", "vertical-rl", "vertical-lr", "sideways-rl", "sideways-lr"]) {
+        test((t) => {
+          const element = document.createElement(tag);
+          element.setAttribute('popover','auto');
+          element.setAttribute("dir", dir);
+          element.style.writingMode = wm;
+          document.body.appendChild(element);
+          t.add_cleanup(() => element.remove());
+          element.showPopover({ modal: true });
+          element.getBoundingClientRect();
+        }, `A <${tag} popover> with direction=${dir}, wm=${wm} element should not assert.`);
+      }
+    }
     test((t) => {
       const element = document.createElement(tag);
       document.body.appendChild(element);
       t.add_cleanup(() => element.remove());
       assertNotAPopover(element);
-    }, `A <${tag}> element should *not* behave as a popover.`);
+    }, `A <${tag}> element without popover attr should *not* behave as a popover.`);
   });
   elementsThatDontRender.forEach(tag => {
     test((t) => {

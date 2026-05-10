@@ -6,8 +6,8 @@ use core::cell::RefCell;
 use core::sync::atomic::Ordering;
 use std::cell::Ref;
 
-use base::id::PipelineId;
 use rustc_hash::FxHashMap;
+use servo_base::id::PipelineId;
 use strum::VariantArray;
 
 use crate::messaging::ScriptEventLoopSender;
@@ -145,6 +145,11 @@ impl TaskManager {
     // FIXME(arihant2math): uncomment when geolocation is implemented.
     // task_source_functions!(self, geolocation_task_source, Geolocation);
     task_source_functions!(self, media_element_task_source, MediaElement);
+    task_source_functions!(
+        self,
+        navigation_and_traversal_task_source,
+        NavigationAndTraversal
+    );
     task_source_functions!(self, networking_task_source, Networking);
     task_source_functions!(self, performance_timeline_task_source, PerformanceTimeline);
     task_source_functions!(self, port_message_queue, PortMessage);
@@ -157,5 +162,7 @@ impl TaskManager {
         intersection_observer_task_source,
         IntersectionObserver
     );
+    task_source_functions!(self, storage_task_source, Storage);
+    #[cfg(feature = "webgpu")]
     task_source_functions!(self, webgpu_task_source, WebGPU);
 }

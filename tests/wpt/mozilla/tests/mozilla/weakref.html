@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <script>
-test(function() {
+promise_test(async function() {
   // We don't use assert_equals() etc here because it somehow
   // keeps hold of its passed arguments, and thus the weak
   // reference is never freed before the end of the test.
@@ -16,11 +16,11 @@ test(function() {
   t.interfaceAttributeWeak = url;
   assert_true(t.interfaceAttributeWeak !== null);
 
-  gc();
+  await TestUtils.gc();
   assert_true(t.interfaceAttributeWeak !== null);
 
   url = null;
-  gc();
+  await TestUtils.gc();
 
   assert_true(t.interfaceAttributeWeak === null);
 }, "Weak references work");

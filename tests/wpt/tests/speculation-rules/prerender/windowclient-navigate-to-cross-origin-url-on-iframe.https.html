@@ -16,7 +16,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 const PAGE_URL = 'resources/windowclient-navigate-on-iframe.html';
 const WORKER_URL = 'resources/windowclient-navigate-worker.js';

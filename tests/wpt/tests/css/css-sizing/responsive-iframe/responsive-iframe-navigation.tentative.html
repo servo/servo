@@ -1,0 +1,77 @@
+<!doctype HTML>
+<title>Responsive iframe should keep size during navigation</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+iframe {
+  frame-sizing: content-height;
+}
+</style>
+<iframe id="iframe" frameborder="0" src="resources/iframe-contents-navigation.html"></iframe>
+<script>
+async_test(t => {
+  const iframe = document.getElementById('iframe');
+  let numIframeLoadEvents = 0;
+  const heights = [];
+
+  // Use `ResizeObserver` to catch all resizes.
+  const resizeObserver = new ResizeObserver((entries) => {
+    let i = 0;
+    for (const entry of entries) {
+      assert_equals(entry.target, iframe);
+      heights.push(entry.contentRect.height);
+      switch (numIframeLoadEvents) {
+        case 0:
+          break;
+        case 1:
+          assert_array_equals(heights, [150, 200]);
+          break;
+        case 2:
+          assert_array_equals(heights, [150, 200, 400]);
+          t.done();
+          break;
+        default:
+          assert_less_than(numIframeLoadEvents, 3, "Unexpected iframe load events");
+          break;
+      }
+      ++i;
+    }
+  });
+  resizeObserver.observe(iframe);
+
+  window.addEventListener('message', (e) => {
+    if (e.data === 'slow-will-block') {
+      // Check re-layouts don't reset the height while loading new content.
+      triggerLayouts();
+    }
+  });
+
+  iframe.addEventListener('load', t.step_func(() => {
+    ++numIframeLoadEvents;
+    switch (numIframeLoadEvents) {
+      case 1:
+        assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
+        iframe.contentWindow.postMessage('navigate', '*');
+        break;
+      case 2:
+        break;
+    }
+  }));
+
+  function triggerLayouts() {
+    // Trigger layout by appending a `div`.
+    const div = document.createElement('div');
+    div.textContent = 'Trigger Layout';
+    document.body.appendChild(div);
+    document.body.offsetTop;  // Force layout.
+
+    // Trigger layout by toggling `display: none`.
+    iframe.style.display = 'none';
+    document.body.offsetTop;  // Force layout.
+    iframe.style.display = '';
+    document.body.offsetTop;  // Force layout.
+  }
+}, "Responsive iframe preserves size during navigation");
+</script>

@@ -1,3 +1,6 @@
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+
 async_test(t => {
   addEventListener('message', t.step_func_done(e => {
     assert_equals(e.data, 'Denied');

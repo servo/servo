@@ -28,8 +28,8 @@ impl ProtocolHandler for BlobProtocolHander {
         done_chan: &mut DoneChannel,
         context: &FetchContext,
     ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
-        let url = request.current_url();
-        debug!("Loading blob {}", url.as_str());
+        let url_and_blob_claim = request.current_url_with_blob_claim();
+        debug!("Loading blob {}", url_and_blob_claim.as_str());
 
         // Step 2.
         if request.method != Method::GET {
@@ -39,16 +39,22 @@ impl ProtocolHandler for BlobProtocolHander {
         let range_header = request.headers.typed_get::<Range>();
         let is_range_request = range_header.is_some();
 
-        let (id, origin) = match parse_blob_url(&url) {
-            Ok((id, origin)) => (id, origin),
-            Err(error) => {
+        let (file_id, origin) = if let Some(token) = url_and_blob_claim.token() {
+            (token.file_id, token.origin.clone())
+        } else {
+            // FIXME: This should never happen, we should have acquired a token beforehand
+            let Ok((id, _)) = parse_blob_url(&url_and_blob_claim.url()) else {
                 return Box::pin(ready(Response::network_error(
-                    NetworkError::ResourceLoadError(format!("Invalid blob URL ({error})")),
+                    NetworkError::ResourceLoadError("Invalid blob URL".into()),
                 )));
-            },
+            };
+            (id, url_and_blob_claim.url().origin())
         };
 
-        let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+        let mut response = Response::new(
+            url_and_blob_claim.url(),
+            ResourceFetchTiming::new(request.timing_type()),
+        );
         response.status = HttpStatus::default();
 
         if is_range_request {
@@ -63,7 +69,7 @@ impl ProtocolHandler for BlobProtocolHander {
         if let Err(err) = context.filemanager.fetch_file(
             &mut done_sender,
             context.cancellation_listener.clone(),
-            id,
+            file_id,
             &context.file_token,
             origin,
             &mut response,

@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use webgpu_traits::{Error, ErrorFilter};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUErrorFilter, GPUErrorMethods};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -53,19 +53,19 @@ impl GPUError {
             Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
             Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
             Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
         }

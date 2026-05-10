@@ -6,6 +6,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(() => {
-    assert_in_array('compute-pressure', document.featurePolicy.features());
-}, 'document.featurePolicy.features should advertise compute-pressure.');
+    assert_in_array('compute-pressure', document.permissionsPolicy.features());
+}, 'document.permissionsPolicy.features should advertise compute-pressure.');
 </script>

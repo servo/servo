@@ -5,18 +5,19 @@
 use std::any::{Any, type_name};
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use base::id::PipelineId;
 use log::{debug, warn};
+use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
+use servo_base::id::PipelineId;
 
 use crate::StreamId;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 
 /// Error replies.
 ///
@@ -48,8 +49,7 @@ impl ActorError {
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
-/// TODO: ensure the name is immutable
-pub(crate) trait Actor: Any + ActorAsAny + Send + Sync {
+pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -93,10 +93,19 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     }
 }
 
-/// A list of known, owned actors.
 #[derive(Default)]
+struct ActorRegistryType(AtomicRefCell<HashMap<String, Arc<dyn Actor>>>);
+
+impl MallocSizeOf for ActorRegistryType {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.0.borrow().iter().map(|actor| actor.size_of(ops)).sum()
+    }
+}
+
+/// A list of known, owned actors.
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct ActorRegistry {
-    actors: AtomicRefCell<HashMap<String, Arc<dyn Actor>>>,
+    actors: ActorRegistryType,
     script_actors: AtomicRefCell<HashMap<String, String>>,
     /// Lookup table for SourceActor names associated with a given PipelineId.
     source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
@@ -107,7 +116,7 @@ pub(crate) struct ActorRegistry {
 
 impl ActorRegistry {
     pub(crate) fn cleanup(&self, stream_id: StreamId) {
-        for actor in self.actors.borrow().values() {
+        for actor in self.actors.0.borrow().values() {
             actor.cleanup(stream_id);
         }
     }
@@ -147,16 +156,25 @@ impl ActorRegistry {
     }
 
     /// Create a unique name based on a monotonically increasing suffix
-    /// TODO: Merge this with `register/register_later` and don't allow to
+    /// TODO: Merge this with `register` and don't allow to
     /// create new names without registering an actor.
     pub fn new_name<T: Actor>(&self) -> String {
         let suffix = self.next.fetch_add(1, Ordering::Relaxed);
-        format!("{}{}", Self::base_name::<T>(), suffix)
+        let base = Self::base_name::<T>();
+
+        // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
+        // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
+        if base.contains("WorkerTarget") {
+            format!("/workerTarget{}", suffix)
+        } else {
+            format!("{}{}", base, suffix)
+        }
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
     pub(crate) fn register<T: Actor>(&self, actor: T) {
         self.actors
+            .0
             .borrow_mut()
             .insert(actor.name(), Arc::new(actor));
     }
@@ -165,6 +183,7 @@ impl ActorRegistry {
     pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
         let actor = self
             .actors
+            .0
             .borrow()
             .get(name)
             .expect("Should never look for a nonexistent actor")
@@ -185,7 +204,7 @@ impl ActorRegistry {
     pub(crate) fn handle_message(
         &self,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
         stream_id: StreamId,
     ) -> Result<(), ()> {
         let to = match msg.get("to") {
@@ -197,7 +216,7 @@ impl ActorRegistry {
         };
 
         let actor = {
-            let actors_map = self.actors.borrow();
+            let actors_map = self.actors.0.borrow();
             actors_map.get(to).cloned()
         };
         match actor {
@@ -208,7 +227,7 @@ impl ActorRegistry {
             },
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if let Err(error) = ClientRequest::handle(stream, to, |req| {
+                if let Err(error) = ClientRequest::handle(stream.clone(), to, |req| {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
@@ -224,7 +243,7 @@ impl ActorRegistry {
     }
 
     pub fn remove(&self, name: String) {
-        self.actors.borrow_mut().remove(&name);
+        self.actors.0.borrow_mut().remove(&name);
     }
 
     pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {

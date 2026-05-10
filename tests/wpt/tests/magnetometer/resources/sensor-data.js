@@ -4,14 +4,14 @@ const kMagnetometerSensorData = {
   sensorName: 'Magnetometer',
   permissionName: 'magnetometer',
   testDriverName: 'magnetometer',
-  featurePolicyNames: ['magnetometer']
+  permissionsPolicyNames: ['magnetometer']
 };
 
 const kUncalibratedMagnetometerSensorData = {
   sensorName: 'UncalibratedMagnetometer',
   permissionName: 'magnetometer',
   testDriverName: 'magnetometer',
-  featurePolicyNames: ['magnetometer']
+  permissionsPolicyNames: ['magnetometer']
 };
 
 const kMagnetometerReadings = {

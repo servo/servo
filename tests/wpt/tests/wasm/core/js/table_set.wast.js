@@ -7,7 +7,7 @@ let $$1 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\xa2\x80\x80\x80\x00\x07\x
 let $1 = instance($$1);
 
 // table_set.wast:29
-assert_return(() => call($1, "get-externref", [0]), "table_set.wast:29", null);
+assert_return(() => call($1, "get-externref", [0]), "table_set.wast:29", "ref.null");
 
 // table_set.wast:30
 assert_return(() => call($1, "set-externref", [0, hostref(1)]), "table_set.wast:30");
@@ -19,10 +19,10 @@ assert_return(() => call($1, "get-externref", [0]), "table_set.wast:31", hostref
 assert_return(() => call($1, "set-externref", [0, null]), "table_set.wast:32");
 
 // table_set.wast:33
-assert_return(() => call($1, "get-externref", [0]), "table_set.wast:33", null);
+assert_return(() => call($1, "get-externref", [0]), "table_set.wast:33", "ref.null");
 
 // table_set.wast:35
-assert_return(() => call($1, "get-funcref", [0]), "table_set.wast:35", null);
+assert_return(() => call($1, "get-funcref", [0]), "table_set.wast:35", "ref.null");
 
 // table_set.wast:36
 assert_return(() => call($1, "set-funcref-from", [0, 1]), "table_set.wast:36");
@@ -34,7 +34,7 @@ assert_return(() => call($1, "is_null-funcref", [0]), "table_set.wast:37", 0);
 assert_return(() => call($1, "set-funcref", [0, null]), "table_set.wast:38");
 
 // table_set.wast:39
-assert_return(() => call($1, "get-funcref", [0]), "table_set.wast:39", null);
+assert_return(() => call($1, "get-funcref", [0]), "table_set.wast:39", "ref.null");
 
 // table_set.wast:41
 assert_trap(() => call($1, "set-externref", [2, null]), "table_set.wast:41");

@@ -1,11 +1,13 @@
 [package]
-name = "net_traits"
+name = "servo-net-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "net_traits"
@@ -14,7 +16,6 @@ test = false
 doctest = false
 
 [dependencies]
-base = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -33,18 +34,21 @@ num-traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-pixels = { path = "../../pixels" }
-profile_traits = { path = "../profile" }
+pixels = { workspace = true }
+profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-url = { workspace = true }
 servo_arc = { workspace = true }
-servo_url = { path = "../../url" }
+sys-locale = "0.3"
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-embedder_traits = { workspace = true, features = ["baked-default-resources"] }
+servo-default-resources = { workspace = true }

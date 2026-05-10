@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(2, 80px);
+      gap: 4px;
+      width: 200px;
+      border: 1px solid;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 4px;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" style="align-content: start;">
+    <div class="col">
+      <item>1</item>
+      <item>3</item>
+    </div>
+    <div class="col">
+      <item>2</item>
+      <item>4</item>
+    </div>
+  </div>
+
+  <div class="container" style="align-content: center;">
+    <div class="col">
+      <item>1</item>
+      <item>3</item>
+    </div>
+    <div class="col">
+      <item>2</item>
+      <item>4</item>
+    </div>
+  </div>
+
+  <div class="container" style="align-content: end;">
+    <div class="col">
+      <item>1</item>
+      <item>3</item>
+    </div>
+    <div class="col">
+      <item>2</item>
+      <item>4</item>
+    </div>
+  </div>
+</body>
+</html>

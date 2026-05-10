@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
 <meta charset="UTF-8">
-<title>Tests for ruby-overhang: none -> auto</title>
+<title>Tests for ruby-overhang: spaces -> auto</title>
 <link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
 <link rel="match" href="ruby-overhang-dynamic-ref.html">
 <link rel="stylesheet" href="/fonts/ahem.css">
 <style>
-  .reftest-wait .overhangNone {
-    ruby-overhang: none;
+  .reftest-wait .overhangSpaces {
+    ruby-overhang: spaces;
   }
   div {
     font: 16px/5 Ahem;
@@ -16,7 +16,7 @@
     color: transparent;
   }
 </style>
-<div class=overhangNone>X<ruby>X<rt>XXXX</rt></ruby>X</div>
+<div class=overhangSpaces>X<ruby>X<rt>XXXX</rt></ruby>X</div>
 <script>
   requestAnimationFrame(() => {
     document.documentElement.classList.remove('reftest-wait');

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Iframe Tool Registration</title>
+<script src="/resources/testharness.js"></script>
+</head>
+<body>
+<script>
+  // This is a helper function to convert an array of `RegisteredTool`
+  // dictionaries to objects that can be sent over `postMessage()`. This exists
+  // because the `RegisteredTool#window` member is not cloneable, so we must
+  // reduce the tool structure a bit before sending it.
+  function convertToCloneableTools(tools) {
+    return tools.map(tool => {
+      // An array of all relevant key/value pairs EXCEPT `window`.
+      const entries = Object.entries(tool).filter(([key, _]) => key !== "window")
+      return Object.fromEntries(entries);
+    });
+  }
+  // Map from tool_name => `AbortController`, so that this iframe document can
+  // manage/unregister any tool that it registers.
+  const controllers = new Map();
+
+  window.onmessage = e => {
+    const action = typeof e.data === 'string' ? e.data : e.data.action;
+
+    if (action === 'register') {
+      try {
+        const controller = new AbortController();
+        const tool = e.data.tool;
+        if (e.data.hangsForever) {
+          tool.execute = () => new Promise(() => {});
+        } else {
+          tool.execute = async () => 'hello from iframe';
+        }
+
+        const givenOptions = e.data.options;
+        const options = { signal: controller.signal, ...givenOptions};
+
+        navigator.modelContext.registerTool(tool, options);
+        controllers.set(tool.name, controller);
+      } catch (e) {
+        parent.postMessage(`tool registration failed: ${e}`, '*');
+      }
+    } else if (action === 'unregister') {
+      try {
+        const name = e.data.name || 'default_iframe_tool';
+        const controller = controllers.get(name);
+        if (controller) {
+          controller.abort();
+          controllers.delete(name);
+        }
+      } catch (e) {
+        parent.postMessage(`tool unregistration failed: ${e}`, '*');
+      }
+    } else if (action === 'getTools') {
+      navigator.modelContext.getTools().then(tools => {
+        parent.postMessage({action: 'getToolsResponse', tools: convertToCloneableTools(tools)}, '*');
+      }).catch(e => {
+        parent.postMessage(`getTools promise rejected: ${e}`, '*');
+      });
+    } else if (action === 'execute') {
+      const name = e.data.name;
+      const args = e.data.args || '{}';
+      navigator.modelContext.getTools().then(tools => {
+        const tool = tools.find(t => t.name === name);
+        navigator.modelContext.executeTool(tool, args).then(result => {
+          parent.postMessage({action: 'executeResponse', result: result, success: true}, '*');
+        }).catch(err => {
+          parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');
+        });
+      });
+    } else if (action === 'execute_fake_tool') {
+      const fake_tool = {
+        name: e.data.name || 'dummy',
+        description: 'fake desc',
+        window: window,
+        origin: self.origin
+      };
+      navigator.modelContext.executeTool(fake_tool, '{}').then(result => {
+        parent.postMessage({action: 'executeFakeToolResponse', result: result, success: true}, '*');
+      }).catch(err => {
+        parent.postMessage({action: 'executeFakeToolResponse', result: String(err), success: false, error_name: err.name}, '*');
+      });
+    } else if (action === 'listenForToolchange') {
+      let timer_id;
+      const listener = () => {
+        clearTimeout(timer_id);
+        parent.postMessage({ action: 'toolchange_result', result: 'fired' }, '*');
+      };
+
+      navigator.modelContext.addEventListener('toolchange', listener, { once: true });
+      // Send ACK so the caller knows the listener is active.
+      parent.postMessage({ action: 'toolchange_listening_ack' }, '*');
+
+      timer_id = step_timeout(() => {
+        navigator.modelContext.removeEventListener('toolchange', listener);
+        parent.postMessage({ action: 'toolchange_result', result: 'timeout' }, '*');
+      }, 4000);
+    }
+  };
+</script>
+</body>
+</html>

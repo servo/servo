@@ -17,7 +17,7 @@
   // Test that fullscreen's allowlist lists all the malformed wildcards and self.
   test(function() {
     assert_array_equals(
-      document.featurePolicy.getAllowlistForFeature('fullscreen').sort(),
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen').sort(),
       ["https://*.example.com", "https://{{domains[]}}:{{ports[https][0]}}"].sort());
   }, header_policy + ' -- test allowlist lists all the malformed wildcards and self.');
 

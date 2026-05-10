@@ -1,34 +1,41 @@
 [package]
-name = "webdriver_server"
+name = "servo-webdriver-server"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 base64 = { workspace = true }
+bytes = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-http = "0.2"
+http = { workspace = true }
+http02 = { package = "http", version = "0.2" }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
+servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
+tokio = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
+url = { workspace = true }
+warp = { version = "0.4.2", features = ["server"] }

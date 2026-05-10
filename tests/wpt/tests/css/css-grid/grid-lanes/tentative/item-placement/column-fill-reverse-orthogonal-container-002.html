@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: column fill-reverse in an orthogonal vertical-rl container with an indefinite stacking-axis size</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="column-fill-reverse-orthogonal-container-002-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      flow-tolerance: 0;
+      grid-template-columns: repeat(3, 50px);
+      gap: 10px;
+      height: 170px;
+      border: solid blue;
+      writing-mode: vertical-rl;
+      grid-lanes-direction: column fill-reverse;
+    }
+
+    item {
+      display: block;
+      width: 50px;
+      color: black;
+      font: 16px/1 sans-serif;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that column fill-reverse correctly places differently sized items
+     across multiple tracks when the grid-lanes container uses vertical-rl
+     writing mode and has an indefinite size in the stacking axis.</p>
+  <div class="grid-lanes">
+    <item style="background: lavender; height: 20px;">1</item>
+    <item style="background: lightskyblue; height: 35px;">2</item>
+    <item style="background: lightgreen; height: 25px;">3</item>
+    <item style="background: lightpink; height: 40px;">4</item>
+    <item style="background: gold; height: 15px;">5</item>
+    <item style="background: coral; height: 30px;">6</item>
+    <item style="background: palegreen; height: 20px;">7</item>
+    <item style="background: orchid; height: 45px;">8</item>
+  </div>
+</body>
+</html>

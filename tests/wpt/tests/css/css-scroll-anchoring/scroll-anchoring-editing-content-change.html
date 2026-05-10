@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll anchoring: preserve position during editing when content before the anchor changes</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+#container {
+  width: 300px;;
+  height: 300px;
+  overflow: scroll;
+  border: 1px solid black;
+}
+.item {
+  width: 100%;
+  height: 90px;
+  background: lightblue;
+  margin: 10px 0px;
+}
+.editable {
+  width: 200px;
+  height: 20px;
+  border: 1px solid black;
+}
+</style>
+<div id="container">
+  <div class="item" id="first"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item" id="anchor"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+<script>
+async function runTest(t, element) {
+  t.add_cleanup(() => {
+    first.style.display = '';
+    anchor.replaceChildren();
+    container.scrollTop = 0;
+  });
+  anchor.appendChild(element);
+
+  const targetScrollTop = 200;
+  let scrollEndPromise = waitForScrollEndOrTimeout(container, 1000);
+  container.scrollTop = targetScrollTop;
+  await scrollEndPromise;
+  assert_equals(container.scrollTop, targetScrollTop);
+
+  element.focus();
+  assert_equals(document.activeElement, element);
+  await test_driver.send_keys(element, 'a');
+
+  const anchorTopBefore = anchor.getBoundingClientRect().top;
+
+  scrollEndPromise = waitForScrollEndOrTimeout(container, 1000);
+  first.style.display = 'none';
+  await scrollEndPromise;
+
+  // The anchor's visual position should be unchanged.
+  assert_equals(anchor.getBoundingClientRect().top, anchorTopBefore);
+  // scrollTop must have decreased to compensate for the removed element.
+  assert_less_than(container.scrollTop, targetScrollTop);
+}
+
+promise_test(async t => {
+  const div = document.createElement('div');
+  div.className = 'editable';
+  div.contentEditable = 'true';
+  await runTest(t, div);
+}, 'contenteditable: scroll anchoring preserves anchor position after typing and content removal above');
+
+promise_test(async t => {
+  const textarea = document.createElement('textarea');
+  await runTest(t, textarea);
+}, 'textarea: scroll anchoring preserves anchor position after typing and content removal above');
+
+promise_test(async t => {
+  const input = document.createElement('input');
+  input.type = 'text';
+  await runTest(t, input);
+}, 'input: scroll anchoring preserves anchor position after typing and content removal above');
+</script>
+

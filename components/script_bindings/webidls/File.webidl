@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/FileAPI/#file
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker), Serializable]
 interface File : Blob {
   [Throws] constructor(sequence<BlobPart> fileBits,
               DOMString fileName,

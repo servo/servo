@@ -6,7 +6,7 @@
 //! defining types that cross the process boundary from the embedding/rendering layer all the way
 //! to script, thus it should have very minimal dependencies on other parts of Servo. If a type
 //! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
-//! is probably a better fit for the `constellation_traits` crate.
+//! is probably a better fit for the `servo_constellation_traits` crate.
 
 pub mod embedder_controls;
 pub mod input_events;
@@ -21,8 +21,8 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
-use base::id::{PipelineId, WebViewId};
+use accesskit::TreeUpdate;
+use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -31,6 +31,11 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_base::Epoch;
+use servo_base::generic_channel::{
+    GenericCallback, GenericSender, GenericSharedMemory, SendResult,
+};
+use servo_base::id::{PipelineId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
@@ -216,9 +221,19 @@ pub enum Cursor {
     ZoomOut,
 }
 
+/// A way for Servo to request that the embedder wake up the main event loop.
+///
+/// A trait which embedders should implement to allow Servo to request that the
+/// embedder spin the Servo event loop on the main thread.
 pub trait EventLoopWaker: 'static + Send + Sync {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
-    fn wake(&self) {}
+
+    /// This method is called when Servo wants the embedder to wake up the event loop.
+    ///
+    /// Note that this may be called on a different thread than the thread that was used to
+    /// start Servo. When called, the embedder is expected to call [`Servo::spin_event_loop`]
+    /// on the thread where Servo is running.
+    fn wake(&self);
 }
 
 impl Clone for Box<dyn EventLoopWaker> {
@@ -339,7 +354,7 @@ impl TraversalId {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -354,12 +369,13 @@ pub enum PixelFormat {
 }
 
 /// A raster image buffer.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
+    #[conditional_malloc_size_of]
     data: Arc<GenericSharedMemory>,
     range: Range<usize>,
 }
@@ -387,7 +403,7 @@ impl Image {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
     Log,
@@ -411,6 +427,12 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct BluetoothDeviceDescription {
+    pub address: String,
+    pub name: String,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -426,23 +448,12 @@ pub enum EmbedderMsg {
     /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
     /// way that makes them impossible to mistake for browser UI.
     ShowSimpleDialog(WebViewId, SimpleDialogRequest),
-    /// Whether or not to allow a pipeline to load a url.
-    AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Request to (un)register protocol handler by page content.
     AllowProtocolHandlerRequest(
         WebViewId,
         ProtocolHandlerUpdateRegistration,
         GenericSender<AllowOrDeny>,
     ),
-    /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, GenericSender<Option<NewWebViewDetails>>),
-    /// A webview was destroyed.
-    WebViewClosed(WebViewId),
-    /// A webview potentially gained focus for keyboard events.
-    /// If the boolean value is false, the webiew could not be focused.
-    WebViewFocused(WebViewId, bool),
-    /// All webviews lost focus for keyboard events.
-    WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(WebViewId, GenericSender<AllowOrDeny>),
     /// Inform embedder to clear the clipboard
@@ -455,10 +466,6 @@ pub enum EmbedderMsg {
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
-    /// The history state has changed.
-    HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
-    /// A history traversal operation completed.
-    HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, GenericSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
@@ -467,17 +474,18 @@ pub enum EmbedderMsg {
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
-    /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
+    GetSelectedBluetoothDevice(
+        WebViewId,
+        Vec<BluetoothDeviceDescription>,
+        GenericSender<Option<String>>,
+    ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
-    /// Report a complete sampled profile
-    ReportProfile(Vec<u8>),
-    /// Notifies the embedder about media session events
-    /// (i.e. when there is metadata for the active media session, playback state changes...).
-    MediaSessionEvent(WebViewId, MediaSessionEvent),
+    /// Async permission request for screen wake lock. The callback is invoked
+    /// with the user's decision, which resolves or rejects the pending promise
+    /// without blocking the script thread.
+    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
@@ -493,30 +501,20 @@ pub enum EmbedderMsg {
     /// Request to stop a haptic effect on a connected gamepad.
     #[cfg(feature = "gamepad")]
     StopGamepadHapticEffect(WebViewId, usize, GenericCallback<bool>),
-    /// Informs the embedder that the constellation has completed shutdown.
-    /// Required because the constellation can have pending calls to make
-    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
-    ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
     /// Let the embedder process a DOM Console API message.
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
-    /// Request to display a form control to the embedder.
+    /// Request to the embedder to display a user interace control.
     ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
-    /// Request to display a form control to the embedder.
+    /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
-    /// Inform the embedding layer that a JavaScript evaluation has
-    /// finished with the given result.
-    FinishJavaScriptEvaluation(
-        JavaScriptEvaluationId,
-        Result<JSValue, JavaScriptEvaluationError>,
-    ),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
-    InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
+    AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
 }
 
 impl Debug for EmbedderMsg {
@@ -602,6 +600,7 @@ pub enum PermissionFeature {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
+    ScreenWakeLock,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
@@ -647,15 +646,15 @@ pub struct WebResourceRequest {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub url: Url,
+    pub destination: Destination,
+    pub referrer_url: Option<Url>,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
@@ -1118,4 +1117,59 @@ pub struct NewWebViewDetails {
     pub webview_id: WebViewId,
     pub viewport_details: ViewportDetails,
     pub user_content_manager_id: Option<UserContentManagerId>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+/// A request to load a URL. This can be used to trigger a configurable load in a `WebView`.
+///
+/// ```
+///  let mut headers = http::HeaderMap::new();
+///  headers.append(HeaderName::from_static("CustomHeader"), "Value".parse().unwrap());
+///  let url_request = URLRequest::new(url).headers(headers);
+///  webview.load_request(url_request);
+/// ```
+pub struct UrlRequest {
+    pub url: ServoUrl,
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
+    pub headers: HeaderMap,
+}
+
+impl UrlRequest {
+    pub fn new(url: Url) -> Self {
+        UrlRequest {
+            url: url.into(),
+            headers: HeaderMap::new(),
+        }
+    }
+
+    /// Set headers that will be added to the Headers
+    pub fn headers(mut self, headers: HeaderMap) -> Self {
+        self.headers = headers;
+        self
+    }
+}
+
+/// The type of wake lock to acquire or release.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum WakeLockType {
+    Screen,
+}
+
+/// Trait for platform-specific wake lock support.
+///
+/// Implementations are responsible for interacting with the OS to prevent
+/// the screen (or other resources) from sleeping while a wake lock is held.
+pub trait WakeLockDelegate: Send + Sync {
+    /// Acquire a wake lock of the given type, preventing the associated
+    /// resource from sleeping. Called when the aggregate lock count transitions
+    /// from 0 to 1. Returns an error if the OS fails to grant the lock.
+    fn acquire(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
+
+    /// Release a previously acquired wake lock of the given type, allowing
+    /// the resource to sleep. Called when the aggregate lock count transitions
+    /// from N to 0.
+    fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
 }

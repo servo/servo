@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+<body>
+
+<script>
+  const t = async_test(
+    "Audio with loading=lazy and autoplay does not play while not visible, then plays once scrolled into view"
+  );
+
+  const audio = document.createElement("audio");
+  audio.loading = "lazy";
+  audio.src = "/media/sine440.mp3";
+  audio.className = "below-viewport";
+  audio.autoplay = true;
+  audio.controls = true;
+
+  let scrolledIntoView = false;
+
+  audio.addEventListener("play", () => {
+    assert_true(scrolledIntoView, "Audio should fire play event after scrolling into view");
+    t.done();
+  });
+
+  document.body.appendChild(audio);
+
+  t.step_timeout(() => {
+    assert_true(audio.paused, "Audio should be paused when not visible in viewport");
+
+    step_timeout(() => {
+      scrolledIntoView = true;
+      audio.scrollIntoView();
+    }, 1000);
+  }, 2000);
+
+
+</script>
+</body>

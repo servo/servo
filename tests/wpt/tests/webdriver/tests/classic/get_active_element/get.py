@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_error, assert_is_active_element, assert_success
+from tests.support.classic.asserts import assert_error, assert_is_active_element, assert_success
 
 
 def read_global(session, name):

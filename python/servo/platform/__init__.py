@@ -70,6 +70,10 @@ def get():  # noqa
         from .macos import MacOS
 
         __platform__ = MacOS(triple)
+    elif "unknown-freebsd" in triple:
+        from .freebsd import FreeBSD
+
+        __platform__ = FreeBSD(triple)
     else:
         from .base import Base
 

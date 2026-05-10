@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>::permission-icon should match on ::slotted element</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="icon-slotted-pseudo-element-ref.html">
+<div>
+  <template shadowrootmode="open">
+    <style>
+      ::slotted(usermedia)::permission-icon {
+        fill: green;
+      }
+    </style>
+    <slot></slot>
+  </template>
+  <usermedia id="camera" type="camera"></usermedia>
+</div>

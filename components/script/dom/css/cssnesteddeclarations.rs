@@ -5,6 +5,8 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, NestedDeclarationsRule};
@@ -14,7 +16,7 @@ use super::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSS
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSNestedDeclarationsBinding::CSSNestedDeclarationsMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
@@ -22,11 +24,11 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSNestedDeclarations {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     nesteddeclarationsrule: RefCell<Arc<Locked<NestedDeclarationsRule>>>,
-    style_decl: MutNullableDom<CSSStyleDeclaration>,
+    style_declaration: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSNestedDeclarations {
@@ -35,25 +37,25 @@ impl CSSNestedDeclarations {
         nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
     ) -> Self {
         Self {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
             nesteddeclarationsrule: RefCell::new(nesteddeclarationsrule),
-            style_decl: Default::default(),
+            style_declaration: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 parent_stylesheet,
                 nesteddeclarationsrule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -62,7 +64,7 @@ impl CSSNestedDeclarations {
         nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
         guard: &SharedRwLockReadGuard,
     ) {
-        if let Some(ref style_decl) = self.style_decl.get() {
+        if let Some(ref style_decl) = self.style_declaration.get() {
             style_decl
                 .update_property_declaration_block(&nesteddeclarationsrule.read_with(guard).block);
         }
@@ -76,7 +78,7 @@ impl SpecificCSSRule for CSSNestedDeclarations {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         self.nesteddeclarationsrule
             .borrow()
             .read_with(&guard)
@@ -87,9 +89,9 @@ impl SpecificCSSRule for CSSNestedDeclarations {
 
 impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclarations {
     /// <https://drafts.csswg.org/css-nesting/#dom-cssnesteddeclarations-style>
-    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
-        self.style_decl.or_init(|| {
-            let guard = self.cssrule.shared_lock().read();
+    fn Style(&self, cx: &mut JSContext) -> DomRoot<CSSStyleDeclaration> {
+        self.style_declaration.or_init(|| {
+            let guard = self.css_rule.shared_lock().read();
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
@@ -104,7 +106,7 @@ impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclaration
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }

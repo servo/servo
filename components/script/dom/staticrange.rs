@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::abstractrange::AbstractRange;
 use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{
@@ -12,7 +13,6 @@ use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
@@ -79,13 +79,17 @@ impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
     ) -> Fallible<DomRoot<StaticRange>> {
         match init.startContainer.type_id() {
             NodeTypeId::DocumentType | NodeTypeId::Attr => {
-                return Err(Error::InvalidNodeType(None));
+                return Err(Error::InvalidNodeType(Some(
+                    "Invalid node type: startContainer cannot be DocumentType or Attr node".into(),
+                )));
             },
             _ => (),
         }
         match init.endContainer.type_id() {
             NodeTypeId::DocumentType | NodeTypeId::Attr => {
-                return Err(Error::InvalidNodeType(None));
+                return Err(Error::InvalidNodeType(Some(
+                    "Invalid node type: endContainer cannot be DocumentType or Attr node".into(),
+                )));
             },
             _ => (),
         }

@@ -9,7 +9,7 @@ body { background-color: orange; }
 </style>
 
 <menubar>
-  <menuitem>Menubar item A</menuitem>
+  <menuitem id=invoker>Menubar item A</menuitem>
   <menuitem>Menubar item B</menuitem>
   <menuitem>Menubar item C</menuitem>
 </menubar>
@@ -24,6 +24,7 @@ body { background-color: orange; }
 </menulist>
 
 <script>
-const menulist = document.querySelector("menulist");
-menulist.showPopover();
+const menulist = document.querySelector('menulist');
+const invoker = document.getElementById('invoker');
+menulist.showPopover({source: invoker});
 </script>

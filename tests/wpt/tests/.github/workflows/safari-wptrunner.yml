@@ -115,7 +115,6 @@ jobs:
             --log-mach-level info \
             --channel ${{ inputs.safari-technology-preview && 'preview' || 'stable' }} \
             --kill-safari \
-            --max-restarts 100 \
             ${{ inputs.extra-options }} \
             -- \
             safari

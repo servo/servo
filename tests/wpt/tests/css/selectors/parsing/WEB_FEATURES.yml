@@ -6,7 +6,6 @@ features:
   - '!parse-has.html'
   - '!parse-has-*'
   - '!parse-state.html'
-  - '!parse-has-slotted.tentative.html'
   - '!parse-not.html'
   - '!parse-part.html'
   - '!parse-heading.html'
@@ -22,6 +21,7 @@ features:
   files:
   - parse-has.html
   - parse-has-*
+  - '!parse-has-slotted.tentative.html'
 - name: state
   files:
   - parse-state.html

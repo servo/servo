@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Gap Decorations: repaint when multicol content height changes (reference)</title>
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <style>
+    .multicol-container {
+      columns: 2;
+      column-fill: auto;
+      column-gap: 20px;
+      width: 160px;
+      height: 50px;
+      background: red;
+      column-rule: 20px solid green;
+    }
+
+    .content {
+      background: green;
+      /* Final height after change */
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="multicol-container">
+    <div class="content"></div>
+  </div>
+</body>
+</html>

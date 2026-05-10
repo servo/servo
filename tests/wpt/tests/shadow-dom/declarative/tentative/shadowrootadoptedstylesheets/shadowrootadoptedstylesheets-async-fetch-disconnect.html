@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets async fetch with host disconnection</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Create a shadow root that references a CSS module specifier that hasn't
+    // been fetched yet, then remove the host element from the DOM before the
+    // fetch completes. The fetch callback should not crash.
+    const cssUrl = "./support/styles-red.css?disconnect";
+    const { host, shadowRoot } = createStylesheetHost(cssUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before disconnection: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before disconnection: placeholder at index 0 should be empty.");
+
+    host.remove();
+
+    assert_false(host.isConnected, "Host should be disconnected from the document.");
+
+    await fetchAndWait(cssUrl);
+
+    // The shadow root is disconnected, but the fetch callback still fires and
+    // replaces the placeholder with the fetched sheet.
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "After fetch on disconnected root");
+
+    // Re-connect the host and verify the fetched styles are applied.
+    document.body.appendChild(host);
+
+    assert_true(host.isConnected, "Host should be reconnected.");
+    const el = shadowRoot.getElementById("test_element");
+    assert_equals(getComputedStyle(el).color, "rgb(255, 0, 0)",
+      "Red styles should be applied after re-connecting the host.");
+  }, "Disconnecting and reconnecting host during async fetch still applies styles.");
+</script>
+</body>

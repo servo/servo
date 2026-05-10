@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: link rel=preload as=image</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async () => {
+  const href = new URL('resources/3x3_srgb_lossless.jxl', location.href).toString();
+
+  const preload = document.createElement('link');
+  preload.rel = 'preload';
+  preload.as = 'image';
+  preload.href = href;
+
+  const preloadDone = new Promise((resolve, reject) => {
+    preload.onload = resolve;
+    preload.onerror = () => reject(new Error('preload failed'));
+  });
+
+  document.head.appendChild(preload);
+  await preloadDone;
+
+  const img = new Image();
+  const loaded = new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error('image failed after preload'));
+  });
+  img.src = href;
+  await loaded;
+
+  assert_greater_than(img.naturalWidth, 0);
+  assert_true(performance.getEntriesByName(href).length > 0,
+      'resource timing should include the JPEG XL image request');
+}, '<link rel=preload as=image> preloads JPEG XL image');
+</script>

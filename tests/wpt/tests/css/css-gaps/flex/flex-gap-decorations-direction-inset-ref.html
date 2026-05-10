@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .section {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        width: 340px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 100px;
+        height: 100px;
+    }
+    .flex > :first-child {
+        background: salmon;
+    }
+    .col-seg {
+        position: absolute;
+        width: 6px;
+        background: blue;
+    }
+    .row-seg {
+        position: absolute;
+        height: 6px;
+        background: red;
+    }
+</style>
+<!-- direction: ltr
+     Column rules at x=107, x=227 (centered 6px in 20px gap).
+     Column segments broken at row gaps, inset-start(top)=10, inset-end(bottom)=0.
+     Row rules at y=107, y=227.
+     Row segments broken at col gaps, inset-start(left in ltr)=10, inset-end(right)=0. -->
+<div class="section">
+    <!-- Column rule 1 (x=107) segments -->
+    <div class="col-seg" style="left: 107px; top: 10px; height: 90px;"></div>
+    <div class="col-seg" style="left: 107px; top: 130px; height: 90px;"></div>
+    <div class="col-seg" style="left: 107px; top: 250px; height: 90px;"></div>
+    <!-- Column rule 2 (x=227) segments -->
+    <div class="col-seg" style="left: 227px; top: 10px; height: 90px;"></div>
+    <div class="col-seg" style="left: 227px; top: 130px; height: 90px;"></div>
+    <div class="col-seg" style="left: 227px; top: 250px; height: 90px;"></div>
+    <!-- Row rule 1 (y=107) segments — inset 10px from left -->
+    <div class="row-seg" style="top: 107px; left: 10px; width: 90px;"></div>
+    <div class="row-seg" style="top: 107px; left: 130px; width: 90px;"></div>
+    <div class="row-seg" style="top: 107px; left: 250px; width: 90px;"></div>
+    <!-- Row rule 2 (y=227) segments — inset 10px from left -->
+    <div class="row-seg" style="top: 227px; left: 10px; width: 90px;"></div>
+    <div class="row-seg" style="top: 227px; left: 130px; width: 90px;"></div>
+    <div class="row-seg" style="top: 227px; left: 250px; width: 90px;"></div>
+    <div class="flex" style="direction: ltr;">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+</div>
+<!-- direction: rtl
+     Column rules unchanged (block axis unaffected by direction).
+     Row rule inset-start now means right (inline-start in rtl), so segments
+     are inset 10px from the right instead of the left. -->
+<div class="section">
+    <!-- Column rule 1 (x=107) segments — same as ltr -->
+    <div class="col-seg" style="left: 107px; top: 10px; height: 90px;"></div>
+    <div class="col-seg" style="left: 107px; top: 130px; height: 90px;"></div>
+    <div class="col-seg" style="left: 107px; top: 250px; height: 90px;"></div>
+    <!-- Column rule 2 (x=227) segments — same as ltr -->
+    <div class="col-seg" style="left: 227px; top: 10px; height: 90px;"></div>
+    <div class="col-seg" style="left: 227px; top: 130px; height: 90px;"></div>
+    <div class="col-seg" style="left: 227px; top: 250px; height: 90px;"></div>
+    <!-- Row rule 1 (y=107) segments — inset 10px from right -->
+    <div class="row-seg" style="top: 107px; left: 0px; width: 90px;"></div>
+    <div class="row-seg" style="top: 107px; left: 120px; width: 90px;"></div>
+    <div class="row-seg" style="top: 107px; left: 240px; width: 90px;"></div>
+    <!-- Row rule 2 (y=227) segments — inset 10px from right -->
+    <div class="row-seg" style="top: 227px; left: 0px; width: 90px;"></div>
+    <div class="row-seg" style="top: 227px; left: 120px; width: 90px;"></div>
+    <div class="row-seg" style="top: 227px; left: 240px; width: 90px;"></div>
+    <div class="flex" style="direction: rtl;">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+</div>

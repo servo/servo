@@ -3,8 +3,9 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget
 from .. import PRIMITIVE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("await_promise", [True, False])
 @pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES)
 async def test_primitive_values(bidi_session, top_context, expression,

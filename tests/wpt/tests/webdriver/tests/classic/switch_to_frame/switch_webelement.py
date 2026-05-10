@@ -2,7 +2,7 @@ import pytest
 
 import webdriver.protocol as protocol
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def switch_to_frame(session, frame):

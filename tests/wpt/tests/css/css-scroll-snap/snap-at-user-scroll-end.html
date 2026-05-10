@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
 <title>Tests that window should snap at user scroll end.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -14,8 +15,8 @@ html {
   scroll-snap-type: both mandatory;
 }
 #content {
-  width: 2000px;
-  height: 2000px;
+  width: 1000vw;
+  height: 1000vh;
   padding: 0px;
   margin: 0px;
 }

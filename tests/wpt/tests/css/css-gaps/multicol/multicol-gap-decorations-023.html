@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <title>
-    CSS Gap Decorations: Multicol gaps are painted with different outsets in interior end segment endpoints.
+    CSS Gap Decorations: Multicol gaps are painted with different insets in interior end segment endpoints.
 </title>
-<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
 <link rel="match" href="multicol-gap-decorations-023-ref.html">
 <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
 <style>
@@ -26,12 +26,11 @@
         row-rule-color: gold;
         column-wrap: wrap;
         column-rule-break: intersection;
-        column-rule-interior-inset-start: 0;
-        column-rule-interior-inset-end: -8px;
-        row-rule-break: intersection;
-        row-rule-edge-inset-start: -2px;
-        row-rule-edge-inset-end: -1px;
-        gap-rule-overlap: column-over-row;
+        column-rule-inset-junction-start: 0;
+        column-rule-inset-junction-end: -8px;
+        row-rule-inset-cap-start: -2px;
+        row-rule-inset-cap-end: -1px;
+        rule-overlap: column-over-row;
     }
     p {
         background: rgb(96 139 168 / 0.2);

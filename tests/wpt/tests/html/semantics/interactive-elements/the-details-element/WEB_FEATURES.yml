@@ -2,3 +2,7 @@ features:
 - name: details-name
   files:
   - name-attribute.html
+- name: toggleevent-source
+  files:
+  - details-toggle-source.html
+  - details-toggle-source-commandfor.tentative.html

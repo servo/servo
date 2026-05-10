@@ -2,20 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{DomExceptionId, DomExceptionIndex};
-use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use servo_base::id::{DomExceptionId, DomExceptionIndex};
+use servo_constellation_traits::DomException;
 
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
     DOMExceptionConstants, DOMExceptionMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{
-    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
-};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
@@ -272,7 +270,7 @@ impl Serializable for DOMException {
     {
         Ok(Self::new_with_custom_message(
             owner,
-            DOMErrorName::from(&DOMString::from_string(serialized.name)).ok_or(())?,
+            DOMErrorName::from(&DOMString::from(serialized.name)).ok_or(())?,
             serialized.message,
             can_gc,
         ))

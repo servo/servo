@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      #scroller {
+        overflow: scroll;
+        width: 360px;
+        height: 360px;
+        scroll-snap-type: both mandatory;
+        position: relative;
+        scrollbar-width: none;
+      }
+      .box {
+        width: 100px;
+        height: 100px;
+        background-color: green;
+        position: absolute;
+        scroll-snap-align: center;
+      }
+      .box:target {
+        background-color: blue;
+      }
+    </style>
+    <div id="scroller">
+      <div style="width: 700px; height: 700px;"></div>
+      <div id="a" class="box" style="left: 330px; top: 210px;"></div>
+      <div id="b" class="box" style="left: 210px; top: 330px;"></div>
+      <div id="target" class="box" style="left: 330px; top: 330px;"></div>
+    </div>
+  </body>
+</html>

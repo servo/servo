@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<link rel="author" href="github.com/vmpstr">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  #container {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    border: 1px solid black;
+  }
+  #spacer {
+    width: 1000px;
+    height: 1000px;
+  }
+</style>
+
+<div id="container">
+  <div id="spacer"></div>
+</div>
+
+<script>
+promise_test(async (t) => {
+  const container = document.getElementById('container');
+  container.scrollTop = 0;
+
+  // Ensure the element is rendered and scrollbars are present.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  container.inert = true;
+
+  // The vertical scrollbar is on the right side.
+  // container is 200x200. Standard scrollbar is ~15px wide.
+  // Let's click at 195.
+  const rect = container.getBoundingClientRect();
+  const x = Math.round(rect.right - 2);
+  const y_start = Math.round(rect.top + 20);
+  const y_end = Math.round(rect.top + 150);
+
+  let pointerupPromise = new Promise(resolve => window.addEventListener('pointerup', resolve, {once: true}));
+
+  const actions = new test_driver.Actions();
+  await actions
+    .pointerMove(x, y_start)
+    .pointerDown()
+    .pointerMove(x, y_end)
+    .pointerUp()
+    .send();
+
+  await pointerupPromise;
+
+  assert_equals(container.scrollTop, 0, "Should not have scrolled when inert");
+
+  container.inert = false;
+
+  // Make sure the new style/inert state is pumped to the compositor.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  let scrollPromise = new Promise(resolve => container.addEventListener('scroll', resolve, {once: true}));
+
+  // Now it should scroll.
+  await actions
+    .pointerMove(x, y_start)
+    .pointerDown()
+    .pointerMove(x, y_end)
+    .pointerUp()
+    .send();
+
+  await scrollPromise;
+
+  assert_greater_than(container.scrollTop, 0, "Should have scrolled when not inert");
+}, "Scrollbar should not be interactive when the element is inert");
+</script>

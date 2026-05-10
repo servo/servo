@@ -5,8 +5,8 @@
 use std::path::Path;
 use std::sync::LazyLock;
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use log::warn;
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{

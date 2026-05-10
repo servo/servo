@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visual clamp single-axis overflow: scroll to clip on dynamic style changes (Reference)</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #expected {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      background: rgb(0, 0, 255);
+    }
+
+    #top-band {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100px;
+      height: 50px;
+      background: rgb(0, 255, 0);
+    }
+
+    #x-marker {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      width: 20px;
+      height: 50px;
+      background: rgb(255, 255, 0);
+    }
+  </style>
+</head>
+<body>
+  <div id="expected">
+    <div id="top-band"></div>
+    <div id="x-marker"></div>
+  </div>
+</body>
+</html>

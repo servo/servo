@@ -77,12 +77,11 @@ directory_test(async (t, root) => {
   const file_name = 'file-name';
   await createEmptyFile(file_name, dir);
 
-  for (let i = 0; i < kPathSeparators.length; ++i) {
-    const path_with_separator = `${dir_name}${kPathSeparators[i]}${file_name}`;
-    await promise_rejects_js(
-        t, TypeError, root.removeEntry(path_with_separator),
-        `removeEntry() must reject names containing "${kPathSeparators[i]}"`);
-  }
+  const path_with_separator = `${dir_name}/${file_name}`;
+  await promise_rejects_js(
+      t, TypeError, root.removeEntry(path_with_separator),
+      `removeEntry() must reject names containing "/"`);
+
 }, 'removeEntry() with a path separator should fail.');
 
 directory_test(async (t, root) => {

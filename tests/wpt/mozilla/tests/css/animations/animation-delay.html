@@ -22,7 +22,6 @@
 <script>
 
 test(function() {
-  let testBinding = new window.TestBinding();
   let element = document.createElement("div");
   element.className = "target";
 
@@ -36,24 +35,23 @@ test(function() {
   document.body.appendChild(element);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "0px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 }, "animation-delay should function correctly");
 
 test(function() {
-  let testBinding = new window.TestBinding();
   let element = document.createElement("div");
   element.className = "target";
 
@@ -67,26 +65,26 @@ test(function() {
   document.body.appendChild(element);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
 
-  testBinding.advanceClock(2500);
+  ServoTestUtils.advanceClock(2500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "0px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 
   // There should not be another delay here.
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 
-  testBinding.advanceClock(500);
+  ServoTestUtils.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 }, "animation-delay should function correctly with multiple iterations");
 

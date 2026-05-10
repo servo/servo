@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script nonce="abc123" src="/resources/testharness.js"></script>
+<script nonce="abc123" src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc123' blob:; style-src 'nonce-abc123' blob:;">
+
+<script nonce="abc123">
+  const t1 = async_test("Test securitypolicyviolation event doesn't fire when nonce satisfies both CSPs");
+  document.documentElement.addEventListener("securitypolicyviolation", t1.unreached_func("securitypolicyviolation error fired."));
+
+  const t2 = async_test("Test error event doesn't fire when nonce satisfies both CSPs");
+</script>
+
+<style nonce="abc123" type="module" specifier="foo" onerror="t2.unreached_func('onerror fired');">
+    #test {color:blue}
+</style>
+
+</head>
+<body>
+
+<div id="test">Test content</div>
+
+<script nonce="abc123" type="module">
+  import sheet from "foo" with { type: "css"};
+
+  test(function (t) {
+    assert_equals(
+      sheet.cssRules.length,
+      1,
+      "Declaratively defined rules were imported when nonce satisfies both CSPs.",
+    );
+
+    document.adoptedStyleSheets = [sheet];
+    const test_element = document.getElementById("test");
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 255)",
+              "Declarative styles were applied.");
+
+  }, "A matching nonce on a style module satisfies both script-src and style-src CSP.");
+  t1.done();
+  t2.done();
+</script>
+</body>
+</html>

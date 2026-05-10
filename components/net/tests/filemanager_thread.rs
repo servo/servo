@@ -6,8 +6,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use base::Epoch;
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
 };
@@ -15,10 +13,12 @@ use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
 use net::embedder::NetToEmbedderMsg;
 use net::filemanager_thread::FileManager;
-use net_traits::blob_url_store::BlobURLStoreError;
+use net_traits::blob_url_store::{BlobTokenCommunicator, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use servo_base::{Epoch, generic_channel};
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 
@@ -32,7 +32,7 @@ fn test_filemanager() {
     servo_config::prefs::set(preferences);
 
     let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
-    let filemanager = FileManager::new(embedder_proxy);
+    let filemanager = FileManager::new(embedder_proxy, BlobTokenCommunicator::stub_for_testing());
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");
@@ -46,7 +46,14 @@ fn test_filemanager() {
 
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let (result_sender, result_receiver) = crossbeam_channel::unbounded();
+        let callback = profile_traits::generic_callback::GenericCallback::new(
+            profile_traits::time::ProfilerChan(None),
+            move |msg| {
+                result_sender.send(msg.unwrap()).unwrap();
+            },
+        )
+        .unwrap();
         let control_id = EmbedderControlId {
             webview_id: TEST_WEBVIEW_ID,
             pipeline_id: TEST_PIPELINE_ID,
@@ -62,7 +69,7 @@ fn test_filemanager() {
         filemanager.handle(FileManagerThreadMsg::SelectFiles(
             control_id,
             file_picker_request,
-            result_sender,
+            callback,
         ));
 
         loop {
@@ -134,15 +141,14 @@ fn test_filemanager() {
 
         // Delete the id
         {
-            let (tx2, rx2) = ipc::channel().unwrap();
+            let (tx2, rx2) = generic_channel::channel().unwrap();
             filemanager.handle(FileManagerThreadMsg::DecRef(
                 selected.id.clone(),
                 origin.clone(),
                 tx2,
             ));
 
-            let ret = rx2.recv().expect("Broken channel");
-            assert!(ret.is_ok(), "DecRef is not okay");
+            assert!(rx2.recv().is_ok(), "DecRef is not okay");
         }
 
         // Test by reading again, expecting read error because we invalidated the id

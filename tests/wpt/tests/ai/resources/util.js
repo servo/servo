@@ -2,8 +2,41 @@ const kValidAvailabilities =
     ['unavailable', 'downloadable', 'downloading', 'available'];
 const kAvailableAvailabilities = ['downloadable', 'downloading', 'available'];
 
+const kAudioPrompt = 'transcribe this';
+const kImagePrompt = 'describe this';
 const kTestPrompt = 'Please write a sentence in English.';
+
 const kTestContext = 'This is a test; this is only a test.';
+
+const kValidAudioPath = '/media/speech.wav';
+const kValidImagePath = '/images/computer.jpg';
+const kValidSVGImagePath = '/images/pattern.svg';
+const kValidVideoPath = '/media/test.webm';
+
+const kAudioOptions = {
+  expectedInputs: [{type: 'audio'}]
+};
+const kImageOptions = {
+  expectedInputs: [{type: 'image'}]
+};
+
+const kValidAudioKeywords =
+    ['audio', 'speech', 'sentence', 'single', 'segment'];
+const kValidCanvasImageKeywords = ['image', 'red', 'green', 'blue', 'yellow', 'grid', 'color'];
+const kValidImageKeywords =
+    ['image', 'computer', 'keyboard', 'desk', 'PC', 'monitor', 'screen'];
+const kValidSVGImageKeywords =
+    ['image', 'red', 'green', 'blue', 'black'];
+const kValidVideoKeywords = [
+  'image', 'bip', 'black', 'white', 'yellow', 'green', 'blue', 'red',
+  'video', 'screen'
+];
+
+const kValidAudioRegex = matchKeywordsRegex(kValidAudioKeywords);
+const kValidCanvasImageRegex = matchKeywordsRegex(kValidCanvasImageKeywords);
+const kValidImageRegex = matchKeywordsRegex(kValidImageKeywords);
+const kValidSVGImageRegex = matchKeywordsRegex(kValidSVGImageKeywords);
+const kValidVideoRegex = matchKeywordsRegex(kValidVideoKeywords);
 
 const getId = (() => {
   let idCount = 0;
@@ -250,6 +283,11 @@ async function createProofreader(options = {}) {
   return await Proofreader.create(options);
 }
 
+async function createClassifier(options = {}) {
+  await test_driver.bless();
+  return await Classifier.create(options);
+}
+
 async function ensureLanguageModel(options = {}) {
   assert_true(!!LanguageModel);
   const availability = await LanguageModel.availability(options);
@@ -288,15 +326,81 @@ async function testCreateAbort(t, createMethod, options, instanceMethods) {
   }
 }
 
-// Helper function to check that 'actual' is within 'expected +/- delta'.
-function isValueInRange(actual, expected, delta = 5) {
-  const lowerBound = expected - delta;
-  const upperBound = expected + delta;
-  return actual >= lowerBound && actual <= upperBound;
-}
-
 function consumeTransientUserActivation() {
   const win = window.open('about:blank', '_blank');
   if (win)
     win.close();
+}
+
+// Helper function to create a regex from some keywords.
+function matchKeywordsRegex(keywords) {
+  const keywordsPattern = keywords.join('|');
+  return new RegExp(`(${keywordsPattern})`, 'i');
+}
+
+function messageWithContent(prompt, type, value) {
+  return [{
+    role: 'user',
+    content: [{type: 'text', value: prompt}, {type: type, value: value}]
+  }];
+}
+
+function createColorGridCanvas(width, height, isOffscreen = false) {
+  const canvas = isOffscreen
+    ? new OffscreenCanvas(width, height)
+    : document.createElement('canvas');
+
+  if (!isOffscreen) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const context = canvas.getContext('2d');
+  const w2 = width / 2;
+  const h2 = height / 2;
+
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, w2, h2);
+
+  context.fillStyle = 'green';
+  context.fillRect(w2, 0, w2, h2);
+
+  context.fillStyle = 'blue';
+  context.fillRect(0, h2, w2, h2);
+
+  context.fillStyle = 'yellow';
+  context.fillRect(w2, h2, w2, h2);
+
+  return canvas;
+}
+
+const kValidResponseSchema = {
+  type: 'object',
+  required: ['Rating'],
+  additionalProperties: false,
+  properties: {
+    Rating: {
+      type: 'number',
+      minimum: 0,
+      maximum: 5,
+    },
+  },
+};
+
+function testResponseJsonSchema(response, t) {
+  let jsonResponse;
+  try {
+    jsonResponse = JSON.parse(response);
+  } catch (e) {
+    assert_unreached(
+        `Response is not valid JSON: "${response}". Error: ${e.message}`);
+    return;
+  }
+  assert_equals(typeof jsonResponse, 'object', 'Response should be an object');
+  assert_own_property(
+      jsonResponse, 'Rating', 'JSON response should have a "Rating" property.');
+  assert_equals(
+      typeof jsonResponse.Rating, 'number', 'Rating should be a number');
+  assert_greater_than_equal(jsonResponse.Rating, 0, 'Rating should be >= 0');
+  assert_less_than_equal(jsonResponse.Rating, 5, 'Rating should be <= 5');
 }

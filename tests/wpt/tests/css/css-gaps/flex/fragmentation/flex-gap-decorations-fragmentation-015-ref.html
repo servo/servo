@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .multi-column {
+        columns: 2;
+        height: 102px;
+        column-width: 400px;
+        width: 804px;
+        gap: 4px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        width: 400px;
+        border: 2px solid #333;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+
+    .rule {
+        position: absolute;
+        top: 2px;
+        height: 50px;
+        background: gold;
+        width: 5px;
+    }
+</style>
+<div class="rule" style="left: 76.25px; height: 75px;"></div>
+<div class="rule" style="left: 157.75px; height: 75px;"></div>
+<div class="rule" style="left: 241.25px; height: 75px;"></div>
+<div class="rule" style="left: 322.75px; height: 75px;"></div>
+
+<div class="rule" style="left: calc(76.25px + 404px); top: 0px; height: 25px;"></div>
+<div class="rule" style="left: calc(157.75px + 404px); top: 0px; height: 25px;"></div>
+<div class="rule" style="left: calc(241.25px + 404px); top: 0px; height: 25px;"></div>
+<div class="rule" style="left: calc(322.75px + 404px); top: 0px; height: 25px;;"></div>
+
+<div class="rule" style="top: 25px; left: 494px;"></div>
+<div class="rule" style="top: 25px; left: 604px;"></div>
+<div class="rule" style="top: 25px; left: 714px;"></div>
+<div class="multi-column">
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+</div>

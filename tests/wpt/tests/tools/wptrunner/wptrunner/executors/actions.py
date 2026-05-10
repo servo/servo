@@ -26,6 +26,33 @@ class DeleteAllCookiesAction:
         self.protocol.cookies.delete_all_cookies()
 
 
+class GetAccessibilityPropertiesForAccessibilityNodeAction:
+    name = "get_accessibility_properties_for_accessibility_node"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        id = payload["accId"]
+        self.logger.debug("Getting accessibility properties: %s" % id)
+        return self.protocol.accessibility.get_accessibility_properties_for_accessibility_node(id)
+
+
+class GetAccessibilityPropertiesForElementAction:
+    name = "get_accessibility_properties_for_element"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        selector = payload["selector"]
+        element = self.protocol.select.element_by_selector(selector)
+        self.logger.debug("Getting accessibility properties for element: %s" % element)
+        return self.protocol.accessibility.get_accessibility_properties_for_element(element)
+
+
 class GetAllCookiesAction:
     name = "get_all_cookies"
 
@@ -600,6 +627,8 @@ actions = [ClickAction,
            GetNamedCookieAction,
            GetComputedLabelAction,
            GetComputedRoleAction,
+           GetAccessibilityPropertiesForAccessibilityNodeAction,
+           GetAccessibilityPropertiesForElementAction,
            SendKeysAction,
            MinimizeWindowAction,
            SetWindowRectAction,

@@ -22,7 +22,7 @@ promise_test(async _t => {
   assert_true(response1.ok, 'First fetch should succeed');
   const text1 = await response1.text();
 
-  // Second fetch should be served from cache
+  // Second fetch should bypass the cache due to Pragma: no-cache
   const response2 = await fetch(url, { cache: 'default' });
   assert_true(response2.ok, 'Second fetch should succeed');
   const text2 = await response2.text();

@@ -1,0 +1,57 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title> </title>
+<body>
+  <script>
+    const phase = new URLSearchParams(location.search).get("phase") || "test";
+    switch (phase) {
+      case "test":
+        promise_test(async (t) => {
+          const popup = window.open("?phase=start");
+          t.add_cleanup(() => popup.close());
+          window.step1 = Promise.withResolvers();
+          window.step2 = Promise.withResolvers();
+          const step1_result = await window.step1.promise;
+          assert_equals(step1_result.nav, "nav");
+          assert_equals(step1_result.result, "ok");
+          const step2_result = await window.step2.promise;
+          assert_equals(step2_result.nav, "nav");
+          assert_equals(step2_result.result, "ok");
+        });
+        break;
+      case "start":
+        (async (t) => {
+          await new Promise((resolve) =>
+            window.addEventListener("load", resolve),
+          );
+          navigation.updateCurrentEntry({ state: "before" });
+          const { key } = navigation.currentEntry;
+          const navigated = Promise.withResolvers();
+          navigation.updateCurrentEntry({
+            state: {
+              get nav() {
+                navigation
+                  .navigate("#elsewhere", { history: "push" })
+                  .finished.then(() => navigated.resolve());
+                return "nav";
+              },
+              result: "ok",
+            },
+          });
+          await navigated.promise;
+          await navigation.traverseTo(key).finished;
+          window.addEventListener("pageswap", (e) => {
+            opener.step2.resolve(e.activation.from.getState());
+          });
+          window.opener.step1.resolve(navigation.currentEntry.getState());
+          navigation.navigate("?phase=end", { history: "push" });
+        })();
+        break;
+      case "end":
+        break;
+      default:
+        throw new Error("Invalid phase");
+    }
+  </script>
+</body>

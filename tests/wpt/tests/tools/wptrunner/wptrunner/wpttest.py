@@ -4,14 +4,13 @@ import subprocess
 import sys
 from abc import ABC
 from collections import defaultdict
-from typing import Any, ClassVar, Dict, Optional, Set, Type
+from typing import Any, ClassVar, Dict, MutableMapping, Optional, Set, Type
 from urllib.parse import urljoin
 
 from .wptmanifest.parser import atoms
 
 atom_reset = atoms["Reset"]
-enabled_tests = {"testharness", "reftest", "wdspec", "crashtest", "print-reftest"}
-
+enabled_tests = {"testharness", "reftest", "wdspec", "crashtest", "print-reftest", "test262", "aamtest"}
 
 class Result(ABC):
     default_expected: ClassVar[str]
@@ -75,7 +74,17 @@ class WdspecResult(Result):
 
 class WdspecSubtestResult(SubtestResult):
     default_expected = "PASS"
-    statuses = {"PASS", "FAIL", "ERROR"}
+    statuses = {"PASS", "FAIL", "ERROR", "PRECONDITION_FAILED"}
+
+
+class AamSpecResult(Result):
+    default_expected = "OK"
+    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"}
+
+
+class AamSpecSubtestResult(SubtestResult):
+    default_expected = "PASS"
+    statuses = {"PASS", "FAIL", "ERROR", "PRECONDITION_FAILED"}
 
 
 class CrashtestResult(Result):
@@ -268,10 +277,8 @@ class Test(ABC):
             known_intermittent = self.known_intermittent(name)
         return self.subtest_result_cls(name, status, message, stack, expected, known_intermittent)
 
-    def update_metadata(self, metadata=None):
-        if metadata is None:
-            metadata = {}
-        return metadata
+    def update_metadata(self, metadata: MutableMapping[str, Any]) -> None:
+        pass
 
     @classmethod
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
@@ -529,6 +536,10 @@ class TestharnessTest(Test):
         return self.url
 
 
+class Test262Test(TestharnessTest):
+    test_type = "test262"
+
+
 class ReftestTest(Test):
     """A reftest
 
@@ -647,7 +658,7 @@ class ReftestTest(Test):
 
         return node
 
-    def update_metadata(self, metadata):
+    def update_metadata(self, metadata: MutableMapping[str, Any]) -> None:
         if "url_count" not in metadata:
             metadata["url_count"] = defaultdict(int)
         for reference, _ in self.references:
@@ -656,7 +667,6 @@ class ReftestTest(Test):
             # for each possible match
             metadata["url_count"][(self.environment["protocol"], reference.url)] += 1
             reference.update_metadata(metadata)
-        return metadata
 
     def get_viewport_size(self, override):
         return override
@@ -735,6 +745,15 @@ class WdspecTest(Test):
     long_timeout = 180  # 3 minutes
 
 
+class AamSpecTest(Test):
+    result_cls = AamSpecResult
+    subtest_result_cls = AamSpecSubtestResult
+    test_type = "aamtest"
+
+    default_timeout = 25
+    long_timeout = 180  # 3 minutes
+
+
 class CrashTest(Test):
     result_cls = CrashtestResult
     test_type = "crashtest"
@@ -764,7 +783,9 @@ manifest_test_cls = {"reftest": ReftestTest,
                      "print-reftest": PrintReftestTest,
                      "testharness": TestharnessTest,
                      "wdspec": WdspecTest,
-                     "crashtest": CrashTest}
+                     "aamtest": AamSpecTest,
+                     "crashtest": CrashTest,
+                     "test262": Test262Test}
 
 
 def from_manifest(manifest_file, manifest_test, inherit_metadata, test_metadata):

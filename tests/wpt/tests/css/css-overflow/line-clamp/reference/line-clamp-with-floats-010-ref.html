@@ -3,13 +3,15 @@
 <title>CSS Reference</title>
 <style>
 #scrollContainer {
-  overflow: scroll;
+  overflow: hidden;
   font: 16px / 32px serif;
-  height: 4lh;
   border: 1px solid black;
 }
+.parent {
+  overflow: hidden;
+  height: 4lh;
+}
 .clamp {
-  display: flow-root;
   padding: 0 4px;
   white-space: pre;
   background-color: yellow;
@@ -24,14 +26,9 @@
 </style>
 
 <div id="scrollContainer">
+<div class="parent">
 <div class="clamp">Line 1
 Line 2
 Line 3
 Line 4…<div class="float"></div></div>
-
-<script>
-  window.addEventListener("load", () => {
-    const scrollContainer = document.getElementById("scrollContainer");
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-  });
-</script>
+</div></div>

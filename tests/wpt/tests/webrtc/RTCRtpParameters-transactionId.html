@@ -1,12 +1,16 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpParameters transactionId</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="dictionary-helper.js"></script>
 <script src="RTCRtpParameters-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -56,6 +60,7 @@
       - transactionId is set to a new unique identifier, used to match this
         getParameters call to a setParameters call that may occur later.
    */
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -95,7 +100,9 @@
     // which makes the -expected.txt baseline different each failed run.
     assert_true(param1.transactionId == param2.transactionId);
   }, `sender.getParameters() should return the same transaction ID if called back-to-back without relinquishing the event loop, even if there is an intervening call to setParameters`);
+} // rest
 
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -111,6 +118,7 @@
 
     assert_not_equals(param1.transactionId, param2.transactionId);
   }, `sender.getParameters() should return a different transaction ID if the event loop is relinquished between multiple calls`);
+} // rest
 
   /*
     5.2.  setParameters
@@ -121,6 +129,7 @@
           with a newly created InvalidModificationError. Note that this also applies
           to transactionId.
    */
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -134,7 +143,9 @@
     await promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, `sender.setParameters() with transaction ID different from last getParameters() should reject with InvalidModificationError`);
+} // rest
 
+if (interop2026) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -158,7 +169,9 @@
     await sender.setParameters(param);
     await promise_rejects_dom(t, 'InvalidStateError', sender.setParameters(param))
   }, `setParameters() twice with the same parameters should reject with InvalidStateError`);
+} // interop2026
 
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -174,7 +187,9 @@
     await promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param1));
   }, `setParameters() with parameters older than last getParameters() should reject with InvalidModificationError`);
+} // rest
 
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -186,5 +201,6 @@
     await promise_rejects_dom(t, 'InvalidStateError',
       sender.setParameters(param1));
   }, `setParameters() when the event loop has been relinquished since the last getParameters() should reject with InvalidStateError`);
+} // rest
 
 </script>

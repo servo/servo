@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/494554835">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body style="color: red;">
+<table style="border-collapse: collapse;">
+  <thead style="border-style: solid; border-width: 10px;">
+    <tr>
+      <td>This should have a red border</td>
+    </tr>
+  </thead>
+</table>
+
+<script>
+test(() => {
+  const table = document.querySelector('table');
+  const thead = document.querySelector('thead');
+
+  assert_equals(window.getComputedStyle(table).color, 'rgb(255, 0, 0)', 'Table text color should be red');
+  assert_equals(window.getComputedStyle(table).borderColor, 'rgb(255, 0, 0)', 'Table border color should default to currentColor');
+  assert_equals(window.getComputedStyle(thead).borderColor, 'rgb(255, 0, 0)', 'Thead border color should default to currentColor');
+}, 'Table and its parts should default border-color to currentColor');
+</script>

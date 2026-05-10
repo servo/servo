@@ -8,24 +8,26 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::default::Default;
 
-use base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
+use servo_base::id::PipelineId;
 use strum::VariantArray;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
-pub(crate) type QueuedTask = (
-    Option<TrustedWorkerAddress>,
-    ScriptThreadEventCategory,
-    Box<dyn TaskBox>,
-    Option<PipelineId>,
-    TaskSourceName,
-);
+#[derive(MallocSizeOf)]
+pub(crate) struct QueuedTask {
+    pub(crate) worker: Option<TrustedWorkerAddress>,
+    pub(crate) event_category: ScriptThreadEventCategory,
+    #[ignore_malloc_size_of = "TaskBox is difficult"]
+    pub(crate) task: Box<dyn TaskBox>,
+    pub(crate) pipeline_id: Option<PipelineId>,
+    pub(crate) task_source: TaskSourceName,
+}
 
 /// Defining the operations used to convert from a msg T to a QueuedTask.
 pub(crate) trait QueuedTaskConversion {
@@ -38,6 +40,7 @@ pub(crate) trait QueuedTaskConversion {
     fn is_wake_up(&self) -> bool;
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TaskQueue<T> {
     /// The original port on which the task-sources send tasks as messages.
     port: Receiver<T>,
@@ -152,11 +155,11 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 self.msg_queue.borrow_mut().push_back(msg);
                 continue;
             }
-            if let Some(pipeline_id) = msg.pipeline_id() {
-                if !fully_active.contains(&pipeline_id) {
-                    self.store_task_for_inactive_pipeline(msg, &pipeline_id);
-                    continue;
-                }
+            if let Some(pipeline_id) = msg.pipeline_id() &&
+                !fully_active.contains(&pipeline_id)
+            {
+                self.store_task_for_inactive_pipeline(msg, &pipeline_id);
+                continue;
             }
             // Immediately send non-throttled tasks for processing.
             self.msg_queue.borrow_mut().push_back(msg);
@@ -164,20 +167,16 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         for msg in to_be_throttled {
             // Categorize tasks per task queue.
-            let (worker, category, boxed, pipeline_id, task_source) = match msg.into_queued_task() {
-                Some(queued_task) => queued_task,
-                None => unreachable!(
+            let Some(queued_task) = msg.into_queued_task() else {
+                unreachable!(
                     "A message to be throttled should always be convertible into a queued task"
-                ),
+                );
             };
             let mut throttled_tasks = self.throttled.borrow_mut();
-            throttled_tasks.entry(task_source).or_default().push_back((
-                worker,
-                category,
-                boxed,
-                pipeline_id,
-                task_source,
-            ));
+            throttled_tasks
+                .entry(queued_task.task_source)
+                .or_default()
+                .push_back(queued_task);
         }
     }
 
@@ -243,15 +242,15 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     let msg = T::from_queued_task(queued_task);
 
                     // Hold back tasks for currently inactive documents.
-                    if let Some(pipeline_id) = msg.pipeline_id() {
-                        if !fully_active.contains(&pipeline_id) {
-                            self.store_task_for_inactive_pipeline(msg, &pipeline_id);
-                            // Reduce the length of throttles,
-                            // but don't add the task to "msg_queue",
-                            // and neither increment "taken_task_counter".
-                            throttled_length -= 1;
-                            continue;
-                        }
+                    if let Some(pipeline_id) = msg.pipeline_id() &&
+                        !fully_active.contains(&pipeline_id)
+                    {
+                        self.store_task_for_inactive_pipeline(msg, &pipeline_id);
+                        // Reduce the length of throttles,
+                        // but don't add the task to "msg_queue",
+                        // and neither increment "taken_task_counter".
+                        throttled_length -= 1;
+                        continue;
                     }
 
                     // Make the task available for the event-loop to handle as a message.

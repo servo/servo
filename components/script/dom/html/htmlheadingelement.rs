@@ -10,7 +10,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum HeadingLevel {
@@ -42,20 +41,20 @@ impl HTMLHeadingElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
         level: HeadingLevel,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLHeadingElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLHeadingElement::new_inherited(
                 local_name, prefix, document, level,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 }

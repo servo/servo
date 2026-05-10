@@ -19,11 +19,26 @@ test_computed_value("will-change", "scroll-position");
 test_computed_value("will-change", "contents");
 test_computed_value("will-change", "transform");
 test_computed_value("will-change", "background-color");
+test_computed_value("will-change", "TRANSFORM");
+test_computed_value("will-change", "Not-A-Property");
 
 test_computed_value("will-change", "scroll-position, contents");
+test_computed_value("will-change", "contents, scroll-position");
 test_computed_value("will-change", "scroll-position, transform");
+test_computed_value("will-change", "transform, scroll-position");
 test_computed_value("will-change", "contents, transform");
+test_computed_value("will-change", "transform, contents");
 test_computed_value("will-change", "transform, background-color");
+
+test_computed_value("will-change", "transform, transform");
+test_computed_value("will-change", "TRANSFORM, transform");
+test_computed_value("will-change", "transform, TRANSFORM");
+test_computed_value("will-change", "TRANSFORM, TRANSFORM");
+test_computed_value("will-change", "Not-A-Property, transform");
+test_computed_value("will-change", "transform, Not-A-Property");
+test_computed_value("will-change", "Not-A-Property, Not-A-Property");
+test_computed_value("will-change", "transform, --var");
+test_computed_value("will-change", "--var, transform");
 </script>
 </body>
 </html>

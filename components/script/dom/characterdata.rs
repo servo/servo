@@ -6,9 +6,10 @@
 use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
@@ -26,7 +27,6 @@ use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -45,28 +45,23 @@ impl CharacterData {
 
     pub(crate) fn clone_with_data(
         &self,
+        cx: &mut js::context::JSContext,
         data: DOMString,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DomRoot::upcast(Comment::new(data, document, None, can_gc))
+                DomRoot::upcast(Comment::new(cx, data, document, None))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
-                DomRoot::upcast(ProcessingInstruction::new(
-                    pi.Target(),
-                    data,
-                    document,
-                    can_gc,
-                ))
+                DomRoot::upcast(ProcessingInstruction::new(cx, pi.Target(), data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DomRoot::upcast(CDATASection::new(data, document, can_gc))
+                DomRoot::upcast(CDATASection::new(cx, data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DomRoot::upcast(Text::new(data, document, can_gc))
+                DomRoot::upcast(Text::new(cx, data, document))
             },
             _ => unreachable!(),
         }
@@ -84,18 +79,23 @@ impl CharacterData {
         self.content_changed();
     }
 
+    #[expect(unsafe_code)]
     fn content_changed(&self) {
+        // TODO https://github.com/servo/servo/issues/43234
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
 
         // If this is a Text node, we might need to re-parse (say, if our parent
         // is a <style> element.) We don't need to if this is a Comment or
         // ProcessingInstruction.
-        if self.is::<Text>() {
-            if let Some(parent_node) = node.GetParentNode() {
-                let mutation = ChildrenMutation::ChangeText;
-                vtable_for(&parent_node).children_changed(&mutation, CanGc::note());
-            }
+        if self.is::<Text>() &&
+            let Some(parent_node) = node.GetParentNode()
+        {
+            let mutation = ChildrenMutation::ChangeText;
+            vtable_for(&parent_node).children_changed(cx, &mutation);
         }
     }
 
@@ -166,19 +166,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         Ok(DOMString::from(substring))
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
     fn AppendData(&self, data: DOMString) {
+        // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
+        //
         // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&data.str());
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
     fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
+        // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
         self.ReplaceData(offset, 0, arg)
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
+        // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
         self.ReplaceData(offset, count, DOMString::new())
     }
 
@@ -249,24 +253,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().before(nodes, can_gc)
+    fn Before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().before(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().after(nodes, can_gc)
+    fn After(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().after(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        let node = self.upcast::<Node>();
-        node.remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>
@@ -284,14 +287,10 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 }
 
-pub(crate) trait LayoutCharacterDataHelpers<'dom> {
-    fn data_for_layout(self) -> &'dom str;
-}
-
-impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
+impl<'dom> LayoutDom<'dom, CharacterData> {
     #[expect(unsafe_code)]
     #[inline]
-    fn data_for_layout(self) -> &'dom str {
+    pub(crate) fn data_for_layout(self) -> &'dom str {
         unsafe { self.unsafe_get().data.borrow_for_layout() }
     }
 }

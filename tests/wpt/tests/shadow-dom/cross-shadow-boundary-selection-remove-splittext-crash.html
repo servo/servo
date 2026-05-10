@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="assert" content="Removing a node involved in a cross-shadow-boundary selection then splitting another should not crash.">
+
+<div id="host">Light DOM text</div>
+<span>This test passes if the renderer does not crash.</span>
+
+<script>
+const host = document.getElementById('host');
+const shadow = host.attachShadow({mode: 'open'});
+shadow.innerHTML = '<slot></slot><span>AABBCCDDEEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT</span>';
+
+const textInShadow = shadow.querySelector('span').firstChild;
+const lightText = host.firstChild;
+
+document.body.offsetHeight;
+
+const sel = window.getSelection();
+sel.removeAllRanges();
+try {
+  sel.setBaseAndExtent(textInShadow, 30, lightText, 5);
+} catch(e) {
+  try {
+    sel.setBaseAndExtent(lightText, 5, textInShadow, 30);
+  } catch(e2) {}
+}
+
+document.body.offsetHeight;
+
+host.removeChild(lightText);
+
+document.body.offsetHeight;
+
+textInShadow.splitText(10);
+
+document.body.offsetHeight;
+</script>
+</html>

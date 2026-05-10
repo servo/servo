@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.modules.browsing_context import FormatOptions
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_format_type(bidi_session, top_context, inline):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -20,7 +21,6 @@ async def test_format_type(bidi_session, top_context, inline):
     assert png_screenshot != jpeg_screenshot
 
 
-@pytest.mark.asyncio
 async def test_format_quality(bidi_session, top_context, inline):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],

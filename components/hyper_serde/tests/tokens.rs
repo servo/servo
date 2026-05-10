@@ -15,8 +15,8 @@ use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use hyper::{Method, Uri};
-use hyper_serde::{De, Ser};
 use serde_test::{Token, assert_de_tokens, assert_ser_tokens};
+use servo_hyper_serde::{De, Ser};
 
 #[test]
 fn test_content_type() {

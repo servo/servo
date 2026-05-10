@@ -9,14 +9,17 @@ use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequ
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
+use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSender;
 use servo_url::ImmutableOrigin;
 use uuid::Uuid;
 
+use crate::CoreResourceMsg;
 use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 
 /// A token modulating access to a file for a blob URL.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FileTokenCheck {
     /// Checking against a token not required,
     /// used for accessing a file
@@ -122,7 +125,7 @@ pub enum FileManagerThreadMsg {
     SelectFiles(
         EmbedderControlId,
         FilePickerRequest,
-        IpcSender<EmbedderControlResponse>,
+        GenericCallback<EmbedderControlResponse>,
     ),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
@@ -140,7 +143,7 @@ pub enum FileManagerThreadMsg {
     AddSlicedURLEntry(
         Uuid,
         RelativePos,
-        IpcSender<Result<Uuid, BlobURLStoreError>>,
+        GenericSender<Result<Uuid, BlobURLStoreError>>,
         ImmutableOrigin,
     ),
 
@@ -148,7 +151,7 @@ pub enum FileManagerThreadMsg {
     DecRef(
         Uuid,
         ImmutableOrigin,
-        IpcSender<Result<(), BlobURLStoreError>>,
+        GenericSender<Result<(), BlobURLStoreError>>,
     ),
 
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
@@ -162,8 +165,18 @@ pub enum FileManagerThreadMsg {
     RevokeBlobURL(
         Uuid,
         ImmutableOrigin,
-        IpcSender<Result<(), BlobURLStoreError>>,
+        GenericSender<Result<(), BlobURLStoreError>>,
     ),
+
+    GetTokenForFile(Uuid, ImmutableOrigin, GenericSender<GetTokenForFileReply>),
+    RevokeTokenForFile(Uuid, Uuid),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetTokenForFileReply {
+    pub token: Option<Uuid>,
+    pub revoke_sender: GenericSender<CoreResourceMsg>,
+    pub refresh_sender: GenericSender<CoreResourceMsg>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

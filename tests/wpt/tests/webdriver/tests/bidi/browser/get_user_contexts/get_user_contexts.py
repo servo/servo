@@ -2,8 +2,9 @@ import pytest
 
 from .. import get_user_context_ids
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_default(bidi_session):
     user_context_ids = await get_user_context_ids(bidi_session)
 
@@ -11,7 +12,6 @@ async def test_default(bidi_session):
     assert "default" in user_context_ids
 
 
-@pytest.mark.asyncio
 async def test_create_remove_contexts(bidi_session, create_user_context):
     # create two user contexts
     user_context_1 = await create_user_context()

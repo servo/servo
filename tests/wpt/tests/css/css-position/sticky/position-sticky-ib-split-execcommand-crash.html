@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2031798">
+<style>
+*:only-of-type {
+  position: sticky;
+}
+</style>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  window.find("A")
+  document.designMode = "on"
+  document.execCommand("insertOrderedList")
+})
+</script>
+<big>
+<command>
+<center>A</center>
+<q>
+<label dir="rtl">

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use style::media_queries::Device;
+use style::device::Device;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use style::stylesheets::{CustomMediaMap, StylesheetInDocument};

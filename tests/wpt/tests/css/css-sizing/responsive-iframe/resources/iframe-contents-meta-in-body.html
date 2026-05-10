@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<head>
+<style>
+* { margin: 0 }
+</style>
+</head>
+<body>
+<!-- `meta` elements in `body` should not enable responsive sizing. -->
+<meta name="responsive-embedded-sizing">
+<!-- `head` in `body` should be a parse error and be ignored. -->
+<head>
+  <meta name="responsive-embedded-sizing">
+</head>
+<div style="width: 100px; height: 400px"></div>
+</body>

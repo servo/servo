@@ -42,6 +42,10 @@ features:
   files:
   - scrollIntoView-*
   - scrollintoview.html
+  - "!scrollIntoView-container.html"
+- name: scroll-into-view-container
+  files:
+  - scrollIntoView-container.html
 - name: scroll-behavior
   files:
   - scroll-behavior-*

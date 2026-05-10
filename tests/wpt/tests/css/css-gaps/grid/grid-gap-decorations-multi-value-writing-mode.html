@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Grid gap decoration colors with multiple values
+    and non-default writing-mode values.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#gap-decorations">
+<link rel="match" href="grid-gap-decorations-multi-value-writing-mode-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid {
+        display: grid;
+        grid-template: repeat(3, 50px) / repeat(4, 50px);
+        gap: 10px;
+        column-rule-color: red, green, blue;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+        row-rule-color: orange, purple;
+        row-rule-style: solid;
+        row-rule-width: 10px;
+        width: 170px;
+        height: 230px;
+        margin-bottom: 20px;
+    }
+    .item {
+        background: lightgray;
+    }
+</style>
+<div class="grid" style="writing-mode: vertical-rl;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>
+<div class="grid" style="writing-mode: vertical-lr;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>
+<div class="grid" style="writing-mode: sideways-rl;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>
+<div class="grid" style="writing-mode: sideways-lr;">
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+    <div class="item"></div><div class="item"></div><div class="item"></div>
+</div>

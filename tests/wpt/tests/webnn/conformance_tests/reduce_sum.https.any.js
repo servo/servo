@@ -1213,6 +1213,55 @@ const reduceSumTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'reduceSum int32 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [5],
+          'descriptor': {shape: [], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSum int32 2D tensor with options.axes and options.keepDimensions',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'},
+          {'options': {'axes': [1], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [2, -5, 8],
+          'descriptor': {shape: [3, 1], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

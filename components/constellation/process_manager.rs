@@ -34,7 +34,7 @@ impl Process {
     }
 }
 
-type ProcessReceiver = Receiver<Result<(), ipc_channel::Error>>;
+type ProcessReceiver = Receiver<Result<(), ipc_channel::IpcError>>;
 
 pub(crate) struct ProcessManager {
     processes: Vec<(Process, ProcessReceiver)>,
@@ -65,6 +65,7 @@ impl ProcessManager {
         receiver
     }
 
+    #[servo_tracing::instrument(skip_all)]
     pub fn remove(&mut self, index: usize) {
         let (mut process, _) = self.processes.swap_remove(index);
         debug!("Removing process pid={}", process.pid());

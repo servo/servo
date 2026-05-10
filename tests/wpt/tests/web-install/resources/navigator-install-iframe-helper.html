@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script>
+// Helper page loaded inside iframes to test navigator.install() restrictions.
+// Receives a postMessage with {id}, attempts to call navigator.install(),
+// and reports the result back via postMessage.
+window.onmessage = function(e) {
+  const id = e.data['id'];
+
+  if (typeof navigator.install !== 'function') {
+    window.top.postMessage({
+        id: id,
+        result: 'navigator.install is not available'
+      }, '*');
+    return;
+  }
+
+  // navigator.install() returns a rejected promise for precondition failures
+  // (permissions policy, sandbox, main-frame, user activation).
+  navigator.install().then(function() {
+    window.top.postMessage({id: id, result: 'ok'}, '*');
+  }).catch(function(error) {
+    window.top.postMessage({
+        id: id,
+        result: 'navigator.install failed: ' + error.name,
+        errorName: error.name,
+        errorMessage: error.message
+      }, '*');
+  });
+};
+</script>

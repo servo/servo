@@ -1,0 +1,21 @@
+[package]
+name = "servo-media"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_media"
+path = "lib.rs"
+
+[dependencies]
+servo-media-audio = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-streams = { workspace = true }
+servo-media-traits = { workspace = true }
+servo-media-webrtc = { workspace = true }

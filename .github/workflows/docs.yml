@@ -21,6 +21,8 @@ jobs:
           swap-storage: false
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap
         run: |
           sudo apt update

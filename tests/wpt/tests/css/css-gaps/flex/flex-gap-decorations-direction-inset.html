@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gap decorations with direction values and asymmetric insets.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<link rel="match" href="flex-gap-decorations-direction-inset-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        width: 340px;
+        column-rule: 6px solid blue;
+        row-rule: 6px solid red;
+        column-rule-break: intersection;
+        row-rule-break: intersection;
+        row-rule-inset-start: 10px;
+        row-rule-inset-end: 0px;
+        column-rule-inset-start: 10px;
+        column-rule-inset-end: 0px;
+        margin-bottom: 20px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 100px;
+        height: 100px;
+    }
+    .flex > :first-child {
+        background: salmon;
+    }
+</style>
+<div class="flex" style="direction: ltr;">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+</div>
+<div class="flex" style="direction: rtl;">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+</div>

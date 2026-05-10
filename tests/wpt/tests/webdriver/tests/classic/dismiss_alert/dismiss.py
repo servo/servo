@@ -2,8 +2,8 @@ import pytest
 
 from webdriver.error import NoSuchAlertException
 
-from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import wait_for_new_handle
+from tests.support.classic.asserts import assert_error, assert_success
+from tests.support.classic.helpers import wait_for_new_handle
 from tests.support.sync import Poll
 
 

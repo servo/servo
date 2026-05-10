@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.error import UnknownCommandException
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("module_name, command_name", [
     ("invalidmodule", "somecommand"),
     ("session", "wrongcommand"),

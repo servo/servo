@@ -4,10 +4,10 @@
 
 use std::cell::RefCell;
 
-use base::generic_channel::{GenericSender, SendError, SendResult};
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use log::warn;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{GenericCallback, GenericSender, SendError, SendResult};
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender as TokioOneshotSender;
 
@@ -28,7 +28,7 @@ impl ServoErrorSender {
     }
 }
 
-/// Channel for errors raised by [`WebViewDelegate`] request objects.
+/// Channel for errors raised by [`WebViewDelegate`](crate::WebViewDelegate) request objects.
 ///
 /// This allows errors to be raised asynchronously.
 pub(crate) struct ServoErrorChannel {
@@ -70,6 +70,15 @@ impl<T: Serialize> AbstractSender for GenericSender<T> {
     type Message = T;
     fn send(&self, value: T) -> SendResult {
         GenericSender::send(self, value)
+    }
+}
+
+impl<T: for<'de> Deserialize<'de> + Serialize + Send + 'static> AbstractSender
+    for GenericCallback<T>
+{
+    type Message = T;
+    fn send(&self, value: T) -> SendResult {
+        GenericCallback::send(self, value)
     }
 }
 

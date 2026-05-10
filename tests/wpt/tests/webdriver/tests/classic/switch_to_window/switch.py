@@ -3,7 +3,7 @@ import pytest
 from webdriver.error import NoSuchElementException, NoSuchAlertException
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 
 
 def switch_to_window(session, handle):

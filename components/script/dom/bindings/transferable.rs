@@ -7,12 +7,12 @@
 
 use std::hash::Hash;
 
-use base::id::NamespaceIndex;
 use rustc_hash::FxHashMap;
+use script_bindings::reflector::DomObject;
 use script_bindings::structuredclone::MarkedAsTransferableInIdl;
+use servo_base::id::NamespaceIndex;
 
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
@@ -29,10 +29,14 @@ where
     }
 
     /// <https://html.spec.whatwg.org/multipage/#transfer-steps>
-    fn transfer(&self) -> Fallible<(NamespaceIndex<Self::Index>, Self::Data)>;
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(NamespaceIndex<Self::Index>, Self::Data)>;
 
     /// <https://html.spec.whatwg.org/multipage/#transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         id: NamespaceIndex<Self::Index>,
         serialized: Self::Data,

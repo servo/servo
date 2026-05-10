@@ -7,24 +7,25 @@
 use std::cell::Cell;
 use std::cmp;
 
-use canvas_traits::webgl::{
+use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{DomObject as _, reflect_dom_object};
+use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
     WebGLError, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
-use dom_struct::dom_struct;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-#[cfg(feature = "webxr")]
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::validations::types::TexImageTarget;
 use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CanGc;
@@ -42,21 +43,75 @@ pub(crate) enum TexParameterValue {
 enum WebGLTextureOwner {
     WebGL,
     #[cfg(feature = "webxr")]
-    WebXR(Dom<XRSession>),
+    WebXR(WeakRef<XRSession>),
 }
 
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
-#[dom_struct]
-pub(crate) struct WebGLTexture {
-    webgl_object: WebGLObject,
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLTexture {
+    context: WeakRef<WebGLRenderingContext>,
     #[no_trace]
     id: WebGLTextureId,
-    /// The target to which this texture was bound the first time
-    target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
     owner: WebGLTextureOwner,
+}
+
+impl DroppableWebGLTexture {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if !self.is_deleted.get() {
+            self.is_deleted.set(true);
+
+            /*
+            If a texture object is deleted while its image is attached to one or more attachment
+            points in a currently bound framebuffer, then it is as if FramebufferTexture had been
+            called, with a texture of zero, for each attachment point to which this im-age was
+            attached in that framebuffer. In other words, this texture image is firstdetached from
+            all attachment points in a currently bound framebuffer.
+            - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
+            */
+            if let Some(context) = self.context.root() {
+                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                    let _ = fb.detach_texture(self.id);
+                }
+                if let Some(fb) = context.get_read_framebuffer_slot().get() {
+                    let _ = fb.detach_texture(self.id);
+                }
+            }
+
+            // We don't delete textures owned by WebXR
+            #[cfg(feature = "webxr")]
+            if let WebGLTextureOwner::WebXR(_) = self.owner {
+                return;
+            }
+
+            self.send_with_fallibility(WebGLCommand::DeleteTexture(self.id), operation_fallibility);
+        }
+    }
+}
+
+impl Drop for DroppableWebGLTexture {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
+
+#[dom_struct(associated_memory)]
+pub(crate) struct WebGLTexture {
+    webgl_object: WebGLObject,
+    /// The target to which this texture was bound the first time
+    target: Cell<Option<u32>>,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_malloc_size_of = "Arrays are cumbersome"]
     image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
@@ -70,6 +125,7 @@ pub(crate) struct WebGLTexture {
     attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
     /// Number of immutable levels.
     immutable_levels: Cell<Option<u32>>,
+    droppable: DroppableWebGLTexture,
 }
 
 impl WebGLTexture {
@@ -80,15 +136,7 @@ impl WebGLTexture {
     ) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
             target: Cell::new(None),
-            is_deleted: Cell::new(false),
-            #[cfg(feature = "webxr")]
-            owner: owner
-                .map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)))
-                .unwrap_or(WebGLTextureOwner::WebGL),
-            #[cfg(not(feature = "webxr"))]
-            owner: WebGLTextureOwner::WebGL,
             immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
@@ -96,6 +144,17 @@ impl WebGLTexture {
             mag_filter: Cell::new(constants::LINEAR),
             image_info_array: DomRefCell::new([None; MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             attached_framebuffer: Default::default(),
+            droppable: DroppableWebGLTexture {
+                context: WeakRef::new(context),
+                id,
+                is_deleted: Cell::new(false),
+                #[cfg(feature = "webxr")]
+                owner: owner
+                    .map(|session| WebGLTextureOwner::WebXR(WeakRef::new(session)))
+                    .unwrap_or(WebGLTextureOwner::WebGL),
+                #[cfg(not(feature = "webxr"))]
+                owner: WebGLTextureOwner::WebGL,
+            },
         }
     }
 
@@ -105,7 +164,7 @@ impl WebGLTexture {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLTexture::new(context, id, CanGc::note()))
+            .map(|id| WebGLTexture::new(context, id, CanGc::deprecated_note()))
     }
 
     pub(crate) fn new(
@@ -142,7 +201,7 @@ impl WebGLTexture {
 
 impl WebGLTexture {
     pub(crate) fn id(&self) -> WebGLTextureId {
-        self.id
+        self.droppable.id
     }
 
     // NB: Only valid texture targets come here
@@ -167,7 +226,7 @@ impl WebGLTexture {
         }
 
         self.upcast()
-            .send_command(WebGLCommand::BindTexture(target, Some(self.id)));
+            .send_command(WebGLCommand::BindTexture(target, Some(self.id())));
 
         Ok(())
     }
@@ -197,6 +256,8 @@ impl WebGLTexture {
         if let Some(fb) = self.attached_framebuffer.get() {
             fb.update_status();
         }
+
+        self.update_size();
 
         Ok(())
     }
@@ -237,47 +298,19 @@ impl WebGLTexture {
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if !self.is_deleted.get() {
-            self.is_deleted.set(true);
-
-            /*
-            If a texture object is deleted while its image is attached to one or more attachment
-            points in a currently bound framebuffer, then it is as if FramebufferTexture had been
-            called, with a texture of zero, for each attachment point to which this im-age was
-            attached in that framebuffer. In other words, this texture image is firstdetached from
-            all attachment points in a currently bound framebuffer.
-            - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
-            */
-            let webgl_object = self.upcast();
-            if let Some(context) = webgl_object.context() {
-                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
-                    let _ = fb.detach_texture(self);
-                }
-                if let Some(fb) = context.get_read_framebuffer_slot().get() {
-                    let _ = fb.detach_texture(self);
-                }
-            }
-
-            // We don't delete textures owned by WebXR
-            #[cfg(feature = "webxr")]
-            if let WebGLTextureOwner::WebXR(_) = self.owner {
-                return;
-            }
-
-            webgl_object
-                .send_with_fallibility(WebGLCommand::DeleteTexture(self.id), operation_fallibility);
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn is_invalid(&self) -> bool {
         // https://immersive-web.github.io/layers/#xrwebglsubimagetype
         #[cfg(feature = "webxr")]
-        if let WebGLTextureOwner::WebXR(ref session) = self.owner {
-            if session.is_outside_raf() {
-                return true;
-            }
+        if let WebGLTextureOwner::WebXR(ref session) = self.droppable.owner &&
+            let Some(xr) = session.root() &&
+            xr.is_outside_raf()
+        {
+            return true;
         }
-        self.is_deleted.get()
+        self.droppable.is_deleted.get()
     }
 
     pub(crate) fn is_immutable(&self) -> bool {
@@ -450,6 +483,8 @@ impl WebGLTexture {
 
             self.set_image_infos_at_level(level, image_info);
         }
+
+        self.update_size();
         Ok(())
     }
 
@@ -520,6 +555,17 @@ impl WebGLTexture {
         self.image_info_array.borrow_mut()[pos as usize] = Some(image_info);
     }
 
+    fn update_size(&self) {
+        let size = self
+            .image_info_array
+            .borrow()
+            .iter()
+            .filter_map(|info| *info)
+            .map(|info| info.physical_size())
+            .sum();
+        self.reflector().update_memory_size(self, size);
+    }
+
     fn base_image_info(&self) -> Option<ImageInfo> {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
@@ -583,13 +629,9 @@ impl WebGLTexture {
             fb.update_status();
         }
 
-        Ok(())
-    }
-}
+        self.update_size();
 
-impl Drop for WebGLTexture {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
+        Ok(())
     }
 }
 
@@ -638,6 +680,14 @@ impl ImageInfo {
 
     fn is_compressed_format(&self) -> bool {
         self.internal_format.is_compressed()
+    }
+
+    /// Returns approximate physical size
+    pub(crate) fn physical_size(&self) -> usize {
+        self.width as usize *
+            self.height as usize *
+            self.depth as usize *
+            self.internal_format.components() as usize
     }
 }
 

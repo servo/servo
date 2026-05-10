@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+input, datalist {
+  appearance: base;
+}
+
+/* Make sure that the options are clickable
+ * even if no text is rendered. */
+option {
+  min-block-size: 24px;
+  min-inline-size: 24px;
+}
+</style>
+
+<input list=datalist>
+<datalist id=datalist>
+  <option class=one value=valueone>textone</option>
+  <option class=two label=labeltwo>texttwo</option>
+  <option class=three value=valuethree label=labelthree>textthree</option>
+  <option class=four label=labelfour></option>
+</datalist>
+
+<script>
+const arrowDown = '\uE015';
+
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
+promise_test(async () => {
+  const input = document.querySelector('input');
+  const datalist = document.querySelector('datalist');
+  const optionOne = document.querySelector('.one');
+  const optionTwo = document.querySelector('.two');
+  const optionThree = document.querySelector('.three');
+  const optionFour = document.querySelector('.four');
+
+  input.focus();
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after focusing input.');
+
+  await click(optionOne);
+  assert_equals(input.value, 'valueone',
+    'Value attribute should be chosen over text content.');
+  input.value = '';
+  input.focus();
+  await pressKey(arrowDown);
+
+  await click(optionTwo);
+  assert_equals(input.value, 'texttwo',
+    'Text content should be chosen over label attribute.');
+  input.value = '';
+  input.focus();
+  await pressKey(arrowDown);
+
+  await click(optionThree);
+  assert_equals(input.value, 'valuethree',
+    'Value attribute should be chosen over text and label.');
+  input.value = '';
+  input.focus();
+  await pressKey(arrowDown);
+
+  await click(optionFour);
+  assert_equals(input.value, '',
+    'Label attribute should not be chosen.');
+}, 'Choosing options with value and label attributes.');
+</script>

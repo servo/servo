@@ -35,6 +35,10 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
+    # The crate `time` has DOS stack exhaustion vulnerability, which is fixed in version 0.3.47.
+    # We can't upgrade yet due to MSRV. However, we do not use the vulnerable API at all.
+    # As per <https://github.com/advisories/GHSA-r6v5-fh4h-64xc> this can be verified with clippy.
+    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -55,7 +59,6 @@ allow = [
     "ISC",
     "MIT",
     "MPL-2.0",
-    "OpenSSL",
     "OFL-1.1",
     "Ubuntu-font-1.0",
     "Unicode-3.0",
@@ -104,8 +107,17 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
+    # Duplicated by btleplug
+    "jni",
+    "jni-sys",
+
     # Duplicated by egui
+    "foldhash",
+    "windows-collections",
+    "windows-future",
+    "windows-numerics",
     "windows-strings",
+    "windows-threading",
 
     # Duplicated by egui-file-dialog
     "windows",
@@ -116,17 +128,6 @@ skip = [
 
     # Duplicated by winit.
     "windows-sys",
-    "windows-targets",
-    "windows_aarch64_gnullvm",
-    "windows_aarch64_msvc",
-    "windows_i686_gnu",
-    "windows_i686_msvc",
-    "windows_x86_64_gnu",
-    "windows_x86_64_gnullvm",
-    "windows_x86_64_msvc",
-
-    # Duplicated by zbus.
-    "windows_i686_gnullvm",
 
     # wgpu has the latest and greatest.
     "windows-core",
@@ -145,15 +146,10 @@ skip = [
     "thiserror-impl",
 
     # duplicated by webdriver
-    "h2",
-    "headers",
-    "headers-core",
     "http",
-    "http-body",
-    "hyper",
-    "socket2",
 
     # duplicated by winit
+    "block2",
     "objc2-app-kit",
     "objc2-foundation",
     "objc2",
@@ -202,6 +198,8 @@ skip = [
     # this.
     "hybrid-array",
 
+    # duplicated by zbus
+    "winnow",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
@@ -209,12 +207,27 @@ skip = [
     # These need to be investigated separately to see if the duplication can be
     # avoided.
     "libloading",
-    "futures",
-    "cfg-expr",
-    "system-deps",
-    "target-lexicon",
+
+    # Duplicated by wgpu/egui+dependencies
+    "font-types",
+    "glow",
+    "objc2-ui-kit",
+    "peniko",
+    "read-fonts",
+    "skrifa",
+    "vello_common",
+    "vello_cpu",
+
+    # Duplicated by resvg/image
+    "pastey",
+    "png",
+    "roxmltree",
+    "tiny-skia",
+    "tiny-skia-path",
 ]
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["servo"]
+github = [
+    "servo",
+]

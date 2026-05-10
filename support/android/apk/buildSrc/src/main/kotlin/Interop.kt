@@ -23,7 +23,10 @@ fun Project.getNativeTargetDir(debug: Boolean, arch: String): String {
 }
 
 fun getSubTargetDir(debug: Boolean, arch: String): String {
-    return getRustTarget(arch) + "/" + if (debug) "debug" else "release"
+    val buildTypeDirectory = System.getenv("SERVO_TARGET_DIR")
+        ?.let { File(it).name }
+        ?: if (debug) "debug" else "release"
+    return getRustTarget(arch) + "/" + buildTypeDirectory
 }
 
 fun Project.getJniLibsPath(debug: Boolean, arch: String): String =

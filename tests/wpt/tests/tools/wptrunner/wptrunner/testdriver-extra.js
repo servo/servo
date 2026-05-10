@@ -425,6 +425,15 @@
             });
         }
 
+    window.test_driver_internal.bidi.user_agent_client_hints = { 
+        set_client_hints_override: function(params) { 
+            return create_action("bidi.user_agent_client_hints.set_client_hints_override", { 
+                contexts: [window], 
+                ...(params ?? {}) 
+            }); 
+        } 
+    };
+
     window.test_driver_internal.bidi.emulation.set_locale_override = function (params) {
         return create_action("bidi.emulation.set_locale_override", {
             // Default to the current window.
@@ -437,6 +446,16 @@
         function (params) {
             return create_action(
                 "bidi.emulation.set_screen_orientation_override", {
+                    // Default to the current window.
+                    contexts: [window],
+                    ...(params ?? {})
+                });
+        }
+
+    window.test_driver_internal.bidi.emulation.set_touch_override =
+        function (params) {
+            return create_action(
+                "bidi.emulation.set_touch_override", {
                     // Default to the current window.
                     contexts: [window],
                     ...(params ?? {})
@@ -507,6 +526,16 @@
         const selectors = get_selector_array(element);
         const context = get_context(element);
         return create_context_action("get_computed_role", context, {selectors});
+    };
+
+    window.test_driver_internal.get_accessibility_properties_for_element = function(element) {
+        const selector = get_selector(element);
+        const context = get_context(element);
+        return create_context_action("get_accessibility_properties_for_element", context, {selector});
+    };
+
+    window.test_driver_internal.get_accessibility_properties_for_accessibility_node = function(accId, context=null) {
+        return create_context_action("get_accessibility_properties_for_accessibility_node", context, { accId });
     };
 
     window.test_driver_internal.get_named_cookie = function(name, context=null) {

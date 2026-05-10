@@ -7,8 +7,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
 
-use base::Epoch;
-use base::id::{PainterId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use euclid::{Rect, Scale, Size2D};
@@ -16,6 +14,8 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
+use servo_base::Epoch;
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
@@ -29,15 +29,15 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{
-    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
-};
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+};
 pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{
@@ -53,7 +53,7 @@ use crate::viewport_description::ViewportDescription;
 /// Sends messages to `Paint`.
 #[derive(Clone)]
 pub struct PaintProxy {
-    pub sender: Sender<Result<PaintMessage, ipc_channel::Error>>,
+    pub sender: Sender<Result<PaintMessage, ipc_channel::IpcError>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
@@ -76,7 +76,7 @@ impl PaintProxy {
     ///
     /// This method is a temporary solution, and will be removed when migrating
     /// to `GenericChannel`.
-    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::Error>) {
+    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::IpcError>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
@@ -187,6 +187,8 @@ pub enum PaintMessage {
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
     /// The candidate of largest-contentful-paint
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
+    /// Enable LCP calculation for the given WebView.
+    EnableLCPCalculation(WebViewId),
 }
 
 impl Debug for PaintMessage {
@@ -247,10 +249,10 @@ impl CrossProcessPaintApi {
         callback: Option<Box<dyn Fn(PaintMessage) + Send + 'static>>,
     ) -> Self {
         let callback = GenericCallback::new(move |msg| {
-            if let Some(ref handler) = callback {
-                if let Ok(paint_message) = msg {
-                    handler(paint_message);
-                }
+            if let Some(ref handler) = callback &&
+                let Ok(paint_message) = msg
+            {
+                handler(paint_message);
             }
         })
         .unwrap();
@@ -777,8 +779,7 @@ impl Debug for ImageUpdate {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-/// Serialized `ImageData`. It contains IPC byte channel receiver to prevent from loading bytes too
-/// slow.
+/// Serialized `ImageData`.
 pub enum SerializableImageData {
     /// A simple series of bytes, provided by the embedding and owned by WebRender.
     /// The format is stored out-of-band, currently in ImageDescriptor.

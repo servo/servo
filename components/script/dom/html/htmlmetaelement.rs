@@ -4,27 +4,28 @@
 
 use std::str::FromStr;
 
+use content_security_policy::{Policy, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use paint_api::viewport_description::ViewportDescription;
 use servo_config::pref;
 use style::str::HTML_SPACE_CHARACTERS;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMetaElement {
@@ -43,17 +44,17 @@ impl HTMLMetaElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLMetaElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -113,7 +114,7 @@ impl HTMLMetaElement {
         // empty string, then return.
         if let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("content"))
+            .get_attribute(&local_name!("content"))
             .filter(|attr| !attr.value().is_empty())
         {
             // Step 4. Let value be the value of element's content attribute, converted to ASCII
@@ -137,7 +138,7 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) else {
+        let Some(content) = element.get_attribute(&local_name!("content")) else {
             return;
         };
 
@@ -150,11 +151,40 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     fn apply_csp_list(&self) {
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
-                head.set_content_security_policy();
-            }
+        // Step 1. If the meta element is not a child of a head element, return.
+        if self
+            .upcast::<Node>()
+            .GetParentElement()
+            .is_none_or(|parent| !parent.is::<HTMLHeadElement>())
+        {
+            return;
+        };
+        // Step 2. If the meta element has no content attribute, or if that attribute's value is the empty string, then return.
+        let Some(content) = self
+            .upcast::<Element>()
+            .get_attribute(&local_name!("content"))
+        else {
+            return;
+        };
+        let content = content.value();
+        if content.is_empty() {
+            return;
         }
+        // Step 3. Let policy be the result of executing Content Security Policy's
+        // parse a serialized Content Security Policy algorithm
+        // on the meta element's content attribute's value,
+        // with a source of "meta", and a disposition of "enforce".
+        let mut policy = Policy::parse(&content, PolicySource::Meta, PolicyDisposition::Enforce);
+        // Step 4. Remove all occurrences of the report-uri, frame-ancestors,
+        // and sandbox directives from policy.
+        policy.directive_set.retain(|directive| {
+            !matches!(
+                directive.name.as_str(),
+                "report-uri" | "frame-ancestors" | "sandbox"
+            )
+        });
+        // Step 5. Enforce the policy policy.
+        self.owner_document().enforce_csp_policy(policy);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
@@ -203,9 +233,9 @@ impl VirtualMethods for HTMLMetaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         if context.tree_connected {
@@ -213,17 +243,22 @@ impl VirtualMethods for HTMLMetaElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
 
         self.process_referrer_attribute();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
 
         if context.tree_connected {

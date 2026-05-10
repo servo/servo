@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex gaps are painted properly when cross gaps form non-uniform overlaps on the main gap.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-037-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        width: 600px;
+        gap: 90px;
+
+        column-rule: 5px solid rgba(0, 0, 255, 0.5);
+        row-rule: 5px solid rgba(255, 0, 0, 0.5);
+
+        column-rule-break: intersection;
+        column-rule-inset: 0;
+
+        row-rule-break: intersection;
+        row-rule-inset: 0;
+    }
+
+    .item {
+        height: 100px;
+        background: lightgray;
+    }
+
+    .a { width: 120px; }
+    .b { width: 160px; }
+    .c { width: 110px; }
+    .d { width: 300px; }
+    .e { width: 50px; }
+    .f { width: 70px; }
+</style>
+
+<div class="flex">
+    <div class="item a"></div>
+    <div class="item b"></div>
+    <div class="item c"></div>
+    <div class="item d"></div>
+    <div class="item e"></div>
+    <div class="item f"></div>
+</div>
+

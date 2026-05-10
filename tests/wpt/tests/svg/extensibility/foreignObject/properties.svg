@@ -2,8 +2,8 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#styling-PresentationAttributes"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/single-page.html#styling-PresentationAttributes"/>
     <h:meta name="assert" content="x y width height are presentation attributes of foreignObject"/>
   </metadata>
   <style>

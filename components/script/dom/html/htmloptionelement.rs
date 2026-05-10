@@ -7,11 +7,11 @@ use std::convert::TryInto;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElement_Binding::HTMLSelectElementMethods;
@@ -23,6 +23,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::HTMLFormElement;
@@ -30,8 +31,8 @@ use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, ShadowIncluding,
-    UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, NodeTraits,
+    ShadowIncluding, UnbindContext,
 };
 use crate::dom::text::Text;
 use crate::dom::types::DocumentFragment;
@@ -71,24 +72,27 @@ impl HTMLOptionElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLOptionElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLOptionElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
     pub(crate) fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
+        // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
+        // rooted at an ancestor invalidates its cached length and cursor.
+        self.upcast::<Node>().rev_version();
     }
 
     pub(crate) fn set_dirtiness(&self, dirtiness: bool) {
@@ -155,7 +159,7 @@ impl HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select>
-    fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
+    pub(crate) fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
         // Step 1. Let ancestorOptgroup be null.
         // NOTE: We only care whether the value is non-null, so a boolean is enough
         let mut did_see_ancestor_optgroup = false;
@@ -196,7 +200,7 @@ impl HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#maybe-clone-an-option-into-selectedcontent>
-    pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, can_gc: CanGc) {
+    pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, cx: &mut JSContext) {
         // Step 1. Let select be option's option element nearest ancestor select.
         let select = self.nearest_ancestor_select();
 
@@ -205,37 +209,35 @@ impl HTMLOptionElement {
         // * option's selectedness is true; and
         // * select's enabled selectedcontent is not null,
         // * then run clone an option into a selectedcontent given option and select's enabled selectedcontent.
-        if self.selectedness.get() {
-            if let Some(selectedcontent) =
+        if self.selectedness.get() &&
+            let Some(selectedcontent) =
                 select.and_then(|select| select.get_enabled_selectedcontent())
-            {
-                self.clone_an_option_into_selectedcontent(&selectedcontent, can_gc);
-            }
+        {
+            self.clone_an_option_into_selectedcontent(cx, &selectedcontent);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
-    fn clone_an_option_into_selectedcontent(&self, selectedcontent: &Element, can_gc: CanGc) {
+    fn clone_an_option_into_selectedcontent(&self, cx: &mut JSContext, selectedcontent: &Element) {
         // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
-        let document_fragment = DocumentFragment::new(&self.owner_document(), can_gc);
+        let document_fragment = DocumentFragment::new(cx, &self.owner_document());
 
         // Step 2. For each child of option's children:
         for child in self.upcast::<Node>().children() {
             // Step 2.1 Let childClone be the result of running clone given child with subtree set to true.
-            let child_clone =
-                Node::clone(&child, None, CloneChildrenFlag::CloneChildren, None, can_gc);
+            let child_clone = Node::clone(cx, &child, None, CloneChildrenFlag::CloneChildren, None);
 
             // Step 2.2 Append childClone to documentFragment.
             let _ = document_fragment
                 .upcast::<Node>()
-                .AppendChild(&child_clone, can_gc);
+                .AppendChild(cx, &child_clone);
         }
 
         // Step 3. Replace all with documentFragment within selectedcontent.
         Node::replace_all(
+            cx,
             Some(document_fragment.upcast()),
             selectedcontent.upcast(),
-            can_gc,
         );
     }
 }
@@ -243,22 +245,22 @@ impl HTMLOptionElement {
 impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-option>
     fn Option(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,
         selected: bool,
     ) -> Fallible<DomRoot<HTMLOptionElement>> {
         let element = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("option")),
             None,
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
@@ -266,16 +268,16 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         if !text.is_empty() {
             option
                 .upcast::<Node>()
-                .set_text_content_for_element(Some(text), can_gc)
+                .set_text_content_for_element(cx, Some(text))
         }
 
         if let Some(val) = value {
-            option.SetValue(val)
+            option.SetValue(cx, val)
         }
 
-        option.SetDefaultSelected(default_selected);
+        option.SetDefaultSelected(cx, default_selected);
         option.set_selectedness(selected);
-        option.update_select_validity(can_gc);
+        option.update_select_validity(CanGc::from_cx(cx));
         Ok(option)
     }
 
@@ -313,9 +315,9 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(cx, Some(value))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-form>
@@ -371,11 +373,11 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
-    fn SetSelected(&self, selected: bool, can_gc: CanGc) {
+    fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
         self.dirtiness.set(true);
-        self.selectedness.set(selected);
+        self.set_selectedness(selected);
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
@@ -389,10 +391,15 @@ impl VirtualMethods for HTMLOptionElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -407,50 +414,62 @@ impl VirtualMethods for HTMLOptionElement {
                         el.check_parent_disabled_state_for_option();
                     },
                 }
-                self.update_select_validity(can_gc);
+                self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("selected") => {
+                let mut selectedness_changed = false;
                 match mutation {
                     AttributeMutation::Set(..) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
-                        if !self.dirtiness.get() {
-                            self.selectedness.set(true);
+                        if !self.dirtiness.get() && !self.selectedness.get() {
+                            self.set_selectedness(true);
+                            selectedness_changed = true;
                         }
                     },
                     AttributeMutation::Removed => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
-                        if !self.dirtiness.get() {
-                            self.selectedness.set(false);
+                        if !self.dirtiness.get() && self.selectedness.get() {
+                            self.set_selectedness(false);
+                            selectedness_changed = true;
                         }
                     },
                 }
-                self.update_select_validity(can_gc);
+
+                if selectedness_changed {
+                    self.pick_if_selected_and_reset();
+
+                    if let Some(select_element) = self.owner_select_element() {
+                        select_element.update_shadow_tree(cx);
+                    }
+                }
+
+                self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("label") => {
                 // The label of the selected option is displayed inside the select element, so we need to repaint
                 // when it changes
                 if let Some(select_element) = self.owner_select_element() {
-                    select_element.update_shadow_tree(CanGc::note());
+                    select_element.update_shadow_tree(cx);
                 }
             },
             _ => {},
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()
             .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(select) = context
             .parent
@@ -458,8 +477,8 @@ impl VirtualMethods for HTMLOptionElement {
             .find_map(DomRoot::downcast::<HTMLSelectElement>)
         {
             select
-                .validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                .validity_state(CanGc::from_cx(cx))
+                .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
             select.ask_for_reset();
         }
 
@@ -472,25 +491,55 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(super_type) = self.super_type() {
-            super_type.children_changed(mutation, can_gc);
+            super_type.children_changed(cx, mutation);
         }
 
         // Changing the descendants of a selected option can change it's displayed label
         // if it does not have a label attribute
         if !self
             .upcast::<Element>()
-            .has_attribute(&local_name!("label"))
+            .has_attribute(&local_name!("label")) &&
+            let Some(owner_select) = self.owner_select_element() &&
+            owner_select
+                .selected_option()
+                .is_some_and(|selected_option| self == &*selected_option)
         {
-            if let Some(owner_select) = self.owner_select_element() {
-                if owner_select
-                    .selected_option()
-                    .is_some_and(|selected_option| self == &*selected_option)
-                {
-                    owner_select.update_shadow_tree(can_gc);
-                }
+            owner_select.update_shadow_tree(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-option-element:html-element-moving-steps>
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+
+        // The option HTML element moving steps, given movedNode and oldParent, are to run update an
+        // option's nearest ancestor select given movedNode.
+        let element = self.upcast::<Element>();
+        if let Some(old_parent) = context.old_parent {
+            if let Some(select) = old_parent
+                .inclusive_ancestors(ShadowIncluding::No)
+                .find_map(DomRoot::downcast::<HTMLSelectElement>)
+            {
+                select
+                    .validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                select.ask_for_reset();
+            }
+
+            if self.upcast::<Node>().GetParentNode().is_some() {
+                element.check_parent_disabled_state_for_option();
+            } else {
+                element.check_disabled_attribute();
             }
         }
+
+        element.check_parent_disabled_state_for_option();
+
+        self.pick_if_selected_and_reset();
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 }

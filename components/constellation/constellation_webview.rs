@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
 use rustc_hash::FxHashMap;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use servo_base::Epoch;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use style_traits::CSSPixel;
 
 use crate::browsingcontext::BrowsingContext;
@@ -20,6 +21,11 @@ use crate::session_history::JointSessionHistory;
 pub(crate) struct ConstellationWebView {
     /// The [`WebViewId`] of this [`ConstellationWebView`].
     webview_id: WebViewId,
+
+    /// The [`PipelineId`] of the currently active pipeline at the top level of this WebView.
+    pub active_top_level_pipeline_id: Option<PipelineId>,
+    /// A counter for changes to [`Self::active_top_level_pipeline_id`].
+    pub active_top_level_pipeline_epoch: Epoch,
 
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -45,6 +51,14 @@ pub(crate) struct ConstellationWebView {
     /// The [`Theme`] that this [`ConstellationWebView`] uses. This is communicated to all
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
+
+    /// Whether accessibility is active for this webview.
+    ///
+    /// Set by [`crate::Constellation::set_accessibility_active()`], and forwarded to the
+    /// webview’s *active* pipelines (of those that represent documents) at any given moment
+    /// via [`ScriptThreadMessage::SetAccessibilityActive`] in `set_accessibility_active()`
+    /// and [`crate::Constellation::set_frame_tree_for_webview()`].
+    pub accessibility_active: bool,
 }
 
 impl ConstellationWebView {
@@ -56,11 +70,14 @@ impl ConstellationWebView {
         Self {
             webview_id,
             user_content_manager_id,
+            active_top_level_pipeline_id: None,
+            active_top_level_pipeline_epoch: Epoch::default(),
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
             theme: Theme::Light,
+            accessibility_active: false,
         }
     }
 

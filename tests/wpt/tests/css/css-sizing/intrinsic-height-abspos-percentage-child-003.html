@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Abspos with min-content height and percentage min-height child</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="
+  An absolutely positioned element with height:min-content should not collapse
+  when a child has min-height:100%.
+">
+
+<style>
+.container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+}
+.abspos {
+    position: absolute;
+    height: min-content;
+    width: 100px;
+    background: green;
+}
+.child {
+    min-height: 100%;
+    height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+    <div class="abspos">
+        <div class="child"></div>
+    </div>
+</div>

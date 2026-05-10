@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with Unregistered Cross-Origin Tool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  // 1. Tell the cross-origin iframe to register an endless tool,
+  // exposing it to the parent origin.
+  const toolchange_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'endless_tool',
+      description: 'Endless tool in iframe'
+    },
+    options: { exposedTo: [self.origin] },
+    hangsForever: true
+  }, '*');
+
+  await toolchange_promise;
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'endless_tool');
+  assert_true(!!tool, 'Tool should be registered and visible to parent');
+
+  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+
+  // Wait briefly to ensure the execution message has started, and that the
+  // execution request is now "pending", such that tool unregistration will
+  // reject `execute_promise`.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  // 3. Unregister the tool in the target iframe while execution is pending.
+  iframe.contentWindow.postMessage({
+    action: 'unregister',
+    name: 'endless_tool'
+  }, '*');
+
+  await promise_rejects_dom(t, 'UnknownError', execute_promise, 'Pending execution Promise should reject with UnknownError when the target tool is unregistered');
+}, 'Pending executeTool() Promise is rejected when the target cross-origin tool is unregistered');
+</script>
+</body>
+</html>

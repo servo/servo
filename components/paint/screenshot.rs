@@ -5,13 +5,13 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use base::Epoch;
-use base::id::{PipelineId, WebViewId};
 use embedder_traits::ScreenshotCaptureError;
 use euclid::{Point2D, Size2D};
 use image::RgbaImage;
 use log::error;
 use rustc_hash::FxHashMap;
+use servo_base::Epoch;
+use servo_base::id::{PipelineId, WebViewId};
 use webrender_api::units::{DeviceIntRect, DeviceRect};
 
 use crate::paint::RepaintReason;
@@ -192,8 +192,8 @@ impl ScreenshotTaker {
                     let y = 0.max(
                         (viewport_size.height as f32 - rect.min.y - rect.size().height) as i32,
                     );
-                    let w = rect.size().width as i32;
-                    let h = rect.size().height as i32;
+                    let w = (rect.size().width as i32).min(viewport_size.width - x);
+                    let h = (rect.size().height as i32).min(viewport_size.height - y);
 
                     DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
                 });

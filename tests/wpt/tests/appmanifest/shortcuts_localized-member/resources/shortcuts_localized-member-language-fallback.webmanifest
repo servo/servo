@@ -1,0 +1,54 @@
+{
+    "name": "Shortcut Localized Language Fallback Test",
+    "icons": [
+        {
+            "src": "pass.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "../shortcuts_localized-member-language-fallback-manual.html",
+    "display": "fullscreen",
+    "scope": "../",
+    "shortcuts": [
+        {
+            "name": "fail",
+            "url": "../shortcut_pass.html",
+            "icons": [
+                {
+                    "src": "fail.png",
+                    "sizes": "256x256",
+                    "type": "image/png"
+                }
+            ],
+            "name_localized": {
+                "en": "pass",
+                "fr": "pass",
+                "ja": "pass"
+            },
+            "icons_localized": {
+                "en": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ],
+                "fr": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ],
+                "ja": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ]
+            }
+        }
+    ]
+}

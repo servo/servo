@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Leading and trailing whitespace is stripped from (local) URL references (&#x3c;linearGradient&#x3e; href)</title>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#processingURL"/>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#PaintServerTemplates"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#processingURL"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PaintServerTemplates"/>
   <html:link rel="match" href="reference/green-100x100.svg"/>
   <linearGradient id="green">
     <stop stop-color="green"/>

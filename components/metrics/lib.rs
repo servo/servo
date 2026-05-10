@@ -6,15 +6,14 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
 use malloc_size_of_derive::MallocSizeOf;
-use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
     send_profile_data,
 };
 use script_traits::ProgressiveWebMetricType;
-use servo_config::opts;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_url::ServoUrl;
 
 /// TODO make this configurable
@@ -53,17 +52,15 @@ fn set_metric(
         metric_time,
     );
 
-    // Print the metric to console if the print-pwm option was given.
-    if opts::get().print_pwm {
+    if opts::get()
+        .debug
+        .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
+    {
         let navigation_start = pwm
             .navigation_start()
             .unwrap_or_else(CrossProcessInstant::epoch);
-        println!(
-            "{:?} {:?} {:?}",
-            url,
-            metric_type,
-            (metric_time - navigation_start).as_seconds_f64()
-        );
+        let duration = (metric_time - navigation_start).as_seconds_f64();
+        println!("{url:?} {metric_type:?} {duration:?}s");
     }
 }
 
@@ -101,7 +98,6 @@ pub struct ProgressiveWebMetrics {
     ///
     /// See <https://www.w3.org/TR/largest-contentful-paint/>
     largest_contentful_paint: Cell<Option<CrossProcessInstant>>,
-    #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
     url: ServoUrl,
 }
@@ -247,16 +243,11 @@ impl ProgressiveWebMetrics {
         );
     }
 
-    pub fn set_largest_contentful_paint(
-        &self,
-        paint_time: CrossProcessInstant,
-        area: usize,
-        lcp_type: LargestContentfulPaintType,
-    ) {
+    pub fn set_largest_contentful_paint(&self, paint_time: CrossProcessInstant, area: usize) {
         set_metric(
             self,
             Some(self.make_metadata(false)),
-            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type },
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url: None },
             ProfilerCategory::TimeToLargestContentfulPaint,
             &self.largest_contentful_paint,
             paint_time,
@@ -320,7 +311,7 @@ impl ProgressiveWebMetrics {
 
 #[cfg(test)]
 mod test {
-    use base::generic_channel;
+    use servo_base::generic_channel;
 
     use super::*;
 

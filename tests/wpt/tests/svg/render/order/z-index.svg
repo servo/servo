@@ -3,7 +3,7 @@
      xmlns:xlink="http://www.w3.org/1999/xlink"
      width="300" height="200" viewBox="0 0 300 200">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/render.html#ZIndexProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#ZIndexProperty"/>
     <h:link rel="match" href="z-index-ref.svg"/>
     <h:meta name="assert" content="The z-index property allows an element to be assigned to a stack level."/>
   </metadata>

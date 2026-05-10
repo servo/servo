@@ -11,7 +11,9 @@
 
     <style>
       @mixin --exists-only-outside-shadow() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
     </style>
     <div id="host1">
@@ -43,7 +45,9 @@
         </style>
         <style>
           @mixin --m1() {
-            color: green;
+            @result {
+              color: green;
+            }
           }
         </style>
         <div id="e2">This text should be green.</div>
@@ -73,7 +77,7 @@
     <script>
       test(() => {
         const sheet = new CSSStyleSheet();
-        sheet.replaceSync('@mixin --exists-only-in-adopted() { color: green; }');
+        sheet.replaceSync('@mixin --exists-only-in-adopted() { @result { color: green; } }');
         document.getElementById('host3').shadowRoot.adoptedStyleSheets = [sheet];
 
         let target = document.getElementById('host3').shadowRoot.getElementById('e3');
@@ -86,7 +90,9 @@
       <template shadowrootmode="open">
         <style>
           @mixin --in-shadow() {
-            color: red;
+            @result {
+              color: red;
+            }
           }
         </style>
       </template>

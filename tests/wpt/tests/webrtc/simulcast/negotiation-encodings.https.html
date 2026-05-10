@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection Simulcast Tests - negotiation/encodings</title>
 <meta name="timeout" content="long">
 <script src="../third_party/sdp/sdp.js"></script>
@@ -11,7 +13,10 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="../../mediacapture-streams/permission-helper.js"></script>
 <script>
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -49,10 +54,12 @@ promise_test(async t => {
   const rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, [undefined]);
 }, 'simulcast is not supported for audio');
+}
 
 // We do not have a test case for sRD(offer) narrowing a simulcast envelope
 // from addTransceiver, since that transceiver cannot be paired up with a remote
 // offer m-section
+if (interop2026) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -97,7 +104,9 @@ promise_test(async t => {
   const scaleDownByValues = encodings.map(({scaleResolutionDownBy}) => scaleResolutionDownBy);
   assert_array_equals(scaleDownByValues, [2]);
 }, 'sRD(recv simulcast answer) can narrow the simulcast envelope from a previous negotiation');
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -237,7 +246,9 @@ promise_test(async t => {
   rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, [undefined]);
 }, 'sRD(simulcast offer), addTrack, then rollback brings us back to having a single encoding');
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -284,7 +295,9 @@ promise_test(async t => {
   rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, ["foo", "bar"]);
 }, 'Reordering of rids in sRD(reanswer) is ignored');
+}
 
+if (interop2026) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -315,7 +328,9 @@ promise_test(async t => {
   rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, ["foo", "bar"]);
 }, 'Reordering of rids in sRD(reoffer) is ignored');
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -350,7 +365,9 @@ promise_test(async t => {
   rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, ["foo", "bar"]);
 }, 'Rollback of sRD(reoffer) with a single rid results in all previous encodings');
+}
 
+if (interop2026) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -395,7 +412,9 @@ promise_test(async t => {
   const scaleDownByValues = encodings.map(({scaleResolutionDownBy}) => scaleResolutionDownBy);
   assert_array_equals(scaleDownByValues, [1]);
 }, 'sRD(recv simulcast answer) can narrow the simulcast envelope from a previous negotiation by removing the first encoding');
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -432,7 +451,9 @@ promise_test(async t => {
   const scaleDownByValues = encodings.map(({scaleResolutionDownBy}) => scaleResolutionDownBy);
   assert_array_equals(scaleDownByValues, [1]);
 }, 'sRD(simulcast offer) can narrow the simulcast envelope from a previous negotiation by removing the first encoding');
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -530,5 +551,6 @@ promise_test(async t => {
   rids = encodings.map(({rid}) => rid);
   assert_array_equals(rids, ["foo", "bar"]);
 }, 'receiver renegotiation to sendonly does not disable simulcast');
+} // rest
 
 </script>

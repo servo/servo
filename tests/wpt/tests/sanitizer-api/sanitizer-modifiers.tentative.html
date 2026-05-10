@@ -552,6 +552,14 @@ test(() => {
     elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 }, "sanitizer.allowElement() with global elements and removeAttributes");
+
+test(() => {
+  for (let element of NON_REPLACEABLE_ELEMENTS) {
+    let s = new Sanitizer();
+    assert_false(s.replaceElementWithChildren(element));
+    assert_config(s.get(), { replaceWithChildrenElements: undefined });
+  }
+}, "sanitizer.replaceElementWithChildren() does not allow non-replaceable elements.");
 </script>
 </body>
 </html>

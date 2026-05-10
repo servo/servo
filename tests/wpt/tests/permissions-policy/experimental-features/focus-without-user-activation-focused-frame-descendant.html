@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<title>focus-without-user-activation: focused frame can manage focus internally</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./resources/common.js"></script>
+  <input id="top-input" />
+
+  <script>
+    "use strict";
+
+    const helper_url = "/permissions-policy/experimental-features/resources/" +
+      "focus-without-user-activation-focused-frame-helper.html";
+    const delegation_helper_url = "/permissions-policy/experimental-features/" +
+      "resources/focus-without-user-activation-focused-frame-delegation-helper.html";
+
+    // Creates a delegation helper iframe (B hosting inner iframe C) and
+    // waits for both to be ready.
+    async function createDelegationIframe(t) {
+      const iframe = createIframe(document.body, {
+        src: delegation_helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      const ready = new Promise(resolve => {
+        function handler(e) {
+          if (e.source === iframe.contentWindow &&
+              e.data && e.data.action === "ready") {
+            window.removeEventListener("message", handler);
+            resolve();
+          }
+        }
+        window.addEventListener("message", handler);
+      });
+      await wait_for_load(iframe);
+      await ready;
+      t.add_cleanup(() => iframe.remove());
+      return iframe;
+    }
+
+    // Test 1: Iframe with focus can focus its own elements and move
+    // focus between them.
+    promise_test(async (t) => {
+      const iframe = createIframe(document.body, {
+        src: helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      await wait_for_load(iframe);
+      t.add_cleanup(() => iframe.remove());
+
+      iframe.focus();
+
+      const r1 = await sendAndReceive(iframe, {action: "focus-input1"});
+      assert_true(r1.focused,
+        "Frame with focus should be able to focus its own elements");
+
+      // Move focus from input1 to input2 within the same frame.
+      const r2 = await sendAndReceive(iframe, {action: "focus-input2"});
+      assert_true(r2.focused,
+        "Frame with focus should be able to move focus between its elements");
+    }, "Iframe with policy denied and focus can focus and move focus " +
+       "between its own elements");
+
+    // Test 2: Iframe without focus cannot steal focus from the parent.
+    promise_test(async (t) => {
+      const topInput = document.getElementById("top-input");
+      const iframe = createIframe(document.body, {
+        src: helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      await wait_for_load(iframe);
+      t.add_cleanup(() => iframe.remove());
+
+      topInput.focus();
+      assert_equals(document.activeElement, topInput,
+        "Top frame input should have focus");
+
+      const result = await sendAndReceive(iframe, {action: "focus-input1"});
+      assert_false(result.focused,
+        "Frame without focus should not be able to steal focus from parent");
+      assert_equals(document.activeElement, topInput,
+        "Top frame input should still have focus");
+    }, "Iframe with policy denied and without focus cannot steal focus " +
+       "from parent frame");
+
+    // -- Delegation tests (nested iframes: A -> B -> C) --
+
+    // Test 3: B has focus -> B delegates focus to child iframe C via both
+    // iframeC.focus() (element path) and iframeC.contentWindow.focus()
+    // (window path).
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+      iframe.focus();
+
+      // Delegate via element.focus().
+      const r1 = await sendAndReceive(iframe, {
+        action: "delegate-focus-to-child"
+      });
+      assert_true(r1.iframeFocused,
+        "B should be able to delegate focus to child C via element.focus()");
+
+      // Reset: give B focus again.
+      iframe.focus();
+
+      // Delegate via contentWindow.focus().
+      const r2 = await sendAndReceive(iframe, {
+        action: "delegate-focus-to-child-via-window"
+      });
+      assert_true(r2.childHasFocus,
+        "B should be able to delegate focus to child C via " +
+        "contentWindow.focus()");
+    }, "Iframe with policy denied and focus can delegate focus to child " +
+       "iframe via element.focus() and contentWindow.focus()");
+
+    // Test 4: C has focus (via delegation) -> B takes focus back.
+    // Allowed because C is a descendant of B.
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+      iframe.focus();
+
+      // Delegate focus to C first.
+      await sendAndReceive(iframe, {action: "delegate-focus-to-child"});
+
+      // Now C has focus. B takes focus back to its own input.
+      const result = await sendAndReceive(iframe, {
+        action: "focus-input"
+      });
+      assert_true(result.focused,
+        "B should be able to take focus back from child C " +
+        "(C is a descendant of B)");
+    }, "Iframe with policy denied can take focus back from child iframe " +
+       "that has focus");
+
+    // -- Sibling frame tests (A -> B + C) --
+
+    // Test 5: B has focus -> sibling C tries to steal focus via both
+    // element.focus() and window.focus() -> BLOCKED.
+    promise_test(async (t) => {
+      const iframeB = createIframe(document.body, {
+        src: helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      const iframeC = createIframe(document.body, {
+        src: helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      await Promise.all([wait_for_load(iframeB), wait_for_load(iframeC)]);
+      t.add_cleanup(() => { iframeB.remove(); iframeC.remove(); });
+
+      iframeB.focus();
+
+      // Sibling C tries element.focus() -- should fail.
+      const r1 = await sendAndReceive(iframeC, {action: "focus-input1"});
+      assert_false(r1.focused,
+        "Sibling frame C should not steal focus from B via element.focus()");
+
+      // Sibling C tries window.focus() -- should also fail.
+      const r2 = await sendAndReceive(iframeC, {action: "focus-window"});
+      assert_false(r2.focused,
+        "Sibling frame C should not steal focus from B via window.focus()");
+    }, "Sibling iframe with policy denied cannot steal focus from " +
+       "focused sibling");
+
+    // -- Nested steal test (A -> B -> C) --
+
+    // Test 6: B has focus -> child C tries element.focus() -> BLOCKED.
+    // Even though C is a child of B, C doesn't have focus -- B does.
+    // The focused frame (B) is not a descendant of C, so C is blocked.
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+
+      // Focus B, then focus B's own input.
+      iframe.focus();
+      await sendAndReceive(iframe, {action: "focus-input"});
+
+      // Ask C (through B) to try focusing its own input -- should be blocked.
+      const result = await sendAndReceive(iframe, {
+        action: "child-steal-focus"
+      });
+      assert_false(result.childStoleFocus,
+        "Child C should not steal focus from parent B");
+    }, "Nested child iframe with policy denied cannot steal focus from " +
+       "parent iframe that has focus");
+
+    // -- Cross-document element.focus() test (A -> B -> C, same-origin) --
+
+    // Test 7: B has focus -> B calls
+    // iframeC.contentDocument.getElementById('input1').focus() -> ALLOWED.
+    // The element is in C's DOM, but the script calling focus() runs in B.
+    // The policy check should use B (the caller) as the focus setter, not C
+    // (the element's owner).
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+      iframe.focus();
+
+      const result = await sendAndReceive(iframe, {
+        action: "focus-child-element-via-contentdocument"
+      });
+      assert_true(result.childElementFocused,
+        "B should be able to focus an element in C's DOM via " +
+        "contentDocument when B has focus");
+    }, "Iframe with policy denied and focus can focus child element via " +
+       "contentDocument.getElementById().focus()");
+  </script>
+</body>

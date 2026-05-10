@@ -11,8 +11,9 @@ from .. import (
     RESPONSE_STARTED_EVENT,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "phases, intercepted_phase",
     [
@@ -93,7 +94,6 @@ async def test_request_response_phases(
     assert len(response_completed_events) == 0
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_not_listening_to_phase_event(
     url,

@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 
 def test_pageLoadStrategy(new_session, add_browser_capabilities):
     response, _ = new_session({"capabilities": {

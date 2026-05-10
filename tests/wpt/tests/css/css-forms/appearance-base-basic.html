@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:emilio@mozilla.com">
+<link rel=help href="https://drafts.csswg.org/css-forms-1/#basic-appearance-stylesheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  color: rgb(0, 128, 0);
+  font-size: 20px;
+  font-family: monospace;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.base {
+  appearance: base;
+}
+</style>
+
+<input class=base id=input-text value="text">
+<input class=base id=input-search type=search value="search">
+<input class=base id=input-number type=number value="42">
+<input class=base id=input-button type=button value="button">
+<input class=base id=input-reset type=reset value="reset">
+<button class=base id=button>button</button>
+<select class=base id=select><option>option</option></select>
+<textarea class=base id=textarea>textarea</textarea>
+<meter class=base id=meter value=0.5></meter>
+<progress class=base id=progress value=0.5></progress>
+<script>
+const elements = [
+  "input-text",
+  "input-search",
+  "input-number",
+  "input-button",
+  "input-reset",
+  "button",
+  "select",
+  "textarea",
+  "meter",
+  "progress",
+];
+
+const bodyStyle = getComputedStyle(document.body);
+for (const id of elements) {
+  test(() => {
+    const el = document.getElementById(id);
+    const style = getComputedStyle(el);
+    assert_equals(style.color, bodyStyle.color, "color should inherit");
+    assert_equals(style.fontSize, bodyStyle.fontSize, "font-size should inherit");
+    assert_equals(style.fontFamily, bodyStyle.fontFamily, "font-family should inherit");
+    assert_equals(style.fontWeight, bodyStyle.fontWeight, "font-weight should inherit");
+    assert_equals(style.fontStyle, bodyStyle.fontStyle, "font-style should inherit");
+    assert_equals(style.boxSizing, "border-box", "box-sizing should be border-box");
+    assert_equals(style.backgroundColor, "rgba(0, 0, 0, 0)", "background-color should be transparent");
+  }, `Basic appearance stylesheet properties for ${id}`);
+}
+</script>

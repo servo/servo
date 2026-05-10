@@ -2,16 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use base::Epoch;
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use base::id::{PainterId, PipelineId, WebViewId};
-use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -34,7 +29,12 @@ use paint_api::{
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use servo_config::{opts, pref};
+use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
@@ -47,10 +47,10 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
-    DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
-    FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey, NativeFontHandle,
-    PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
-    SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
+    DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags,
+    FontInstanceKey, FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey,
+    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -60,6 +60,7 @@ use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
+use crate::web_content_animation::WebContentAnimator;
 use crate::webrender_external_images::WebGLExternalImages;
 use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
 
@@ -127,6 +128,10 @@ pub(crate) struct Painter {
     /// A cache that stores data for all animating images uploaded to WebRender. This is used
     /// for animated images, which only need to update their offset in the data.
     animation_image_cache: FxHashMap<ImageKey, Arc<Vec<u8>>>,
+
+    /// A [`WebContentAnimator`] used to manage web content-derived animations. Currently this only
+    /// manages blinking caret animations.
+    web_content_animator: WebContentAnimator,
 }
 
 impl Drop for Painter {
@@ -175,9 +180,11 @@ impl Painter {
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
         let embedder_to_constellation_sender = paint.embedder_to_constellation_sender.clone();
+        let timer_refresh_driver = LazyCell::default();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
             paint.event_loop_waker.clone_box(),
             rendering_context.refresh_driver(),
+            &timer_refresh_driver,
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
             embedder_to_constellation_sender.clone(),
@@ -201,8 +208,8 @@ impl Painter {
         };
         let worker_threads = std::thread::available_parallelism()
             .map(|i| i.get())
-            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_webrender_workers_max).max(1) as usize);
+            .unwrap_or(pref!(thread_pool_fallback_workers) as usize)
+            .min(pref!(thread_pool_webrender_workers_max).max(1) as usize);
         let workers = Some(Arc::new(
             rayon::ThreadPoolBuilder::new()
                 .num_threads(worker_threads)
@@ -231,6 +238,7 @@ impl Painter {
                 enable_aa: pref!(gfx_text_antialiasing_enabled),
                 enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled),
                 allow_texture_swizzling: pref!(gfx_texture_swizzling_enabled),
+                enable_dithering: true,
                 clear_color,
                 upload_method,
                 workers,
@@ -272,6 +280,10 @@ impl Painter {
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
             animation_image_cache: FxHashMap::default(),
+            web_content_animator: WebContentAnimator::new(
+                paint.event_loop_waker.clone_box(),
+                (*timer_refresh_driver).clone(),
+            ),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -297,6 +309,18 @@ impl Painter {
             .collect();
 
         self.send_zoom_and_scroll_offset_updates(need_zoom, scroll_offset_updates);
+
+        if let Some(colors) = self.web_content_animator.update(&self.webview_renderers) {
+            let mut transaction = Transaction::new();
+            transaction.reset_dynamic_properties();
+            transaction.append_dynamic_properties(DynamicProperties {
+                transforms: Vec::new(),
+                floats: Vec::new(),
+                colors,
+            });
+            self.generate_frame(&mut transaction, RenderReasons::ANIMATED_PROPERTY);
+            self.send_transaction(transaction);
+        }
     }
 
     #[track_caller]
@@ -508,7 +532,6 @@ impl Painter {
                                 servo_profiling = true,
                                 paint_time = ?paint_time,
                                 area = ?lcp.area,
-                                lcp_type = ?lcp.lcp_type,
                                 pipeline_id = ?pipeline_id,
                             );
                             self.send_to_constellation(
@@ -517,7 +540,7 @@ impl Painter {
                                     PaintMetricEvent::LargestContentfulPaint(
                                         lcp.paint_time,
                                         lcp.area,
-                                        lcp.lcp_type,
+                                        lcp.url.clone(),
                                     ),
                                 ),
                             );
@@ -821,7 +844,7 @@ impl Painter {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
         self.lcp_calculator
-            .remove_lcp_candidates_for_pipeline(pipeline_id.into());
+            .remove_lcp_candidates_for_pipeline(&pipeline_id.into());
     }
 
     pub(crate) fn send_initial_pipeline_transaction(
@@ -943,7 +966,7 @@ impl Painter {
             },
             display_list_descriptor,
         );
-        let _span = profile_traits::trace_span!("PaintMessage::SendDisplayList",).entered();
+        let _span = profile_traits::trace_span!("PaintMessage::SendDisplayList").entered();
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };
@@ -957,19 +980,27 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric.get() == PaintMetricState::Waiting {
+        if details.first_paint_metric.get() == PaintMetricState::Waiting &&
+            display_list_info.is_paintable
+        {
             details
                 .first_paint_metric
                 .set(PaintMetricState::Seen(epoch, first_reflow));
         }
 
         if details.first_contentful_paint_metric.get() == PaintMetricState::Waiting &&
+            display_list_info.is_paintable &&
             display_list_info.is_contentful
         {
             details
                 .first_contentful_paint_metric
                 .set(PaintMetricState::Seen(epoch, first_reflow));
         }
+
+        details.animations.handle_new_display_list(
+            display_list_info.caret_property_binding,
+            &self.web_content_animator,
+        );
 
         let mut transaction = Transaction::new();
         let is_root_pipeline = Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
@@ -1015,7 +1046,7 @@ impl Painter {
     ) -> ImageData {
         match data {
             SerializableImageData::Raw(shared_memory) => {
-                let data = Arc::new(shared_memory.to_vec());
+                let data = shared_memory.into_arc_vec();
                 if is_animated_image {
                     self.animation_image_cache.insert(key, Arc::clone(&data));
                 }
@@ -1199,7 +1230,7 @@ impl Painter {
         };
 
         self.send_root_pipeline_display_list();
-        self.lcp_calculator.note_webview_removed(webview_id);
+        self.lcp_calculator.enable_for_webview(&webview_id);
     }
 
     pub(crate) fn is_empty(&mut self) -> bool {
@@ -1272,30 +1303,38 @@ impl Painter {
         self.webview_renderers
             .get(&webview_id)
             .map(|webview_renderer| webview_renderer.page_zoom.get())
-            .unwrap_or_default()
+            .unwrap_or(1.)
     }
 
-    pub(crate) fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            match &event.event {
-                InputEvent::MouseMove(event) => {
-                    // We only track the last mouse move position for non-touch events.
-                    if !event.is_compatibility_event_for_touch {
-                        let event_point = event
-                            .point
-                            .as_device_point(webview_renderer.device_pixels_per_page_pixel());
-                        self.last_mouse_move_position = Some(event_point);
-                    }
-                },
-                InputEvent::MouseLeftViewport(_) => {
-                    self.last_mouse_move_position = None;
-                },
-                _ => {},
-            }
+    pub(crate) fn notify_input_event(
+        &mut self,
+        webview_id: WebViewId,
+        event: InputEventAndId,
+    ) -> bool {
+        self.webview_renderers
+            .get_mut(&webview_id)
+            .is_some_and(|webview_renderer| {
+                match &event.event {
+                    InputEvent::MouseMove(event) => {
+                        // We only track the last mouse move position for non-touch events.
+                        if !event.is_compatibility_event_for_touch {
+                            let event_point = event
+                                .point
+                                .as_device_point(webview_renderer.device_pixels_per_page_pixel());
+                            self.last_mouse_move_position = Some(event_point);
+                        }
+                    },
+                    InputEvent::MouseLeftViewport(_) => {
+                        self.last_mouse_move_position = None;
+                    },
+                    _ => {
+                        // Disable LCP calculation on any other input event except mouse moves.
+                        self.lcp_calculator.disable_for_webview(webview_id);
+                    },
+                }
 
-            webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event);
-        }
-        self.disable_lcp_calculation_for_webview(webview_id);
+                webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event)
+            })
     }
 
     pub(crate) fn notify_scroll_event(
@@ -1307,10 +1346,19 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
-        self.disable_lcp_calculation_for_webview(webview_id);
+        // Disable LCP calculation on any scroll event.
+        self.lcp_calculator.disable_for_webview(webview_id);
     }
 
-    pub(crate) fn pinch_zoom(
+    pub(crate) fn enable_lcp_calculation(&mut self, webview_id: &WebViewId) {
+        self.lcp_calculator.enable_for_webview(webview_id);
+    }
+
+    pub(crate) fn lcp_calculation_enabled_for_webview(&self, webview_id: &WebViewId) -> bool {
+        self.lcp_calculator.enabled_for_webview(webview_id)
+    }
+
+    pub(crate) fn adjust_pinch_zoom(
         &mut self,
         webview_id: WebViewId,
         pinch_zoom_delta: f32,
@@ -1319,6 +1367,13 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.adjust_pinch_zoom(pinch_zoom_delta, center);
         }
+    }
+
+    pub(crate) fn pinch_zoom(&self, webview_id: WebViewId) -> f32 {
+        self.webview_renderers
+            .get(&webview_id)
+            .map(|webview_renderer| webview_renderer.pinch_zoom().zoom_factor().0)
+            .unwrap_or(1.)
     }
 
     pub(crate) fn device_pixels_per_page_pixel(
@@ -1435,10 +1490,12 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        if self
-            .lcp_calculator
-            .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
-        {
+        if self.lcp_calculation_enabled_for_webview(&webview_id) {
+            self.lcp_calculator.append_lcp_candidate(
+                lcp_candidate,
+                pipeline_id.into(),
+                &webview_id,
+            );
             if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
                 webview_renderer
                     .ensure_pipeline_details(pipeline_id)
@@ -1446,11 +1503,6 @@ impl Painter {
                     .set(PaintMetricState::Seen(epoch.into(), false));
             }
         };
-    }
-
-    /// Disable LCP feature when the user interacts with the page.
-    fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
-        self.lcp_calculator.disable_for_webview(webview_id);
     }
 }
 

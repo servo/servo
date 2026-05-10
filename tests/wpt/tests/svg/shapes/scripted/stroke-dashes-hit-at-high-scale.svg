@@ -3,8 +3,8 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#CircleElement"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeProperties"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#CircleElement"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperties"/>
   </metadata>
   <circle id="circle" cx="6" cy="10" r="5" stroke="blue" stroke-width="1" stroke-dasharray="10 21.4159" fill="none"/>
   <script>

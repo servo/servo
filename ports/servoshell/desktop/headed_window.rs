@@ -18,9 +18,9 @@ use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, EmbedderControl,
-    EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventResult,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
+    DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
+    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
     OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
@@ -97,13 +97,15 @@ pub struct HeadedWindow {
     last_title: RefCell<String>,
     /// The current set of open dialogs.
     dialogs: RefCell<HashMap<WebViewId, Vec<Dialog>>>,
-    /// A list of showing [`InputMethod`] interfaces.
-    visible_input_methods: RefCell<Vec<EmbedderControlId>>,
+    /// The [`EmbedderControlId`] of the currently showing [`InputMethod`] interfaces,
+    /// if one is showing.
+    visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
 }
 
 impl HeadedWindow {
+    #[servo::servo_tracing::instrument(level = "debug", name = "HeadedWindow::new", skip_all)]
     pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
@@ -211,7 +213,7 @@ impl HeadedWindow {
             rendering_context,
             last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
             dialogs: Default::default(),
-            visible_input_methods: Default::default(),
+            visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
         })
     }
@@ -228,7 +230,7 @@ impl HeadedWindow {
     ) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let keyboard_event = keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(state.clone(), window, &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state, window, &keyboard_event) {
             return;
         }
 
@@ -338,7 +340,6 @@ impl HeadedWindow {
 
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
@@ -464,7 +465,9 @@ impl HeadedWindow {
         }
     }
 
-    fn show_ime(&self, input_method: InputMethodControl) {
+    fn show_ime(&self, control_id: EmbedderControlId, input_method: InputMethodControl) {
+        self.visible_input_method.set(Some(control_id));
+
         let position = input_method.position();
         self.winit_window.set_ime_allowed(true);
         self.winit_window.set_ime_cursor_area(
@@ -572,7 +575,6 @@ impl HeadedWindow {
         // Handle the event
         let mut consumed = false;
         match event {
-            WindowEvent::Focused(true) => state.handle_focused(window.clone()),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                 // we can use our own logic for calculating the scale factor and set egui’s
@@ -632,6 +634,10 @@ impl HeadedWindow {
                     self.rebuild_user_interface(&state, &window);
                 }
 
+                if let WindowEvent::Focused(true) = event {
+                    state.handle_focused(window.clone());
+                }
+
                 if response.repaint && *event != WindowEvent::RedrawRequested {
                     self.winit_window.request_redraw();
                 }
@@ -644,20 +650,20 @@ impl HeadedWindow {
 
         if !consumed {
             // Make sure to handle early resize events even when there are no webviews yet
-            if let WindowEvent::Resized(new_inner_size) = event {
-                if self.inner_size.get() != new_inner_size {
-                    self.inner_size.set(new_inner_size);
-                    // This should always be set to inner size
-                    // because we are resizing `SurfmanRenderingContext`.
-                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
-                    self.window_rendering_context.resize(new_inner_size);
-                }
+            if let WindowEvent::Resized(new_inner_size) = event &&
+                self.inner_size.get() != new_inner_size
+            {
+                self.inner_size.set(new_inner_size);
+                // This should always be set to inner size
+                // because we are resizing `SurfmanRenderingContext`.
+                // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                self.window_rendering_context.resize(new_inner_size);
             }
 
             if let Some(webview) = window.active_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state.clone(), &window, event)
+                        self.handle_keyboard_input(state, &window, event)
                     },
                     WindowEvent::ModifiersChanged(modifiers) => {
                         self.modifiers_state.set(modifiers.state())
@@ -710,7 +716,7 @@ impl HeadedWindow {
                         )));
                     },
                     WindowEvent::PinchGesture { delta, .. } => {
-                        webview.pinch_zoom(
+                        webview.adjust_pinch_zoom(
                             delta as f32 + 1.0,
                             self.webview_relative_mouse_point.get(),
                         );
@@ -750,7 +756,18 @@ impl HeadedWindow {
                             )));
                         },
                         Ime::Disabled => {
-                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                            // There are two reasons we receive this message from winit:
+                            //
+                            // 1. The user dismissed the IME. In that case we want to inform Servo
+                            //    so it can unfocus the current editable element.
+                            // 2. Servo changed focus and requested that we dismiss the IME, which
+                            //    in turn triggers this message. We know this is the case when we don't
+                            //    expect any IME to be open and shouldn't send any more messages to
+                            //    Servo as it might cause unexpected blurring of the newly focused
+                            //    element.
+                            if self.visible_input_method.take().is_some() {
+                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                            }
                         },
                     },
                     _ => {},
@@ -759,9 +776,21 @@ impl HeadedWindow {
         }
     }
 
-    pub(crate) fn handle_winit_app_event(&self, _window: &ServoShellWindow, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
-            // TODO(#41930): Forward accesskit_winit::WindowEvent events to Servo where appropriate
+            match &event.window_event {
+                egui_winit::accesskit_winit::WindowEvent::InitialTreeRequested => {
+                    state.set_accessibility_active(true);
+                },
+                egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
+                    if req.target_tree != accesskit::TreeId::ROOT {
+                        // TODO(#4344): Forward action to Servo
+                    }
+                },
+                egui_winit::accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+                    state.set_accessibility_active(false);
+                },
+            }
 
             if self
                 .gui
@@ -822,7 +851,6 @@ impl PlatformWindow for HeadedWindow {
                 webview
                     .page_title()
                     .filter(|title| !title.is_empty())
-                    .map(|title| title.to_string())
                     .or_else(|| webview.url().map(|url| url.to_string()))
             })
             .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
@@ -1035,6 +1063,10 @@ impl PlatformWindow for HeadedWindow {
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.set_page_zoom(1.0);
+            })
+            .shortcut(CMD_OR_CONTROL, 'R', || webview.reload())
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
+                webview.reload()
             });
     }
 
@@ -1068,8 +1100,7 @@ impl PlatformWindow for HeadedWindow {
                 );
             },
             EmbedderControl::InputMethod(input_method_control) => {
-                self.visible_input_methods.borrow_mut().push(control_id);
-                self.show_ime(input_method_control);
+                self.show_ime(control_id, input_method_control);
             },
             EmbedderControl::FilePicker(file_picker) => {
                 self.add_dialog(webview_id, Dialog::new_file_dialog(file_picker));
@@ -1085,15 +1116,10 @@ impl PlatformWindow for HeadedWindow {
     }
 
     fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
-        {
-            let mut visible_input_methods = self.visible_input_methods.borrow_mut();
-            if let Some(index) = visible_input_methods
-                .iter()
-                .position(|visible_id| *visible_id == embedder_control_id)
-            {
-                visible_input_methods.remove(index);
-                self.winit_window.set_ime_allowed(false);
-            }
+        if self.visible_input_method.get() == Some(embedder_control_id) {
+            self.visible_input_method.set(None);
+            self.winit_window.set_ime_allowed(false);
+            return;
         }
         self.remove_dialog(webview_id, embedder_control_id);
     }
@@ -1101,13 +1127,9 @@ impl PlatformWindow for HeadedWindow {
     fn show_bluetooth_device_dialog(
         &self,
         webview_id: WebViewId,
-        devices: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        request: BluetoothDeviceSelectionRequest,
     ) {
-        self.add_dialog(
-            webview_id,
-            Dialog::new_device_selection_dialog(devices, response_sender),
-        );
+        self.add_dialog(webview_id, Dialog::new_device_selection_dialog(request));
     }
 
     fn show_permission_dialog(&self, webview_id: WebViewId, permission_request: PermissionRequest) {

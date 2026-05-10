@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.support.asserts import assert_success, assert_error
+from tests.support.classic.asserts import assert_success, assert_error
 
 MAX_SAFE_INTEGER = 2**53 - 1
 

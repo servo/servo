@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+    <head>
+        <title>Rendering of dynamically modified CDATA section</title>
+        <script src="/common/reftest-wait.js"></script>
+        <link rel="stylesheet" href="/fonts/ahem.css" />
+        <link rel="author" title="Martin Robinson" href="mailto:martin@abandonedwig.info" />
+        <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht" />
+        <meta name="assert" content="CDATA content should be rendered properly when dynamically modified" />
+
+        <style>
+            #container {
+                font: 100px/1 Ahem;
+                width: 100px;
+                height: 100px;
+                color: green;
+                background: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+        <div id="container"></div>
+        <script>
+            const container = document.getElementById("container");
+            container.appendChild(document.createCDATASection(""));
+            document.fonts.ready.then(() => {
+                container.childNodes[0].data = "X";
+                takeScreenshot();
+            });
+        </script>
+    </body>
+</html>

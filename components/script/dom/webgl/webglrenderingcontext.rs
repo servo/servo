@@ -10,16 +10,7 @@ use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
-use base::generic_channel::GenericSharedMemory;
-use base::{Epoch, generic_channel};
 use bitflags::bitflags;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
-    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
-    WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLVersion, YAxisTreatment, webgl_channel,
-};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSContext, JSObject, Type};
@@ -30,13 +21,23 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
+use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::{Epoch, generic_channel};
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{
+    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
+    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
+};
 use servo_config::pref;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
-use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -53,7 +54,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -183,9 +184,9 @@ impl Drop for DroppableWebGLRenderingContext {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLRenderingContext {
-    reflector_: Reflector,
+    reflector_: Reflector<AssociatedMemory>,
     #[no_trace]
     webgl_version: WebGLVersion,
     #[no_trace]
@@ -194,7 +195,7 @@ pub(crate) struct WebGLRenderingContext {
     #[no_trace]
     limits: GLLimits,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    #[ignore_malloc_size_of = "Defined in canvas_traits"]
+    #[ignore_malloc_size_of = "Defined in servo_canvas_traits"]
     #[no_trace]
     last_error: Cell<Option<WebGLError>>,
     texture_packing_alignment: Cell<u8>,
@@ -386,8 +387,9 @@ impl WebGLRenderingContext {
     pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
-                self.default_vao
-                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None, CanGc::note())),
+                self.default_vao.init_once(|| {
+                    WebGLVertexArrayObjectOES::new(self, None, CanGc::deprecated_note())
+                }),
             )
         })
     }
@@ -395,8 +397,9 @@ impl WebGLRenderingContext {
     pub(crate) fn current_vao_webgl2(&self) -> DomRoot<WebGLVertexArrayObject> {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
-                self.default_vao_webgl2
-                    .init_once(|| WebGLVertexArrayObject::new(self, None, CanGc::note())),
+                self.default_vao_webgl2.init_once(|| {
+                    WebGLVertexArrayObject::new(self, None, CanGc::deprecated_note())
+                }),
             )
         })
     }
@@ -718,7 +721,7 @@ impl WebGLRenderingContext {
                         return Ok(None);
                     },
                 };
-                if !image.same_origin(document.origin()) {
+                if !image.same_origin(&document.origin()) {
                     return Err(Error::Security(None));
                 }
 
@@ -963,7 +966,7 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.1.6
+        // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#5.1.6
         if self.webgl_version() == WebGLVersion::WebGL1 &&
             data_type != image_info.data_type().unwrap()
         {
@@ -1203,7 +1206,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::note()))
+            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::deprecated_note()))
     }
 
     pub(crate) fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
@@ -1212,7 +1215,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::note()))
+            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::deprecated_note()))
     }
 
     pub(crate) fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
@@ -2007,6 +2010,8 @@ impl CanvasContext for WebGLRenderingContext {
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
+        self.reflector_
+            .update_memory_size(self, size.cast::<usize>().area() * 4);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
@@ -2186,30 +2191,32 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             constants::ARRAY_BUFFER_BINDING => {
                 self.bound_buffer_array
                     .get()
-                    .safe_to_jsval(cx, retval, CanGc::note());
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::CURRENT_PROGRAM => {
                 self.current_program
                     .get()
-                    .safe_to_jsval(cx, retval, CanGc::note());
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.safe_to_jsval(cx, retval, CanGc::note());
+                buffer.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::FRAMEBUFFER_BINDING => {
-                self.bound_draw_framebuffer
-                    .get()
-                    .safe_to_jsval(cx, retval, CanGc::note());
+                self.bound_draw_framebuffer.get().safe_to_jsval(
+                    cx,
+                    retval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::RENDERBUFFER_BINDING => {
                 self.bound_renderbuffer
                     .get()
-                    .safe_to_jsval(cx, retval, CanGc::note());
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::TEXTURE_BINDING_2D => {
@@ -2218,7 +2225,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval, CanGc::note());
+                texture.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
@@ -2230,7 +2237,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval, CanGc::note());
+                texture.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
@@ -2242,7 +2249,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval, CanGc::note());
+                texture.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::TEXTURE_BINDING_CUBE_MAP => {
@@ -2251,12 +2258,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval, CanGc::note());
+                texture.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => {
                 let vao = self.current_vao.get().filter(|vao| vao.id().is_some());
-                vao.safe_to_jsval(cx, retval, CanGc::note());
+                vao.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             // In readPixels we currently support RGBA/UBYTE only.  If
@@ -2287,15 +2294,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 return retval.set(ObjectValue(rval.get()));
             },
             constants::VERSION => {
-                "WebGL 1.0".safe_to_jsval(cx, retval, CanGc::note());
+                "WebGL 1.0".safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::RENDERER | constants::VENDOR => {
-                "Mozilla/Servo".safe_to_jsval(cx, retval, CanGc::note());
+                "Mozilla/Servo".safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::SHADING_LANGUAGE_VERSION => {
-                "WebGL GLSL ES 1.0".safe_to_jsval(cx, retval, CanGc::note());
+                "WebGL GLSL ES 1.0".safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
             constants::UNPACK_FLIP_Y_WEBGL => {
@@ -2379,7 +2386,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 receiver
                     .recv()
                     .unwrap()
-                    .safe_to_jsval(cx, retval, CanGc::note());
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note());
             },
             Parameter::Int(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -2913,6 +2920,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         );
 
         self.send_command(msg);
+
+        if let Some(framebuffer) = self.bound_draw_framebuffer.get() {
+            framebuffer.invalidate_texture(&texture);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
@@ -3098,12 +3109,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self, CanGc::note())
+        WebGLBuffer::maybe_new(self, CanGc::deprecated_note())
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self, CanGc::note())
+        WebGLFramebuffer::maybe_new(self, CanGc::deprecated_note())
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
@@ -3118,7 +3129,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        WebGLProgram::maybe_new(self, CanGc::note())
+        WebGLProgram::maybe_new(self, CanGc::deprecated_note())
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
@@ -3292,7 +3303,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        match program.get_active_uniform(index, CanGc::note()) {
+        match program.get_active_uniform(index, CanGc::deprecated_note()) {
             Ok(ret) => Some(ret),
             Err(e) => {
                 self.webgl_error(e);
@@ -3310,7 +3321,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(
             self,
-            program.get_active_attrib(index, CanGc::note()).map(Some),
+            program
+                .get_active_attrib(index, CanGc::deprecated_note())
+                .map(Some),
             None
         )
     }
@@ -3418,11 +3431,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             if let Some(webgl_attachment) = fb.attachment(attachment) {
                 match webgl_attachment {
                     WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
-                        rb.safe_to_jsval(cx, retval, CanGc::note());
+                        rb.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                         return;
                     },
                     WebGLFramebufferAttachmentRoot::Texture(texture) => {
-                        texture.safe_to_jsval(cx, retval, CanGc::note());
+                        texture.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                         return;
                     },
                 }
@@ -3619,7 +3632,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             range_min,
             range_max,
             precision,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -3632,7 +3645,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(
             self,
-            program.get_uniform_location(name, CanGc::note()),
+            program.get_uniform_location(name, CanGc::deprecated_note()),
             None
         )
     }
@@ -3707,7 +3720,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
                     if let Some(buffer) = data.buffer() {
-                        buffer.safe_to_jsval(cx, retval.reborrow(), CanGc::note());
+                        buffer.safe_to_jsval(cx, retval.reborrow(), CanGc::deprecated_note());
                     } else {
                         retval.set(NullValue());
                     }
@@ -4331,11 +4344,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 WebGLCommand::GetUniformBool,
             ))),
             constants::BOOL_VEC2 => uniform_get(triple, WebGLCommand::GetUniformBool2)
-                .safe_to_jsval(cx, rval, CanGc::note()),
+                .safe_to_jsval(cx, rval, CanGc::deprecated_note()),
             constants::BOOL_VEC3 => uniform_get(triple, WebGLCommand::GetUniformBool3)
-                .safe_to_jsval(cx, rval, CanGc::note()),
+                .safe_to_jsval(cx, rval, CanGc::deprecated_note()),
             constants::BOOL_VEC4 => uniform_get(triple, WebGLCommand::GetUniformBool4)
-                .safe_to_jsval(cx, rval, CanGc::note()),
+                .safe_to_jsval(cx, rval, CanGc::deprecated_note()),
             constants::INT |
             constants::SAMPLER_2D |
             constants::SAMPLER_CUBE |
@@ -5089,12 +5102,12 @@ impl Textures {
     }
 
     fn set_active_unit_enum(&self, index: u32) -> WebGLResult<()> {
-        if index < constants::TEXTURE0 || (index - constants::TEXTURE0) as usize > self.units.len()
-        {
-            return Err(InvalidEnum);
+        if (constants::TEXTURE0..constants::TEXTURE0 + self.units.len() as u32).contains(&index) {
+            self.active_unit.set(index - constants::TEXTURE0);
+            Ok(())
+        } else {
+            Err(InvalidEnum)
         }
-        self.active_unit.set(index - constants::TEXTURE0);
-        Ok(())
     }
 
     pub(crate) fn active_texture_slot(
@@ -5240,22 +5253,6 @@ impl TexPixels {
 pub(crate) enum TexSource {
     Pixels(TexPixels),
     BufferOffset(i64),
-}
-
-#[derive(JSTraceable)]
-pub(crate) struct WebGLCommandSender {
-    #[no_trace]
-    sender: WebGLChan,
-}
-
-impl WebGLCommandSender {
-    pub(crate) fn new(sender: WebGLChan) -> WebGLCommandSender {
-        WebGLCommandSender { sender }
-    }
-
-    pub(crate) fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
-        self.sender.send(msg)
-    }
 }
 
 fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {

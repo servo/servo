@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>background-clip:text on inline elements (reference)</title>
+<style>
+body {
+  font-size: 40px;
+}
+.text-clip {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts below are purple. -->
+<div class="text-clip">&nbsp;Text1&nbsp;&nbsp;Text2&nbsp;</div>
+<div class="text-clip">&nbsp;Text3&nbsp;&nbsp;Text4&nbsp;</div>
+

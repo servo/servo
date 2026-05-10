@@ -4,34 +4,70 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-// https://webaudio.github.io/web-audio-api/#dom-pannernode-setposition
-// setPosition(x, y, z) "is equivalent to setting positionX.value,
-// positionY.value, and positionZ.value directly with the given x, y, and z
-// values, respectively."  setPosition() parameters are double, but the
-// AudioParam value setter has a float parameter, so out of range values
-// throw.
+// setPosition() parameters are float, so out of range values throw.
 const FLT_MAX = 3.40282e+38;
 let panner;
+let listener;
 setup(() => {
   const ctx = new OfflineAudioContext({length: 1, sampleRate: 24000});
+  listener = ctx.listener;
   panner = ctx.createPanner();
 });
 test(() => {
   assert_throws_js(TypeError, () => panner.setPosition(2 * FLT_MAX, 0, 0));
+  assert_equals(panner.positionX.value, 0,
+                'positionX should be unchanged');
 }, "setPosition x");
 test(() => {
   assert_throws_js(TypeError, () => panner.setPosition(0, -2 * FLT_MAX, 0));
+  assert_equals(panner.positionX.value, 0,
+                'positionX should be unchanged');
 }, "setPosition y");
 test(() => {
-  assert_throws_js(TypeError, () => panner.setPosition(0, 0, 2 * FLT_MAX));
+  assert_throws_js(TypeError, () => panner.setPosition(1, 0, 2 * FLT_MAX));
+  assert_equals(panner.positionX.value, 0,
+                'positionX should be unchanged');
 }, "setPosition z");
 test(() => {
   assert_throws_js(TypeError, () => panner.setOrientation(-2 * FLT_MAX, 0, 0));
+  assert_equals(panner.orientationX.value, 1,
+                'orientationX should be unchanged');
 }, "setOrientation x");
 test(() => {
   assert_throws_js(TypeError, () => panner.setOrientation(0, 2 * FLT_MAX, 0));
+  assert_equals(panner.orientationX.value, 1,
+                'orientationX should be unchanged');
 }, "setOrientation y");
 test(() => {
   assert_throws_js(TypeError, () => panner.setOrientation(0, 0, -2 * FLT_MAX));
+  assert_equals(panner.orientationX.value, 1,
+                'orientationX should be unchanged');
 }, "setOrientation z");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setPosition(2 * FLT_MAX, 0, 0));
+}, "listener.setPosition x");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setPosition(0, -2 * FLT_MAX, 0));
+}, "listener.setPosition y");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setPosition(0, 0, 2 * FLT_MAX));
+}, "listener.setPosition z");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(-2 * FLT_MAX, 0, 0, 0, 1, 0));
+}, "listener.setOrientation x");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(0, 2 * FLT_MAX, 0, 0, 1, 0));
+}, "listener.setOrientation y");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(0, 0, -2 * FLT_MAX, 0, 1, 0));
+}, "listener.setOrientation z");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(0, 0, -1, -2 * FLT_MAX, 0, 0));
+}, "listener.setOrientation xUp");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(0, 0, -1, 0, 2 * FLT_MAX, 0));
+}, "listener.setOrientation yUp");
+test(() => {
+  assert_throws_js(TypeError, () => listener.setOrientation(0, 0, -1, 0, 0, -2 * FLT_MAX));
+}, "listener.setOrientation zUp");
 </script>

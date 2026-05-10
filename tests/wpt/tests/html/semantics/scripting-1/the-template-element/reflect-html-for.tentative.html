@@ -1,0 +1,17 @@
+<!doctype html>
+<title>Test that htmlFor reflects the for attribute</title>
+<meta name=timeout content=long>
+<div id=log></div>
+
+<script src="/resources/testharness.js"></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/html/dom/original-harness.js></script>
+<script src=/html/dom/new-harness.js></script>
+<script>
+  mergeElements({
+    template: {
+      htmlFor: {type: "string", domAttrName: "for"},
+    }
+  });
+</script>
+<script src=/html/dom/reflection.js></script>

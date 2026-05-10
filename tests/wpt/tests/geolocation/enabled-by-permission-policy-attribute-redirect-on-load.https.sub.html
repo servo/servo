@@ -49,10 +49,10 @@
         feature_description: "Geolocation",
         test,
         src: cross_origin_src,
-        expect_feature_available: expect_feature_available_default,
+        expect_feature_available: expect_feature_unavailable_default,
         is_promise_test: true,
         feature_name: "geolocation",
       });
-    }, 'Permissions-Policy allow="geolocation" allows cross-origin redirection');
+    }, 'Permissions-Policy allow="geolocation" disallows cross-origin redirection');
   </script>
 </body>

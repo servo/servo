@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>SVG Filter: Web Plugin</title>
+<link rel="match" href="svg-filter-render-web-plugin-ref.tentative.html">
+<svg width="0" height="0">
+    <filter id="svg-filter">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+</svg>
+<style type="text/css">
+.svg-filter {
+    filter: url(#svg-filter);
+}
+</style>
+<script>
+    function waitForFinish() {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove('reftest-wait');
+            });
+        });
+    }
+</script>
+</head>
+<body onload="waitForFinish()">
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the web plugin.
+    </div>
+    <br />
+    <div>
+        <embed width="100px" height="100px" frameBorder="0" class="svg-filter" type="application/x-webkit-test-webplugin"></embed>
+    </div>
+</body>
+</html>

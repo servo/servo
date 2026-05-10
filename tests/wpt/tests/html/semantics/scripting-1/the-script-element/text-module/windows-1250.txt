@@ -1,0 +1,2 @@
+�湿�
+The line above are five Polish letters, similar to scazz. It can be read correctly only with windows1250 encoding.

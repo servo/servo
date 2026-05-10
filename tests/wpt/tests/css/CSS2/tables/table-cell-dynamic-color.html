@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: table cell with dynamically changing `color`</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#target {
+  display: table-cell;
+  font: 200px/1 Ahem;
+  color: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target">X</div>
+
+<script src="/common/reftest-wait.js"></script>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("target").style.color = "green";
+  takeScreenshot();
+}));
+</script>
+</html>

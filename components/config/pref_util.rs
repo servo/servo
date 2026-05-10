@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// The types of preference values in Servo.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PrefValue {
     Float(f64),
@@ -16,6 +17,8 @@ pub enum PrefValue {
 }
 
 impl PrefValue {
+    /// Parse the `input` string as a preference value. Defaults to a `PrefValue::Str` if the input
+    /// cannot be parsed as valid value of one of the other types.
     pub fn from_booleanish_str(input: &str) -> Self {
         match input {
             "false" => PrefValue::Bool(false),
@@ -95,9 +98,21 @@ impl_pref_from! {
 impl_from_pref! {
     PrefValue::Float => f64,
     PrefValue::Int => i64,
-    PrefValue::UInt => u64,
     PrefValue::Str => String,
     PrefValue::Bool => bool,
+}
+
+// The default generated from `impl_from_pref` would cause panic
+// when converting from PrefValue::Int.
+impl TryFrom<PrefValue> for u64 {
+    type Error = String;
+    fn try_from(other: PrefValue) -> Result<Self, Self::Error> {
+        match other {
+            PrefValue::UInt(value) => Ok(value),
+            PrefValue::Int(value) if value >= 0 => Ok(value as u64),
+            _ => Err(format!("Cannot convert {other:?} to u64")),
+        }
+    }
 }
 
 impl From<[f64; 4]> for PrefValue {

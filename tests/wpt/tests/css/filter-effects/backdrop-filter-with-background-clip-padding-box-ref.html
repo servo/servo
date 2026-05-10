@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: filter region with background-clip padding-box (reference)</title>
+
+<p>Expected: A box with a dashed black border (cyan in gaps) and a green
+interior.</p>
+<div class="backdrop">
+  <div class="content"></div>
+</div>
+
+<style>
+.backdrop {
+    /* Red inverted = cyan, visible through dashed border gaps */
+    background: cyan;
+    box-sizing: border-box;
+    width: 100px;
+    height: 100px;
+    border: 10px dashed;
+}
+.content {
+    /* Green background in the padding + content area */
+    background: lime;
+    width: 100%;
+    height: 100%;
+}
+</style>

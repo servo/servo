@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel=stylesheet href=resources/menu-elements-styles.css>
+
+<div class=menubar>
+  <button class=menuitem id=menuitem1 popovertarget=menulist1>open submenu</button>
+</div>
+
+<div popover class="menulist menulist-with-menubar-anchor" id=menulist1>
+  <button class="menuitem expand-icon" id=menuitem2>
+    open submenu
+    <span>::after</span>
+  </button>
+</div>
+
+<script>
+const menuitem1 = document.getElementById('menuitem1');
+const menulist1 = document.getElementById('menulist1');
+menulist1.showPopover({source: menuitem1});
+</script>
