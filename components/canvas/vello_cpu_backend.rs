@@ -356,11 +356,9 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
 
     fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>) {
         self.ctx.set_transform(transform.cast().into());
-        let mut path = path.clone();
-        path.transform(transform.cast());
         self.ctx.set_fill_rule(fill_rule.convert());
         self.ctx.push_clip_layer(&path.0);
-        self.clips.push(path);
+        self.clips.push(path.clone());
         self.ctx.set_fill_rule(peniko::Fill::NonZero);
     }
 
