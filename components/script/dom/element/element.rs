@@ -111,6 +111,7 @@ use crate::dom::element::attributes::storage::{
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
@@ -4682,6 +4683,10 @@ impl Element {
                 HTMLElementTypeId::HTMLAnchorElement,
             )) => {
                 let element = self.downcast::<HTMLAnchorElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
+                let element = self.downcast::<HTMLAreaElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
