@@ -34,6 +34,7 @@ fn test_basic_accessibility_update() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -58,6 +59,7 @@ fn test_activate_accessibility_after_layout() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -82,6 +84,7 @@ fn test_navigate_creates_new_accessibility_update() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -137,6 +140,7 @@ fn test_accessibility_after_navigate_and_back() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -206,6 +210,7 @@ fn test_accessibility_basic_mapping() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -263,6 +268,7 @@ fn test_accessibility_basic_name_from_contents() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -292,6 +298,7 @@ fn test_accessibility_name_from_contents_subtree() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
     let url = "data:text/html,<!DOCTYPE html>\
@@ -336,6 +343,7 @@ fn test_accessibility_basic_mutation() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.dom_servo_helpers_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
     let url = "data:text/html,<!DOCTYPE html>\
@@ -390,6 +398,7 @@ fn test_accessibility_with_mutation_move_nodes() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.dom_servo_helpers_enabled = true;
+        preferences.expensive_accessibility_test_assertions_enabled = true;
         builder.preferences(preferences)
     });
     let url = "data:text/html,<!DOCTYPE html>\

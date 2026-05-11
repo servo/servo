@@ -11,6 +11,7 @@ use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
+use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use web_atoms::{LocalName, local_name};
 
@@ -63,8 +64,14 @@ impl AccessibilityTree {
         root_dom_node: &ServoLayoutNode<'_>,
     ) -> Option<accesskit::TreeUpdate> {
         let root_node = self.get_or_create_node(root_dom_node);
+        let root_node_id = root_node.borrow().id;
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            self.assert_integrity(root_node_id);
+        }
+
         let mut tree_update =
-            AccessibilityUpdate::new(accesskit::Tree::new(root_node.borrow().id), self.tree_id);
+            AccessibilityUpdate::new(accesskit::Tree::new(root_node_id), self.tree_id);
         let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
@@ -76,7 +83,11 @@ impl AccessibilityTree {
         self.new_nodes.clear();
 
         for stale_id in self.stale_nodes.drain() {
-            self.nodes.remove(&stale_id);
+            assert!(self.nodes.remove(&stale_id).is_some());
+        }
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            self.assert_integrity(root_node_id);
         }
 
         Some(tree_update.finalize())
@@ -149,7 +160,7 @@ impl AccessibilityTree {
 
     fn assert_node_by_id(&self, id: accesskit::NodeId) -> ArcRefCell<AccessibilityNode> {
         let Some(node) = self.nodes.get(&id) else {
-            panic!("Stale node ID found: {id:?}");
+            panic!("{id:?} does not exist in tree");
         };
         node.clone()
     }
@@ -164,6 +175,43 @@ impl AccessibilityTree {
 
     pub(crate) fn epoch(&self) -> Epoch {
         self.epoch
+    }
+
+    /// Assert that the tree is a tree without any dangling references or orphaned nodes.
+    ///
+    /// For accessibility tests only, because it’s expensive and calls [`eprintln`].
+    fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
+        assert!(pref!(expensive_accessibility_test_assertions_enabled));
+        eprintln!("Start of assert_integrity()");
+        // Traverse the tree from the given root.
+        let mut node_ids = vec![root_node_id];
+        let mut seen_node_ids = FxHashSet::default();
+        while let Some(node_id) = node_ids.pop() {
+            // If this fails, then the tree is not a tree at all.
+            assert!(
+                seen_node_ids.insert(node_id),
+                "Tree contains {node_id:?} in multiple places"
+            );
+            // If this fails, then the tree has dangling references.
+            let node = self.assert_node_by_id(node_id);
+            let node = node.borrow();
+            eprintln!(
+                "{node_id:?}: {:?} (html_tag: {:?})",
+                node.role(),
+                node.html_tag()
+            );
+            if let Some(label) = node.label() {
+                eprintln!("    label: {:?}", label);
+            }
+            if !node.children().is_empty() {
+                eprintln!("    children: {:?}", node.children());
+            }
+            node_ids.extend(node.children().iter().rev());
+        }
+        // If this fails, then the tree has orphaned nodes (a leak).
+        // Dangling references are already caught in the loop above.
+        assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+        eprintln!("End of assert_integrity()");
     }
 }
 
