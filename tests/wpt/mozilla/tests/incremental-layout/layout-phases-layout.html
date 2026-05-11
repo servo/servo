@@ -15,7 +15,7 @@
 
             assert_array_equals(
               ServoTestUtils.forceLayout().phases,
-              ["RanLayout", "CalculatedOverflow", "BuiltStackingContextTree", "BuiltDisplayList"]
+              ["RanLayout", "BuiltStackingContextTree", "BuiltDisplayList"]
             )
         }, "Adding div to body triggers full layout");
 

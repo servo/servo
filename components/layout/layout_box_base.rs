@@ -245,6 +245,12 @@ impl LayoutBoxBase {
                 },
             )));
     }
+
+    pub(crate) fn clear_scrollable_overflow_all_on_fragments(&self) {
+        for fragment in self.fragments.borrow().iter() {
+            fragment.clear_scrollable_overflow();
+        }
+    }
 }
 
 impl Debug for LayoutBoxBase {

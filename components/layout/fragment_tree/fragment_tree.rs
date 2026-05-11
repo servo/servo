@@ -50,6 +50,9 @@ impl FragmentTree {
             viewport_scroll_sensitivity,
         };
 
+        // Trigger scrollable overflow calculation unconditionally when creating a new Fragment.
+        fragment_tree.scrollable_overflow();
+
         fragment_tree.find(|fragment, _level, containing_block| {
             fragment.set_containing_block(containing_block);
             None::<()>
@@ -66,27 +69,29 @@ impl FragmentTree {
     }
 
     pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
-        self.scrollable_overflow
-            .get()
-            .expect("Should only call `scrollable_overflow()` after calculating overflow")
+        if let Some(scrollable_overflow) = self.scrollable_overflow.get() {
+            return scrollable_overflow;
+        }
+        let scrollable_overflow = self.calculate_scrollable_overflow();
+        self.scrollable_overflow.set(Some(scrollable_overflow));
+        scrollable_overflow
+    }
+
+    pub(crate) fn clear_scrollable_overflow(&self) {
+        self.scrollable_overflow.set(None);
     }
 
     /// Calculate the scrollable overflow / scrolling area for this [`FragmentTree`] according
     /// to <https://drafts.csswg.org/cssom-view/#scrolling-area>.
-    pub(crate) fn calculate_scrollable_overflow(&self) {
-        let scrollable_overflow = || {
-            let Some(first_root_fragment) = self.root_fragments.first() else {
-                return self.initial_containing_block;
-            };
+    fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
+        let Some(first_root_fragment) = self.root_fragments.first() else {
+            return self.initial_containing_block;
+        };
 
-            let scrollable_overflow = self.root_fragments.iter().fold(
-                self.initial_containing_block,
-                |overflow, fragment| {
-                    // Need to calculate the overflow for each fragments within the tree
-                    // because it is required in the next stages of reflow.
-                    let overflow_from_fragment =
-                        fragment.calculate_scrollable_overflow_for_parent();
-
+        let scrollable_overflow =
+            self.root_fragments
+                .iter()
+                .fold(self.initial_containing_block, |overflow, fragment| {
                     // Scrollable overflow should be accumulated in the block that
                     // establishes the containing block for the element. Thus, fixed
                     // positioned fragments whose containing block is the initial
@@ -101,28 +106,24 @@ impl FragmentTree {
                         return overflow;
                     }
 
-                    overflow.union(&overflow_from_fragment)
-                },
-            );
+                    overflow.union(&fragment.scrollable_overflow_for_parent())
+                });
 
-            // Assuming that the first fragment is the root element, ensure that
-            // scrollable overflow that is unreachable is not included in the final
-            // rectangle. See
-            // <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
-            let first_root_fragment = match first_root_fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment,
-                _ => return scrollable_overflow,
-            };
-            if !first_root_fragment.is_root_element() {
-                return scrollable_overflow;
-            }
-            first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
-                scrollable_overflow,
-                self.initial_containing_block,
-            )
+        // Assuming that the first fragment is the root element, ensure that
+        // scrollable overflow that is unreachable is not included in the final
+        // rectangle. See
+        // <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
+        let first_root_fragment = match first_root_fragment {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment,
+            _ => return scrollable_overflow,
         };
-
-        self.scrollable_overflow.set(Some(scrollable_overflow()))
+        if !first_root_fragment.is_root_element() {
+            return scrollable_overflow;
+        }
+        first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
+            scrollable_overflow,
+            self.initial_containing_block,
+        )
     }
 
     pub(crate) fn find<T>(

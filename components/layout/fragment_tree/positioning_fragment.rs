@@ -53,13 +53,12 @@ impl PositioningFragment {
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
     ) -> Arc<Self> {
-        PositioningFragment {
+        Arc::new(Self {
             base: BaseFragment::new(base_fragment_info, style.into(), rect),
             children,
             scrollable_overflow: Default::default(),
             cumulative_containing_block_rect: Default::default(),
-        }
-        .into()
+        })
     }
 
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
@@ -75,23 +74,33 @@ impl PositioningFragment {
         )
     }
 
-    pub(crate) fn calculate_scrollable_overflow(&self) {
-        *self.scrollable_overflow.borrow_mut() = Some(self.children.iter().fold(
-            PhysicalRect::zero(),
-            |acc, child| {
-                acc.union(
-                    &child
-                        .calculate_scrollable_overflow_for_parent()
-                        .translate(self.base.rect().origin.to_vector()),
-                )
-            },
-        ));
+    /// Get the scrollable overflow for this [`PositioningFragment`] relative to its
+    /// containing block, recalculating scrollable overflow when necessary, for instance
+    /// after a style change.
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        *self
+            .scrollable_overflow
+            .borrow_mut()
+            .get_or_insert_with(|| self.calculate_scrollable_overflow())
     }
 
-    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        self.scrollable_overflow.borrow().expect(
-            "Should only call `scrollable_overflow_for_parent()` after calculating overflow",
-        )
+    /// Clear the scrollable overflow on this [`PositioningFragment`]. This is called
+    /// during damage propagation when a fragment is preserved, itself or one of its
+    /// descendants has scrollable overflow damage.
+    pub(crate) fn clear_scrollable_overflow(&self) {
+        *self.scrollable_overflow.borrow_mut() = None;
+    }
+
+    fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
+        self.children
+            .iter()
+            .fold(PhysicalRect::zero(), |acc, child| {
+                acc.union(
+                    &child
+                        .scrollable_overflow_for_parent()
+                        .translate(self.base.rect().origin.to_vector()),
+                )
+            })
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

@@ -148,10 +148,9 @@ impl BoxFragment {
         border: PhysicalSides<Au>,
         margin: PhysicalSides<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
-    ) -> BoxFragment {
+    ) -> Self {
         let rare_data = BoxFragmentRareData::try_boxed_from(specific_layout_info);
-
-        BoxFragment {
+        Self {
             base: BaseFragment::new(base_fragment_info, style.into(), content_rect),
             children,
             cumulative_containing_block_rect: Default::default(),
@@ -263,18 +262,35 @@ impl BoxFragment {
         self
     }
 
-    /// Get the scrollable overflow for this [`BoxFragment`] relative to its
-    /// containing block.
+    /// Get the scrollable overflow for this [`BoxFragment`] relative to its containing
+    /// block, recalculating scrollable overflow when necessary, for instance after a
+    /// style change.
     pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
-        self.scrollable_overflow
-            .borrow()
-            .expect("Should only call `scrollable_overflow()` after calculating overflow")
+        *self
+            .scrollable_overflow
+            .borrow_mut()
+            .get_or_insert_with(|| self.calculate_scrollable_overflow())
+    }
+
+    /// Clear the scrollable overflow on this [`BoxFragment`]. This is called
+    /// during damage propagation when a fragment is preserved, itself or one of its
+    /// descendants has scrollable overflow damage.
+    pub(crate) fn clear_scrollable_overflow(&self) {
+        *self.scrollable_overflow.borrow_mut() = None;
     }
 
     /// This is an implementation of:
     /// - <https://drafts.csswg.org/css-overflow-3/#scrollable>.
     /// - <https://drafts.csswg.org/cssom-view/#scrolling-area>
-    pub(crate) fn calculate_scrollable_overflow(&self) {
+    fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
+        // Fragments with `IS_COLLAPSED` (currently only table cells that are part of
+        // table tracks with `visibility: collapse`) should not contribute to scrollable
+        // overflow. This behavior matches Chrome, but not Firefox.
+        // See https://github.com/w3c/csswg-drafts/issues/12689
+        if self.base.flags.contains(FragmentFlags::IS_COLLAPSED) {
+            return Rect::zero();
+        }
+
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.base.rect().origin.to_vector();
 
@@ -306,13 +322,13 @@ impl BoxFragment {
                 .iter()
                 .fold(physical_padding_rect, |acc, child| {
                     let scrollable_overflow_from_child = child
-                        .calculate_scrollable_overflow_for_parent()
+                        .scrollable_overflow_for_parent()
                         .translate(content_origin);
 
-                    // Note that this doesn't just exclude scrollable overflow outside the
-                    // wholly unrechable scrollable overflow area, but also clips it. This
-                    // makes the resulting value more like the "scroll area" rather than the
-                    // "scrollable overflow."
+                    // Note that this doesn't just exclude the wholly unreachable
+                    // scrollable overflow area from the rectangle, but also clips it.
+                    // This makes the resulting value more like the "scroll area" rather
+                    // than the "scrollable overflow."
                     let scrollable_overflow_from_child = self
                         .clip_wholly_unreachable_scrollable_overflow(
                             scrollable_overflow_from_child,
@@ -364,17 +380,7 @@ impl BoxFragment {
                     acc.union(&padding_contribution)
                 });
         }
-
-        // Fragments with `IS_COLLAPSED` (currently only table cells that are part of
-        // table tracks with `visibility: collapse`) should not contribute to scrollable
-        // overflow. This behavior matches Chrome, but not Firefox.
-        // See https://github.com/w3c/csswg-drafts/issues/12689
-        if self.base.flags.contains(FragmentFlags::IS_COLLAPSED) {
-            *self.scrollable_overflow.borrow_mut() = Some(Rect::zero());
-            return;
-        }
-
-        *self.scrollable_overflow.borrow_mut() = Some(scrollable_overflow)
+        scrollable_overflow
     }
 
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
