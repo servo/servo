@@ -501,6 +501,9 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
     #[no_trace]
     secure_connection_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend>
+    #[no_trace]
+    response_end: Cell<Option<CrossProcessInstant>>,
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -3648,6 +3651,7 @@ impl Document {
             redirect_start: Cell::new(None),
             redirect_end: Cell::new(None),
             secure_connection_start: Cell::new(None),
+            response_end: Cell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3926,6 +3930,14 @@ impl Document {
 
     pub(crate) fn set_secure_connection_start(&self, time: Option<CrossProcessInstant>) {
         self.secure_connection_start.set(time)
+    }
+
+    pub(crate) fn get_response_end(&self) -> Option<CrossProcessInstant> {
+        self.response_end.get()
+    }
+
+    pub(crate) fn set_response_end(&self, time: Option<CrossProcessInstant>) {
+        self.response_end.set(time)
     }
 
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {

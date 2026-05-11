@@ -511,6 +511,7 @@ impl Performance {
             "redirectStart" => document.get_redirect_start(),
             "redirectEnd" => document.get_redirect_end(),
             "secureConnectionStart" => document.get_secure_connection_start(),
+            "responseEnd" => document.get_response_end(),
             other => {
                 if cfg!(debug_assertions) {
                     unreachable!("{other:?} is not the name of a timestamp");
@@ -553,7 +554,8 @@ impl Performance {
                         "loadEventEnd" |
                         "redirectStart" |
                         "redirectEnd" |
-                        "secureConnectionStart"
+                        "secureConnectionStart" |
+                        "responseEnd"
                 ) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }
