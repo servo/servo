@@ -276,7 +276,11 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             None => Vec::new(),
             Some(blobparts) => match process_blob_parts(blobparts, blobPropertyBag.endings) {
                 Ok(bytes) => bytes,
-                Err(_) => return Err(Error::InvalidCharacter(None)),
+                Err(_) => {
+                    return Err(Error::InvalidCharacter(Some(
+                        "Invalid character in blob parts".to_string(),
+                    )))
+                },
             },
         };
 
