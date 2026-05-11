@@ -32,7 +32,7 @@ ul[type=square i], li[type=square i] { list-style-type: square; }
 table[align=left i] { float: left; }
 table[align=right i] { float: right; }
 table[align=center i] { margin-left: auto; margin-right: auto; }
-:matches(thead, tbody, tfoot, tr, td, th)[align=absmiddle i] {
+:is(thead, tbody, tfoot, tr, td, th)[align=absmiddle i] {
   text-align: center;
 }
 

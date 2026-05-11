@@ -221,7 +221,7 @@ li { display: list-item; text-align: match-parent; }
 
 dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
 
-:matches(dir, dl, menu, ol, ul) :matches(dir, dl, menu, ol, ul) {
+:is(dir, dl, menu, ol, ul) :is(dir, dl, menu, ol, ul) {
   margin-top: 0; margin-bottom: 0;
 }
 
@@ -232,11 +232,11 @@ ol { list-style-type: decimal; }
 
 dir, menu, ul { list-style-type: disc; }
 
-:matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+:is(dir, menu, ol, ul) :is(dir, menu, ul) {
   list-style-type: circle;
 }
 
-:matches(dir, menu, ol, ul) :matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+:is(dir, menu, ol, ul) :is(dir, menu, ol, ul) :is(dir, menu, ul) {
   list-style-type: square;
 }
 
@@ -277,26 +277,26 @@ tr, td, th { vertical-align: inherit; }
 
 table, td, th { border-color: gray; }
 thead, tbody, tfoot, tr { border-color: inherit; }
-table:matches(
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i],
   [frame=void i], [frame=above i], [frame=below i],
   [frame=hsides i], [frame=lhs i], [frame=rhs i],
   [frame=vsides i], [frame=box i], [frame=border i]
 ),
-table:matches(
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i]
-) > tr > :matches(td, th),
-table:matches(
+) > tr > :is(td, th),
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i]
-) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+) > :is(thead, tbody, tfoot) > tr > :is(td, th) {
   border-color: black;
 }
 
 
-:matches(table, thead, tbody, tfoot, tr) > form {
+:is(table, thead, tbody, tfoot, tr) > form {
   display: none !important;
 }
 
