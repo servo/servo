@@ -169,9 +169,8 @@ impl DocumentFocusHandler {
     }
 
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
-    pub(crate) fn focused_area<'a>(&'a self) -> Ref<'a, FocusableArea> {
-        let focused_area = self.focused_area.borrow();
-        Ref::map(focused_area, |focused_area| focused_area)
+    pub(crate) fn focused_area(&self) -> Ref<'_, FocusableArea> {
+        self.focused_area.borrow()
     }
 
     /// Set the element that currently has focus and update the focus state for both the previously
