@@ -493,7 +493,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         if self.disallow_modification() {
             return Err(Error::NotAllowed(Some(
                 "This method can only be called on modifiable style sheets".to_string(),
-            )))
+            )));
         }
 
         // Step 3. Set the disallow modification flag.
