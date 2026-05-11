@@ -1074,25 +1074,36 @@ def run_coauthors_check() -> int:
     if is_pr_ci:
         # Set by `.github/workflows/lint.yml`
         pull_request_body = os.environ.get("CI_PULL_REQUEST_BODY", "")
+        commit_count = os.environ.get("CI_PULL_REQUEST_COMMIT_COUNT")
     else:
         pull_request_body = ""
+        commit_count = None
     if pull_request_body:
         print(f'\r  | Using pull request body: "{pull_request_body[:50]}[…]"')
 
-    origin = parse_origin(subprocess.check_output(["git", "remote", "-v"], text=True))
-    if origin:
-        log_format = (
-            "commit %H%n"
-            "Author: %an <%ae>%n"
-            "Committer: %cn <%ce>%n"
-            "%(trailers:key=Co-authored-by)%n"
-            "%(trailers:key=Assisted-by)"  # https://github.com/microsoft/vscode/issues/313962
-        )
-        log_command = ["git", "log", f"{origin}/main..HEAD", f"--format={log_format}"]
-        log = subprocess.check_output(log_command, text=True)
-        errors = check_coauthors(pull_request_body, log, verbose=is_pr_ci)
+    log_format = (
+        "commit %H%n"
+        "Author: %an <%ae>%n"
+        "Committer: %cn <%ce>%n"
+        "%(trailers:key=Co-authored-by)%n"
+        "%(trailers:key=Assisted-by)"  # https://github.com/microsoft/vscode/issues/313962
+    )
+    log_command = ["git", "log", f"--format={log_format}"]
+    errors = []
+    if commit_count:
+        log_command += ["-n", commit_count]
     else:
-        errors = ["Could not find a git remote for github.com/servo/servo"]
+        origin = parse_origin(subprocess.check_output(["git", "remote", "-v"], text=True))
+        if origin:
+            log_command += [f"{origin}/main..HEAD"]
+        else:
+            errors += ["Could not find a git remote for github.com/servo/servo"]
+            log_command = None
+
+    if log_command:
+        log = subprocess.check_output(log_command, text=True)
+        errors += check_coauthors(pull_request_body, log, verbose=is_pr_ci)
+
     error = None
     for error in errors:
         print(f"\r  | {colorama.Fore.RED}{error}{colorama.Style.RESET_ALL}")

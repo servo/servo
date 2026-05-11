@@ -80,4 +80,5 @@ jobs:
       - name: Tidy
         env:
           CI_PULL_REQUEST_BODY: ${{ github.event.issue.pull_request.body }}
+          CI_PULL_REQUEST_COMMIT_COUNT: ${{ github.event.pull_request.commits }}
         run: ./mach test-tidy --no-progress --all --github-annotations
