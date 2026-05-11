@@ -122,20 +122,10 @@ impl AccessibilityTree {
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
 
-        let node = match self.nodes.get(&id) {
-            Some(node) => {
-                self.stale_nodes.remove(&id);
-
-                node
-            },
-            None => {
-                self.new_nodes.insert(id);
-
-                self.nodes
-                    .entry(id)
-                    .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)))
-            },
-        };
+        let node = self
+            .nodes
+            .entry(id)
+            .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
 
         let mut new_node = node.borrow_mut();
 
@@ -177,7 +167,8 @@ impl AccessibilityTree {
         self.epoch
     }
 
-    /// Assert that the tree is a tree without any dangling references or orphaned nodes.
+    /// Assert that the tree is a tree without any dangling references or orphaned nodes,
+    /// and that nodes are either new, stale or neither.
     ///
     /// For accessibility tests only, because it’s expensive and calls [`eprintln`].
     fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
@@ -211,6 +202,10 @@ impl AccessibilityTree {
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+
+        // Nodes can't be both new and stale.
+        assert!(self.stale_nodes.is_disjoint(&self.new_nodes));
+
         eprintln!("End of assert_integrity()");
     }
 }
@@ -273,7 +268,8 @@ impl AccessibilityNode {
             }
             for new_child_id in new_children.iter() {
                 if !old_children.contains(new_child_id) {
-                    tree.new_nodes.insert(*new_child_id);
+                    let new_child = tree.assert_node_by_id(*new_child_id);
+                    new_child.borrow().mark_subtree_fresh(tree);
                 }
             }
             self.set_children(new_children);
@@ -294,6 +290,16 @@ impl AccessibilityNode {
         for child_id in self.children().to_vec() {
             let child = tree.assert_node_by_id(child_id);
             child.borrow().mark_subtree_stale(tree);
+        }
+    }
+
+    fn mark_subtree_fresh(&self, tree: &mut AccessibilityTree) {
+        tree.stale_nodes.remove(&self.id);
+        tree.new_nodes.insert(self.id);
+
+        for child_id in self.children().to_vec() {
+            let child = tree.assert_node_by_id(child_id);
+            child.borrow().mark_subtree_fresh(tree);
         }
     }
 
@@ -364,7 +370,6 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
-    #[expect(dead_code)]
     fn label(&self) -> Option<&str> {
         self.accesskit_node.label()
     }
@@ -377,7 +382,6 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
-    #[expect(dead_code)]
     fn html_tag(&self) -> Option<&str> {
         self.accesskit_node.html_tag()
     }
