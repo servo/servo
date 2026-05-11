@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- // http://dev.w3.org/2006/webapi/FileAPI/#APIASynch
+ // https://w3c.github.io/FileAPI/#APIASynch
 
 typedef (DOMString or object) FileReaderResult;
 [Exposed=(Window,Worker)]
@@ -13,7 +13,9 @@ interface FileReader: EventTarget {
   [Throws]
   undefined readAsArrayBuffer(Blob blob);
   [Throws]
-  undefined readAsText(Blob blob, optional DOMString label);
+  undefined readAsBinaryString(Blob blob);
+  [Throws]
+  undefined readAsText(Blob blob, optional DOMString encoding);
   [Throws]
   undefined readAsDataURL(Blob blob);
 

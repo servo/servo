@@ -77,6 +77,7 @@ pub(crate) enum FileReaderFunction {
     Text,
     DataUrl,
     ArrayBuffer,
+    BinaryString,
 }
 
 pub(crate) type TrustedFileReader = Trusted<FileReader>;
@@ -303,6 +304,9 @@ impl FileReader {
                     &blob_contents,
                 )
             },
+            FileReaderFunction::BinaryString => {
+                FileReader::perform_readasbinarystring(&fr.result, data, &blob_contents)
+            },
         };
 
         // Step 8.3
@@ -337,6 +341,17 @@ impl FileReader {
         let output = FileReaderSharedFunctionality::dataurl_format(bytes, data.blobtype);
 
         *result.borrow_mut() = Some(FileReaderResult::String(output));
+    }
+
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsBinaryString>
+    fn perform_readasbinarystring(
+        result: &DomRefCell<Option<FileReaderResult>>,
+        _data: ReadMetaData,
+        bytes: &[u8],
+    ) {
+        *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(
+            String::from_utf8_lossy(bytes),
+        )));
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
@@ -397,6 +412,11 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         self.read(cx, FileReaderFunction::ArrayBuffer, blob, None)
     }
 
+    // https://w3c.github.io/FileAPI/#dfn-readAsBinaryString
+    fn ReadAsBinaryString(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        self.read(cx, FileReaderFunction::BinaryString, blob, None)
+    }
+
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn ReadAsDataURL(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
         self.read(cx, FileReaderFunction::DataUrl, blob, None)
@@ -407,9 +427,9 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         &self,
         cx: &mut js::context::JSContext,
         blob: &Blob,
-        label: Option<DOMString>,
+        encoding: Option<DOMString>,
     ) -> ErrorResult {
-        self.read(cx, FileReaderFunction::Text, blob, label)
+        self.read(cx, FileReaderFunction::Text, blob, encoding)
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
