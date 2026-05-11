@@ -8043,10 +8043,12 @@ dependencies = [
  "headers",
  "http 1.4.0",
  "hyper",
+ "ipc-channel",
  "mime",
  "serde",
  "serde_bytes",
  "serde_core",
+ "serde_json",
  "serde_test",
 ]
 

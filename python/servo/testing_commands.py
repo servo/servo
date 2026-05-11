@@ -233,15 +233,17 @@ class MachCommands(CommandBase):
             return 0
 
         args: list[str] = params or []
+        use_nextest = "--doc" not in args
 
         if build_type.is_release():
             args += ["--release"]
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--cargo-profile", build_type.profile]
+            cargo_profile_arg = "--cargo-profile" if use_nextest else "--profile"
+            args += [cargo_profile_arg, build_type.profile]
 
-        if nextest_profile is not None:
+        if use_nextest and nextest_profile is not None:
             args += ["--profile", nextest_profile]
 
         for crate in packages:
@@ -266,16 +268,25 @@ class MachCommands(CommandBase):
                 )
                 exit(1)
         elif code_coverage:
+            if not use_nextest:
+                print(
+                    "Error: Invalid argument combination for `./mach test-unit`. "
+                    "`--doc` and `--code-coverage` are mutually exclusive."
+                )
+                exit(1)
             cargo_llvm_cov_options: List[str] = llvm_cov_option or []
             crown_cargo_command.extend(["llvm-cov", "nextest"])
             crown_cargo_command.extend(cargo_llvm_cov_options)
             cargo_command = "llvm-cov"
             args.insert(0, "nextest")
             args.extend(cargo_llvm_cov_options)
-        else:
+        elif use_nextest:
             crown_cargo_command.extend(["nextest", "run"])
             cargo_command = "nextest"
             args.insert(0, "run")
+        else:
+            crown_cargo_command.extend(["test"])
+            cargo_command = "test"
         result = call(crown_cargo_command, cwd="support/crown")
         if result != 0:
             return result

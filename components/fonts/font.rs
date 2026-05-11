@@ -948,7 +948,7 @@ pub struct FontBaseline {
 /// by creating an array as below. Values that fall between two mapped
 /// values, will be adjusted by the weighted mean.
 ///
-/// ```rust
+/// ```ignore
 /// let mapping = [
 ///     (0., 0.),
 ///     (FC_WEIGHT_REGULAR as f64, 400 as f64),

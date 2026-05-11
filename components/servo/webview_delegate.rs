@@ -966,7 +966,7 @@ pub trait WebViewDelegate {
     /// ignored, no new `WebView` will be opened. Embedders can handle this method by
     /// using the provided [`CreateNewWebViewRequest`] to build a new `WebView`.
     ///
-    /// ```rust
+    /// ```ignore
     /// fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
     ///     let webview = request
     ///         .builder(self.rendering_context())

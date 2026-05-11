@@ -9,21 +9,21 @@ use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, use_ipc};
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
 /// # Examples
-/// ```
-/// # let mut rx_set = GenericReceiverSet::new();
-/// # let private_channel = generic_channel::channel().unwrap();
-/// # let public_channel = generic_channel::channel().unwrap();
-/// # let reporter_channel = generic_channel::channel().unwrap();
-/// # let private_id = rx_set.add(private_receiver);
-/// # let public_id = rx_set.add(public_receiver);
-/// # let reporter_id = rx_set.add(memory_reporter);
-/// # for received in rx_set.select().into_iter() {
-/// #     match received {
-/// #         GenericSelectionResult::ChannelClosed(_) => continue,
-/// #         GenericSelectionResult::Error => println!("Found selection error"),
-/// #         GenericSelectionResult::MessageReceived(id, msg) => {
-/// #     }
-/// # }
+/// ```ignore
+/// let mut rx_set = GenericReceiverSet::new();
+/// let private_channel = generic_channel::channel().unwrap();
+/// let public_channel = generic_channel::channel().unwrap();
+/// let reporter_channel = generic_channel::channel().unwrap();
+/// let private_id = rx_set.add(private_receiver);
+/// let public_id = rx_set.add(public_receiver);
+/// let reporter_id = rx_set.add(memory_reporter);
+/// for received in rx_set.select().into_iter() {
+///     match received {
+///         GenericSelectionResult::ChannelClosed(_) => continue,
+///         GenericSelectionResult::Error => println!("Found selection error"),
+///         GenericSelectionResult::MessageReceived(id, msg) => { /*...*/ }
+///     }
+/// }
 /// ```
 pub struct GenericReceiverSet<T: Serialize + for<'de> Deserialize<'de>>(
     GenericReceiverSetVariants<T>,

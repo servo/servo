@@ -25,5 +25,7 @@ serde_bytes = { workspace = true }
 serde_core = { workspace = true }
 
 [dev-dependencies]
+ipc-channel = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 serde_test = "1.0"
