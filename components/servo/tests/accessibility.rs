@@ -384,6 +384,79 @@ fn test_accessibility_basic_mutation() {
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
 }
 
+#[test]
+fn test_accessibility_with_mutation_move_nodes() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        preferences.dom_servo_helpers_enabled = true;
+        builder.preferences(preferences)
+    });
+    let url = "data:text/html,<!DOCTYPE html>\
+               <div id='div1'></div>\
+               <h1 id='h1'>This is an h1</h1>\
+               <h2 id='h2'>This is an h2</h2>\
+               <div id='div2'></div>";
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url).unwrap())
+        .build();
+
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let mut tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 4);
+    let div1 = children[0];
+    let h1 = children[1];
+    let h2 = children[2];
+    let div2 = children[3];
+    assert_eq!(div1.role(), Role::GenericContainer);
+    assert_eq!(h1.role(), Role::Heading);
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+    assert_eq!(h2.role(), Role::Heading);
+    assert_eq!(h2.label(), Some("This is an h2".to_owned()));
+    assert_eq!(div2.role(), Role::GenericContainer);
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "div1.moveBefore(h1,null); div2.moveBefore(h2,null);\
+         window.ServoTestUtils.forceAccessibilityUpdate();",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    assert_eq!(update.nodes.len(), 3);
+    assert_eq!(update.nodes[0].1.role(), Role::GenericContainer);
+    assert_eq!(update.nodes[0].1.children().len(), 1);
+    assert_eq!(update.nodes[1].1.role(), Role::GenericContainer);
+    assert_eq!(update.nodes[1].1.children().len(), 1);
+    assert_eq!(update.nodes[2].1.role(), Role::RootWebArea);
+    assert_eq!(update.nodes[2].1.children().len(), 2);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    assert_eq!(root.children().count(), 2);
+    let div1 = root.children().nth(0).unwrap();
+    let div2 = root.children().nth(1).unwrap();
+    assert_eq!(div1.children().count(), 1);
+    assert_eq!(div2.children().count(), 1);
+    let h1 = div1.children().nth(0).unwrap();
+    let h2 = div2.children().nth(0).unwrap();
+    assert_eq!(h1.role(), Role::Heading);
+    assert_eq!(h1.label().as_deref(), Some("This is an h1"));
+    assert_eq!(h2.role(), Role::Heading);
+    assert_eq!(h2.label().as_deref(), Some("This is an h2"));
+}
+
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,
