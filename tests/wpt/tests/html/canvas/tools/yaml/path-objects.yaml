@@ -3507,3 +3507,21 @@
     @assert throws TypeError ctx.isPointInPath({}, 50, 50);
     @assert throws TypeError ctx.isPointInPath({}, 50, 50, 'nonzero');
     @assert throws TypeError ctx.isPointInPath({}, 50, 50, 'evenodd');
+
+- name: 2d.path.clip.scale
+  desc: clip() with non-identity transform applies the correct clip region
+  size: [200, 200]
+  code: |
+    ctx.scale(2, 2);
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 200);
+    ctx.clip();
+
+    // Earlier in Servo, a regression was introduced.
+    // This only had fill the left half of square, as clip rect
+    // stored was not transformed.
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 200, 200);
+  reference: |
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 200, 200);
