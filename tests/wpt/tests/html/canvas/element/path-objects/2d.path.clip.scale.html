@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Canvas test: 2d.path.clip.scale</title>
+<meta name="assert" content="clip() with non-identity transform applies the correct clip region">
+<link rel="match" href="2d.path.clip.scale-ref.html">
+<link rel="help" href="https://github.com/servo/servo/issues/44830">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+
+<canvas id="c" width="200" height="200"></canvas>
+<script>
+  const ctx = document.getElementById('c').getContext('2d');
+  ctx.scale(2, 2);
+  ctx.beginPath();
+  ctx.rect(0, 0, 100, 200);
+  ctx.clip();
+
+  // Earlier in Servo, a regression was introduced.
+  // This only had fill the left half of square, as clip rect
+  // stored was not transformed.
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0, 0, 200, 200);
+</script>
