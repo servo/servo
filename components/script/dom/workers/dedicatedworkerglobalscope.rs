@@ -386,7 +386,6 @@ impl DedicatedWorkerGlobalScope {
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
-        let current_global_https_state = current_global.get_https_state();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_secure_context = current_global.is_secure_context();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
@@ -510,7 +509,6 @@ impl DedicatedWorkerGlobalScope {
                     client: request_client,
                     pipeline_id,
                     origin,
-                    https_state: current_global_https_state,
                 };
 
                 // Step 12. Obtain script by switching on options["type"]:
@@ -802,7 +800,6 @@ fn fetch_a_classic_worker_script(
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))
         .origin(fetch_client.origin)
-        .https_state(fetch_client.https_state)
         // destination is destination,
         .destination(destination)
         // TODO initiator type is "other",

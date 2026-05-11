@@ -47,7 +47,6 @@ use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
-use net_traits::response::HttpsState;
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
 };
@@ -356,10 +355,6 @@ pub(crate) struct GlobalScope {
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: CachedFrozenArray,
-
-    /// currect https state (from previous request)
-    #[no_trace]
-    https_state: Cell<HttpsState>,
 
     /// The stack of active group labels for the Console APIs.
     console_group_stack: DomRefCell<Vec<DOMString>>,
@@ -776,7 +771,6 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
         font_context: Option<Arc<FontContext>>,
-        initial_https_state: HttpsState,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -815,7 +809,6 @@ impl GlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_devices: DomRefCell::new(HashMapTracedValues::new_fx()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
-            https_state: Cell::new(initial_https_state),
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
             inherited_secure_context,
@@ -3152,14 +3145,6 @@ impl GlobalScope {
             retval,
             can_gc,
         );
-    }
-
-    pub(crate) fn get_https_state(&self) -> HttpsState {
-        self.https_state.get()
-    }
-
-    pub(crate) fn set_https_state(&self, https_state: HttpsState) {
-        self.https_state.set(https_state);
     }
 
     pub(crate) fn inherited_secure_context(&self) -> Option<bool> {

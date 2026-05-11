@@ -27,7 +27,7 @@ use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
 use crate::resource_fetch_timing::ResourceTimingType;
-use crate::response::{HttpsState, RedirectTaint, Response};
+use crate::response::{RedirectTaint, Response};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one network request from another.
@@ -500,7 +500,6 @@ pub struct RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub initiator: Initiator,
-    pub https_state: HttpsState,
     pub response_tainting: ResponseTainting,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -544,7 +543,6 @@ impl RequestBuilder {
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
-            https_state: HttpsState::None,
             response_tainting: ResponseTainting::Basic,
             crash: None,
         }
@@ -671,11 +669,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn https_state(mut self, https_state: HttpsState) -> RequestBuilder {
-        self.https_state = https_state;
-        self
-    }
-
     pub fn response_tainting(mut self, response_tainting: ResponseTainting) -> RequestBuilder {
         self.response_tainting = response_tainting;
         self
@@ -737,7 +730,6 @@ impl RequestBuilder {
             self.referrer,
             self.pipeline_id,
             self.target_webview_id,
-            self.https_state,
         );
         request.preload_id = self.preload_id;
         request.initiator = self.initiator;
@@ -856,7 +848,6 @@ pub struct Request {
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
     pub has_trustworthy_ancestor_origin: bool,
-    pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
 }
@@ -869,7 +860,6 @@ impl Request {
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
         webview_id: Option<WebViewId>,
-        https_state: HttpsState,
     ) -> Request {
         Request {
             id,
@@ -906,7 +896,6 @@ impl Request {
             policy_container: RequestPolicyContainer::Client,
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             has_trustworthy_ancestor_origin: false,
-            https_state,
             crash: None,
         }
     }

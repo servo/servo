@@ -43,7 +43,7 @@ use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{PreloadId, Request, RequestBuilder};
-use crate::response::{HttpsState, Response, ResponseInit};
+use crate::response::{Response, ResponseInit};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -998,9 +998,6 @@ pub struct Metadata {
     /// HTTP Status
     pub status: HttpStatus,
 
-    /// Is successful HTTPS connection
-    pub https_state: HttpsState,
-
     /// Referrer Url
     pub referrer: Option<ServoUrl>,
 
@@ -1024,7 +1021,6 @@ impl Metadata {
             charset: None,
             headers: None,
             status: HttpStatus::default(),
-            https_state: HttpsState::None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
             timing: None,

@@ -49,9 +49,7 @@ use net_traits::request::{
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{
-    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
-};
+use net_traits::response::{CacheState, RedirectTaint, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
     ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer, ResourceTimeValue,
@@ -2260,11 +2258,6 @@ async fn http_network_fetch(
     // Substep 1
 
     // Substep 2
-
-    response.https_state = match url.scheme() {
-        "https" => HttpsState::Modern,
-        _ => HttpsState::None,
-    };
 
     // TODO Read request
 

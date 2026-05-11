@@ -24,7 +24,6 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
 };
-use net_traits::response::HttpsState;
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::cell::{DomRefCell, Ref};
@@ -373,7 +372,6 @@ impl WorkerGlobalScope {
                 init.inherited_secure_context,
                 init.unminify_js,
                 font_context,
-                HttpsState::None,
             ),
             microtask_queue: runtime.microtask_queue.clone(),
             worker_id: init.worker_id,
@@ -654,7 +652,6 @@ impl WorkerGlobalScope {
             &metadata.final_url.clone(),
             &metadata.headers,
         ));
-        self.globalscope.set_https_state(metadata.https_state);
     }
 }
 

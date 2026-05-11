@@ -20,7 +20,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
-use net_traits::response::{HttpsState, Response, ResponseBody};
+use net_traits::response::{Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, DefaultLifecycle, PlaceholderGuard};
@@ -66,7 +66,6 @@ pub struct CachedResource {
     awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
-    https_state: HttpsState,
     status: HttpStatus,
     url_list: Vec<ServoUrl>,
     expires: Duration,
@@ -314,7 +313,6 @@ fn create_cached_response(
         .clone_from(&cached_resource.location_url);
     response.status.clone_from(&cached_resource.status);
     response.url_list.clone_from(&cached_resource.url_list);
-    response.https_state = cached_resource.https_state;
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
     response.aborted = cached_resource.aborted.clone();
@@ -347,7 +345,6 @@ fn create_resource_with_bytes_from_resource(
         awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
         metadata: resource.metadata.clone(),
         location_url: resource.location_url.clone(),
-        https_state: resource.https_state,
         status: StatusCode::PARTIAL_CONTENT.into(),
         url_list: resource.url_list.clone(),
         expires: resource.expires,
@@ -675,7 +672,6 @@ pub fn refresh(
         constructed_response
             .status
             .clone_from(&cached_resource.status);
-        constructed_response.https_state = cached_resource.https_state;
         constructed_response.referrer = request.referrer.to_url().cloned();
         constructed_response.referrer_policy = request.referrer_policy;
         constructed_response
@@ -886,7 +882,6 @@ impl<'a> CachedResourcesOrGuard<'a> {
             awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
             metadata: cacheable_metadata,
             location_url: response.location_url.clone(),
-            https_state: response.https_state,
             status: response.status.clone(),
             url_list: response.url_list.clone(),
             expires: expiry,

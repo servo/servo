@@ -3441,7 +3441,6 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
             self.this.clone(),
-            metadata.https_state,
         );
         self.debugger_global
             .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);

@@ -170,7 +170,6 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .client(global.request_client())
     .insecure_requests_policy(request.insecure_requests_policy)
     .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
-    .https_state(request.https_state)
     .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
@@ -746,7 +745,6 @@ pub(crate) fn load_whole_resource(
     csp_violations_processor: &dyn CspViolationsProcessor,
     cx: &mut js::context::JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
-    let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let url = request.url.url();
     core_resource_thread
@@ -798,7 +796,6 @@ impl RequestWithGlobalScope for RequestBuilder {
             .client(global.request_client())
             .pipeline_id(Some(global.pipeline_id()))
             .origin(global.origin().immutable().clone())
-            .https_state(global.get_https_state())
     }
 }
 
