@@ -271,6 +271,11 @@ impl AccessibilityNode {
                     old_child.borrow().mark_subtree_stale(tree);
                 }
             }
+            for new_child_id in new_children.iter() {
+                if !old_children.contains(new_child_id) {
+                    tree.new_nodes.insert(*new_child_id);
+                }
+            }
             self.set_children(new_children);
         }
 
