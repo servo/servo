@@ -1564,13 +1564,7 @@ impl FetchResponseListener for ParserContext {
         let cx = &mut realm;
 
         if status.is_ok() {
-            parser.document.set_redirect_count(timing.redirect_count);
-            parser.document.set_redirect_start(timing.redirect_start);
-            parser.document.set_redirect_end(timing.redirect_end);
-            parser
-                .document
-                .set_secure_connection_start(timing.secure_connection_start);
-            parser.document.set_response_end(timing.response_end);
+            parser.document.set_resource_fetch_timing(timing);
         }
 
         parser.last_chunk_received.set(true);

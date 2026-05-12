@@ -474,27 +474,10 @@ impl Performance {
         // FIXME: We don't implement this value yet, so we assume it's zero (and then we don't need it at all)
 
         // Step 4. Let endTime be the value of name in the PerformanceTiming interface.
+        //
         // NOTE: We store all performance values on the document
-        let document = window.Document();
-        let end_time = match name {
-            "unloadEventStart" => document.get_unload_event_start(),
-            "unloadEventEnd" => document.get_unload_event_end(),
-            "domInteractive" => document.get_dom_interactive(),
-            "domContentLoadedEventStart" => document.get_dom_content_loaded_event_start(),
-            "domContentLoadedEventEnd" => document.get_dom_content_loaded_event_end(),
-            "domComplete" => document.get_dom_complete(),
-            "loadEventStart" => document.get_load_event_start(),
-            "loadEventEnd" => document.get_load_event_end(),
-            "redirectStart" => document.get_redirect_start(),
-            "redirectEnd" => document.get_redirect_end(),
-            "secureConnectionStart" => document.get_secure_connection_start(),
-            "responseEnd" => document.get_response_end(),
-            _ => {
-                return Err(Error::Operation(Some(format!(
-                    "{name} hasn't been implemented."
-                ))));
-            },
-        };
+        let end_time = window.Document().performance_timing_attribute(name)?;
+
         // Step 5. If endTime is 0, throw an InvalidAccessError.
         let Some(end_time) = end_time else {
             return Err(Error::InvalidAccess(Some(format!(

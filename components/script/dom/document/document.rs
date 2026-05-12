@@ -37,12 +37,12 @@ use layout_api::{
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
-use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
+use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
@@ -490,20 +490,11 @@ pub(crate) struct Document {
     fired_unload: Cell<bool>,
     /// List of responsive images
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
-    /// Number of redirects for the document load
-    redirect_count: Cell<u16>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
+
+    /// A [`ResourceFetchTiming`] that holds timing information for this [`Document`].
     #[no_trace]
-    redirect_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
-    #[no_trace]
-    redirect_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
-    #[no_trace]
-    secure_connection_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend>
-    #[no_trace]
-    response_end: Cell<Option<CrossProcessInstant>>,
+    resource_fetch_timing: RefCell<Option<ResourceFetchTiming>>,
+
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -3647,11 +3638,7 @@ impl Document {
             active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
-            redirect_count: Cell::new(0),
-            redirect_start: Cell::new(None),
-            redirect_end: Cell::new(None),
-            secure_connection_start: Cell::new(None),
-            response_end: Cell::new(None),
+            resource_fetch_timing: RefCell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3901,43 +3888,48 @@ impl Document {
     }
 
     pub(crate) fn get_redirect_count(&self) -> u16 {
-        self.redirect_count.get()
+        self.resource_fetch_timing
+            .borrow()
+            .as_ref()
+            .map_or(0, |resource_fetch_timing| {
+                resource_fetch_timing.redirect_count
+            })
     }
 
-    pub(crate) fn set_redirect_count(&self, count: u16) {
-        self.redirect_count.set(count)
+    pub(crate) fn set_resource_fetch_timing(&self, timing: ResourceFetchTiming) {
+        self.resource_fetch_timing.replace(Some(timing));
     }
 
-    pub(crate) fn get_redirect_start(&self) -> Option<CrossProcessInstant> {
-        self.redirect_start.get()
-    }
-
-    pub(crate) fn set_redirect_start(&self, time: Option<CrossProcessInstant>) {
-        self.redirect_start.set(time)
-    }
-
-    pub(crate) fn get_redirect_end(&self) -> Option<CrossProcessInstant> {
-        self.redirect_end.get()
-    }
-
-    pub(crate) fn set_redirect_end(&self, time: Option<CrossProcessInstant>) {
-        self.redirect_end.set(time)
-    }
-
-    pub(crate) fn get_secure_connection_start(&self) -> Option<CrossProcessInstant> {
-        self.secure_connection_start.get()
-    }
-
-    pub(crate) fn set_secure_connection_start(&self, time: Option<CrossProcessInstant>) {
-        self.secure_connection_start.set(time)
-    }
-
-    pub(crate) fn get_response_end(&self) -> Option<CrossProcessInstant> {
-        self.response_end.get()
-    }
-
-    pub(crate) fn set_response_end(&self, time: Option<CrossProcessInstant>) {
-        self.response_end.set(time)
+    pub(crate) fn performance_timing_attribute(
+        &self,
+        name: &str,
+    ) -> Fallible<Option<CrossProcessInstant>> {
+        Ok(match name {
+            "unloadEventStart" => self.get_unload_event_start(),
+            "unloadEventEnd" => self.get_unload_event_end(),
+            "domInteractive" => self.get_dom_interactive(),
+            "domContentLoadedEventStart" => self.get_dom_content_loaded_event_start(),
+            "domContentLoadedEventEnd" => self.get_dom_content_loaded_event_end(),
+            "domComplete" => self.get_dom_complete(),
+            "loadEventStart" => self.get_load_event_start(),
+            "loadEventEnd" => self.get_load_event_end(),
+            "redirectStart" | "redirectEnd" | "secureConnectionStart" | "responseEnd" => self
+                .resource_fetch_timing
+                .borrow()
+                .as_ref()
+                .and_then(|resource_fetch_timing| match name {
+                    "redirectStart" => resource_fetch_timing.redirect_start,
+                    "redirectEnd" => resource_fetch_timing.redirect_end,
+                    "secureConnectionStart" => resource_fetch_timing.secure_connection_start,
+                    "responseEnd" => resource_fetch_timing.response_end,
+                    _ => None,
+                }),
+            _ => {
+                return Err(Error::Operation(Some(format!(
+                    "{name} hasn't been implemented."
+                ))));
+            },
+        })
     }
 
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
