@@ -150,7 +150,11 @@ where
         active_range.end_container() &&
         active_range.start_container().is::<Text>()
     {
-        Some((active_range.start_offset(), active_range.end_offset()))
+        Some((
+            active_range.start_container(),
+            active_range.start_offset(),
+            active_range.end_offset(),
+        ))
     } else {
         None
     };
@@ -169,11 +173,11 @@ where
     // partially/fully selected. In these cases, we shouldn't update the offsets to the new parent,
     // but instead retain them on the original text node. Therefore, if that's the case,
     // update them here and immediately return.
-    if let Some((previous_start_offset, previous_end_offset)) =
+    if let Some((selected_text_node, previous_start_offset, previous_end_offset)) =
         end_offsets_if_previously_selected_single_text_node
     {
-        active_range.set_start(node, previous_start_offset);
-        active_range.set_end(node, previous_end_offset);
+        active_range.set_start(&selected_text_node, previous_start_offset);
+        active_range.set_end(&selected_text_node, previous_end_offset);
         return;
     }
 
