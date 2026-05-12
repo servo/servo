@@ -444,6 +444,12 @@ struct CmdArgs {
     headless: bool,
 
     ///
+    /// Path to a hosts file (like `/etc/hosts`).
+    /// Ignored if the `HOST_FILE` environment variable is set.
+    #[bpaf(long("host-file"), argument("/path/to/hosts"))]
+    host_file: Option<PathBuf>,
+
+    ///
     ///  Whether or not to completely ignore certificate errors.
     #[bpaf(long)]
     ignore_certificate_errors: bool,
@@ -731,6 +737,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         certificate_path: cmd_args
             .certificate_path
             .map(|p| p.to_string_lossy().into_owned()),
+        host_file: cmd_args.host_file,
         ignore_certificate_errors: cmd_args.ignore_certificate_errors,
         unminify_js: cmd_args.unminify_js,
         local_script_source: cmd_args

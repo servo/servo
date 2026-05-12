@@ -70,6 +70,10 @@ pub struct Opts {
     /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
 
+    /// Path to a hosts file (like `/etc/hosts`).
+    /// Ignored if the `HOST_FILE` environment variable is set.
+    pub host_file: Option<PathBuf>,
+
     /// Whether or not to completely ignore SSL certificate validation errors.
     /// TODO: We should see if we can eliminate the need for this by fixing
     /// <https://github.com/servo/servo/issues/30080>.
@@ -246,6 +250,7 @@ impl Default for Opts {
             temporary_storage: false,
             shaders_path: None,
             certificate_path: None,
+            host_file: None,
             ignore_certificate_errors: false,
             unminify_js: false,
             local_script_source: None,
