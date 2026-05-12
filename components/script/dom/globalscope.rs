@@ -66,6 +66,7 @@ use servo_base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
+use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
     MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
@@ -745,6 +746,33 @@ impl FileListener {
 }
 
 impl GlobalScope {
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
+    pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> ImmutableOrigin {
+        // Step 1: Let origin be environment’s origin if environment is an environment settings object; otherwise environment’s creation URL’s origin.
+        // Step 2: Return a tuple consisting of origin.
+        self.origin().immutable().clone()
+    }
+
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
+    pub(crate) fn obtain_storage_key(&self) -> Option<ImmutableOrigin> {
+        // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
+        // with environment.
+        let key = self.obtain_storage_key_for_non_storage_purposes();
+
+        // Step 2: If key's origin is an opaque origin, then return failure.
+        if let ImmutableOrigin::Opaque(_) = key {
+            return None;
+        }
+
+        // Step 3: If the user has disabled storage, then return failure.
+        if !pref!(dom_indexeddb_enabled) {
+            return None;
+        }
+
+        // Step 4: Return key.
+        Some(key)
+    }
+
     /// A sender to the event loop of this global scope. This either sends to the Worker event loop
     /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
     /// workers that are not currently handling a message.

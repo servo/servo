@@ -13,7 +13,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSend;
-use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
 use storage_traits::indexeddb::{
@@ -62,33 +61,6 @@ pub struct IDBFactory {
 }
 
 impl IDBFactory {
-    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
-    fn obtain_storage_key_for_non_storage_purposes(environment: &GlobalScope) -> ImmutableOrigin {
-        // Step 1: Let origin be environment’s origin if environment is an environment settings object; otherwise environment’s creation URL’s origin.
-        // Step 2: Return a tuple consisting of origin.
-        environment.origin().immutable().clone()
-    }
-
-    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
-    pub(crate) fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
-        // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
-        // with environment.
-        let key = Self::obtain_storage_key_for_non_storage_purposes(environment);
-
-        // Step 2: If key's origin is an opaque origin, then return failure.
-        if let ImmutableOrigin::Opaque(_) = key {
-            return None;
-        }
-
-        // Step 3: If the user has disabled storage, then return failure.
-        if !pref!(dom_indexeddb_enabled) {
-            return None;
-        }
-
-        // Step 4: Return key.
-        Some(key)
-    }
-
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
@@ -586,7 +558,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 3: Let storageKey be the result of running obtain a storage key given environment.
         // If failure is returned, then throw a "SecurityError" DOMException and abort these steps.
-        let Some(storage_key) = Self::obtain_storage_key(&global) else {
+        let Some(storage_key) = global.obtain_storage_key() else {
             return Err(Error::Security(None));
         };
 
@@ -617,7 +589,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 2: Let storageKey be the result of running obtain a storage key given environment.
         // If failure is returned, then throw a "SecurityError" DOMException and abort these steps.
-        let Some(storage_key) = Self::obtain_storage_key(&global) else {
+        let Some(storage_key) = global.obtain_storage_key() else {
             return Err(Error::Security(None));
         };
 
@@ -648,7 +620,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 2: Let storageKey be the result of running obtain a storage key given environment.
         // If failure is returned, then return a promise rejected with a "SecurityError" DOMException.
-        let storage_key = match Self::obtain_storage_key(&global) {
+        let storage_key = match global.obtain_storage_key() {
             Some(storage_key) => storage_key,
             None => {
                 let p = Promise::new(&global, CanGc::from_cx(cx));
