@@ -175,7 +175,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             Some(blend_mode.into()),
             None,
             None,
-            None,
         );
         self.ctx.pop_layer();
     }
