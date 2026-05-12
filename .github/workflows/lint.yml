@@ -45,7 +45,7 @@ jobs:
       - id: choose-fetch-depth
         shell: bash
         run: |
-          echo fetch-depth=$(( ${{ github.event.pull_request.commits }} + 1 )) | tee -a $GITHUB_OUTPUT
+          echo fetch-depth=$(( ${{ github.event.pull_request.commits }} + 2 )) | tee -a $GITHUB_OUTPUT
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           fetch-depth: ${{ steps.choose-fetch-depth.outputs.fetch-depth }}
