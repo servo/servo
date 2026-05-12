@@ -23,9 +23,8 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, PropertyBindingType, SendableFrameTree,
-    SerializableDisplayListPayload, SerializableImageData, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType, WebViewTrait, get_property_binding_key,
+    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableDisplayListPayload,
+    SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -33,7 +32,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use servo_base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::id::{
+    PainterId, PipelineId, PropertyBindingType, WebViewId, get_property_binding_key,
+};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use servo_geometry::DeviceIndependentPixel;
@@ -605,7 +606,7 @@ impl Painter {
             let transform = webview_renderer.get_webview_transform();
 
             let property_binding_key =
-                get_property_binding_key(PropertyBindingType::PinchZoom, pipeline_id);
+                get_property_binding_key(PropertyBindingType::PinchZoom(pipeline_id));
             dynamic_properties.push(PropertyValue {
                 key: property_binding_key,
                 value: transform,
@@ -647,7 +648,7 @@ impl Painter {
 
             let transform = webview_renderer.get_webview_transform();
             let property_binding = PropertyBinding::Binding(
-                get_property_binding_key(PropertyBindingType::PinchZoom, pipeline_id),
+                get_property_binding_key(PropertyBindingType::PinchZoom(pipeline_id)),
                 transform,
             );
 

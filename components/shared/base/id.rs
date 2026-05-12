@@ -21,7 +21,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{
     ExternalScrollId, FontInstanceKey, FontKey, IdNamespace, ImageKey,
-    PipelineId as WebRenderPipelineId, SpatialTreeItemKey,
+    PipelineId as WebRenderPipelineId, PropertyBindingKey, SpatialTreeItemKey,
 };
 
 use crate::generic_channel::{self, GenericReceiver, GenericSender};
@@ -560,4 +560,28 @@ impl fmt::Display for ScriptEventLoopId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
+}
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub enum PropertyBindingType {
+    Caret,
+    PinchZoom(PipelineId),
+}
+
+pub fn get_property_binding_key<T>(binding_type: PropertyBindingType) -> PropertyBindingKey<T> {
+    let inner_id = match binding_type {
+        PropertyBindingType::Caret => {
+            // Caret is identified with the `PipelineNamespaceId` of the thread similar to how a `PipelineId` is defined.
+            // However, it wouldn't intersect with any `PipelineId` since the index part for `PipelineId` is `NonZeroU32`.
+            let namespace_id = PIPELINE_NAMESPACE
+                .get()
+                .expect("No namespace set for this thread!")
+                .id;
+            (namespace_id.0 as u64) << 32
+        },
+        PropertyBindingType::PinchZoom(pipeline_id) => pipeline_id.into(),
+    };
+    PropertyBindingKey::<T>::new(inner_id)
 }

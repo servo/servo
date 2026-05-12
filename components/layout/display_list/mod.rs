@@ -13,9 +13,8 @@ use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::{PropertyBindingType, get_property_binding_key};
 use servo_arc::Arc as ServoArc;
-use servo_base::id::{PipelineId, ScrollTreeNodeId};
+use servo_base::id::{PropertyBindingType, ScrollTreeNodeId, get_property_binding_key};
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
@@ -46,7 +45,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, RasterSpace, SpatialId, SpatialTreeItemKey, StackingContextFlags, units,
+    RasterSpace, SpatialId, SpatialTreeItemKey, StackingContextFlags, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1126,12 +1125,7 @@ impl Fragment {
 
         let caret_color = rgba(caret_color);
         let property_binding = if prefs::get().editing_caret_blink_time().is_some() {
-            // It's okay to always use the same property binding key for this pipeline, as
-            // there is currently only a single thing that animates in this way (the caret).
-            // This code should be updated if we ever add more paint-side animations.
-            let pipeline_id: PipelineId = builder.paint_info.pipeline_id.into();
-            let property_binding_key =
-                get_property_binding_key(PropertyBindingType::Caret, pipeline_id);
+            let property_binding_key = get_property_binding_key(PropertyBindingType::Caret);
             builder.paint_info.caret_property_binding = Some((property_binding_key, caret_color));
             PropertyBinding::Binding(property_binding_key, caret_color)
         } else {
