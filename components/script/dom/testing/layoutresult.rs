@@ -19,7 +19,7 @@ pub(crate) struct LayoutResult {
     phases: Vec<DOMString>,
     rebuilt_fragment_count: u32,
     restyle_fragment_count: u32,
-    possibly_moved_fragment_count: u32,
+    only_descendants_changed_count: u32,
 }
 
 impl LayoutResult {
@@ -27,14 +27,14 @@ impl LayoutResult {
         phases: Vec<DOMString>,
         rebuilt_fragment_count: u32,
         restyle_fragment_count: u32,
-        possibly_moved_fragment_count: u32,
+        only_descendants_changed_count: u32,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             phases,
             rebuilt_fragment_count,
             restyle_fragment_count,
-            possibly_moved_fragment_count,
+            only_descendants_changed_count,
         }
     }
 
@@ -43,7 +43,7 @@ impl LayoutResult {
         phases: Vec<DOMString>,
         rebuilt_fragment_count: u32,
         restyle_fragment_count: u32,
-        possibly_moved_fragment_count: u32,
+        only_descendants_changed_count: u32,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
@@ -51,7 +51,7 @@ impl LayoutResult {
                 phases,
                 rebuilt_fragment_count,
                 restyle_fragment_count,
-                possibly_moved_fragment_count,
+                only_descendants_changed_count,
             )),
             global,
             can_gc,
@@ -72,7 +72,7 @@ impl LayoutResultMethods<crate::DomTypeHolder> for LayoutResult {
         self.restyle_fragment_count
     }
 
-    fn PossiblyMovedFragmentCount(&self) -> u32 {
-        self.possibly_moved_fragment_count
+    fn OnlyDescendantsChangedCount(&self) -> u32 {
+        self.only_descendants_changed_count
     }
 }

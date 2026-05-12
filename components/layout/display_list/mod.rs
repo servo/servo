@@ -636,8 +636,8 @@ impl Fragment {
                     builder.reflow_statistics.restyle_fragment_count += 1;
                     base.set_status(FragmentStatus::Clean)
                 },
-                FragmentStatus::PositionMaybeChanged => {
-                    builder.reflow_statistics.possibly_moved_fragment_count += 1;
+                FragmentStatus::OnlyDescendantsChanged => {
+                    builder.reflow_statistics.only_descendants_changed_count += 1;
                     base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::Clean => {},
