@@ -1970,8 +1970,6 @@ impl HTMLInputElement {
                     }),
                     None,
                 );
-        } else {
-            unreachable!("Got unexpected FocusEvent {event_type:?}");
         }
     }
 
