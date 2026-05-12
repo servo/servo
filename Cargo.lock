@@ -1451,9 +1451,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
+checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -1703,19 +1703,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.6.3"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "424e0138278faeb2b401f174ad17e715c829512d74f3d1e81eb43365c2e0590e"
-dependencies = [
- "ctor-proc-macro",
- "dtor",
-]
-
-[[package]]
-name = "ctor-proc-macro"
-version = "0.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52560adf09603e58c9a7ee1fe1dcb95a16927b17c127f0ac02d6e768a0e25bc1"
+checksum = "378f0974ae2468eaf63aa036dbe9c926b0dc7ea64c156f2ea618bc2f75b934f0"
 
 [[package]]
 name = "ctr"
@@ -2042,21 +2032,6 @@ checksum = "cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87"
 dependencies = [
  "dtoa",
 ]
-
-[[package]]
-name = "dtor"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "404d02eeb088a82cfd873006cb713fe411306c7d182c344905e101fb1167d301"
-dependencies = [
- "dtor-proc-macro",
-]
-
-[[package]]
-name = "dtor-proc-macro"
-version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f678cf4a922c215c63e0de95eb1ff08a958a81d47e485cf9da1e27bf6305cfa5"
 
 [[package]]
 name = "dunce"
@@ -5118,15 +5093,15 @@ dependencies = [
 
 [[package]]
 name = "napi-build-ohos"
-version = "1.1.6"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcd28e4f8ae2bebf45f0a051bc2396259cb7b7b27d3f4c8c5058c9ee2942d9bf"
+checksum = "617bcd176a3dc3d96c0acad112a482f592242d6fba6773a9eb8d90e042a35260"
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "1.1.6"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cea8c5fcecd200491cb05ec15c205e5b408d6ce51ccd6e80c098022b87c2eed"
+checksum = "5b06bf282ab442eed04c89f8a833bd06d4cf22f18654f50d848449db9e94438a"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -5137,9 +5112,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.1.6"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c62e951b5919c4e8572e78d0e101c461ea445c777637cde66b0c273cf9f5d7f3"
+checksum = "419b1721d9f21d76c1a5cb38e2628211cb786b5efb9e1dd2fc049ba1cb938e47"
 dependencies = [
  "convert_case",
  "ctor",
@@ -5151,9 +5126,9 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.1.6"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "300401a6c16e3a166bfb43d196e3bafe98362332e918377e18c8443bd7318e40"
+checksum = "fe1a014105134b7889e85f5ab6f8ec5240db43ed37e6c4a38bd7b4a164b345e0"
 dependencies = [
  "bitflags 2.11.1",
  "ctor",
@@ -5166,9 +5141,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.1.6"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c26511521495f458de78601477e42455e3d5553e96163be6f8725882497aa383"
+checksum = "266964b97e57f3ca023ed13e7c78d4c8f3900aa00466bbeb8cb7746653cabc5f"
 dependencies = [
  "libloading 0.9.0",
 ]
