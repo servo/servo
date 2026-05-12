@@ -1860,9 +1860,6 @@ where
 /// Helper functions for accessing the "name" and "namespace" members of
 /// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
 trait NameMember: Sized {
-    /// Specify whether the type that implements this trait represents a DOM attribute.
-    const IS_ATTRIBUTE: bool;
-
     fn name(&self) -> &DOMString;
     fn name_mut(&mut self) -> &mut DOMString;
     fn namespace(&self) -> Option<&DOMString>;
@@ -1920,19 +1917,15 @@ trait NameMember: Sized {
         }
     }
 
-    /// Wrapper of [`script::dom::bindings::domname::is_custom_data_attribute`].
+    /// Wrapper of [`script::dom::bindings::domname::is_custom_data_attribute`] for
+    /// ['SanitizerAttribute']. For other types such as ['SanitizerElementWithAttributes'] and
+    /// [`SanitizerElement`], return false by default.
     fn is_custom_data_attribute(&self) -> bool {
-        Self::IS_ATTRIBUTE &&
-            is_custom_data_attribute(
-                &self.name().str(),
-                self.namespace().map(|namespace| namespace.str()).as_deref(),
-            )
+        false
     }
 }
 
 impl NameMember for SanitizerElementWithAttributes {
-    const IS_ATTRIBUTE: bool = false;
-
     fn name(&self) -> &DOMString {
         match self {
             SanitizerElementWithAttributes::String(name) => name,
@@ -1993,8 +1986,6 @@ impl NameMember for SanitizerElementWithAttributes {
 }
 
 impl NameMember for SanitizerElement {
-    const IS_ATTRIBUTE: bool = false;
-
     fn name(&self) -> &DOMString {
         match self {
             SanitizerElement::String(name) => name,
@@ -2045,8 +2036,6 @@ impl NameMember for SanitizerElement {
 }
 
 impl NameMember for SanitizerAttribute {
-    const IS_ATTRIBUTE: bool = true;
-
     fn name(&self) -> &DOMString {
         match self {
             SanitizerAttribute::String(name) => name,
@@ -2093,6 +2082,15 @@ impl NameMember for SanitizerAttribute {
                 dictionary.namespace = namespace.map(DOMString::from);
             },
         }
+    }
+
+    /// Wrapper of [`script::dom::bindings::domname::is_custom_data_attribute`] for
+    /// ['SanitizerAttribute'].
+    fn is_custom_data_attribute(&self) -> bool {
+        is_custom_data_attribute(
+            &self.name().str(),
+            self.namespace().map(|namespace| namespace.str()).as_deref(),
+        )
     }
 }
 
