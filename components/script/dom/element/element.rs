@@ -2289,67 +2289,42 @@ impl Element {
         // Modifying the `style` attribute might change style.
         *self.style_attribute.borrow_mut() = match mutation {
             AttributeMutation::Set(..) => {
-                let maybe_block = if let Some(attr) = attr.as_attr() {
-                    // This is the fast path we use from
-                    // CSSStyleDeclaration.
-                    //
-                    // Juggle a bit to keep the borrow checker happy
-                    // while avoiding the extra clone.
-                    let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
-                    if is_declaration {
-                        let mut value = AttrValue::String(String::new());
-                        attr.swap_value(&mut value);
-                        let (serialization, block) = match value {
-                            AttrValue::Declaration(s, b) => (s, b),
-                            _ => unreachable!(),
-                        };
-                        let mut value = AttrValue::String(serialization);
-                        attr.swap_value(&mut value);
-                        Some(block)
-                    } else {
-                        None
-                    }
-                } else {
-                    let value = attr.value();
-                    if let AttrValue::Declaration(_, ref block) = *value {
-                        Some(block.clone())
-                    } else {
-                        None
-                    }
-                };
+                let value = attr.as_attr().map_or_else(
+                    || attr.value(),
+                    |attribute| AttrValueRef::Borrowed(attribute.value()),
+                );
 
-                let block = if let Some(block) = maybe_block {
-                    block
-                } else {
-                    let win = self.owner_window();
-                    let source = &**attr.value();
-                    let global = &self.owner_global();
-                    // However, if the Should element's inline behavior be blocked by
-                    // Content Security Policy? algorithm returns "Blocked" when executed
-                    // upon the attribute's element, "style attribute", and the attribute's value,
-                    // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                    if global
-                        .get_csp_list()
-                        .should_elements_inline_type_behavior_be_blocked(
-                            global,
-                            self,
-                            InlineCheckType::StyleAttribute,
+                Some(match &*value {
+                    AttrValue::Declaration(_, block) => block.clone(),
+                    _ => {
+                        let win = self.owner_window();
+                        let source = &**attr.value();
+                        let global = &self.owner_global();
+                        // However, if the Should element's inline behavior be blocked by
+                        // Content Security Policy? algorithm returns "Blocked" when executed
+                        // upon the attribute's element, "style attribute", and the attribute's value,
+                        // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
+                        if global
+                            .get_csp_list()
+                            .should_elements_inline_type_behavior_be_blocked(
+                                global,
+                                self,
+                                InlineCheckType::StyleAttribute,
+                                source,
+                                doc.get_current_parser_line(),
+                            )
+                        {
+                            return;
+                        }
+                        ServoArc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                             source,
-                            doc.get_current_parser_line(),
-                        )
-                    {
-                        return;
-                    }
-                    ServoArc::new(doc.style_shared_lock().wrap(parse_style_attribute(
-                        source,
-                        &UrlExtraData(doc.base_url().get_arc()),
-                        Some(win.css_error_reporter()),
-                        doc.quirks_mode(),
-                        CssRuleType::Style,
-                    )))
-                };
-
-                Some(block)
+                            &UrlExtraData(doc.base_url().get_arc()),
+                            Some(win.css_error_reporter()),
+                            doc.quirks_mode(),
+                            CssRuleType::Style,
+                        )))
+                    },
+                })
             },
             AttributeMutation::Removed => None,
         };
