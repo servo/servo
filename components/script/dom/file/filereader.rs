@@ -305,7 +305,7 @@ impl FileReader {
                 )
             },
             FileReaderFunction::BinaryString => {
-                FileReader::perform_readasbinarystring(&fr.result, data, &blob_contents)
+                FileReader::perform_readasbinarystring(&fr.result, &blob_contents)
             },
         };
 
@@ -344,11 +344,7 @@ impl FileReader {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-readAsBinaryString>
-    fn perform_readasbinarystring(
-        result: &DomRefCell<Option<FileReaderResult>>,
-        _data: ReadMetaData,
-        bytes: &[u8],
-    ) {
+    fn perform_readasbinarystring(result: &DomRefCell<Option<FileReaderResult>>, bytes: &[u8]) {
         *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(
             String::from_utf8_lossy(bytes),
         )));
