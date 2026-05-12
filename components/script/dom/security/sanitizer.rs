@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SanitizerProcessingInstruction,
 };
 use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
-use crate::dom::bindings::domname::is_valid_attribute_local_name;
+use crate::dom::bindings::domname::is_custom_data_attribute;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
@@ -267,15 +267,8 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
                         if configuration.dataAttributes == Some(true) {
                             // Step 4.3.1.3.1. Remove all items item from element["attributes"]
                             // where item is a custom data attribute.
-                            element_attributes.retain(|attribute| {
-                                !is_custom_data_attribute(
-                                    &attribute.name().str(),
-                                    attribute
-                                        .namespace()
-                                        .map(|namespace| namespace.str())
-                                        .as_deref(),
-                                )
-                            });
+                            element_attributes
+                                .retain(|attribute| !attribute.is_custom_data_attribute());
                         }
                     }
 
@@ -630,15 +623,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
 
             // Step 4.2. If configuration["dataAttributes"] is true and attribute is a custom data
             // attribute, then return false.
-            if configuration.dataAttributes == Some(true) &&
-                is_custom_data_attribute(
-                    &attribute.name().str(),
-                    attribute
-                        .namespace()
-                        .map(|namespace| namespace.str())
-                        .as_deref(),
-                )
-            {
+            if configuration.dataAttributes == Some(true) && attribute.is_custom_data_attribute() {
                 return false;
             }
 
@@ -763,15 +748,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
             // Step 5.1. Remove any items attr from configuration["attributes"] where attr is a
             // custom data attribute.
             if let Some(configuration_attributes) = &mut configuration.attributes {
-                configuration_attributes.retain(|attribute| {
-                    !is_custom_data_attribute(
-                        &attribute.name().str(),
-                        attribute
-                            .namespace()
-                            .map(|namespace| namespace.str())
-                            .as_deref(),
-                    )
-                });
+                configuration_attributes.retain(|attribute| !attribute.is_custom_data_attribute());
             }
 
             // Step 5.2. If configuration["elements"] exists:
@@ -782,15 +759,8 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
                     if let Some(element_attributes) = element.attributes_mut() {
                         // Step 5.2.1.1.1. Remove any items attr from element["attributes"] where
                         // attr is a custom data attribute.
-                        element_attributes.retain(|attribute| {
-                            !is_custom_data_attribute(
-                                &attribute.name().str(),
-                                attribute
-                                    .namespace()
-                                    .map(|namespace| namespace.str())
-                                    .as_deref(),
-                            )
-                        });
+                        element_attributes
+                            .retain(|attribute| !attribute.is_custom_data_attribute());
                     }
                 }
             }
@@ -1048,15 +1018,9 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                         // false.
                         if self.dataAttributes == Some(true) &&
                             element.attributes().is_some_and(|attributes| {
-                                attributes.iter().any(|attribute| {
-                                    is_custom_data_attribute(
-                                        &attribute.name().str(),
-                                        attribute
-                                            .namespace()
-                                            .map(|namespace| namespace.str())
-                                            .as_deref(),
-                                    )
-                                })
+                                attributes
+                                    .iter()
+                                    .any(|attribute| attribute.is_custom_data_attribute())
                             })
                         {
                             return false;
@@ -1067,15 +1031,9 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                 // Step 16.3. If config["dataAttributes"] is true and config["attributes"] contains
                 // a custom data attribute, then return false.
                 if self.dataAttributes == Some(true) &&
-                    config_attributes.iter().any(|attribute| {
-                        is_custom_data_attribute(
-                            &attribute.name().str(),
-                            attribute
-                                .namespace()
-                                .map(|namespace| namespace.str())
-                                .as_deref(),
-                        )
-                    })
+                    config_attributes
+                        .iter()
+                        .any(|attribute| attribute.is_custom_data_attribute())
                 {
                     return false;
                 }
@@ -1902,6 +1860,9 @@ where
 /// Helper functions for accessing the "name" and "namespace" members of
 /// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
 trait NameMember: Sized {
+    /// Specify whether the type that implements this trait represents a DOM attribute.
+    const IS_ATTRIBUTE: bool;
+
     fn name(&self) -> &DOMString;
     fn name_mut(&mut self) -> &mut DOMString;
     fn namespace(&self) -> Option<&DOMString>;
@@ -1958,9 +1919,20 @@ trait NameMember: Sized {
             Ordering::Greater
         }
     }
+
+    /// Wrapper of [`script::dom::bindings::domname::is_custom_data_attribute`].
+    fn is_custom_data_attribute(&self) -> bool {
+        Self::IS_ATTRIBUTE &&
+            is_custom_data_attribute(
+                &self.name().str(),
+                self.namespace().map(|namespace| namespace.str()).as_deref(),
+            )
+    }
 }
 
 impl NameMember for SanitizerElementWithAttributes {
+    const IS_ATTRIBUTE: bool = false;
+
     fn name(&self) -> &DOMString {
         match self {
             SanitizerElementWithAttributes::String(name) => name,
@@ -2021,6 +1993,8 @@ impl NameMember for SanitizerElementWithAttributes {
 }
 
 impl NameMember for SanitizerElement {
+    const IS_ATTRIBUTE: bool = false;
+
     fn name(&self) -> &DOMString {
         match self {
             SanitizerElement::String(name) => name,
@@ -2071,6 +2045,8 @@ impl NameMember for SanitizerElement {
 }
 
 impl NameMember for SanitizerAttribute {
+    const IS_ATTRIBUTE: bool = true;
+
     fn name(&self) -> &DOMString {
         match self {
             SanitizerAttribute::String(name) => name,
@@ -2614,17 +2590,4 @@ fn built_in_non_replaceable_elements_list() -> Vec<SanitizerElement> {
             namespace: Some(ns!(mathml).to_string().into()),
         }),
     ]
-}
-
-/// <https://html.spec.whatwg.org/multipage/#custom-data-attribute>
-fn is_custom_data_attribute(name: &str, namespace: Option<&str>) -> bool {
-    // A custom data attribute is an attribute in no namespace whose name starts with the string
-    // "data-", has at least one character after the hyphen, is a valid attribute local name,
-    // and contains no ASCII upper alphas.
-    namespace.is_none() &&
-        name.strip_prefix("data-")
-            .is_some_and(|substring| !substring.is_empty()) &&
-        is_valid_attribute_local_name(name) &&
-        name.chars()
-            .all(|code_point| !code_point.is_ascii_uppercase())
 }
