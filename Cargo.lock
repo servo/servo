@@ -2303,7 +2303,7 @@ dependencies = [
  "self_cell",
  "skrifa 0.40.0",
  "smallvec",
- "vello_cpu",
+ "vello_cpu 0.0.6",
 ]
 
 [[package]]
@@ -2452,6 +2452,12 @@ checksum = "8fb2907d1f08b2b316b9223ced5b0e89d87028ba8deae9764741dba8ff7f3903"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "fearless_simd"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76258897e51fd156ee03b6246ea53f3e0eb395d0b327e9961c4fc4c8b2fa151a"
 
 [[package]]
 name = "ff"
@@ -3452,6 +3458,15 @@ checksum = "b62d5865c036cb1393e23c50693df631d3f5d7bcca4c04fe4cc0fd592e74a782"
 dependencies = [
  "euclid",
  "svg_fmt",
+]
+
+[[package]]
+name = "guillotiere"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b17e70c989c36bad147b27a58d148c0741c51448aa5653436547323e524d0ab"
+dependencies = [
+ "euclid",
 ]
 
 [[package]]
@@ -7596,7 +7611,7 @@ dependencies = [
  "stylo",
  "tracing",
  "vello",
- "vello_cpu",
+ "vello_cpu 0.0.7",
  "webrender_api",
 ]
 
@@ -10523,19 +10538,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "vello_api"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5088cd0113bc5332c753f24503825e3bc93e26c7883c9dc3ad9637bb62c4634"
+dependencies = [
+ "bytemuck",
+ "peniko 0.6.0",
+]
+
+[[package]]
 name = "vello_common"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bd1a4c633ce09e7d713df1a6e036644a125e15e0c169cfb5180ddf5836ca04b"
 dependencies = [
  "bytemuck",
- "fearless_simd",
+ "fearless_simd 0.3.0",
  "hashbrown 0.16.1",
  "log",
  "peniko 0.6.0",
- "png 0.17.16",
  "skrifa 0.40.0",
  "smallvec",
+]
+
+[[package]]
+name = "vello_common"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "986dc49a501a683477614bf07b8e7b6c79ae4828efce3bf22e51850f4a0a8a4c"
+dependencies = [
+ "bytemuck",
+ "fearless_simd 0.4.0",
+ "guillotiere 0.7.0",
+ "hashbrown 0.16.1",
+ "log",
+ "peniko 0.6.0",
+ "png 0.18.1",
+ "skrifa 0.40.0",
+ "smallvec",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -10546,7 +10588,19 @@ checksum = "0162bfe48aabf6a9fdcd401b628c7d9f260c2cbabb343c70a65feba6f7849edc"
 dependencies = [
  "bytemuck",
  "hashbrown 0.16.1",
- "vello_common",
+ "vello_common 0.0.6",
+]
+
+[[package]]
+name = "vello_cpu"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a678f91c7524a3a9ac9a19df9f83552866ec70b2ca26441b916a6b219b6aa2de"
+dependencies = [
+ "bytemuck",
+ "hashbrown 0.16.1",
+ "vello_api",
+ "vello_common 0.0.7",
 ]
 
 [[package]]
@@ -10556,7 +10610,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfd5e0b9fec91df34a09fbcbbed474cec68d05691b590a911c7af83c4860ae42"
 dependencies = [
  "bytemuck",
- "guillotiere",
+ "guillotiere 0.6.2",
  "peniko 0.5.0",
  "skrifa 0.37.0",
  "smallvec",
