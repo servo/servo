@@ -1264,7 +1264,7 @@ impl Document {
         indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport));
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
-        self.event_handler()
+        self.focus_handler()
             .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 

@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
 use js::context::JSContext;
+use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -20,9 +21,12 @@ use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
 };
 
+use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::node::focus::FocusNavigationScopeOwner;
-use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
+use crate::dom::types::{
+    Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
+};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_realm;
 
@@ -148,6 +152,8 @@ pub(crate) struct DocumentFocusHandler {
     /// context's focus chain (not considering system focus). Permanently `true`
     /// for a top-level document.
     has_focus: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
+    sequential_focus_navigation_starting_point: MutNullableDom<Node>,
 }
 
 impl DocumentFocusHandler {
@@ -157,6 +163,7 @@ impl DocumentFocusHandler {
             focused_area: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
+            sequential_focus_navigation_starting_point: Default::default(),
         }
     }
 
@@ -519,7 +526,165 @@ impl DocumentFocusHandler {
         self.focus(cx, FocusableArea::Viewport);
     }
 
-    pub(crate) fn sequentially_focus_child_iframe_local_or_remote(
+    pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
+        self.sequential_focus_navigation_starting_point
+            .set(Some(node));
+    }
+
+    fn sequential_focus_navigation_starting_point(&self) -> Option<DomRoot<Node>> {
+        self.sequential_focus_navigation_starting_point
+            .get()
+            .filter(|node| node.is_connected())
+    }
+
+    pub(crate) fn sequential_focus_navigation_via_keyboard_event(
+        &self,
+        cx: &mut JSContext,
+        event: &KeyboardEvent,
+    ) {
+        let direction = if event.modifiers().contains(Modifiers::SHIFT) {
+            SequentialFocusDirection::Backward
+        } else {
+            SequentialFocusDirection::Forward
+        };
+
+        self.sequential_focus_navigation(cx, direction);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
+    fn sequential_focus_navigation(&self, cx: &mut JSContext, direction: SequentialFocusDirection) {
+        // > When the user requests that focus move from the currently focused area of a top-level
+        // > traversable to the next or previous focusable area (e.g., as the default action of
+        // > pressing the tab key), or when the user requests that focus sequentially move to a
+        // > top-level traversable in the first place (e.g., from the browser's location bar), the
+        // > user agent must use the following algorithm:
+
+        // > 1. Let starting point be the currently focused area of a top-level traversable, if the
+        // > user requested to move focus sequentially from there, or else the top-level traversable
+        // > itself, if the user instead requested to move focus from outside the top-level
+        // > traversable.
+        //
+        // Note: Here `None` represents the current traversible.
+        let mut starting_point = self
+            .focused_area()
+            .element()
+            .map(|element| DomRoot::from_ref(element.upcast::<Node>()));
+
+        // > 2. If there is a sequential focus navigation starting point defined and it is inside
+        // > starting point, then let starting point be the sequential focus navigation starting point
+        // > instead.
+        if let Some(sequential_focus_navigation_starting_point) =
+            self.sequential_focus_navigation_starting_point() &&
+            starting_point.as_ref().is_none_or(|starting_point| {
+                starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
+            })
+        {
+            starting_point = Some(sequential_focus_navigation_starting_point);
+        }
+
+        // > 3. Let direction be "forward" if the user requested the next control, and "backward" if
+        // > the user requested the previous control.
+        //
+        // Note: This is handled by the `direction` argument to this method.
+        self.sequential_focus_navigation_loop(
+            cx,
+            starting_point,
+            direction,
+            false, /* allow_focusing_viewport */
+        );
+    }
+
+    /// The inner loop ("Loop") of:
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
+    fn sequential_focus_navigation_loop(
+        &self,
+        cx: &mut JSContext,
+        starting_point: Option<DomRoot<Node>>,
+        direction: SequentialFocusDirection,
+        allow_focusing_viewport: bool,
+    ) {
+        // > 4. Loop: Let selection mechanism be "sequential" if starting point is a navigable or if
+        // > starting point is in its Document's sequential focus navigation order.
+        // > Otherwise, starting point is not in its Document's sequential focus navigation order;
+        // > let selection mechanism be "DOM".
+        let starting_point_is_navigable = starting_point
+            .as_ref()
+            .is_none_or(|starting_point| starting_point.is::<HTMLIFrameElement>());
+        let selection_mechanism = starting_point
+            .as_ref()
+            .and_then(|node| node.downcast::<Element>())
+            .filter(|element| element.is_sequentially_focusable())
+            .map(|element| {
+                SequentialFocusNavigationMechanism::Sequential(
+                    element.explicitly_set_tab_index().unwrap_or_default(),
+                )
+            })
+            .unwrap_or_else(|| {
+                if starting_point_is_navigable {
+                    SequentialFocusNavigationMechanism::FirstOrLast
+                } else {
+                    SequentialFocusNavigationMechanism::Dom
+                }
+            });
+
+        // > 5. Let candidate be the result of running the sequential navigation search algorithm
+        // > with starting point, direction, and selection mechanism.
+        let candidate = SequentialFocusNavigationSearch::new(
+            starting_point
+                .as_ref()
+                .and_then(|node| node.containing_focus_navigation_scope_owner())
+                .unwrap_or_else(|| FocusNavigationScopeOwner::Document(self.window.Document())),
+            direction,
+            selection_mechanism,
+            starting_point,
+        )
+        .search();
+
+        // > 6. If candidate is not null, then run the focusing steps for candidate and return.
+        if let Some(candidate) = candidate {
+            let document = self.window.Document();
+            let event_handler = document.event_handler();
+            event_handler.focus_and_scroll_to_element_for_key_event(cx, &candidate);
+            // We can't simply run the focusing steps, because:
+            //  1. The focusing steps do not scroll to the element.
+            //  2. When focus shifts to a child navigable (iframe) we have special behavior to reach
+            //     across document boundaries to focus the first focusable element in the iframe.
+            match candidate.downcast::<HTMLIFrameElement>() {
+                Some(iframe_element) => self.sequentially_focus_child_iframe_local_or_remote(
+                    cx,
+                    iframe_element,
+                    direction,
+                ),
+                None => event_handler.focus_and_scroll_to_element_for_key_event(cx, &candidate),
+            }
+            return;
+        }
+
+        // > 7. Otherwise, unset the sequential focus navigation starting point.
+        self.sequential_focus_navigation_starting_point.clear();
+
+        // This is not in the specification, but there's a difference between moving focus into
+        // a child `<iframe>` and within a Document. If no suitable focusable area can be found
+        // when moving into an `<iframe>`, we want to focus the `<iframe>`'s viewport itself.
+        if allow_focusing_viewport {
+            self.focus(cx, FocusableArea::Viewport);
+            return;
+        }
+
+        // > 8. If starting point is a top-level traversable, or a focusable area in the top-level
+        // > traversable, the user agent should transfer focus to its own controls appropriately (if
+        // > any), honouring direction, and then return.
+        // TODO: Implement this.
+        if self.window.is_top_level() {
+            return;
+        }
+
+        // > 9. Otherwise, starting point is a focusable area in a child navigable. Set starting
+        // > point to that child navigable's parent and return to the step labeled loop.
+        self.sequentially_focus_parent_local_or_remote(cx, direction);
+    }
+
+    fn sequentially_focus_child_iframe_local_or_remote(
         &self,
         cx: &mut JSContext,
         iframe_element: &HTMLIFrameElement,
@@ -545,7 +710,7 @@ impl DocumentFocusHandler {
         }
     }
 
-    pub(crate) fn sequentially_focus_parent_local_or_remote(
+    fn sequentially_focus_parent_local_or_remote(
         &self,
         cx: &mut JSContext,
         direction: SequentialFocusDirection,
@@ -591,15 +756,12 @@ impl DocumentFocusHandler {
                 .get(browsing_context_id)
                 .map(|iframe| DomRoot::from_ref(iframe.element.upcast::<Node>()))
         });
-        self.window
-            .Document()
-            .event_handler()
-            .sequential_focus_navigation_loop(
-                cx,
-                starting_point,
-                direction,
-                true, /* allow focusing viewport */
-            );
+        self.sequential_focus_navigation_loop(
+            cx,
+            starting_point,
+            direction,
+            true, /* allow focusing viewport */
+        );
     }
 }
 
