@@ -300,7 +300,6 @@ impl FileReader {
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
                     GlobalScope::get_cx(),
-                    data,
                     &blob_contents,
                 )
             },
@@ -355,7 +354,6 @@ impl FileReader {
     fn perform_readasarraybuffer(
         result: &DomRefCell<Option<FileReaderResult>>,
         cx: JSContext,
-        _: ReadMetaData,
         bytes: &[u8],
     ) {
         unsafe {
