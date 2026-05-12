@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, AtomicU8, Ordering};
 
 use app_units::Au;
@@ -12,6 +11,8 @@ use euclid::{Point2D, Rect, Size2D};
 use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
@@ -24,9 +25,8 @@ use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 
-#[derive(Clone, Debug, Default, MallocSizeOf)]
+#[derive(Clone, Debug, Default, MallocSizeOf, FromPrimitive)]
 #[repr(u8)]
-// Note: This should be kept in sync with the definition of `BaseFragment::status`.
 pub(crate) enum FragmentStatus {
     /// This is a brand new fragment.
     #[default]
@@ -43,7 +43,7 @@ pub(crate) enum FragmentStatus {
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Debug, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment is for an anonymous box,
@@ -64,8 +64,21 @@ pub(crate) struct BaseFragment {
     rect: Rect<AtomicI32, CSSPixel>,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
-    #[conditional_malloc_size_of]
-    pub status: Arc<AtomicU8>,
+    pub status: AtomicU8,
+}
+
+impl std::fmt::Debug for BaseFragment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BaseFragment")
+            .field("tag", &self.tag)
+            .field("flags", &self.flags)
+            .field("rect", &self.rect)
+            .field(
+                "status",
+                &FragmentStatus::from_u8(self.status.load(Ordering::Relaxed)),
+            )
+            .finish()
+    }
 }
 
 impl BaseFragment {
@@ -82,7 +95,7 @@ impl BaseFragment {
                 Point2D::new(rect.origin.x.0.into(), rect.origin.y.0.into()),
                 Size2D::new(rect.size.width.0.into(), rect.size.height.0.into()),
             ),
-            status: Default::default(),
+            status: AtomicU8::new(FragmentStatus::New as u8),
         }
     }
 
@@ -134,14 +147,8 @@ impl BaseFragment {
     }
 
     pub(crate) fn status(&self) -> FragmentStatus {
-        // Note: This should be kept in sync with the definition of `FragmentStatus`.
-        match self.status.load(Ordering::Relaxed) {
-            0 => FragmentStatus::New,
-            1 => FragmentStatus::StyleChanged,
-            2 => FragmentStatus::PositionMaybeChanged,
-            3 => FragmentStatus::Clean,
-            _ => unreachable!("Unknown FragmentStatus value"),
-        }
+        FragmentStatus::from_u8(self.status.load(Ordering::Relaxed))
+            .expect("Unknown FragmentStatus value")
     }
 
     pub(crate) fn set_status(&self, new_status: FragmentStatus) {

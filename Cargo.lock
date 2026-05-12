@@ -7981,6 +7981,7 @@ dependencies = [
  "kurbo 0.13.0",
  "log",
  "malloc_size_of_derive",
+ "num-derive",
  "num-traits",
  "parking_lot",
  "quickcheck",

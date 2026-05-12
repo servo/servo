@@ -39,6 +39,8 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+num-derive = { workspace = true }
+num-traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }
@@ -69,5 +71,4 @@ url = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-num-traits = { workspace = true }
 quickcheck = "1"
