@@ -481,7 +481,6 @@ pub(crate) fn navigate(
 
         let target_window = Trusted::new(window);
         let mut load_data = load_data;
-        load_data.about_base_url = initiator_window.Document().about_base_url();
         let initiator_window = Trusted::new(&*initiator_window);
         let task = task!(navigate_javascript: move |cx| {
             // Important re security. See https://github.com/servo/servo/issues/23373
