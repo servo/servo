@@ -1132,7 +1132,7 @@ def check_coauthors(pull_request_body: str, git_log: str, verbose: bool) -> Iter
         "See https://book.servo.org/contributing/getting-started.html#ai-contributions"
     )
     for line in pull_request_body.splitlines():
-        if line.lower().startswith("co-authored-by:"):
+        if line.lower().startswith(("co-authored-by:", "assisted-by:")):
             for pattern in config["disallowed-coauthors"]:
                 if pattern in line:
                     yield f"Pull request body has `{line}`. {message}"
