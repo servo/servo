@@ -1469,7 +1469,7 @@ impl<'dom> LayoutDom<'dom, Element> {
             return;
         };
 
-        let shared_lock = document.style_shared_lock();
+        let shared_lock = &document.shared_style_locks().author;
         hints.push(ApplicableDeclarationBlock::from_declarations(
             ServoArc::new(shared_lock.wrap(property_declaration_block)),
             CascadeLevel::new(CascadeOrigin::PresHints),
@@ -2326,7 +2326,7 @@ impl Element {
                         {
                             return;
                         }
-                        ServoArc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                        ServoArc::new(doc.style_shared_author_lock().wrap(parse_style_attribute(
                             source,
                             &UrlExtraData(doc.base_url().get_arc()),
                             Some(win.css_error_reporter()),

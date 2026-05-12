@@ -151,7 +151,7 @@ impl HTMLStyleElement {
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");
-        let shared_lock = node.owner_doc().style_shared_lock().clone();
+        let shared_lock = node.owner_doc().style_shared_author_lock().clone();
         let mq = Arc::new(shared_lock.wrap(self.create_media_list(&self.Media().str())));
 
         // For duplicate style sheets with identical content, `StylesheetContents` can be reused
@@ -387,7 +387,7 @@ impl VirtualMethods for HTMLStyleElement {
         } else if attr.name() == "media" &&
             let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
         {
-            let shared_lock = node.owner_doc().style_shared_lock().clone();
+            let shared_lock = node.owner_doc().style_shared_author_lock().clone();
             let mut guard = shared_lock.write();
             let media = stylesheet.media.write_with(&mut guard);
             match mutation {

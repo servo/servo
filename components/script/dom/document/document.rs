@@ -66,7 +66,7 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
@@ -200,7 +200,7 @@ use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
@@ -361,10 +361,11 @@ pub(crate) struct Document {
     applets: MutNullableDom<HTMLCollection>,
     /// Information about the `<iframes>` in this [`Document`].
     iframes: RefCell<IFrameCollection>,
-    /// Lock use for style attributes and author-origin stylesheet objects in this document.
-    /// Can be acquired once for accessing many objects.
+    /// Shared locks used for style attributes, author-origin stylesheets, and user and
+    /// user agent stylesheets in this document. Can be acquired once for accessing many
+    /// objects. This is shared with the owning [`ScriptThread`].
     #[no_trace]
-    style_shared_lock: StyleSharedRwLock,
+    shared_style_locks: SharedRwLocks,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     #[custom_trace]
     stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
@@ -3393,8 +3394,8 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    pub(crate) fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
-        self.unsafe_get().style_shared_lock()
+    pub(crate) fn shared_style_locks(self) -> &'dom SharedRwLocks {
+        self.unsafe_get().shared_style_locks()
     }
 
     #[inline]
@@ -3540,8 +3541,8 @@ impl Document {
             .unwrap_or(UTF_8);
 
         let has_focus = window.parent_info().is_none();
-
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
+        let shared_style_locks = window.script_thread().shared_style_locks().clone();
 
         Document {
             node: Node::new_document_node(),
@@ -3575,19 +3576,7 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             iframes: RefCell::new(IFrameCollection::new()),
-            style_shared_lock: {
-                /// Per-process shared lock for author-origin stylesheets
-                ///
-                /// FIXME: make it per-document or per-pipeline instead:
-                /// <https://github.com/servo/servo/issues/16027>
-                /// (Need to figure out what to do with the style attribute
-                /// of elements adopted into another document.)
-                static PER_PROCESS_AUTHOR_SHARED_LOCK: LazyLock<StyleSharedRwLock> =
-                    LazyLock::new(StyleSharedRwLock::new);
-
-                PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
-                // StyleSharedRwLock::new()
-            },
+            shared_style_locks,
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
@@ -3992,9 +3981,14 @@ impl Document {
         self.GetDocumentElement().and_then(DomRoot::downcast)
     }
 
-    /// Return a reference to the per-document shared lock used in stylesheets.
-    pub(crate) fn style_shared_lock(&self) -> &StyleSharedRwLock {
-        &self.style_shared_lock
+    /// Return a reference to the per-ScriptThread shared locks used for stylesheets.
+    pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
+        &self.shared_style_locks
+    }
+
+    /// Return a reference to the per-ScriptThread shared lock used for author stylesheets.
+    pub(crate) fn style_shared_author_lock(&self) -> &SharedRwLock {
+        &self.shared_style_locks.author
     }
 
     /// Flushes the stylesheet list, and returns whether any stylesheet changed.
@@ -4285,7 +4279,7 @@ impl Document {
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
-            self.style_shared_lock(),
+            self.style_shared_author_lock(),
         );
     }
 
@@ -4319,7 +4313,7 @@ impl Document {
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
-            self.style_shared_lock(),
+            self.style_shared_author_lock(),
         );
     }
 

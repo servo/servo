@@ -410,7 +410,7 @@ impl VirtualMethods for HTMLLinkElement {
                     let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
                 {
                     let document = self.owner_document();
-                    let shared_lock = document.style_shared_lock().clone();
+                    let shared_lock = document.style_shared_author_lock().clone();
                     let mut guard = shared_lock.write();
                     let media = stylesheet.media.write_with(&mut guard);
                     match mutation {
@@ -705,7 +705,7 @@ impl HTMLLinkElement {
         };
 
         let media = MediaList::parse_media_list(mq_str, document.window());
-        let media = Arc::new(document.style_shared_lock().wrap(media));
+        let media = Arc::new(document.style_shared_author_lock().wrap(media));
 
         let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());

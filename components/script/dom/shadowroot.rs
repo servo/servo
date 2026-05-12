@@ -227,7 +227,7 @@ impl ShadowRoot {
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
-            self.document.style_shared_lock(),
+            self.document.style_shared_author_lock(),
         );
     }
 
@@ -253,7 +253,7 @@ impl ShadowRoot {
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
-            self.document.style_shared_lock(),
+            self.document.style_shared_author_lock(),
         );
     }
 

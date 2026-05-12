@@ -184,7 +184,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         context.animations.get_animation_declarations(
             &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
-            document.style_shared_lock(),
+            &document.shared_style_locks().author,
         )
     }
 
@@ -197,7 +197,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         context.animations.get_transition_declarations(
             &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
-            document.style_shared_lock(),
+            &document.shared_style_locks().author,
         )
     }
 
