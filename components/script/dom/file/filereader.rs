@@ -415,8 +415,8 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
 
     /// <https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer>
     fn ReadAsArrayBuffer(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
-        // > The readAsBinaryString(blob) method, when invoked,
-        // must initiate a read operation for blob with BinaryString.
+        // > The readAsArrayBuffer(blob) method, when invoked,
+        // must initiate a read operation for blob with ArrayBuffer.
         self.read(cx, FileReaderFunction::ArrayBuffer, blob, None)
     }
 
