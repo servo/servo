@@ -931,7 +931,7 @@ where
             bc_group
                 .event_loops
                 .insert(host.clone(), Rc::downgrade(event_loop))
-                .is_some()
+                .is_some_and(|old_event_loop| old_event_loop.strong_count() != 0)
         {
             warn!(
                 "Double-setting an event-loop for {:?} at {:?}",
