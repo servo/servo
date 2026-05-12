@@ -1680,11 +1680,11 @@ impl Element {
         &self.attrs
     }
 
-    pub(crate) fn dom_attrs(&self) -> &AttributeStorage {
+    pub(crate) fn dom_attrs(&self, cx: &mut JSContext) -> &AttributeStorage {
         // Materialize all entries to Dom<Attr> so callers can access full Attr nodes.
         let len = self.attrs.borrow().len();
         for i in 0..len {
-            self.attrs.ensure_dom(i, self);
+            self.attrs.ensure_dom(cx, i, self);
         }
         &self.attrs
     }
@@ -2035,6 +2035,7 @@ impl Element {
     /// to be lowercase ASCII, in accordance with the specification.
     pub(crate) fn get_attribute_with_namespace(
         &self,
+        cx: &mut JSContext,
         namespace: &Namespace,
         local_name: &LocalName,
     ) -> Option<DomRoot<Attr>> {
@@ -2043,27 +2044,36 @@ impl Element {
             .borrow()
             .iter()
             .position(|a| a.local_name() == local_name && a.namespace() == namespace)?;
-        Some(self.attrs.ensure_dom(idx, self))
+        Some(self.attrs.ensure_dom(cx, idx, self))
     }
 
     /// This is the inner logic for:
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
     ///
     /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    #[expect(unsafe_code)]
     pub(crate) fn get_attribute(&self, local_name: &LocalName) -> Option<DomRoot<Attr>> {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         debug_assert_eq!(
             *local_name,
             local_name.to_ascii_lowercase(),
             "All namespace-less attribute accesses should use a lowercase ASCII name"
         );
-        self.get_attribute_with_namespace(&ns!(), local_name)
+        self.get_attribute_with_namespace(cx, &ns!(), local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
-    pub(crate) fn get_attribute_by_name(&self, name: DOMString) -> Option<DomRoot<Attr>> {
+    pub(crate) fn get_attribute_by_name(
+        &self,
+        cx: &mut JSContext,
+        name: DOMString,
+    ) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
         let idx = self.attrs.borrow().iter().position(|a| a.name() == name)?;
-        let attr_dom = Some(self.attrs.ensure_dom(idx, self));
+        let attr_dom = Some(self.attrs.ensure_dom(cx, idx, self));
         fn id_and_name_must_be_atoms(name: &LocalName, maybe_attr: &Option<DomRoot<Attr>>) -> bool {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
@@ -2171,7 +2181,7 @@ impl Element {
         // First check if a matching attribute exists (works for both Raw and Dom).
         let found_idx = self.attrs.borrow().iter().position(find);
         if let Some(idx) = found_idx {
-            let attr = self.attrs.ensure_dom(idx, self);
+            let attr = self.attrs.ensure_dom(cx, idx, self);
             // Step 3. Change attribute to value.
             self.will_mutate_attr(AttrRef::Dom(&attr));
             self.change_attribute(cx, &attr, value);
@@ -2235,13 +2245,13 @@ impl Element {
     {
         let idx = self.attrs.borrow().iter().position(find);
         idx.map(|idx| {
-            let attr = self.attrs.ensure_dom(idx, self);
+            let attr = self.attrs.ensure_dom(cx, idx, self);
 
             // Step 2. Remove attribute from element’s attribute list.
             self.will_mutate_attr(AttrRef::Dom(&attr));
             self.attrs.remove(idx);
             // Step 3. Set attribute’s element to null.
-            attr.set_owner(None);
+            attr.set_owner(cx, None);
             // Step 4. Handle attribute changes for attribute with element, attribute’s value, and null.
             self.handle_attribute_changes(
                 cx,
@@ -2401,7 +2411,7 @@ impl Element {
         });
 
         let old_attr = if let Some(position) = position {
-            let old_attr = self.attrs.ensure_dom(position, self);
+            let old_attr = self.attrs.ensure_dom(cx, position, self);
 
             // Step 4. If oldAttr is attr, return attr.
             if &*old_attr == attr {
@@ -2421,11 +2431,11 @@ impl Element {
             self.attrs
                 .set(position, AttributeEntry::Dom(Dom::from_ref(attr)));
             // Step 3. Set newAttribute’s element to element.
-            attr.set_owner(Some(self));
+            attr.set_owner(cx, Some(self));
             // Step 4. Set newAttribute’s node document to element’s node document.
             attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
             // Step 5. Set oldAttribute’s element to null.
-            old_attr.set_owner(None);
+            old_attr.set_owner(cx, None);
             // Step 6. Handle attribute changes for oldAttribute with element, oldAttribute’s value, and newAttribute’s value.
             self.handle_attribute_changes(
                 cx,
@@ -2438,7 +2448,7 @@ impl Element {
             Some(old_attr)
         } else {
             // Step 7. Otherwise, append attr to element.
-            attr.set_owner(Some(self));
+            attr.set_owner(cx, Some(self));
             attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
             self.push_attribute(cx, attr, AttributeMutationReason::Directly);
 
@@ -2868,33 +2878,35 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattribute>
-    fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        self.GetAttributeNode(name).map(|s| s.Value())
+    fn GetAttribute(&self, cx: &mut JSContext, name: DOMString) -> Option<DOMString> {
+        self.GetAttributeNode(cx, name).map(|s| s.Value())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributens>
     fn GetAttributeNS(
         &self,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Option<DOMString> {
-        self.GetAttributeNodeNS(namespace, local_name)
+        self.GetAttributeNodeNS(cx, namespace, local_name)
             .map(|attr| attr.Value())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenode>
-    fn GetAttributeNode(&self, name: DOMString) -> Option<DomRoot<Attr>> {
-        self.get_attribute_by_name(name)
+    fn GetAttributeNode(&self, cx: &mut JSContext, name: DOMString) -> Option<DomRoot<Attr>> {
+        self.get_attribute_by_name(cx, name)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenodens>
     fn GetAttributeNodeNS(
         &self,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Option<DomRoot<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute_with_namespace(namespace, &LocalName::from(local_name))
+        self.get_attribute_with_namespace(cx, namespace, &LocalName::from(local_name))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
@@ -2911,7 +2923,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 3.
-        let attribute = self.GetAttribute(name.clone());
+        let attribute = self.GetAttribute(cx, name.clone());
 
         // Step 2.
         let name = self.parsed_name(name);
@@ -3071,13 +3083,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
-    fn HasAttribute(&self, name: DOMString) -> bool {
-        self.GetAttribute(name).is_some()
+    fn HasAttribute(&self, cx: &mut JSContext, name: DOMString) -> bool {
+        self.GetAttribute(cx, name).is_some()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattributens>
-    fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool {
-        self.GetAttributeNS(namespace, local_name).is_some()
+    fn HasAttributeNS(
+        &self,
+        cx: &mut JSContext,
+        namespace: Option<DOMString>,
+        local_name: DOMString,
+    ) -> bool {
+        self.GetAttributeNS(cx, namespace, local_name).is_some()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
