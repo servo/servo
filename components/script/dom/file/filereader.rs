@@ -123,14 +123,12 @@ pub(crate) enum FileReaderResult {
 pub(crate) struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
-    pub(crate) fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
+    /// [RFC2397]
+    /// <https://www.rfc-editor.org/rfc/rfc2397.html>
+    pub(crate) fn dataurl_format(blob_contents: &[u8], mime_type: String) -> DOMString {
         let base64 = base64::engine::general_purpose::STANDARD.encode(blob_contents);
 
-        let dataurl = if blob_type.is_empty() {
-            format!("data:base64,{}", base64)
-        } else {
-            format!("data:{};base64,{}", blob_type, base64)
-        };
+        let dataurl = format!("data:{};base64,{}", mime_type, base64);
 
         DOMString::from(dataurl)
     }
@@ -343,10 +341,15 @@ impl FileReader {
         bytes: &[u8],
     ) {
         // > Return bytes as a DataURL [RFC2397] subject to the considerations below:
-        // 1. Use mimeType as part of the Data URL if it is available
+        // 1. Use mimeType (blobType) as part of the Data URL if it is available
         //    in keeping with the Data URL specification [RFC2397].
-        // 2. If mimeType is not available return a Data URL without a media-type. [RFC2397].
-        let output = FileReaderSharedFunctionality::dataurl_format(bytes, data.blobtype);
+        // 2. If mimeType (blobType) is not available return a Data URL without a media-type. [RFC2397].
+        let mime_type = if data.blobtype.is_empty() {
+            "application/octet-stream".to_string()
+        } else {
+            data.blobtype
+        };
+        let output = FileReaderSharedFunctionality::dataurl_format(bytes, mime_type);
 
         *result.borrow_mut() = Some(FileReaderResult::String(output));
     }
