@@ -472,7 +472,6 @@ pub(crate) fn navigate(
 
         let Some(initiator_pipeline_id) = load_data.creator_pipeline_id else {
             unreachable!("javascript: URL navigations must have a creator pipeline");
-            return;
         };
         let Some(initiator_window) = ScriptThread::find_window(initiator_pipeline_id) else {
             warn!("Can't find global for navigation initiator");
