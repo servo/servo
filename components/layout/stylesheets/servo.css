@@ -328,9 +328,9 @@ input[type="checkbox"]:indeterminate::before {
 input[type="radio"] {
   display: inline-block;
 
-  /* TODO: According to https://wpt.fyi/results/css/css-grid/stretch-grid-item-radio-input.html?label=experimental&label=master&aligned,
+  /* TODO: According to https://wpt.fyi/results/css/css-grid/stretch-grid-item-radio-input.html,
     Radio buttons should be able to grow / shrink depending of the width/height of the input element. These values should probably
-    be changed once `aspect-ratio` has been supported for non-replaced elementss.
+    be changed once `aspect-ratio` has been supported for non-replaced elements.
   */
   min-height: 14px;
   min-width: 14px;
