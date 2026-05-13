@@ -329,8 +329,9 @@ input[type="radio"] {
   display: inline-block;
 
   /* TODO: According to https://wpt.fyi/results/css/css-grid/stretch-grid-item-radio-input.html,
-    Radio buttons should be able to grow / shrink depending of the width/height of the input element. These values should probably
-    be changed once `aspect-ratio` has been supported for non-replaced elements.
+     radio buttons should be able to grow / shrink depending of the width/height of the input 
+     element. These values should probably be changed once `aspect-ratio` has been supported
+     for non-replaced elements.
   */
   min-height: 14px;
   min-width: 14px;
@@ -338,13 +339,15 @@ input[type="radio"] {
   width: 14px;
 }
 
-/* This creates the ring of the radio input */
+/* This creates the ring of the radio input. TODO: It might be better to add a UA shadow tree instead of using pseudo elements. */
 input[type="radio"]::before {
   content: "";
   background: transparent;
 
-  /* TODO:  The ring should be able to grow & shrink according to min(width, height). 
-  However, this is currently not possible to be implemented as `aspect-ratio` hasn't been supported for non-replaced elements. */
+  /* TODO: The ring should be able to grow & shrink according to min(width, height). 
+    However, this is currently not possible to be implemented as `aspect-ratio` hasn't
+    been supported for non-replaced elements.
+  */
   width: 10px;
   height: 10px;
 
@@ -357,7 +360,7 @@ input[type="radio"]::before {
   border-radius: 50%;
 }
 
-/* This creates the bullet of the radio input */
+/* This creates the bullet of the radio input. TODO: It might be better to add a UA shadow tree instead of using pseudo elements.*/
 input[type="radio"]::after {
   content: "";
   background: transparent;
