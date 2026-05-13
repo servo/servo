@@ -1575,35 +1575,36 @@ impl InlineFormattingContextLayout<'_> {
 
         let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
+        let current_inline_container_state = self.current_inline_container_state();
         if quirks_mode && !flags.is_collapsible_whitespace() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
             // ultimately does not collapse because it is between two other pieces of content.
-            block_contribution.max_assign(&self.current_inline_container_state().strut_block_sizes);
+            block_contribution.max_assign(&current_inline_container_state.strut_block_sizes);
         }
 
         // If the metrics of this font don't match the default font, we are likely using another
         // font from the font list or a fallback and should incorporate its block size into the block
         // size of the container.
         let font_metrics = &info.font.metrics;
-        if self
-            .current_inline_container_state()
+        if current_inline_container_state
             .font_metrics
             .block_metrics_meaningfully_differ(font_metrics)
         {
             // TODO(mrobinson): This value should probably be cached somewhere.
-            let container_state = self.current_inline_container_state();
             let baseline_shift = effective_baseline_shift(
-                &container_state.style,
+                &current_inline_container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
-            let mut font_block_conribution = container_state.get_block_size_contribution(
-                baseline_shift,
-                font_metrics,
-                &container_state.font_metrics,
-            );
-            font_block_conribution.adjust_for_baseline_offset(container_state.baseline_offset);
+            let mut font_block_conribution = current_inline_container_state
+                .get_block_size_contribution(
+                    baseline_shift,
+                    font_metrics,
+                    &current_inline_container_state.font_metrics,
+                );
+            font_block_conribution
+                .adjust_for_baseline_offset(current_inline_container_state.baseline_offset);
             block_contribution.max_assign(&font_block_conribution);
         }
 
