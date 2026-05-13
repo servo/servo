@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::{Au, MAX_AU};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
@@ -508,32 +510,24 @@ impl ReplacedContents {
                     },
                 })
                 .map(|image_key| {
-                    {
-                        Fragment::Image(
-                            ImageFragment {
-                                base,
-                                clip,
-                                image_key: Some(image_key),
-                                showing_broken_image_icon: image_info.showing_broken_image_icon,
-                                url: image_info.url.clone(),
-                            }
-                            .into(),
-                        )
-                    }
+                    Fragment::Image(Arc::new(ImageFragment {
+                        base,
+                        clip,
+                        image_key: Some(image_key),
+                        showing_broken_image_icon: image_info.showing_broken_image_icon,
+                        url: image_info.url.clone(),
+                    }))
                 })
                 .into_iter()
                 .collect(),
             ReplacedContentKind::Video(video_info) => {
-                vec![Fragment::Image(
-                    ImageFragment {
-                        base,
-                        clip,
-                        image_key: video_info.image_key,
-                        showing_broken_image_icon: false,
-                        url: None,
-                    }
-                    .into(),
-                )]
+                vec![Fragment::Image(Arc::new(ImageFragment {
+                    base,
+                    clip,
+                    image_key: video_info.image_key,
+                    showing_broken_image_icon: false,
+                    url: None,
+                }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
@@ -550,13 +544,10 @@ impl ReplacedContents {
                         },
                     },
                 );
-                vec![Fragment::IFrame(
-                    IFrameFragment {
-                        base,
-                        pipeline_id: iframe.pipeline_id,
-                    }
-                    .into(),
-                )]
+                vec![Fragment::IFrame(Arc::new(IFrameFragment {
+                    base,
+                    pipeline_id: iframe.pipeline_id,
+                }))]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
                 if self.natural_size.width == Some(Au::zero()) ||
@@ -569,16 +560,13 @@ impl ReplacedContents {
                     return vec![];
                 };
 
-                vec![Fragment::Image(
-                    ImageFragment {
-                        base,
-                        clip,
-                        image_key: Some(image_key),
-                        showing_broken_image_icon: false,
-                        url: None,
-                    }
-                    .into(),
-                )]
+                vec![Fragment::Image(Arc::new(ImageFragment {
+                    base,
+                    clip,
+                    image_key: Some(image_key),
+                    showing_broken_image_icon: false,
+                    url: None,
+                }))]
             },
             ReplacedContentKind::SVGElement {
                 vector_image,
@@ -624,16 +612,13 @@ impl ReplacedContents {
                     )
                     .and_then(|image| image.id)
                     .map(|image_key| {
-                        Fragment::Image(
-                            ImageFragment {
-                                base,
-                                clip,
-                                image_key: Some(image_key),
-                                showing_broken_image_icon: false,
-                                url: None,
-                            }
-                            .into(),
-                        )
+                        Fragment::Image(Arc::new(ImageFragment {
+                            base,
+                            clip,
+                            image_key: Some(image_key),
+                            showing_broken_image_icon: false,
+                            url: None,
+                        }))
                     })
                     .into_iter()
                     .collect()

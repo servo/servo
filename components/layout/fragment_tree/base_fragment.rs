@@ -30,14 +30,14 @@ use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 pub(crate) enum FragmentStatus {
     /// This is a brand new fragment.
     #[default]
-    New = 0,
+    New,
     /// The style of the fragment has changed.
-    StyleChanged = 1,
+    StyleChanged,
     /// The fragment was reused between layouts, but its final layout
     /// position may have changed.
-    PositionMaybeChanged = 2,
+    PositionMaybeChanged,
     /// The fragment hasn't changed.
-    Clean = 3,
+    Clean,
 }
 
 /// This data structure stores fields that are common to all non-base

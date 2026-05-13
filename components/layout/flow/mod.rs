@@ -2319,16 +2319,13 @@ impl<'container> PlacementState<'container> {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
 
-                {
-                    fragment.base.translate_rect(
-                        LogicalVec2 {
-                            inline: Au::zero(),
-                            block: self.current_margin.solve() +
-                                self.current_block_direction_position,
-                        }
-                        .to_physical_size(self.containing_block.style.writing_mode),
-                    );
-                }
+                fragment.base.translate_rect(
+                    LogicalVec2 {
+                        inline: Au::zero(),
+                        block: self.current_margin.solve() + self.current_block_direction_position,
+                    }
+                    .to_physical_size(self.containing_block.style.writing_mode),
+                );
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
