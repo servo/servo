@@ -311,11 +311,12 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
-        if let Some(ref table) = self.h_kern_subtable {
-            if let Some(font_units) = table.binary_search(first_glyph, second_glyph) {
-                return font_units as f64 * table.px_per_font_unit;
-            }
+        if let Some(ref table) = self.h_kern_subtable &&
+            let Some(font_units) = table.binary_search(first_glyph, second_glyph)
+        {
+            return font_units as f64 * table.px_per_font_unit;
         }
+
         0.0
     }
 
