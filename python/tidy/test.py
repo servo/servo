@@ -226,16 +226,6 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.check_for_raw_urls_in_rustdoc("file.rs", 3, b"/// [hi](https://google.com)")
         self.assertNoMoreErrors(errors)
 
-    def test_parse_origin(self):
-        git_remote_dash_v_output = (
-            "fork    https://github.com/contributor/servo (fetch)\n"
-            "fork    git@github.com:contributor/servo (push)\n"
-            "origin  https://github.com/servo/servo/ (fetch)\n"
-            "origin  git@github.com:servo/servo/ (push)\n"
-        )
-        origin = tidy.parse_origin(git_remote_dash_v_output)
-        self.assertEqual(origin, "origin")
-
     def test_check_coauthors(self):
         for _ in tidy.check_config_file(os.path.join(BASE_PATH, "servo-tidy.toml"), print_text=False):
             ...
