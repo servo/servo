@@ -13,6 +13,7 @@ description.workspace = true
 gl-egl = ["gstreamer-gl-egl"]
 gl-wayland = ["gstreamer-gl-wayland"]
 gl-x11 = ["gstreamer-gl-x11"]
+binary = ["gstreamer/binary", "gstreamer-gl/binary", "gstreamer-gl-egl?/binary", "gstreamer-gl-x11?/binary", "gstreamer-gl-wayland?/binary", "gstreamer-video/binary", "servo-media-gstreamer-render/binary"]
 
 [lib]
 name = "servo_media_gstreamer_render_unix"
