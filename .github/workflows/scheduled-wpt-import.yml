@@ -54,7 +54,7 @@ jobs:
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./mach update-wpt linux/raw/*.log
+          ./mach update-wpt --full linux/raw/*.log
           git add tests/wpt/meta
           uv lock
           git commit -a --amend -s --no-edit
