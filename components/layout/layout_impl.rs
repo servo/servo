@@ -20,7 +20,7 @@ use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleNode, IFrameSizes, Layout,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
     LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
@@ -173,6 +173,8 @@ pub struct LayoutThread {
     /// layout requests a display list, it is produced unconditionally, even when the
     /// layout trees remain the same.
     need_new_display_list: Cell<bool>,
+
+    need_containing_block_calculation: Cell<bool>,
 
     /// Whether or not the existing stacking context tree is dirty and needs to be
     /// rebuilt. This happens after a relayout or overflow update. The reason that we
@@ -393,6 +395,7 @@ impl Layout for LayoutThread {
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
             process_box_area_request(
+                self,
                 stacking_context_tree,
                 node,
                 area,
@@ -406,7 +409,7 @@ impl Layout for LayoutThread {
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator {
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectVec {
         with_layout_state(|| {
             // If we have not built a fragment tree yet, there is no way we have layout information for
             // this query, which can be run without forcing a layout (for IntersectionObserver).
@@ -417,9 +420,14 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            Some(process_box_areas_request(stacking_context_tree, node, area))
+            Some(process_box_areas_request(
+                self,
+                stacking_context_tree,
+                node,
+                area,
+            ))
         })
-        .unwrap_or_else(|| Box::new(std::iter::empty()))
+        .unwrap_or_default()
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -451,7 +459,7 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
+            process_offset_parent_query(self, &stacking_context_tree.paint_info.scroll_tree, node)
         })
         .unwrap_or_default()
     }
@@ -496,7 +504,7 @@ impl Layout for LayoutThread {
                 TraversalFlags::empty(),
             );
 
-            process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+            process_resolved_style_request(self, &shared_style_context, node, &pseudo, &property_id)
         })
     }
 
@@ -540,7 +548,7 @@ impl Layout for LayoutThread {
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
         with_layout_state(|| {
             let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
-            process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+            process_node_scroll_area_request(self, node, self.fragment_tree.borrow().clone())
         })
     }
 
@@ -770,6 +778,7 @@ impl LayoutThread {
             have_ever_generated_display_list: Cell::new(false),
             last_display_list_was_empty: Cell::new(true),
             device_has_changed: false,
+            need_containing_block_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
@@ -1284,6 +1293,9 @@ impl LayoutThread {
             .as_ref()
             .map(|tree| tree.paint_info.scroll_tree.scroll_offsets());
 
+        // This will be done during `StackingContextTree::new` below
+        self.need_containing_block_calculation.set(true);
+
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
         // applicable spatial and clip nodes.
@@ -1493,6 +1505,20 @@ impl LayoutThread {
             reflow_phases_run: ReflowPhasesRun::BuiltDisplayList,
             ..Default::default()
         })
+    }
+
+    pub(crate) fn ensure_containing_block_calculation(&self) {
+        if !self.need_containing_block_calculation.get() {
+            return;
+        }
+        let fragment_tree = self.fragment_tree.borrow();
+        fragment_tree.as_ref().expect("missing fragment tree").find(
+            |fragment, _level, containing_block| {
+                fragment.set_containing_block(containing_block);
+                None::<()>
+            },
+        );
+        self.need_containing_block_calculation.set(false)
     }
 }
 

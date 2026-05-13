@@ -28,9 +28,9 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
-    HTMLMediaData, LayoutElementType, LayoutNodeType, NodeRenderingType, PhysicalSides,
-    SVGElementData, SharedSelection, TrustedNodeAddress, with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
+    LayoutElementType, LayoutNodeType, NodeRenderingType, PhysicalSides, SVGElementData,
+    SharedSelection, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1114,7 +1114,7 @@ impl Node {
             .box_area_query_without_reflow(self, BoxAreaType::Padding, false)
     }
 
-    pub(crate) fn border_boxes(&self) -> CSSPixelRectIterator {
+    pub(crate) fn border_boxes(&self) -> CSSPixelRectVec {
         self.owner_window()
             .box_areas_query(self, BoxAreaType::Border)
     }

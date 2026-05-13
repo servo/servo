@@ -12,6 +12,7 @@ use servo_base::print_tree::PrintTree;
 use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
+use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::PhysicalRect;
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
@@ -65,7 +66,12 @@ impl PositioningFragment {
         *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
     }
 
-    pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+    pub fn offset_by_containing_block(
+        &self,
+        rect: &PhysicalRect<Au>,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        containing_block_computation.ensure();
         rect.translate(
             self.cumulative_containing_block_rect
                 .borrow()

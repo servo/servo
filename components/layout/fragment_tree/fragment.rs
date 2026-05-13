@@ -23,7 +23,9 @@ use super::{
 use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::inline::line::TextRunOffsets;
+use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
+use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
@@ -146,11 +148,10 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn scrolling_area(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrolling_area(&self, layout_thread: &LayoutThread) -> PhysicalRect<Au> {
         match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.offset_by_containing_block(&fragment.scrollable_overflow())
-            },
+            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
+                .offset_by_containing_block(&fragment.scrollable_overflow(), layout_thread.into()),
             _ => self.scrollable_overflow_for_parent(),
         }
     }
@@ -212,15 +213,28 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn cumulative_box_area_rect(&self, area: BoxAreaType) -> Option<PhysicalRect<Au>> {
+    pub(crate) fn cumulative_box_area_rect(
+        &self,
+        area: BoxAreaType,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
-                BoxAreaType::Content => fragment.cumulative_content_box_rect(),
-                BoxAreaType::Padding => fragment.cumulative_padding_box_rect(),
-                BoxAreaType::Border => fragment.cumulative_border_box_rect(),
+                BoxAreaType::Content => {
+                    fragment.cumulative_content_box_rect(containing_block_computation)
+                },
+                BoxAreaType::Padding => {
+                    fragment.cumulative_padding_box_rect(containing_block_computation)
+                },
+                BoxAreaType::Border => {
+                    fragment.cumulative_border_box_rect(containing_block_computation)
+                },
             }),
             Fragment::Positioning(fragment) => {
-                Some(fragment.offset_by_containing_block(&fragment.base.rect()))
+                Some(fragment.offset_by_containing_block(
+                    &fragment.base.rect(),
+                    containing_block_computation,
+                ))
             },
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
