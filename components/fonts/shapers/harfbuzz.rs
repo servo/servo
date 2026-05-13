@@ -288,70 +288,65 @@ impl Shaper {
                     end: hb_buffer_get_length(hb_buffer),
                 })
             };
-            if options
-                .flags
-                .contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG)
-            {
+
+            if options.ligatures == FontVariantLigatures::NORMAL {
+                add_feature(LIGA, 1);
+                add_feature(CLIG, 1);
+            } else if options.ligatures == FontVariantLigatures::NONE {
                 add_feature(LIGA, 0);
+                add_feature(CLIG, 0);
+                add_feature(DLIG, 0);
+                add_feature(HLIG, 0);
+                add_feature(CALT, 0);
             } else {
-                if options.ligatures == FontVariantLigatures::NORMAL {
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::COMMON_LIGATURES)
+                {
                     add_feature(LIGA, 1);
                     add_feature(CLIG, 1);
-                } else if options.ligatures == FontVariantLigatures::NONE {
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_COMMON_LIGATURES)
+                {
                     add_feature(LIGA, 0);
                     add_feature(CLIG, 0);
+                }
+
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::DISCRETIONARY_LIGATURES)
+                {
+                    add_feature(DLIG, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_DISCRETIONARY_LIGATURES)
+                {
                     add_feature(DLIG, 0);
+                }
+
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::HISTORICAL_LIGATURES)
+                {
+                    add_feature(HLIG, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_HISTORICAL_LIGATURES)
+                {
                     add_feature(HLIG, 0);
+                }
+
+                if options.ligatures.contains(FontVariantLigatures::CONTEXTUAL) {
+                    add_feature(CALT, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_CONTEXTUAL)
+                {
                     add_feature(CALT, 0);
-                } else {
-                    if options
-                        .ligatures
-                        .contains(FontVariantLigatures::COMMON_LIGATURES)
-                    {
-                        add_feature(LIGA, 1);
-                        add_feature(CLIG, 1);
-                    } else if options
-                        .ligatures
-                        .contains(FontVariantLigatures::NO_COMMON_LIGATURES)
-                    {
-                        add_feature(LIGA, 0);
-                        add_feature(CLIG, 0);
-                    }
-
-                    if options
-                        .ligatures
-                        .contains(FontVariantLigatures::DISCRETIONARY_LIGATURES)
-                    {
-                        add_feature(DLIG, 1);
-                    } else if options
-                        .ligatures
-                        .contains(FontVariantLigatures::NO_DISCRETIONARY_LIGATURES)
-                    {
-                        add_feature(DLIG, 0);
-                    }
-
-                    if options
-                        .ligatures
-                        .contains(FontVariantLigatures::HISTORICAL_LIGATURES)
-                    {
-                        add_feature(HLIG, 1);
-                    } else if options
-                        .ligatures
-                        .contains(FontVariantLigatures::NO_HISTORICAL_LIGATURES)
-                    {
-                        add_feature(HLIG, 0);
-                    }
-
-                    if options.ligatures.contains(FontVariantLigatures::CONTEXTUAL) {
-                        add_feature(CALT, 1);
-                    } else if options
-                        .ligatures
-                        .contains(FontVariantLigatures::NO_CONTEXTUAL)
-                    {
-                        add_feature(CALT, 0);
-                    }
                 }
             }
+
             if options
                 .flags
                 .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)

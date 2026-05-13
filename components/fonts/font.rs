@@ -370,8 +370,6 @@ impl Font {
 bitflags! {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
-        /// Set if we are to ignore ligatures.
-        const IGNORE_LIGATURES_SHAPING_FLAG = 1 << 2;
         /// Set if we are to disable kerning.
         const DISABLE_KERNING_SHAPING_FLAG = 1 << 3;
         /// Text direction is right-to-left.
@@ -385,7 +383,6 @@ bitflags! {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
-    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.

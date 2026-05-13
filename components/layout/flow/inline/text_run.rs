@@ -62,7 +62,6 @@ pub(crate) struct FontAndScriptInfo {
     /// The [`Language`] used when shaping a [`TextRunSegment`].
     pub language: Language,
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
-    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.
@@ -98,6 +97,7 @@ impl FontAndScriptInfo {
 
 impl From<&FontAndScriptInfo> for ShapingOptions {
     fn from(info: &FontAndScriptInfo) -> Self {
+        let mut ligatures = info.ligatures;
         let mut flags = ShapingFlags::empty();
         if info.bidi_level.is_rtl() {
             flags.insert(ShapingFlags::RTL_FLAG);
@@ -110,10 +110,10 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             .letter_spacing
             .filter(|_| !is_cursive_script(info.script));
         if letter_spacing.is_some() {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            ligatures = FontVariantLigatures::NONE;
         };
         if info.text_rendering == TextRendering::Optimizespeed {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            ligatures = FontVariantLigatures::NONE;
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
         }
 
@@ -127,7 +127,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             word_spacing: info.word_spacing,
             script: info.script,
             language: info.language,
-            ligatures: info.ligatures,
+            ligatures,
             flags,
         }
     }
