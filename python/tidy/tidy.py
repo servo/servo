@@ -9,12 +9,14 @@
 
 import configparser
 import fnmatch
+import functools
 import glob
 import io
 import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -627,6 +629,19 @@ def line_number_of_dependency(dependency_name: str, lines: list[str]) -> int:
     return 0
 
 
+@functools.cache
+def shellcheck_path() -> str | None:
+    """Return the path to the `shellcheck` binary, or None if it is not on PATH.
+
+    Emits a one-time warning when missing so that contributors without a
+    `shellcheck` install are not blocked by tidy and CI surfaces the gap.
+    """
+    path = shutil.which("shellcheck")
+    if path is None:
+        print("\r ⚠  `shellcheck` not found on PATH; skipping shellcheck-based shell-script lints.")
+    return path
+
+
 def check_shell(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if not file_name.endswith(".sh"):
         return
@@ -679,6 +694,29 @@ def check_shell(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]
                             yield idx + 1, 'variable substitutions should use the full "${VAR}" form'
                     else:
                         yield idx + 1, 'variable substitutions should use the full "${VAR}" form'
+
+    # Surface error-severity findings from `shellcheck`.
+    shellcheck = shellcheck_path()
+    if shellcheck is None:
+        return
+    result = subprocess.run(
+        [shellcheck, "--format=json1", file_name],
+        encoding="utf-8",
+        capture_output=True,
+    )
+    if not result.stdout:
+        return
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return
+    for finding in payload.get("comments", []):
+        if finding.get("level") != "error":
+            continue
+        line = finding.get("line", 1)
+        code = finding.get("code", "")
+        message = finding.get("message", "")
+        yield (line, f"shellcheck SC{code}: {message}")
 
 
 def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
