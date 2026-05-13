@@ -344,6 +344,8 @@ impl FileReader {
         // 1. Use mimeType (blobType) as part of the Data URL if it is available
         //    in keeping with the Data URL specification [RFC2397].
         // 2. If mimeType (blobType) is not available return a Data URL without a media-type. [RFC2397].
+        // N.B.: Spec says a Data URL without a media-type. 
+        // However, all other browsers do "application/octet-stream" in this case.
         let mime_type = if data.blobtype.is_empty() {
             "application/octet-stream".to_string()
         } else {
