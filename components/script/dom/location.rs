@@ -300,7 +300,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
     /// <https://html.spec.whatwg.org/multipage/#dom-location-assign>
     fn Assign(&self, cx: &mut JSContext, url: USVString) -> ErrorResult {
         self.setter_common(cx, |_copy_url| {
-            // Step 3: encoding-parse url relative to the entry settings object. If that failed,
+            // Step 3: Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object. If that failed,
             // throw a "SyntaxError" DOMException.
             let url = match self.window.Document().encoding_parse_a_url(&url.0) {
                 Ok(url) => url,
