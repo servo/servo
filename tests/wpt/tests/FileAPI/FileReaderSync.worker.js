@@ -42,6 +42,12 @@ test(() => {
 }, "readAsBinaryString with empty blob");
 
 test(() => {
+    var data = readerSync.readAsBinaryString(new Blob(["σ"]));
+    assert_equals(data.length, 2, "The result length is 2");
+    assert_equals(data, "\xcf\x83", "The result is \xcf\x83");
+}, "readAsBinaryString with multi-byte UTF-8 char");
+
+test(() => {
     var data = readerSync.readAsArrayBuffer(blob);
     assert_true(data instanceof ArrayBuffer);
     assert_equals(data.byteLength, "test".length);

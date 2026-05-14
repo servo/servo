@@ -361,7 +361,7 @@ impl FileReader {
     /// > is represented by a code unit of equal value [0..255].
     fn perform_readasbinarystring(result: &DomRefCell<Option<FileReaderResult>>, bytes: &[u8]) {
         *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(
-            String::from_utf8_lossy(bytes),
+            bytes.iter().map(|&byte| byte as char).collect::<String>(),
         )));
     }
 
