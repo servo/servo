@@ -42,6 +42,16 @@ int test_builder_set_options(void) {
     return 0;
 }
 
+int test_builder_set_preferences(void) {
+    ServoBuilder *builder = servo_builder_create();
+    ServoPreferences *prefs = servo_preferences_create();
+    if (builder == NULL || prefs == NULL) return 1;
+    servo_builder_set_preferences(builder, prefs);
+    // builder now owns prefs, so don't free it
+    servo_builder_free(builder);
+    return 0;
+}
+
 static void noop_wake_callback(void) {}
 
 int test_builder_set_event_loop_waker(void) {
@@ -80,15 +90,121 @@ int test_options_setters(void) {
     return 0;
 }
 
+int test_preferences_create_and_free(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+    servo_preferences_free(prefs);
+    return 0;
+}
+
+int test_preferences_bool_roundtrip(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+
+    servo_preferences_set_bool(prefs, "dom_gamepad_enabled", false);
+    if (servo_preferences_get_bool(prefs, "dom_gamepad_enabled") != false) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_set_bool(prefs, "dom_gamepad_enabled", true);
+    if (servo_preferences_get_bool(prefs, "dom_gamepad_enabled") != true) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_free(prefs);
+    return 0;
+}
+
+int test_preferences_i64_roundtrip(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+
+    servo_preferences_set_i64(prefs, "layout_threads", 4);
+    if (servo_preferences_get_i64(prefs, "layout_threads") != 4) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_set_i64(prefs, "layout_threads", -1);
+    if (servo_preferences_get_i64(prefs, "layout_threads") != -1) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_free(prefs);
+    return 0;
+}
+
+int test_preferences_u64_roundtrip(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+
+    servo_preferences_set_u64(prefs, "network_http_cache_size", 12345);
+    if (servo_preferences_get_u64(prefs, "network_http_cache_size") != 12345) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_free(prefs);
+    return 0;
+}
+
+int test_preferences_string_roundtrip(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+
+    servo_preferences_set_string(prefs, "user_agent", "ServoTest/1.0");
+
+    char *user_agent = servo_preferences_get_string(prefs, "user_agent");
+    if (user_agent == NULL) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+    if (strcmp(user_agent, "ServoTest/1.0") != 0) {
+        servo_string_free(user_agent);
+        servo_preferences_free(prefs);
+        return 1;
+    }
+    servo_string_free(user_agent);
+    servo_preferences_free(prefs);
+    return 0;
+}
+
+int test_preferences_f64_array4_roundtrip(void) {
+    ServoPreferences *prefs = servo_preferences_create();
+    if (prefs == NULL) return 1;
+
+    double rgba[4] = {0.2, 0.4, 0.6, 1.0};
+    servo_preferences_set_f64_array_4(prefs, "shell_background_color_rgba", rgba);
+    double out[4];
+    servo_preferences_get_f64_array_4(prefs, "shell_background_color_rgba", out);
+    if (out[0] != 0.2 || out[1] != 0.4 || out[2] != 0.6 || out[3] != 1.0) {
+        servo_preferences_free(prefs);
+        return 1;
+    }
+
+    servo_preferences_free(prefs);
+    return 0;
+}
+
 int run_c_api_tests(void) {
     tests_run = 0;
     tests_failed = 0;
 
     RUN_TEST(test_builder_create_and_free);
     RUN_TEST(test_builder_set_options);
+    RUN_TEST(test_builder_set_preferences);
     RUN_TEST(test_builder_set_event_loop_waker);
     RUN_TEST(test_options_create_and_free);
     RUN_TEST(test_options_setters);
+    RUN_TEST(test_preferences_create_and_free);
+    RUN_TEST(test_preferences_bool_roundtrip);
+    RUN_TEST(test_preferences_i64_roundtrip);
+    RUN_TEST(test_preferences_u64_roundtrip);
+    RUN_TEST(test_preferences_string_roundtrip);
+    RUN_TEST(test_preferences_f64_array4_roundtrip);
 
     printf("\n%d tests, %d passed, %d failed\n",
            tests_run, tests_run - tests_failed, tests_failed);

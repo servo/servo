@@ -3,16 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod options;
+mod preferences;
 
 extern crate servo as servo_api;
 
 use options::ServoOptions;
+use preferences::ServoPreferences;
 
 // cbindgen:opaque
 #[derive(Default)]
 pub struct ServoBuilder {
     opts: Option<Box<ServoOptions>>,
     event_loop_waker: ServoEventLoopWaker,
+    prefs: Option<Box<ServoPreferences>>,
 }
 
 #[repr(C)]
@@ -48,6 +51,20 @@ impl servo_api::EventLoopWaker for ServoEventLoopWaker {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_builder_create() -> *mut ServoBuilder {
     Box::into_raw(Box::new(ServoBuilder::default()))
+}
+
+/// Takes ownership of `prefs`. The caller must not use or free `prefs` again.
+/// This function will free the previously set preferences, if any.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_builder_set_preferences(
+    builder: *mut ServoBuilder,
+    prefs: *mut ServoPreferences,
+) {
+    assert!(!builder.is_null(), "builder pointer must not be null");
+    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    unsafe {
+        (*builder).prefs = Some(Box::from_raw(prefs));
+    }
 }
 
 /// Takes ownership of `options`. The caller must not use or free `options` again.
@@ -90,6 +107,10 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
 
     if let Some(opts) = builder.opts.take() {
         rust_builder = rust_builder.opts(*opts);
+    }
+
+    if let Some(prefs) = builder.prefs.take() {
+        rust_builder = rust_builder.preferences(*prefs);
     }
 
     rust_builder = rust_builder.event_loop_waker(Box::new(builder.event_loop_waker));
