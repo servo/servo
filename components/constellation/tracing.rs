@@ -123,6 +123,7 @@ mod from_script {
     impl LogTarget for servo_constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
+                Self::ServiceWorkerAlgorithm(..) => target!("ServiceWorkerAlgorithm"),
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
                 Self::MessagePortTransferResult(..) => target!("MessagePortTransferResult"),
                 Self::NewMessagePort(..) => target!("NewMessagePort"),
@@ -176,7 +177,6 @@ mod from_script {
                 Self::DiscardTopLevelBrowsingContext => target!("DiscardTopLevelBrowsingContext"),
                 Self::PipelineExited => target!("PipelineExited"),
                 Self::ForwardDOMMessage(..) => target!("ForwardDOMMessage"),
-                Self::ScheduleJob(..) => target!("ScheduleJob"),
                 Self::MediaSessionEvent(..) => target!("MediaSessionEvent"),
                 #[cfg(feature = "webgpu")]
                 Self::RequestAdapter(..) => target!("RequestAdapter"),

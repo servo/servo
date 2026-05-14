@@ -161,11 +161,12 @@ use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
     DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSizeMsg, Job, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
-    PaintMetricEvent, PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerMsg,
-    SWManagerSenders, ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, UserContentManagerAction, WindowSizeType,
+    IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerMsg, SWManagerSenders,
+    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
+    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
+    WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -2011,8 +2012,8 @@ where
                     "Document origin retrieval after closure",
                 );
             },
-            ScriptToConstellationMessage::ScheduleJob(job) => {
-                self.handle_schedule_serviceworker_job(source_pipeline_id, job);
+            ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
+                self.handle_serviceworker_algorithm(source_pipeline_id, algorithm);
             },
             ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, scope_url) => {
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
@@ -2595,8 +2596,17 @@ where
     /// The Job Queue is essentially the channel to a SW manager,
     /// which are scoped per origin.
     #[servo_tracing::instrument(skip_all)]
-    fn handle_schedule_serviceworker_job(&mut self, pipeline_id: PipelineId, job: Job) {
-        let origin = job.scope_url.origin();
+    fn handle_serviceworker_algorithm(
+        &mut self,
+        pipeline_id: PipelineId,
+        algorithm: ServiceWorkerAlgorithm,
+    ) {
+        let origin = match &algorithm {
+            ServiceWorkerAlgorithm::StartRegister(job) => job.storage_key.clone(),
+            ServiceWorkerAlgorithm::MatchServiceWorkerRegistration { storage_key, .. } => {
+                storage_key.clone()
+            },
+        };
 
         if self
             .check_origin_against_pipeline(&pipeline_id, &origin)
@@ -2642,7 +2652,7 @@ where
                 entry.insert(own_sender)
             },
         };
-        let _ = sw_manager.send(ServiceWorkerMsg::ScheduleJob(job));
+        let _ = sw_manager.send(ServiceWorkerMsg::HandleAlgorithm(algorithm));
     }
 
     #[servo_tracing::instrument(skip_all)]
