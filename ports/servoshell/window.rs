@@ -98,6 +98,7 @@ impl ServoShellWindow {
     /// Must be called *after* `self` is in `state.windows`, otherwise it will panic.
     #[servo::servo_tracing::instrument(skip(self, state))]
     pub(crate) fn create_toplevel_webview(&self, state: Rc<RunningAppState>, url: Url) -> WebView {
+        #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(unused_mut))]
         let mut webview_builder =
             WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
                 .url(url)
