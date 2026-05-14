@@ -8,10 +8,12 @@ use servo::{InputMethodControl, LoadStatus, MediaSessionPlaybackState};
 pub trait HostTrait {
     fn show_alert(&self, message: String);
     /// Notify that the load status of the page has changed.
+    ///
     /// Started:
     ///  - "Reload button" should be disabled.
     ///  - "Stop button" should be enabled.
     ///  - Throbber starts spinning.
+    ///
     /// Complete:
     ///  - "Reload button" should be enabled.
     ///  - "Stop button" should be disabled.
