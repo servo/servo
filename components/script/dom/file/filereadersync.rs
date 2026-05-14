@@ -67,7 +67,9 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
-        // step 2
+        // step 2. 
+        // > Return bytes as a binary string, in which every byte
+        // > is represented by a code unit of equal value [0..255].
         Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
     }
 
