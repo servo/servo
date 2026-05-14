@@ -1085,6 +1085,12 @@ impl Node {
             .containing_block_node_query_without_reflow(self)
     }
 
+    /// Return the full containing block chain for this node in a single layout query.
+    pub(crate) fn containing_block_chain_without_reflow(&self) -> Vec<DomRoot<Node>> {
+        self.owner_window()
+            .containing_block_chain_query_without_reflow(self)
+    }
+
     pub(crate) fn padding(&self) -> Option<PhysicalSides> {
         self.owner_window().padding_query_without_reflow(self)
     }

@@ -875,11 +875,15 @@ fn compute_the_intersection(
     // We had delegated the computation of this to the caller of the function.
 
     // > 2. Let container be the containing block of target.
-    let mut container = match target
+    // Pre-compute the full containing block chain in a single layout query to avoid
+    // repeated tree walks (each walk is O(depth)).
+    let cb_chain = target
         .upcast::<Node>()
-        .containing_block_node_without_reflow()
-    {
-        Some(node) => ElementOrDocument::Element(DomRoot::downcast(node).unwrap()),
+        .containing_block_chain_without_reflow();
+    let mut cb_iter = cb_chain.into_iter();
+
+    let mut container = match cb_iter.next().and_then(DomRoot::downcast::<Element>) {
+        Some(element) => ElementOrDocument::Element(element),
         None => ElementOrDocument::Document(target.owner_document()),
     };
 
@@ -965,14 +969,20 @@ fn compute_the_intersection(
         // >      browsing context’s document; otherwise, update container to be the containing block
         // >      of container.
         // Additionally, for a node that doesn't have an element that establishes its containing block, we should
-        // refer to the browsing context's document.
-        container = match containing_element
-            .upcast::<Node>()
-            .containing_block_node_without_reflow()
-            .and_then(DomRoot::downcast::<Element>)
-        {
-            Some(element) => ElementOrDocument::Element(element),
-            None => ElementOrDocument::Document(containing_element.owner_document()),
+        // refer to the browsing context’s document.
+        container = if let Some(element) = cb_iter.next().and_then(DomRoot::downcast::<Element>) {
+            ElementOrDocument::Element(element)
+        } else {
+            // The pre-computed chain is exhausted. Either we’ve reached the document root,
+            // or we crossed an iframe boundary and need a fresh query.
+            match containing_element
+                .upcast::<Node>()
+                .containing_block_node_without_reflow()
+                .and_then(DomRoot::downcast::<Element>)
+            {
+                Some(element) => ElementOrDocument::Element(element),
+                None => ElementOrDocument::Document(containing_element.owner_document()),
+            }
         };
     }
 

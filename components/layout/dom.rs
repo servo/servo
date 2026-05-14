@@ -336,6 +336,11 @@ pub(crate) trait NodeExt<'dom> {
     fn ensure_inner_layout_data(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
     fn inner_layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
     fn inner_layout_data_mut(&self) -> Option<AtomicRefMut<'dom, InnerDOMLayoutData>>;
+
+    /// Return a reference to the inner layout data without `AtomicRefCell` borrow checking.
+    /// Safe during read-only layout queries where no mutation can occur.
+    fn inner_layout_data_unchecked(&self) -> Option<&'dom InnerDOMLayoutData>;
+
     fn box_slot(&self) -> BoxSlot<'dom>;
 
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
@@ -480,6 +485,18 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 .unwrap()
                 .0
                 .borrow()
+        })
+    }
+
+    #[expect(unsafe_code)]
+    fn inner_layout_data_unchecked(&self) -> Option<&'dom InnerDOMLayoutData> {
+        self.layout_data().map(|data| unsafe {
+            &*data
+                .as_any()
+                .downcast_ref::<DOMLayoutData>()
+                .unwrap()
+                .0
+                .as_ptr()
         })
     }
 
