@@ -98,9 +98,15 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
-        // step 2
-        let output =
-            FileReaderSharedFunctionality::dataurl_format(&blob_contents, blob.Type().to_string());
+        // step 2. package data.
+        // https://w3c.github.io/FileAPI/#blob-package-data
+        let blob_type = blob.Type().to_string();
+        let mime_type = if blob_type.is_empty() {
+            "application/octet-stream".to_string()
+        } else {
+            blob_type
+        };
+        let output = FileReaderSharedFunctionality::dataurl_format(&blob_contents, mime_type);
 
         Ok(output)
     }
