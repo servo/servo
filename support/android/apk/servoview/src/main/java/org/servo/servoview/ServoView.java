@@ -70,7 +70,6 @@ public class ServoView extends SurfaceView
         ArrayList<View> view = new ArrayList<>();
         view.add(this);
         addTouchables(view);
-        setWillNotCacheDrawing(false);
 
         mGLThread = new GLThread(mActivity, this);
         getHolder().addCallback(mGLThread);
@@ -233,8 +232,7 @@ public class ServoView extends SurfaceView
             options.enableSubpixelTextAntialiasing = true;
             options.experimentalMode = mServoView.mExperimentalMode;
 
-            DisplayMetrics metrics = new DisplayMetrics();
-            mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            DisplayMetrics metrics = mActivity.getResources().getDisplayMetrics();
             options.density = metrics.density;
             if (mServoView.mServo == null && !mPaused) {
                 mServoView.mServo = new Servo(
@@ -270,7 +268,7 @@ public class ServoView extends SurfaceView
         public void run() {
             Looper.prepare();
 
-            mGLLooperHandler = new Handler();
+            mGLLooperHandler = new Handler(Looper.myLooper());
 
             Looper.loop();
         }

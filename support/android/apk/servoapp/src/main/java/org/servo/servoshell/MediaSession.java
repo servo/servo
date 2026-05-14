@@ -13,8 +13,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.util.Log;
+
+import androidx.core.content.ContextCompat;
 
 import org.servo.servoview.ServoView;
 
@@ -76,19 +79,17 @@ public class MediaSession {
     }
 
     private void createMediaNotificationChannel() {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          CharSequence name =
-            mContext.getResources().getString(R.string.media_channel_name);
-          String description =
-            mContext.getResources().getString(R.string.media_channel_description);
-          int importance = NotificationManager.IMPORTANCE_LOW;
-          NotificationChannel channel =
-            new NotificationChannel(MEDIA_CHANNEL_ID, name, importance);
-          channel.setDescription(description);
-          NotificationManager notificationManager =
-            mContext.getSystemService(NotificationManager.class);
-          notificationManager.createNotificationChannel(channel);
-      }
+        CharSequence name =
+                mContext.getResources().getString(R.string.media_channel_name);
+        String description =
+          mContext.getResources().getString(R.string.media_channel_description);
+        int importance = NotificationManager.IMPORTANCE_LOW;
+        NotificationChannel channel =
+          new NotificationChannel(MEDIA_CHANNEL_ID, name, importance);
+        channel.setDescription(description);
+        NotificationManager notificationManager =
+          mContext.getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
     }
 
     public void showMediaSessionControls() {
@@ -121,7 +122,7 @@ public class MediaSession {
         id = mNotificationID.get();
       }
 
-      mContext.registerReceiver(mMediaSessionActionReceiver, filter);
+      ContextCompat.registerReceiver(mContext, mMediaSessionActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
       Notification.Builder builder = new Notification.Builder(mContext, MEDIA_CHANNEL_ID);
       builder
@@ -147,17 +148,23 @@ public class MediaSession {
 
       if (mPlaybackState == PLAYBACK_STATE_PAUSED) {
         Intent playIntent = new Intent(KEY_MEDIA_PLAY);
-        Notification.Action playAction =
-          new Notification.Action(R.drawable.media_session_play, "Play",
-            PendingIntent.getBroadcast(mContext, 0, playIntent, PendingIntent.FLAG_IMMUTABLE));
+          Notification.Action playAction =
+                  new Notification.Action.Builder(
+                          Icon.createWithResource(mContext, R.drawable.media_session_play),
+                          "Play",
+                          PendingIntent.getBroadcast(mContext, 0, playIntent, PendingIntent.FLAG_IMMUTABLE)
+                  ).build();
         builder.addAction(playAction);
       }
 
       if (mPlaybackState == PLAYBACK_STATE_PLAYING) {
         Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
-        Notification.Action pauseAction =
-          new Notification.Action(R.drawable.media_session_pause, "Pause",
-            PendingIntent.getBroadcast(mContext, 0, pauseIntent, PendingIntent.FLAG_IMMUTABLE));
+          Notification.Action pauseAction =
+                  new Notification.Action.Builder(
+                          Icon.createWithResource(mContext, R.drawable.media_session_pause),
+                          "Pause",
+                          PendingIntent.getBroadcast(mContext, 0, pauseIntent, PendingIntent.FLAG_IMMUTABLE)
+                  ).build();
         builder.addAction(pauseAction);
       }
 

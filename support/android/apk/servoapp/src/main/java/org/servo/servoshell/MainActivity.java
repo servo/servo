@@ -12,7 +12,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.preference.PreferenceManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -22,6 +21,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import androidx.preference.PreferenceManager;
 
 // Imports for the unused screenshot functionality
 import android.graphics.Bitmap;
