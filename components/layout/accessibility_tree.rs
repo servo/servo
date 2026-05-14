@@ -42,16 +42,13 @@ pub struct AccessibilityTree {
     tree_id: accesskit::TreeId,
     epoch: Epoch,
     tree_state_changes: FxHashMap<accesskit::NodeId, TreeStateChange>,
-    // new_nodes: FxHashSet<accesskit::NodeId>,
-    // fresh_nodes: FxHashSet<accesskit::NodeId>,
-    // stale_nodes: FxHashSet<accesskit::NodeId>,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum TreeStateChange {
     New,
-    Fresh,
-    Stale,
+    Moved,
+    Removed,
 }
 
 impl AccessibilityTree {
@@ -87,7 +84,7 @@ impl AccessibilityTree {
             return None;
         }
 
-        self.drain_tree_state_changes();
+        self.finalize_tree_state_changes();
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
             self.assert_integrity(root_node_id);
@@ -96,9 +93,9 @@ impl AccessibilityTree {
         Some(tree_update.finalize())
     }
 
-    fn drain_tree_state_changes(&mut self) {
+    fn finalize_tree_state_changes(&mut self) {
         for id in self.tree_state_changes.drain().filter_map(|(id, change)| {
-            if change == TreeStateChange::Stale {
+            if change == TreeStateChange::Removed {
                 return Some(id);
             }
             None
@@ -281,7 +278,7 @@ impl AccessibilityNode {
                     let old_child = tree.assert_node_by_id(*old_child_id);
                     old_child
                         .borrow()
-                        .set_subtree_state_change(tree, TreeStateChange::Stale);
+                        .set_subtree_state_change(tree, TreeStateChange::Removed);
                 }
             }
             for new_child_id in new_children.iter() {
@@ -289,7 +286,7 @@ impl AccessibilityNode {
                     let new_child = tree.assert_node_by_id(*new_child_id);
                     new_child
                         .borrow()
-                        .set_subtree_state_change(tree, TreeStateChange::Fresh);
+                        .set_subtree_state_change(tree, TreeStateChange::Moved);
                 }
             }
             self.set_children(new_children);
@@ -299,7 +296,7 @@ impl AccessibilityNode {
     }
 
     fn set_subtree_state_change(&self, tree: &mut AccessibilityTree, change: TreeStateChange) {
-        if change == TreeStateChange::Stale {
+        if change == TreeStateChange::Removed {
             assert_ne!(
                 Some(TreeStateChange::New),
                 tree.tree_state_changes.get(&self.id).copied(),
@@ -307,9 +304,9 @@ impl AccessibilityNode {
             );
 
             tree.tree_state_changes.entry(self.id).or_insert(change);
-        } else if change == TreeStateChange::Fresh {
+        } else if change == TreeStateChange::Moved {
             let old_change = tree.tree_state_changes.get(&self.id);
-            if old_change.is_none() || old_change == Some(&TreeStateChange::Stale) {
+            if old_change.is_none() || old_change == Some(&TreeStateChange::Removed) {
                 tree.tree_state_changes.insert(self.id, change);
             }
         }
