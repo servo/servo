@@ -71,7 +71,10 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         // > Return bytes as a binary string, in which every byte
         // > is represented by a code unit of equal value [0..255].
         Ok(DOMString::from(
-            blob_contents.iter().map(|&byte| byte as char).collect::<String>(),
+            blob_contents
+                .iter()
+                .map(|&byte| byte as char)
+                .collect::<String>(),
         ))
     }
 
