@@ -203,10 +203,12 @@ impl HTMLSlotElement {
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
     fn find_flattened_slottables(&self, result: &mut RootedVec<Slottable>) {
         // Step 1. Let result be an empty list.
-        debug_assert!(result.is_empty());
+        // NOTE: In our case "result" is not necessarily empty, because it contains
+        // the results of multiple successive calls to "find_flattened_slottables". This method
+        // only appends to it, so that doesn't matter.
 
         // Step 2. If slot’s root is not a shadow root, then return result.
-        if self.upcast::<Node>().containing_shadow_root().is_none() {
+        if !self.upcast::<Node>().is_in_a_shadow_tree() {
             return;
         };
 
@@ -233,18 +235,10 @@ impl HTMLSlotElement {
         for slottable in slottables.iter() {
             // Step 5.1 If node is a slot whose root is a shadow root:
             match slottable.0.downcast::<HTMLSlotElement>() {
-                Some(slot_element)
-                    if slot_element
-                        .upcast::<Node>()
-                        .containing_shadow_root()
-                        .is_some() =>
-                {
+                Some(slot_element) if slot_element.upcast::<Node>().is_in_a_shadow_tree() => {
                     // Step 5.1.1 Let temporaryResult be the result of finding flattened slottables given node.
-                    rooted_vec!(let mut temporary_result);
-                    slot_element.find_flattened_slottables(&mut temporary_result);
-
                     // Step 5.1.2 Append each slottable in temporaryResult, in order, to result.
-                    result.extend_from_slice(&temporary_result);
+                    slot_element.find_flattened_slottables(result);
                 },
                 // Step 5.2 Otherwise, append node to result.
                 _ => {
