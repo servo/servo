@@ -189,6 +189,120 @@ int test_preferences_f64_array4_roundtrip(void) {
     return 0;
 }
 
+int test_rendering_context_create_and_free(void) {
+    RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
+    if (ctx == NULL) return 1;
+    servo_rendering_context_free(ctx);
+    return 0;
+}
+
+int test_rendering_context_zero_size_returns_null(void) {
+    RenderingContext *ctx = servo_rendering_context_create_software(0, 0);
+    if (ctx != NULL) {
+        servo_rendering_context_free(ctx);
+        return 1;
+    }
+    return 0;
+}
+
+/* A singleton Servo instance shared by all WebView tests.
+ * Servo has global state that can only be initialized once per process. */
+static struct Servo *test_servo = NULL;
+
+// Helper function that creates a minimal Servo instance.
+static struct Servo *create_test_servo(void) {
+    if (test_servo != NULL) return test_servo;
+
+    ServoBuilder *builder = servo_builder_create();
+    if (builder == NULL) return NULL;
+
+    struct ServoEventLoopWaker waker = { noop_wake_callback };
+    servo_builder_set_event_loop_waker(builder, waker);
+
+    ServoOptions *options = servo_options_create();
+    if (options != NULL) {
+        servo_options_set_multiprocess(options, false);
+        servo_builder_set_options(builder, options);
+    }
+
+    test_servo = servo_builder_build(builder);
+    if (test_servo != NULL) {
+        servo_setup_logging(test_servo);
+    }
+    return test_servo;
+}
+
+static void free_test_servo(void) {
+    if (test_servo != NULL) {
+        servo_free(test_servo);
+        test_servo = NULL;
+    }
+}
+
+int test_webview_builder_create_and_free(void) {
+    struct Servo *servo = create_test_servo();
+    if (servo == NULL) return 1;
+
+    RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
+    if (ctx == NULL) return 1;
+
+    ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
+    if (wvb == NULL) {
+        servo_rendering_context_free(ctx);
+        return 1;
+    }
+
+    servo_webview_builder_free(wvb);
+    return 0;
+}
+
+int test_webview_builder_set_url_valid(void) {
+    struct Servo *servo = create_test_servo();
+    if (servo == NULL) return 1;
+
+    RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
+    if (ctx == NULL) return 1;
+
+    ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
+    int ret = servo_webview_builder_set_url(wvb, "https://example.com");
+    servo_webview_builder_free(wvb);
+    return (ret == 0) ? 0 : 1;
+}
+
+int test_webview_builder_set_url_invalid(void) {
+    struct Servo *servo = create_test_servo();
+    if (servo == NULL) return 1;
+
+    RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
+    if (ctx == NULL) return 1;
+
+    ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
+    int ret = servo_webview_builder_set_url(wvb, "not a valid url !!!");
+    servo_webview_builder_free(wvb);
+    return (ret == -1) ? 0 : 1;
+}
+
+int test_webview_builder_build(void) {
+    struct Servo *servo = create_test_servo();
+    if (servo == NULL) return 1;
+
+    RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
+    if (ctx == NULL) return 1;
+
+    ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
+    int ret = servo_webview_builder_set_url(wvb, "about:blank");
+    if (ret != 0) {
+        servo_webview_builder_free(wvb);
+        return 1;
+    }
+
+    struct WebView *wv = servo_webview_builder_build(wvb);
+    if (wv == NULL) return 1;
+
+    servo_webview_free(wv);
+    return 0;
+}
+
 int run_c_api_tests(void) {
     tests_run = 0;
     tests_failed = 0;
@@ -205,6 +319,14 @@ int run_c_api_tests(void) {
     RUN_TEST(test_preferences_u64_roundtrip);
     RUN_TEST(test_preferences_string_roundtrip);
     RUN_TEST(test_preferences_f64_array4_roundtrip);
+    RUN_TEST(test_rendering_context_create_and_free);
+    RUN_TEST(test_rendering_context_zero_size_returns_null);
+    RUN_TEST(test_webview_builder_create_and_free);
+    RUN_TEST(test_webview_builder_set_url_valid);
+    RUN_TEST(test_webview_builder_set_url_invalid);
+    RUN_TEST(test_webview_builder_build);
+
+    free_test_servo();
 
     printf("\n%d tests, %d passed, %d failed\n",
            tests_run, tests_run - tests_failed, tests_failed);

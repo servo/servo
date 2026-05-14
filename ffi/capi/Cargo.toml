@@ -20,8 +20,12 @@ capi = [] # Needed by `cargo-c`.
 # exposed here for conditional compilation of C API.
 
 [dependencies]
+dpi = { workspace = true }
 log = { workspace = true }
-servo = { workspace = true, features = ["js_jit"] }
+# TODO: We need 'baked-in-resources' as the `inventory` based `ResourceReader`
+# doesn't work when libservo is a cdylib.
+servo = { workspace = true, features = ["js_jit", "baked-in-resources"] }
+url = { workspace = true }
 
 [package.metadata.capi.header]
 subdirectory = "servo"

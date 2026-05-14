@@ -4,7 +4,9 @@
 
 mod options;
 mod preferences;
+mod rendering_context;
 mod servo;
+mod webview;
 
 extern crate servo as servo_api;
 
