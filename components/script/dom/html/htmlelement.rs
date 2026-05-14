@@ -777,7 +777,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
+            .set_attribute(cx, &local_name!("tabindex"), tab_index.into());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey

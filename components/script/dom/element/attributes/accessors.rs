@@ -101,7 +101,7 @@ impl Element {
         local_name: &LocalName,
         value: DOMString,
     ) {
-        self.set_attribute(cx, local_name, AttrValue::String(value.into()));
+        self.set_attribute(cx, local_name, value.str().to_string().into());
     }
 
     /// Used for string attribute reflections where absence of the attribute returns `null`,
@@ -154,19 +154,6 @@ impl Element {
         );
     }
 
-    pub(crate) fn set_atomic_tokenlist_attribute(
-        &self,
-        cx: &mut JSContext,
-        local_name: &LocalName,
-        tokens: Vec<Atom>,
-    ) {
-        self.set_attribute(cx, local_name, AttrValue::from_atomic_tokens(tokens));
-    }
-
-    pub(crate) fn set_int_attribute(&self, cx: &mut JSContext, local_name: &LocalName, value: i32) {
-        self.set_attribute(cx, local_name, AttrValue::Int(value.to_string(), value));
-    }
-
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
         match self.get_attribute(local_name) {
             Some(ref attribute) => match *attribute.value() {
@@ -177,31 +164,44 @@ impl Element {
         }
     }
 
-    pub(crate) fn set_uint_attribute(
-        &self,
-        cx: &mut JSContext,
-        local_name: &LocalName,
-        value: u32,
-    ) {
-        self.set_attribute(cx, local_name, AttrValue::UInt(value.to_string(), value));
-    }
-
     /// Ensure that for styles, we clone the already-parsed property declaration block.
     /// This does two things:
     /// 1. It uses the same fast-path as CSSStyleDeclaration
     /// 2. It also avoids the CSP checks when cloning (it shouldn't run any when cloning
     ///    existing valid attributes)
     fn compute_attribute_value_with_style_fast_path(&self, attr: AttrRef<'_>) -> AttrValue {
-        if *attr.local_name() == local_name!("style") &&
-            let Some(ref pdb) = *self.style_attribute().borrow()
-        {
+        if *attr.local_name() == local_name!("style") {
             let document = self.owner_document();
-            let shared_lock = document.style_shared_author_lock();
-            let new_pdb = pdb.read_with(&shared_lock.read()).clone();
-            return AttrValue::Declaration(
-                (**attr.value()).to_owned(),
-                ServoArc::new(shared_lock.wrap(new_pdb)),
-            );
+
+            if let AttrValue::Declaration {
+                block,
+                lock,
+                serialization,
+            } = &*attr.value()
+            {
+                // Even though the property declaration block inside this AttrValue will
+                // be replaced, the serialization will be exactly the same, so preserve
+                // that instead of re-serializing.
+                let cloned_block = block.read_with(&lock.read()).clone();
+                return AttrValue::Declaration {
+                    block: ServoArc::new(lock.wrap(cloned_block)),
+                    lock: lock.clone(),
+                    serialization: serialization.clone(),
+                };
+            }
+
+            if let Some(ref pdb) = *self.style_attribute().borrow() {
+                let shared_lock = document.style_shared_author_lock();
+                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
+                return AttrValue::Declaration {
+                    block: ServoArc::new(shared_lock.wrap(new_pdb)),
+                    lock: shared_lock.clone(),
+                    // The style attribute was not set via a declaration, so try to
+                    // preserve any serialization that existed before instead of
+                    // re-serializing.
+                    serialization: (**attr.value()).to_owned().into(),
+                };
+            }
         }
 
         attr.value().clone()

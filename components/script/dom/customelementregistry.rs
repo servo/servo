@@ -22,6 +22,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
+use style::attr::AttrValue;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::DomTypeHolder;
@@ -867,6 +868,10 @@ impl CustomElementDefinition {
 
         Ok(element)
     }
+
+    pub(crate) fn has_attribute_changed_callback(&self) -> bool {
+        self.callbacks.attribute_changed_callback.is_some()
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
@@ -893,11 +898,10 @@ pub(crate) fn upgrade_element(
     let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
     for attr in element.attrs().borrow().iter() {
         let local_name = attr.local_name().clone();
-        let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
         custom_element_reaction_stack.enqueue_callback_reaction(
             element,
-            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace),
+            CallbackReaction::AttributeChanged(local_name, None, Some(&*attr.value()), namespace),
             Some(definition.clone()),
         );
     }
@@ -1111,11 +1115,16 @@ impl CustomElementReaction {
     }
 }
 
-pub(crate) enum CallbackReaction {
+pub(crate) enum CallbackReaction<'a> {
     Connected,
     Disconnected,
     Adopted(DomRoot<Document>, DomRoot<Document>),
-    AttributeChanged(LocalName, Option<DOMString>, Option<DOMString>, Namespace),
+    AttributeChanged(
+        LocalName,
+        Option<&'a AttrValue>,
+        Option<&'a AttrValue>,
+        Namespace,
+    ),
     FormAssociated(Option<DomRoot<HTMLFormElement>>),
     FormDisabled(bool),
     FormReset,
