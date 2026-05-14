@@ -302,7 +302,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         self.setter_common(cx, |_copy_url| {
             // Step 3: Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object. If that failed,
             // throw a "SyntaxError" DOMException.
-            let url = match self.window.Document().encoding_parse_a_url(&url.0) {
+            let url = match self.entry_settings_object().encoding_parse_a_url(&url.0) {
                 Ok(url) => url,
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
