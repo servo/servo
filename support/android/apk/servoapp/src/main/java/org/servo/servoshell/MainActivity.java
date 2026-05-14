@@ -73,9 +73,7 @@ public class MainActivity extends Activity implements Servo.Client {
     }
     Settings mSettings;
 
-    private final View.OnClickListener actionClickListener = v -> {
-        dispatchAction(v.getId());
-    };
+    private final View.OnClickListener actionClickListener = v -> dispatchAction(v.getId());
 
     // Binds a click listener to a View if it exists.
     // Useful for handling buttons that only exist in the tablet+ layout

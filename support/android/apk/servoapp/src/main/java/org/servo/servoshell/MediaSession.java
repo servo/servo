@@ -14,7 +14,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.drawable.Icon;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.core.content.ContextCompat;
@@ -130,7 +129,7 @@ public class MediaSession {
         .setContentTitle(mTitle)
         .setVisibility(Notification.VISIBILITY_PUBLIC);
 
-      String contentText = new String();
+      String contentText = "";
       if (mArtist != null && !mArtist.isEmpty()) {
         contentText = mArtist;
       }
