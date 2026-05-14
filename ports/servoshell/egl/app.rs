@@ -183,12 +183,11 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     fn show_embedder_control(&self, _: WebViewId, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
-            EmbedderControl::InputMethod(input_method_control) => {
-                if input_method_control.allow_virtual_keyboard() {
+            EmbedderControl::InputMethod(input_method_control)
+                if input_method_control.allow_virtual_keyboard() => {
                     self.visible_input_methods.borrow_mut().push(control_id);
                     self.host.on_ime_show(input_method_control);
-                }
-            },
+                },
             EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
                 SimpleDialog::Alert(alert_dialog) => {
                     self.host.show_alert(alert_dialog.message().into());
@@ -352,7 +351,7 @@ impl App {
             current_load_status: Default::default(),
         });
         self.state
-            .open_window(platform_window.clone(), self.initial_url.clone());
+            .open_window(platform_window, self.initial_url.clone());
     }
 
     pub(crate) fn servo(&self) -> &Servo {
@@ -367,7 +366,7 @@ impl App {
         self.state
             .focused_window()
             .expect("There is always an active window")
-            .clone()
+            
     }
 
     pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
