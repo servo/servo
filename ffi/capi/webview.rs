@@ -185,15 +185,97 @@ pub unsafe extern "C" fn servo_webview_builder_free(builder: *mut ServoWebViewBu
     }
 }
 
-/// Destroys the `WebView` instance and frees its memory.
+/// Paints the contents of the `WebView` to the rendering context's
+/// surface.
 ///
-/// Takes ownership of `webview`. The caller must not use or free `webview` again.
+/// Should be called when the embedder receives a
+/// [`notify_new_frame_ready`] notification via [`ServoWebViewDelegate`]
+/// or when a repaint is needed for other reasons.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` remains with the caller after the call.
 ///
 /// # Safety
 ///
-/// The caller must ensure that `webview` was previously returned by
-/// `servo_webview_builder_build` and has not yet been freed nor passed to
-/// another API that takes ownership of it.
+/// The caller must ensure that:
+///
+/// - `webview` is a non-null pointer to a `WebView` previously returned
+///   by `servo_webview_builder_build` and not yet passed to
+///   `servo_webview_free`. No other code may read or write `*webview`
+///   for the duration of this call.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_paint(webview: *mut WebView) {
+    assert!(!webview.is_null(), "webview pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `webview` documented above.
+    let webview = unsafe { &*webview };
+
+    webview.paint();
+}
+
+/// Loads the given URL into the `WebView`.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` remains with the caller after the call.
+///
+/// `url` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `url` remains with the caller after the call.
+///
+/// Returns 0 on success, or -1 if the URL could not be parsed.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `webview` is a non-null pointer to a `WebView` previously returned
+///   by `servo_webview_builder_build` and not yet passed to
+///   `servo_webview_free`. No other code may read or write `*webview`
+///   for the duration of this call.
+/// - `url` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_load(webview: *mut WebView, url: *const c_char) -> i32 {
+    assert!(!webview.is_null(), "webview pointer must not be null");
+    assert!(!url.is_null(), "url pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `webview` documented above.
+    let webview = unsafe { &*webview };
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `url` documented above.
+    let url_str = unsafe { CStr::from_ptr(url) }.to_str().unwrap();
+
+    match url::Url::parse(url_str) {
+        Ok(parsed) => {
+            webview.load(parsed);
+            0
+        },
+        Err(_) => -1,
+    }
+}
+
+/// Destroys the `WebView` instance and frees its memory.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` is transferred to the function. The
+/// caller must not use or free `webview` again.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `webview` was previously returned by `servo_webview_builder_build`
+///   and has not yet been freed nor passed to another API that takes
+///   ownership of it.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_free(webview: *mut WebView) {
     assert!(!webview.is_null(), "webview pointer must not be null");
