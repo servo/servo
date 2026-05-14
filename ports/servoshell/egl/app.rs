@@ -239,12 +239,24 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct VsyncRefreshDriver {
     start_frame_callbacks: RefCell<Vec<Box<dyn Fn() + Send>>>,
+    /// On OHOS we own the `OH_NativeVSync` handle and request a single callback
+    /// only when an observer asks for one.
+    #[cfg(target_env = "ohos")]
+    native_vsync: ohos_vsync::NativeVsync,
 }
 
 impl VsyncRefreshDriver {
+    pub(crate) fn new() -> Self {
+        Self {
+            start_frame_callbacks: Default::default(),
+            #[cfg(target_env = "ohos")]
+            native_vsync: ohos_vsync::NativeVsync::new("ServoVsync")
+                .expect("Failed to create NativeVsync"),
+        }
+    }
+
     fn notify_vsync(&self) {
         let start_frame_callbacks: Vec<_> =
             self.start_frame_callbacks.borrow_mut().drain(..).collect();
@@ -256,9 +268,20 @@ impl VsyncRefreshDriver {
 
 impl RefreshDriver for VsyncRefreshDriver {
     fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
-        self.start_frame_callbacks
-            .borrow_mut()
-            .push(new_start_frame_callback);
+        // We only need to request a vsync callback if the queue is empty,
+        // otherwise we will already have a pending callback.
+        let was_empty = {
+            let mut callbacks = self.start_frame_callbacks.borrow_mut();
+            let was_empty = callbacks.is_empty();
+            callbacks.push(new_start_frame_callback);
+            was_empty
+        };
+        #[cfg(target_env = "ohos")]
+        if was_empty {
+            super::ohos::request_vsync_callback(&self.native_vsync);
+        }
+        #[cfg(not(target_env = "ohos"))]
+        let _ = was_empty;
     }
 }
 
@@ -326,7 +349,7 @@ impl App {
         window_id: Option<ServoShellWindowId>,
     ) {
         let viewport_size = viewport_rect.size;
-        let refresh_driver = Rc::new(VsyncRefreshDriver::default());
+        let refresh_driver = Rc::new(VsyncRefreshDriver::new());
         let rendering_context = Rc::new(
             WindowRenderingContext::new_with_refresh_driver(
                 display_handle,
@@ -634,8 +657,6 @@ impl App {
         }
     }
 
-    // TODO: Instead of letting the embedder drive the RefreshDriver we should move the vsync
-    // notification directly into the VsyncRefreshDriver.
     pub fn notify_vsync(&self) {
         let platform_window = self.window().platform_window();
         let embedded_platform_window = platform_window
