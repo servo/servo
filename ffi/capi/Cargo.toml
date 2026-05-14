@@ -1,0 +1,30 @@
+[package]
+name = "servo-capi"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "C API for the Servo rendering engine"
+
+[lib]
+name = "servo_capi"
+path = "lib.rs"
+crate-type = ["cdylib"]
+
+[features]
+capi = [] # Needed by `cargo-c`.
+# TODO: Need to think about which features from servo can be
+# exposed here for conditional compilation of C API.
+
+[dependencies]
+log = { workspace = true }
+servo = { workspace = true, features = ["js_jit"] }
+
+[package.metadata.capi.header]
+subdirectory = "servo"
+
+[package.metadata.capi.library]
+name = "servo_capi"

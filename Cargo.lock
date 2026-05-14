@@ -7728,6 +7728,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-capi"
+version = "0.2.0"
+dependencies = [
+ "log",
+ "servo",
+]
+
+[[package]]
+name = "servo-capi-tests"
+version = "0.2.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "servo-config"
 version = "0.3.0"
 dependencies = [

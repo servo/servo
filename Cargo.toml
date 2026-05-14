@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "ffi/capi",
+    "ffi/capi_tests",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",

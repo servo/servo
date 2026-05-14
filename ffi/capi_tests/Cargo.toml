@@ -1,0 +1,18 @@
+[package]
+name = "servo-capi-tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish = false # This crate is only for testing.
+rust-version.workspace = true
+repository.workspace = true
+description = "Integration tests for C API of servo"
+
+[lib]
+name = "servo_capi_tests"
+path = "lib.rs"
+
+[build-dependencies]
+cc = "1"
+
