@@ -4,6 +4,7 @@
 
 mod options;
 mod preferences;
+mod servo;
 
 extern crate servo as servo_api;
 
