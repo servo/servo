@@ -41,8 +41,17 @@ pub struct AccessibilityTree {
     opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
-    new_nodes: FxHashSet<accesskit::NodeId>,
-    stale_nodes: FxHashSet<accesskit::NodeId>,
+    tree_state_changes: FxHashMap<accesskit::NodeId, TreeStateChange>,
+    // new_nodes: FxHashSet<accesskit::NodeId>,
+    // fresh_nodes: FxHashSet<accesskit::NodeId>,
+    // stale_nodes: FxHashSet<accesskit::NodeId>,
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum TreeStateChange {
+    New,
+    Fresh,
+    Stale,
 }
 
 impl AccessibilityTree {
@@ -52,8 +61,7 @@ impl AccessibilityTree {
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
             epoch,
-            new_nodes: FxHashSet::default(),
-            stale_nodes: FxHashSet::default(),
+            tree_state_changes: FxHashMap::default(),
         }
     }
 
@@ -75,22 +83,33 @@ impl AccessibilityTree {
         let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
-            assert!(self.new_nodes.is_empty());
-            assert!(self.stale_nodes.is_empty());
+            assert!(self.tree_state_changes.is_empty());
             return None;
         }
 
-        self.new_nodes.clear();
-
-        for stale_id in self.stale_nodes.drain() {
-            assert!(self.nodes.remove(&stale_id).is_some());
-        }
+        self.drain_tree_state_changes();
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
             self.assert_integrity(root_node_id);
         }
 
         Some(tree_update.finalize())
+    }
+
+    fn drain_tree_state_changes(&mut self) {
+        for id in self.tree_state_changes.drain().filter_map(|(id, change)| {
+            if change == TreeStateChange::Stale {
+                return Some(id);
+            }
+            None
+        }) {
+            let Some(node) = self.nodes.remove(&id) else {
+                continue;
+            };
+            if let Some(opaque_node) = node.borrow().opaque_node {
+                self.opaque_node_to_id.remove(&opaque_node);
+            }
+        }
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -122,10 +141,10 @@ impl AccessibilityTree {
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
 
-        let node = self
-            .nodes
-            .entry(id)
-            .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
+        let node = self.nodes.entry(id).or_insert_with(|| {
+            self.tree_state_changes.insert(id, TreeStateChange::New);
+            ArcRefCell::new(AccessibilityNode::new(id))
+        });
 
         let mut new_node = node.borrow_mut();
 
@@ -203,9 +222,6 @@ impl AccessibilityTree {
         // Dangling references are already caught in the loop above.
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
 
-        // Nodes can't be both new and stale.
-        assert!(self.stale_nodes.is_disjoint(&self.new_nodes));
-
         eprintln!("End of assert_integrity()");
     }
 }
@@ -263,13 +279,17 @@ impl AccessibilityNode {
             for old_child_id in old_children {
                 if !new_children.contains(old_child_id) {
                     let old_child = tree.assert_node_by_id(*old_child_id);
-                    old_child.borrow().mark_subtree_stale(tree);
+                    old_child
+                        .borrow()
+                        .set_subtree_state_change(tree, TreeStateChange::Stale);
                 }
             }
             for new_child_id in new_children.iter() {
                 if !old_children.contains(new_child_id) {
                     let new_child = tree.assert_node_by_id(*new_child_id);
-                    new_child.borrow().mark_subtree_fresh(tree);
+                    new_child
+                        .borrow()
+                        .set_subtree_state_change(tree, TreeStateChange::Fresh);
                 }
             }
             self.set_children(new_children);
@@ -278,28 +298,25 @@ impl AccessibilityNode {
         any_descendant_updated
     }
 
-    fn mark_subtree_stale(&self, tree: &mut AccessibilityTree) {
-        // If the node was moved to a point in the tree that’s earlier in the traversal,
-        // we know that it’s not stale.
-        if !tree.new_nodes.contains(&self.id) {
-            // If the node is moved to a point in the tree that’s later in the traversal,
-            // we will remove it from `stale_nodes` in `AccessibilityTree::get_or_create_node()`.
-            tree.stale_nodes.insert(self.id);
+    fn set_subtree_state_change(&self, tree: &mut AccessibilityTree, change: TreeStateChange) {
+        if change == TreeStateChange::Stale {
+            assert_ne!(
+                Some(TreeStateChange::New),
+                tree.tree_state_changes.get(&self.id).copied(),
+                "New nodes can't become stale within the same update"
+            );
+
+            tree.tree_state_changes.entry(self.id).or_insert(change);
+        } else if change == TreeStateChange::Fresh {
+            let old_change = tree.tree_state_changes.get(&self.id);
+            if old_change.is_none() || old_change == Some(&TreeStateChange::Stale) {
+                tree.tree_state_changes.insert(self.id, change);
+            }
         }
 
         for child_id in self.children().to_vec() {
             let child = tree.assert_node_by_id(child_id);
-            child.borrow().mark_subtree_stale(tree);
-        }
-    }
-
-    fn mark_subtree_fresh(&self, tree: &mut AccessibilityTree) {
-        tree.stale_nodes.remove(&self.id);
-        tree.new_nodes.insert(self.id);
-
-        for child_id in self.children().to_vec() {
-            let child = tree.assert_node_by_id(child_id);
-            child.borrow().mark_subtree_fresh(tree);
+            child.borrow().set_subtree_state_change(tree, change);
         }
     }
 
