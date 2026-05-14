@@ -9,6 +9,7 @@ use std::rc::Rc;
 use servo_api::{Servo, WebView, WebViewBuilder};
 
 use crate::rendering_context::RenderingContext;
+use crate::webview_delegate::ServoWebViewDelegate;
 
 /// An opaque struct representing a builder object for constructing new
 /// `WebView`s.
@@ -25,6 +26,7 @@ pub struct ServoWebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn servo_api::RenderingContext>,
     url: Option<url::Url>,
+    delegate: Option<ServoWebViewDelegate>,
 }
 
 /// Creates a handle to a new `WebViewBuilder` object for the given
@@ -75,6 +77,7 @@ pub unsafe extern "C" fn servo_webview_builder_create(
         servo: servo.clone(),
         rendering_context: c_ctx.inner,
         url: None,
+        delegate: None,
     }))
 }
 
@@ -124,6 +127,37 @@ pub unsafe extern "C" fn servo_webview_builder_set_url(
     }
 }
 
+/// Sets the delegate that will receive notification for `WebView` events.
+///
+/// `builder` is a handle to a `ServoWebViewBuilder` object.
+/// The ownership of `builder` remains with the caller after the call.
+///
+/// `delegate` is a `ServoWebViewDelegate` struct with callbacks
+/// for the notifications you are interested in.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `builder` is a non-null pointer to a `ServoWebViewBuilder`
+///   previously returned by `servo_webview_builder_create` and has not
+///   yet been freed nor passed to another API that takes ownership of
+///   it.
+/// - `delegate` must uphold the safety requirements documented on the
+///    `ServoWebViewDelegate` type.
+///
+/// Servo copies the delegate's function pointers — they must remain
+/// valid for the lifetime of the `WebView` (or until a new delegate is set).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_builder_set_delegate(
+    builder: *mut ServoWebViewBuilder,
+    delegate: ServoWebViewDelegate,
+) {
+    assert!(!builder.is_null(), "builder pointer must not be null");
+    let builder = unsafe { &mut *builder };
+    builder.delegate = Some(delegate);
+}
+
 /// Consumes `builder` and creates a new `WebView` instance.
 ///
 /// `builder` is a handle to a `ServoWebViewBuilder` object.
@@ -156,6 +190,10 @@ pub unsafe extern "C" fn servo_webview_builder_build(
 
     if let Some(url) = builder.url {
         webview_builder = webview_builder.url(url);
+    }
+
+    if let Some(delegate) = builder.delegate {
+        webview_builder = webview_builder.delegate(std::rc::Rc::new(delegate));
     }
 
     Box::into_raw(Box::new(webview_builder.build()))

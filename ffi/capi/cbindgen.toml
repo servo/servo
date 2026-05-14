@@ -13,9 +13,9 @@ rename_variants = "ScreamingSnakeCase"
 prefix_with_name = true
 
 [export]
-include = ["DiagnosticsLoggingOption", "ScreenshotCaptureError"]
+include = ["DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError"]
 
 [export.rename]
 "DiagnosticsLoggingOption" = "ServoDiagnosticsLoggingOption"
+"LoadStatus" = "ServoLoadStatus"
 "ScreenshotCaptureError" = "ServoScreenshotCaptureError"
-
