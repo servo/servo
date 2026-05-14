@@ -2,9 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::{env, fs};
+
+fn find_and_copy_dll(dll_name: &str, src_dir: &Path, dest_dir: &Path) -> bool {
+    fn scan_dir(dll_name: &str, src_dir: &Path, dest_dir: &Path) -> bool {
+        let Ok(entries) = fs::read_dir(src_dir) else {
+            return false;
+        };
+
+        let paths = entries.filter_map(|entry| entry.ok().map(|entry| entry.path()));
+
+        for path in paths {
+            if path.is_dir() {
+                if scan_dir(dll_name, &path, dest_dir) {
+                    return true;
+                }
+            } else if path
+                .file_name()
+                .is_some_and(|file_name| file_name == dll_name)
+            {
+                let dest = dest_dir.join(dll_name);
+                fs::copy(&path, &dest)
+                    .unwrap_or_else(|e| panic!("error when copying {}: {}", dll_name, e));
+                eprintln!("'copied '{}' to '{}'", path.display(), dest.display());
+                return true;
+            }
+        }
+
+        false
+    }
+
+    if !scan_dir(dll_name, src_dir, dest_dir) {
+        eprintln!("DLL '{dll_name}' not found in {}", src_dir.display());
+        return false;
+    }
+
+    true
+}
 
 fn main() {
     let crate_dir = PathBuf::from(
@@ -100,6 +136,24 @@ fn main() {
                 fs::copy(&path, &dest).expect("failed to copy DLL");
                 eprintln!("'{}' copied to '{}'", path.display(), dest.display());
             }
+        }
+
+        // Windows also needs the ANGLE DLLs to be present in the test binary directory.
+        let search_dir = cinstall_target_dir
+            .join(&target)
+            .join(profile_dir)
+            .join("build");
+        eprintln!("Searching for ANGLE DLLs in {}:", search_dir.display());
+        let copied = if search_dir.exists() {
+            ["libEGL.dll", "libGLESv2.dll"]
+                .iter()
+                .all(|dll_name| find_and_copy_dll(dll_name, &search_dir, &test_binary_dir))
+        } else {
+            panic!("cargo cinstall's build directory not found");
+        };
+
+        if !copied {
+            panic!("Unable to copy required DLLs");
         }
     }
 

@@ -27,6 +27,12 @@ log = { workspace = true }
 servo = { workspace = true, features = ["js_jit", "baked-in-resources"] }
 url = { workspace = true }
 
+# TODO: ANGLE is needed on Windows to provide libEGL.dll and libGLESv2.dll
+# for surfman's EGL backend. WGL doesn't work at least on CI.
+# This should be eventually be exposed as a feature of this crate.
+[target.'cfg(target_os = "windows")'.dependencies]
+servo = { workspace = true, features = ["no-wgl"] }
+
 [package.metadata.capi.header]
 subdirectory = "servo"
 
