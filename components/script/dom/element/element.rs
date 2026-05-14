@@ -4429,15 +4429,13 @@ impl VirtualMethods for Element {
             },
             local_name!("slot") => {
                 // Update slottable data
-                let cx = GlobalScope::get_cx();
-
-                rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+                rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
 
                 // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
                 if let Some(assigned_slot) = slottable.assigned_slot() {
-                    assigned_slot.assign_slottables();
+                    assigned_slot.assign_slottables(cx.no_gc());
                 }
-                slottable.assign_a_slot();
+                slottable.assign_a_slot(cx.no_gc());
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
