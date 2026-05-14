@@ -338,39 +338,26 @@ impl ServiceWorkerManager {
         // Note: done using the channel from which this message was received.
 
         // Step 2: Let clientURLString be serialized clientURL.
-        // Note: using urls directly below, so skipping the serialization step.
+        let client_url_string = client_url.as_str();
 
         // Step 3: Let matchingScopeString be the empty string.
-        // Note: using the url.
-        let mut matching_scope_string: Option<ServoUrl> = None;
+        let mut matching_scope_string = String::new();
 
         // Step 4: Let scopeStringSet be an empty list.
-        // Note: using servo urls.
         let mut scope_string_set = Vec::new();
 
         // Step 5: For each (entry storage key, entry scope) of registration map’s keys:
-        for (entry_scope, registration) in &self.registrations {
-            // Note: we use the newest worker script URL's origin as the storage key for the registration.
-            // TODO: store the key on the registration itself to avoid using the newest worker's script URL.
-            let Some(newest_worker) = registration.get_newest_worker() else {
-                continue;
-            };
-
-            // Step 5.1: If storage key equals entry storage key, then append entry scope to the end of scopeStringSet.
-            if storage_key == newest_worker.script_url.origin() {
-                scope_string_set.push(entry_scope.clone());
+        for (entry_storage_key, entry_scope) in self.registrations.keys().map(|k| (k.origin(), k)) {
+            // Step 5.1. If storage key equals entry storage key, then append entry scope to the end of scopeStringSet.
+            if storage_key == entry_storage_key {
+                scope_string_set.push(entry_scope.as_str());
             }
         }
 
         // Step 6: Set matchingScopeString to the longest value in scopeStringSet which the value of clientURLString starts with, if it exists.
-        for scope_string in scope_string_set {
-            let len = matching_scope_string
-                .as_ref()
-                .map(|s| s.as_str().len())
-                .unwrap_or(0);
-            if longest_prefix_match(&scope_string, &client_url) && scope_string.as_str().len() > len
-            {
-                matching_scope_string = Some(scope_string);
+        for scope in scope_string_set {
+            if client_url_string.starts_with(scope) && scope.len() > matching_scope_string.len() {
+                matching_scope_string = scope.to_owned();
             }
         }
 
@@ -378,9 +365,19 @@ impl ServiceWorkerManager {
         let mut matching_scope = None;
 
         // Step 8: If matchingScopeString is not the empty string, then:
-        if let Some(matching_scope_string) = matching_scope_string {
-            // Step 8.1: Set matchingScope to the result of parsing matchingScopeString.
-            matching_scope = Some(matching_scope_string);
+        if !matching_scope_string.is_empty() {
+            // Step 8.1. Set matchingScope to the result of parsing matchingScopeString.
+            let Ok(parsed_matching_scope) = ServoUrl::parse(&matching_scope_string) else {
+                error!("Failed to parse matching scope string as URL.");
+                if result_handler
+                    .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(None))
+                    .is_err()
+                {
+                    warn!("Failed to send match registration result to script.");
+                }
+                return;
+            };
+            matching_scope = Some(parsed_matching_scope);
 
             // Step 8.2: Assert: matchingScope’s origin and clientURL’s origin are same origin.
             debug_assert_eq!(
