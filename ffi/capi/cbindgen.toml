@@ -7,3 +7,14 @@ language = "C"
 [parse]
 parse_deps = true
 include = ["servo", "servo-config"]
+
+[enum]
+rename_variants = "ScreamingSnakeCase"
+prefix_with_name = true
+
+[export]
+include = ["DiagnosticsLoggingOption"]
+
+[export.rename]
+"DiagnosticsLoggingOption" = "ServoDiagnosticsLoggingOption"
+

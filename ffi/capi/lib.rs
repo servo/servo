@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod options;
+
 extern crate servo as servo_api;
+
+use options::ServoOptions;
 
 // cbindgen:opaque
 #[derive(Default)]
 pub struct ServoBuilder {
+    opts: Option<Box<ServoOptions>>,
     event_loop_waker: ServoEventLoopWaker,
 }
 
@@ -45,6 +50,20 @@ pub unsafe extern "C" fn servo_builder_create() -> *mut ServoBuilder {
     Box::into_raw(Box::new(ServoBuilder::default()))
 }
 
+/// Takes ownership of `options`. The caller must not use or free `options` again.
+/// This function will free the previously set options, if any.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_builder_set_options(
+    builder: *mut ServoBuilder,
+    options: *mut ServoOptions,
+) {
+    assert!(!builder.is_null(), "builder pointer must not be null");
+    assert!(!options.is_null(), "options pointer must not be null");
+    unsafe {
+        (*builder).opts = Some(Box::from_raw(options));
+    }
+}
+
 /// Sets the callback used to wake the embedder's event loop when Servo
 /// has new work to process (e.g, rendering updates).
 #[unsafe(no_mangle)]
@@ -52,7 +71,6 @@ pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
     builder: *mut ServoBuilder,
     event_loop_waker: ServoEventLoopWaker,
 ) {
-    assert!(!builder.is_null(), "builder pointer must not be null");
     assert!(!builder.is_null(), "builder pointer must not be null");
     unsafe {
         (*builder).event_loop_waker = event_loop_waker;
@@ -69,6 +87,10 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
 
     // SAFETY: `builder` is non-null, as verified above.
     let builder = unsafe { &mut *builder };
+
+    if let Some(opts) = builder.opts.take() {
+        rust_builder = rust_builder.opts(*opts);
+    }
 
     rust_builder = rust_builder.event_loop_waker(Box::new(builder.event_loop_waker));
 

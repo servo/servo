@@ -10,6 +10,7 @@ use std::default::Default;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
+use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use strum::{
     AsRefStr, Display as EnumDisplay, EnumCount, EnumIter, EnumMessage, EnumString,
@@ -90,6 +91,7 @@ pub struct Opts {
 }
 
 /// The set of diagnostic options that can be enabled in Servo.
+#[repr(i32)]
 #[derive(
     AsRefStr,
     Copy,
@@ -101,6 +103,7 @@ pub struct Opts {
     EnumMessage,
     EnumString,
     PartialEq,
+    TryFromPrimitive,
 )]
 pub enum DiagnosticsLoggingOption {
     /// Log the DOM after each restyle
