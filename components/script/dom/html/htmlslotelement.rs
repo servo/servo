@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{
     BindContext, ForceSlottableNodeReconciliation, IsShadowTree, Node, NodeDamage, NodeTraits,
-    ShadowIncluding, UnbindContext,
+    UnbindContext,
 };
 use crate::dom::virtualmethods::VirtualMethods;
 
@@ -396,17 +396,7 @@ impl Slottable {
         // Step 5. If shadow’s slot assignment is "manual", then return the slot in shadow’s descendants whose
         // manually assigned nodes contains slottable, if any; otherwise null.
         if shadow_root.SlotAssignment() == SlotAssignmentMode::Manual {
-            for node in shadow_root
-                .upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::No)
-            {
-                if let Some(slot) = node.downcast::<HTMLSlotElement>() &&
-                    slot.manually_assigned_nodes.borrow().contains(self)
-                {
-                    return Some(DomRoot::from_ref(slot));
-                }
-            }
-            return None;
+            return self.assigned_slot();
         }
 
         // Step 6. Return the first slot in tree order in shadow’s descendants whose
