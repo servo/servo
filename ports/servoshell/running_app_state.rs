@@ -643,6 +643,7 @@ impl RunningAppState {
         gamepad_delegate.handle_gamepad_events(active_webview);
     }
 
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
         *self.focused_window.borrow_mut() = Some(window);
     }
@@ -670,6 +671,7 @@ impl RunningAppState {
         }
     }
 
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     pub(crate) fn set_accessibility_active(&self, active: bool) {
         let was_active = self.accessibility_active.replace(active);
         if active == was_active {
