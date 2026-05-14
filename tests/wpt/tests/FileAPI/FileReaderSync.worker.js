@@ -28,7 +28,7 @@ test(() => {
 
 test(() => {
     var data = readerSync.readAsDataURL(empty_blob);
-    assert_equals(data.indexOf("data:"), 0);
+    assert_equals(data, "data:application/octet-stream;base64,");
 }, "readAsDataURL with empty blob");
 
 test(() => {
