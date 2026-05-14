@@ -2,22 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
 use std::default::Default;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
+use profile_traits::generic_callback::GenericCallback;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
-use servo_base::generic_channel::GenericCallback;
 use servo_constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
+    ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerRegistrationInfo,
 };
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
@@ -26,14 +30,22 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
 pub(crate) struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableDom<ServiceWorker>,
+
+    /// Pending results for
+    /// <https://w3c.github.io/ServiceWorker/#algorithms>
+    #[conditional_malloc_size_of]
+    pending_algorithm_results: DomRefCell<VecDeque<Rc<Promise>>>,
+
+    /// Handler of algorithm results.
+    #[no_trace]
+    callback: DomRefCell<Option<GenericCallback<ServiceWorkerAlgorithmResult>>>,
 }
 
 impl ServiceWorkerContainer {
@@ -41,6 +53,8 @@ impl ServiceWorkerContainer {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
+            pending_algorithm_results: Default::default(),
+            callback: Default::default(),
         }
     }
 
@@ -50,6 +64,149 @@ impl ServiceWorkerContainer {
             global,
             can_gc,
         )
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
+    /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
+    fn handle_job_result(&self, cx: &mut JSContext, result: JobResult, promise: Rc<Promise>) {
+        let global = self.global();
+        match result {
+            // <https://w3c.github.io/ServiceWorker/#reject-job-promise>
+            // Step 2.2: Queue a task, on equivalentJob’s client’s responsible event loop
+            // using the DOM manipulation task source,
+            // to reject equivalentJob’s job promise with a new exception with errorData,
+            // in equivalentJob’s client’s Realm.
+            // Note: we are in the task already.
+            JobResult::RejectPromise(error) => match error {
+                JobError::TypeError => {
+                    promise.reject_error(
+                        Error::Type(c"Failed to register a ServiceWorker".to_owned()),
+                        CanGc::deprecated_note(),
+                    );
+                },
+                JobError::SecurityError => {
+                    promise.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                },
+            },
+            // <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
+            JobResult::ResolvePromise(value) => {
+                let JobResultValue::Register(ServiceWorkerRegistrationInfo {
+                    id,
+                    installing_worker,
+                    waiting_worker,
+                    active_worker,
+                    storage_key: _,
+                    scope_url,
+                    script_url,
+                }) = value;
+
+                // Step 2.2: If equivalentJob’s job type is either register or update,
+                // set convertedValue to the result of getting the service worker registration object
+                // that represents value in equivalentJob’s client.
+                let registration = global.get_serviceworker_registration(
+                    &script_url,
+                    &scope_url,
+                    id,
+                    installing_worker,
+                    waiting_worker,
+                    active_worker,
+                    CanGc::from_cx(cx),
+                );
+
+                // TODO Step 2.3: Else, set convertedValue to value, in equivalentJob’s client’s Realm.
+
+                // Step 2.4: Resolve equivalentJob’s job promise with convertedValue.
+                promise.resolve_native(&*registration, CanGc::from_cx(cx));
+            },
+        }
+    }
+
+    /// Continuation of the parallel steps from
+    /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-getregistration>
+    fn handle_match_registration_result(
+        &self,
+        cx: &mut JSContext,
+        registration_info: Option<ServiceWorkerRegistrationInfo>,
+        promise: Rc<Promise>,
+    ) {
+        // Step 8.1 Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
+        // Note: the `registration_info` argument is the result from the parallel algorithm run.
+
+        // Step 8.2: If registration is null, resolve promise with undefined and abort these steps.
+        let Some(info) = registration_info else {
+            promise.resolve_native(&(), CanGc::from_cx(cx));
+            return;
+        };
+
+        // Step 8.3: Resolve promise with the result of getting the service worker registration object
+        // that represents registration in promise’s relevant settings object.
+        let registration = self.global().get_serviceworker_registration(
+            &info.script_url,
+            &info.scope_url,
+            info.id,
+            info.installing_worker,
+            info.waiting_worker,
+            info.active_worker,
+            CanGc::from_cx(cx),
+        );
+        promise.resolve_native(&*registration, CanGc::from_cx(cx));
+    }
+
+    fn handle_algorithm_result(&self, cx: &mut JSContext, result: ServiceWorkerAlgorithmResult) {
+        let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
+            debug_assert!(false, "No pending algorithm result.");
+            return;
+        };
+        match result {
+            ServiceWorkerAlgorithmResult::Job(job_result) => {
+                self.handle_job_result(cx, job_result, promise);
+            },
+            ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(registration_info) => {
+                self.handle_match_registration_result(cx, registration_info, promise);
+            },
+        }
+    }
+
+    /// Setup the callback to the backend service, if this hasn't been done already.
+    fn get_or_setup_callback(
+        &self,
+        promise: Rc<Promise>,
+    ) -> GenericCallback<ServiceWorkerAlgorithmResult> {
+        self.pending_algorithm_results
+            .borrow_mut()
+            .push_back(promise);
+        if let Some(cb) = self.callback.borrow_mut().as_ref() {
+            return cb.clone();
+        }
+
+        let global = self.global();
+        let response_listener = Trusted::new(self);
+
+        let task_source = global
+            .task_manager()
+            .database_access_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+            let response_listener = response_listener.clone();
+            let response = match message {
+                Ok(inner) => inner,
+                Err(err) => {
+                    return error!(
+                        "Error in Service worker algorithm result handlings {:?}.",
+                        err
+                    );
+                },
+            };
+            task_source.queue(task!(set_request_result_to_database: move |cx| {
+                let container = response_listener.root();
+                container.handle_algorithm_result(cx, response)
+            }));
+        })
+        .expect("Could not create callback");
+
+        *self.callback.borrow_mut() = Some(callback.clone());
+
+        callback
     }
 }
 
@@ -147,18 +304,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             return promise;
         }
 
-        // Setup the callback for reject/resolve of the promise,
-        // from steps running "in-parallel" from here in the serviceworker manager.
-        let mut handler = RegisterJobResultHandler {
-            trusted_promise: Some(TrustedPromise::new(promise.clone())),
-            task_source: global.task_manager().dom_manipulation_task_source().into(),
-        };
-
-        let result_handler = GenericCallback::new(move |message| match message {
-            Ok(msg) => handler.handle(msg),
-            Err(err) => warn!("Error receiving a JobResult: {:?}", err),
-        })
-        .expect("Failed to create callback");
+        let result_handler = self.get_or_setup_callback(promise.clone());
 
         let scope_things =
             ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
@@ -185,92 +331,90 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         );
 
         // B: Step 14: schedule job.
-        let _ = global
+        if global
             .script_to_constellation_chan()
-            .send(ScriptToConstellationMessage::ScheduleJob(job));
+            .send(ScriptToConstellationMessage::ServiceWorkerAlgorithm(
+                ServiceWorkerAlgorithm::StartRegister(job),
+            ))
+            .is_err()
+        {
+            debug_assert!(
+                false,
+                "Failed to send StartRegister algorithm message to the constellation."
+            );
+            promise.reject_error(
+                Error::Type(c"Failed to register a ServiceWorker".to_owned()),
+                can_gc,
+            );
+        }
 
         // A: Step 7
         promise
     }
-}
 
-/// Callback for resolve/reject job promise for Register.
-/// <https://w3c.github.io/ServiceWorker/#register>
-struct RegisterJobResultHandler {
-    trusted_promise: Option<TrustedPromise>,
-    task_source: SendableTaskSource,
-}
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
+    fn GetRegistration(&self, realm: &mut CurrentRealm, client_url: USVString) -> Rc<Promise> {
+        // Step 1: Let client be this’s service worker client.
+        let global = self.global();
 
-impl RegisterJobResultHandler {
-    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
-    /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
-    /// Handle a result to either resolve or reject the register job promise.
-    pub(crate) fn handle(&mut self, result: JobResult) {
-        match result {
-            JobResult::RejectPromise(error) => {
-                let promise = self
-                    .trusted_promise
-                    .take()
-                    .expect("No promise to resolve for SW Register job.");
+        // Step 7: Let promise be a new promise.
+        // Note: done here so it can be used to handle failure of the below steps.
+        let promise = Promise::new_in_realm(realm);
 
-                // Step 1
-                self.task_source
-                    .queue(task!(reject_promise_with_security_error: move || {
-                        let promise = promise.root();
-                        let _ac = enter_realm(&*promise.global());
-                        match error {
-                            JobError::TypeError => {
-                                promise.reject_error(
-                                    Error::Type(c"Failed to register a ServiceWorker".to_owned()),
-                                    CanGc::deprecated_note(),
-                                );
-                            },
-                            JobError::SecurityError => {
-                                promise.reject_error(Error::Security(None), CanGc::deprecated_note());
-                            },
-                        }
+        // Step 2: Let client storage key be the result of running obtain a storage key given client.
+        let Some(storage_key) = global.obtain_storage_key() else {
+            promise.reject_error(
+                Error::Type(c"Failed to obtain a storage key".to_owned()),
+                CanGc::from_cx(realm),
+            );
+            return promise;
+        };
 
-                    }));
-
-                // TODO: step 2, handle equivalent jobs.
+        // Step 3: Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
+        let mut client_url = match global.api_base_url().join(&client_url.0) {
+            Ok(url) => url,
+            Err(_) => {
+                // Step 4: If clientURL is failure, return a promise rejected with a TypeError.
+                promise.reject_error(
+                    Error::Type(c"Failed to parse clientURL".to_owned()),
+                    CanGc::from_cx(realm),
+                );
+                return promise;
             },
-            JobResult::ResolvePromise(job, value) => {
-                let promise = self
-                    .trusted_promise
-                    .take()
-                    .expect("No promise to resolve for SW Register job.");
+        };
 
-                // Step 1
-                self.task_source.queue(task!(resolve_promise: move || {
-                    let promise = promise.root();
-                    let global = promise.global();
-                    let _ac = enter_realm(&*global);
+        // Step 5: Set clientURL’s fragment to null.
+        client_url.set_fragment(None);
 
-                    // Step 1.1
-                    let JobResultValue::Registration {
-                        id,
-                        installing_worker,
-                        waiting_worker,
-                        active_worker,
-                    } = value;
-
-                    // Step 1.2 (Job type is "register").
-                    let registration = global.get_serviceworker_registration(
-                        &job.script_url,
-                        &job.scope_url,
-                        id,
-                        installing_worker,
-                        waiting_worker,
-                        active_worker,
-                        CanGc::deprecated_note()
-                    );
-
-                    // Step 1.4
-                    promise.resolve_native(&*registration, CanGc::deprecated_note());
-                }));
-
-                // TODO: step 2, handle equivalent jobs.
-            },
+        // Step 6: If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+        if &client_url.origin() != global.origin().immutable() {
+            promise.reject_error(Error::Security(None), CanGc::from_cx(realm));
+            return promise;
         }
+
+        let result_handler = self.get_or_setup_callback(promise.clone());
+
+        // Step 8: Run the following substeps in parallel:
+        // Note: continues in parallel in the service worker manager,
+        // by way of the constellation.
+        if global
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::ServiceWorkerAlgorithm(
+                ServiceWorkerAlgorithm::MatchServiceWorkerRegistration {
+                    client_url,
+                    storage_key,
+                    result_handler,
+                },
+            ))
+            .is_err()
+        {
+            promise.reject_error(
+                Error::Type(c"Failed to send MatchServiceWorkerRegistration algorithm".to_owned()),
+                CanGc::from_cx(realm),
+            );
+        }
+
+        // Step 9: Return promise.
+        promise
     }
 }

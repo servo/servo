@@ -18,12 +18,14 @@ use fonts::FontContext;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
+use profile_traits::generic_callback::GenericCallback;
 use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
 use servo_constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
-    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    ScopeThings, ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, ServiceWorkerRegistrationInfo,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -308,15 +310,16 @@ impl ServiceWorkerManager {
                     worker.forward_dom_message(msg);
                 }
             },
-            ServiceWorkerMsg::ScheduleJob(job) => match job.job_type {
-                JobType::Register => {
+            ServiceWorkerMsg::HandleAlgorithm(algorithm) => match algorithm {
+                ServiceWorkerAlgorithm::StartRegister(job) => {
                     self.handle_register_job(job);
                 },
-                JobType::Update => {
-                    self.handle_update_job(job);
-                },
-                JobType::Unregister => {
-                    // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
+                ServiceWorkerAlgorithm::MatchServiceWorkerRegistration {
+                    storage_key,
+                    client_url,
+                    result_handler,
+                } => {
+                    self.handle_match_registration(storage_key, client_url, result_handler);
                 },
             },
             ServiceWorkerMsg::Exit => return false,
@@ -324,66 +327,196 @@ impl ServiceWorkerManager {
         true
     }
 
+    /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
+    fn handle_match_registration(
+        &self,
+        storage_key: ImmutableOrigin,
+        client_url: ServoUrl,
+        result_handler: GenericCallback<ServiceWorkerAlgorithmResult>,
+    ) {
+        // Step 1: Run the following steps atomically.
+        // Note: done using the channel from which this message was received.
+
+        // Step 2: Let clientURLString be serialized clientURL.
+        // Note: using urls directly below, so skipping the serialization step.
+
+        // Step 3: Let matchingScopeString be the empty string.
+        // Note: using the url.
+        let mut matching_scope_string: Option<ServoUrl> = None;
+
+        // Step 4: Let scopeStringSet be an empty list.
+        // Note: using servo urls.
+        let mut scope_string_set = Vec::new();
+
+        // Step 5: For each (entry storage key, entry scope) of registration map’s keys:
+        for (entry_scope, registration) in &self.registrations {
+            // Note: we use the newest worker script URL's origin as the storage key for the registration.
+            // TODO: store the key on the registration itself to avoid using the newest worker's script URL.
+            let Some(newest_worker) = registration.get_newest_worker() else {
+                continue;
+            };
+
+            // Step 5.1: If storage key equals entry storage key, then append entry scope to the end of scopeStringSet.
+            if storage_key == newest_worker.script_url.origin() {
+                scope_string_set.push(entry_scope.clone());
+            }
+        }
+
+        // Step 6: Set matchingScopeString to the longest value in scopeStringSet which the value of clientURLString starts with, if it exists.
+        for scope_string in scope_string_set {
+            let len = matching_scope_string
+                .as_ref()
+                .map(|s| s.as_str().len())
+                .unwrap_or(0);
+            if longest_prefix_match(&scope_string, &client_url) && scope_string.as_str().len() > len
+            {
+                matching_scope_string = Some(scope_string);
+            }
+        }
+
+        // Step 7: Let matchingScope be null.
+        let mut matching_scope = None;
+
+        // Step 8: If matchingScopeString is not the empty string, then:
+        if let Some(matching_scope_string) = matching_scope_string {
+            // Step 8.1: Set matchingScope to the result of parsing matchingScopeString.
+            matching_scope = Some(matching_scope_string);
+
+            // Step 8.2: Assert: matchingScope’s origin and clientURL’s origin are same origin.
+            debug_assert_eq!(
+                matching_scope.as_ref().unwrap().origin(),
+                client_url.origin()
+            );
+        }
+
+        let Some(matching_scope) = matching_scope else {
+            if result_handler
+                .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(None))
+                .is_err()
+            {
+                warn!("Failed to send match registration result to script.");
+            }
+            return;
+        };
+
+        // Step 9: Return the result of running Get Registration given storage key and matchingScope.
+        let registration = self.registrations.get(&matching_scope);
+        let info = registration
+            .as_ref()
+            .map(|registration| ServiceWorkerRegistrationInfo {
+                scope_url: matching_scope,
+                script_url: registration
+                    .get_newest_worker()
+                    .expect("Registration should have a worker.")
+                    .script_url,
+                storage_key,
+                id: registration.id,
+                installing_worker: registration
+                    .installing_worker
+                    .as_ref()
+                    .map(|worker| worker.id),
+                waiting_worker: registration.waiting_worker.as_ref().map(|worker| worker.id),
+                active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+            });
+        if result_handler
+            .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(info))
+            .is_err()
+        {
+            warn!("Failed to send match registration result to script.");
+        }
+    }
+
     /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
     fn handle_register_job(&mut self, mut job: Job) {
+        // Step 1: If the result of running potentially trustworthy origin with the origin of job’s script url as the argument is Not Trusted, then:
         if !job.script_url.origin().is_potentially_trustworthy() {
-            // Step 1.1
-            let _ = job
+            // Step 1.1: Invoke Reject Job Promise with job and "SecurityError" DOMException.
+            if job
                 .client
-                .send(JobResult::RejectPromise(JobError::SecurityError));
+                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                    JobError::SecurityError,
+                )))
+                .is_err()
+            {
+                warn!("Failed to send reject job promise result to script.");
+            }
+
+            // TODO Step 1.2: Invoke Finish Job with job and abort these steps.
+            // TODO: Finish Job.
             return;
         }
 
+        // Step 2: If job’s script url’s origin and job’s referrer’s origin are not same origin, then:
+        // Step 3: If job’s scope url’s origin and job’s referrer’s origin are not same origin, then:
+        // Note: both steps done in one conditional.
         if job.script_url.origin() != job.referrer.origin() ||
             job.scope_url.origin() != job.referrer.origin()
         {
-            // Step 2.1
-            let _ = job
+            // Step 2.1: Invoke Reject Job Promise with job and "SecurityError" DOMException
+            if job
                 .client
-                .send(JobResult::RejectPromise(JobError::SecurityError));
+                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                    JobError::SecurityError,
+                )))
+                .is_err()
+            {
+                warn!("Failed to send reject job promise result to script.");
+            }
+
+            // TODO Step 2.2: Invoke Finish Job with job and abort these steps.
             return;
         }
 
-        // Step 4: Get registration.
+        // Step 4: Let registration be the result of running Get Registration given job’s storage key and job’s scope url.
         if let Some(registration) = self.registrations.get(&job.scope_url) {
-            // Step 5, we have a registation.
+            // Step 5: If registration is not null, then:
 
-            // Step 5.1, get newest worker
+            // Step 5.1: Let newestWorker be the result of running the Get Newest Worker algorithm passing registration as the argument.
             let newest_worker = registration.get_newest_worker();
 
-            // step 5.2
+            // step 5.2: If newestWorker is not null, job’s script url equals newestWorker’s script url, job’s worker type equals newestWorker’s type, and job’s update via cache mode’s value equals registration’s update via cache mode, then:
             if newest_worker.is_some() {
                 // TODO: the various checks of job versus worker.
 
-                // Step 2.1: Run resolve job.
+                // Step 5.2.1: Invoke Resolve Job Promise with job and registration.
+                // Step 5.2.2: Invoke Finish Job with job and abort these steps.
+                // TODO: Finish Job.
                 let client = job.client.clone();
-                let _ = client.send(JobResult::ResolvePromise(
-                    job,
-                    JobResultValue::Registration {
-                        id: registration.id,
-                        installing_worker: registration
-                            .installing_worker
-                            .as_ref()
-                            .map(|worker| worker.id),
-                        waiting_worker: registration
-                            .waiting_worker
-                            .as_ref()
-                            .map(|worker| worker.id),
-                        active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
-                    },
+                let _ = client.send(ServiceWorkerAlgorithmResult::Job(
+                    JobResult::ResolvePromise(JobResultValue::Register(
+                        ServiceWorkerRegistrationInfo {
+                            scope_url: job.scope_url.clone(),
+                            script_url: job.script_url.clone(),
+                            storage_key: job.storage_key.clone(),
+                            id: registration.id,
+                            installing_worker: registration
+                                .installing_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                            waiting_worker: registration
+                                .waiting_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                            active_worker: registration
+                                .active_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                        },
+                    )),
                 ));
             }
         } else {
-            // Step 6: we do not have a registration.
-
-            // Step 6.1: Run Set Registration.
+            // Step 6: Else
+            // Step 6.1: Invoke Set Registration algorithm with job’s storage key, job’s scope url, and job’s update via cache mode.
             let new_registration = ServiceWorkerRegistration::new();
             self.registrations
                 .insert(job.scope_url.clone(), new_registration);
 
             // Step 7: Schedule update
             job.job_type = JobType::Update;
-            let _ = self.own_sender.send(ServiceWorkerMsg::ScheduleJob(job));
+
+            // Note: synchronous call; there doesn't to be a reason to queue this via the channel.
+            self.handle_update_job(job);
         }
     }
 
@@ -398,9 +531,11 @@ impl ServiceWorkerManager {
             if let Some(worker) = newest_worker &&
                 worker.script_url != job.script_url
             {
-                let _ = job
-                    .client
-                    .send(JobResult::RejectPromise(JobError::TypeError));
+                let _ =
+                    job.client
+                        .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                            JobError::TypeError,
+                        )));
                 return;
             }
 
@@ -429,23 +564,32 @@ impl ServiceWorkerManager {
 
             // Install: Step 7, run Resolve Job Promise.
             let client = job.client.clone();
-            let _ = client.send(JobResult::ResolvePromise(
-                job,
-                JobResultValue::Registration {
-                    id: registration.id,
-                    installing_worker: registration
-                        .installing_worker
-                        .as_ref()
-                        .map(|worker| worker.id),
-                    waiting_worker: registration.waiting_worker.as_ref().map(|worker| worker.id),
-                    active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
-                },
+            let _ = client.send(ServiceWorkerAlgorithmResult::Job(
+                JobResult::ResolvePromise(JobResultValue::Register(
+                    ServiceWorkerRegistrationInfo {
+                        scope_url: job.scope_url.clone(),
+                        storage_key: job.storage_key.clone(),
+                        script_url: job.script_url.clone(),
+                        id: registration.id,
+                        installing_worker: registration
+                            .installing_worker
+                            .as_ref()
+                            .map(|worker| worker.id),
+                        waiting_worker: registration
+                            .waiting_worker
+                            .as_ref()
+                            .map(|worker| worker.id),
+                        active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+                    },
+                )),
             ));
         } else {
             // Step 2
             let _ = job
                 .client
-                .send(JobResult::RejectPromise(JobError::TypeError));
+                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                    JobError::TypeError,
+                )));
         }
     }
 }

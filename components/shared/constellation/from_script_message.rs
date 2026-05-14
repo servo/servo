@@ -24,6 +24,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use paint_api::CrossProcessPaintApi;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
@@ -209,7 +210,7 @@ pub enum NavigationHistoryBehavior {
 }
 
 /// Entities required to spawn service workers
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScopeThings {
     /// script resource url
     pub script_url: ServoUrl,
@@ -260,13 +261,13 @@ pub enum ServiceWorkerMsg {
     Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
-    ScheduleJob(Job),
+    /// <https://w3c.github.io/ServiceWorker/#algorithms>
+    HandleAlgorithm(ServiceWorkerAlgorithm),
     /// Exit the service worker manager
     Exit,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 /// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
 pub enum JobType {
     /// <https://w3c.github.io/ServiceWorker/#register>
@@ -277,7 +278,7 @@ pub enum JobType {
     Update,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// The kind of error the job promise should be rejected with.
 pub enum JobError {
     /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
@@ -286,34 +287,63 @@ pub enum JobError {
     SecurityError,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[expect(clippy::large_enum_variant)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// Messages sent from Job algorithms steps running in the SW manager,
 /// in order to resolve or reject the job promise.
 pub enum JobResult {
     /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     RejectPromise(JobError),
     /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
-    ResolvePromise(Job, JobResultValue),
+    ResolvePromise(JobResultValue),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// Jobs are resolved with the help of various values.
 pub enum JobResultValue {
-    /// Data representing a serviceworker registration.
-    Registration {
-        /// The Id of the registration.
-        id: ServiceWorkerRegistrationId,
-        /// The installing worker, if any.
-        installing_worker: Option<ServiceWorkerId>,
-        /// The waiting worker, if any.
-        waiting_worker: Option<ServiceWorkerId>,
-        /// The active worker, if any.
-        active_worker: Option<ServiceWorkerId>,
+    Register(ServiceWorkerRegistrationInfo),
+}
+
+/// <https://w3c.github.io/ServiceWorker/#dfn-service-worker-registration>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ServiceWorkerRegistrationInfo {
+    /// The Id of the registration.
+    pub id: ServiceWorkerRegistrationId,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-installing-worker>
+    pub installing_worker: Option<ServiceWorkerId>,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-waiting-worker>
+    pub waiting_worker: Option<ServiceWorkerId>,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-active-worker>
+    pub active_worker: Option<ServiceWorkerId>,
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-storage-key>
+    pub storage_key: ImmutableOrigin,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-scope-url>
+    pub scope_url: ServoUrl,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
+    pub script_url: ServoUrl,
+}
+
+/// <https://w3c.github.io/ServiceWorker/#algorithms>
+#[derive(Debug, Deserialize, Serialize)]
+#[expect(clippy::large_enum_variant)]
+pub enum ServiceWorkerAlgorithm {
+    /// <https://w3c.github.io/ServiceWorker/#start-register>
+    StartRegister(Job),
+    /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
+    MatchServiceWorkerRegistration {
+        storage_key: ImmutableOrigin,
+        client_url: ServoUrl,
+        result_handler: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
     },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// <https://w3c.github.io/ServiceWorker/#algorithms>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum ServiceWorkerAlgorithmResult {
+    Job(JobResult),
+    MatchServiceWorkerRegistration(Option<ServiceWorkerRegistrationInfo>),
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// <https://w3c.github.io/ServiceWorker/#dfn-job>
 pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
@@ -323,7 +353,7 @@ pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
     pub script_url: ServoUrl,
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-client>
-    pub client: GenericCallback<JobResult>,
+    pub client: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
     /// <https://w3c.github.io/ServiceWorker/#job-referrer>
     pub referrer: ServoUrl,
     /// Various data needed to process job.
@@ -338,7 +368,7 @@ impl Job {
         job_type: JobType,
         scope_url: ServoUrl,
         script_url: ServoUrl,
-        client: GenericCallback<JobResult>,
+        client: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
         referrer: ServoUrl,
         scope_things: Option<ScopeThings>,
         storage_key: ImmutableOrigin,
@@ -461,7 +491,7 @@ pub struct IFrameLoadInfoWithData {
 }
 
 /// Resources required by workerglobalscopes
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
@@ -494,7 +524,7 @@ pub struct WorkerGlobalScopeInit {
 }
 
 /// Common entities representing a network load origin
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
@@ -559,6 +589,7 @@ pub enum ConstellationInterest {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
+    ServiceWorkerAlgorithm(ServiceWorkerAlgorithm),
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
     /// The results of attempting to complete the transfer of a batch of ports.
@@ -722,8 +753,6 @@ pub enum ScriptToConstellationMessage {
     /// Send messages from postMessage calls from serviceworker
     /// to constellation for storing in service worker manager
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
-    ScheduleJob(Job),
     /// Notifies the constellation about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(PipelineId, MediaSessionEvent),
