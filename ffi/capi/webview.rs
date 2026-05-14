@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CStr;
+use std::ffi::{CStr, c_void};
 use std::os::raw::c_char;
 use std::rc::Rc;
 
@@ -259,6 +259,102 @@ pub unsafe extern "C" fn servo_webview_load(webview: *mut WebView, url: *const c
         },
         Err(_) => -1,
     }
+}
+
+/// Asynchronously takes a screenshot of the full `WebView` viewport.
+///
+/// The provided `callback` will be invoked with either the image data
+/// when the screenshot is ready, or error information if Servo was not able
+/// to handle the screenshot request successfully.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` remains with the caller after the call.
+///
+/// `callback` is a function pointer that will be invoked at
+/// most once when the screenshot completes. The callback is invoked
+/// asynchronously on the embedder thread that runs `servo_spin_event_loop`.
+///
+/// The callback receives:
+/// - `data`  : pointer to raw pixel data, or `NULL` on error. Data is in
+///             RGBA format with 4 bytes per pixel.
+/// - `width` : image width in pixels or 0 on error.
+/// - `height`: image height in pixels or 0 on error.
+/// - `error` : error code represented by one of
+///             the `SERVO_SCREENSHOT_CAPTURE_ERROR_*` constants.
+///             Only valid when `data` is `NULL`.
+/// - `user_data`: the user data pointer that was passed to`servo_webview_take_screenshot`.
+///
+/// The `data` pointer is valid only for the duration of the callback.
+/// The callback must copy the data if it needs to be persist after the callback
+/// returns. The ownership of `data` remains with Servo.
+///
+/// `user_data` is an opaque pointer that is passed to `callback` when it is invoked.
+///  The ownership and validity of `user_data` is the caller's responsibility.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `webview` is a non-null pointer to a `WebView` previously returned
+///   by `servo_webview_builder_build` and not yet passed to
+///   `servo_webview_free`. No other code may read or write `*webview`
+///   for the duration of this call.
+/// - If `callback` is not null, it is a valid C ABI function matching
+///   the exact signature shown, remains valid until it is invoked or
+///   the `WebView` is freed, and does not unwind across the FFI
+///   boundary.
+/// - `user_data` is either null or remains valid until `callback` is
+///   invoked or the `WebView` is freed.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_take_screenshot(
+    webview: *mut WebView,
+    callback: Option<
+        unsafe extern "C" fn(
+            data: *const u8,
+            width: u32,
+            height: u32,
+            error: i32,
+            user_data: *mut c_void,
+        ),
+    >,
+    user_data: *mut c_void,
+) {
+    assert!(!webview.is_null(), "webview pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `webview` documented above.
+    let webview = unsafe { &*webview };
+
+    let Some(callback) = callback else {
+        return;
+    };
+
+    webview.take_screenshot(None, move |result| {
+        match result {
+            Ok(image) => {
+                let (width, height) = image.dimensions();
+                let data = image.into_raw();
+                // SAFETY: The caller is assumed to uphold the safety
+                // requirements for `callback` documented above.
+                // `data.as_ptr()` is valid for the call as the backing `Vec`
+                // is dropped only after `callback` returns.
+                unsafe {
+                    callback(data.as_ptr(), width, height, 0, user_data);
+                }
+            },
+            Err(error) => {
+                let error_code = error as _;
+                // SAFETY: The caller is assumed to uphold the safety
+                // requirements for `callback` documented above.
+                // `data` pointer is null as part of the contract.
+                unsafe {
+                    callback(std::ptr::null(), 0, 0, error_code, user_data);
+                }
+            },
+        }
+    });
 }
 
 /// Destroys the `WebView` instance and frees its memory.

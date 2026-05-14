@@ -6,15 +6,16 @@ language = "C"
 
 [parse]
 parse_deps = true
-include = ["servo", "servo-config"]
+include = ["servo", "servo-config", "servo-embedder-traits"]
 
 [enum]
 rename_variants = "ScreamingSnakeCase"
 prefix_with_name = true
 
 [export]
-include = ["DiagnosticsLoggingOption"]
+include = ["DiagnosticsLoggingOption", "ScreenshotCaptureError"]
 
 [export.rename]
 "DiagnosticsLoggingOption" = "ServoDiagnosticsLoggingOption"
+"ScreenshotCaptureError" = "ServoScreenshotCaptureError"
 

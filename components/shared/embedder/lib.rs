@@ -1093,6 +1093,7 @@ pub enum JavaScriptEvaluationError {
     SerializationError(JavaScriptEvaluationResultSerializationError),
 }
 
+#[repr(i32)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ScreenshotCaptureError {
     /// The screenshot request failed to read the screenshot image from the `WebView`'s
