@@ -351,7 +351,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         options: &CSSStyleSheetInit,
     ) -> DomRoot<Self> {
         let doc = window.Document();
-        let shared_lock = doc.style_shared_lock().clone();
+        let shared_lock = doc.style_shared_author_lock().clone();
         let media = Arc::new(shared_lock.wrap(match &options.media {
             Some(media) => match media {
                 MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),

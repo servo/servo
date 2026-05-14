@@ -195,7 +195,7 @@ impl Element {
         let style_attribute = self.style_attribute().borrow();
         style_attribute.as_ref().is_some_and(|declarations| {
             let document = self.owner_document();
-            let shared_lock = document.style_shared_lock();
+            let shared_lock = document.style_shared_author_lock();
             let read_lock = shared_lock.read();
             let style = declarations.read_with(&read_lock);
 
@@ -283,7 +283,7 @@ impl Element {
             return false;
         };
         let document = self.owner_document();
-        let shared_lock = document.style_shared_lock();
+        let shared_lock = document.style_shared_author_lock();
         let read_lock = shared_lock.read();
         let style = declarations.read_with(&read_lock);
 

@@ -133,7 +133,7 @@ impl StylesheetContext {
     }
 
     fn empty_stylesheet(&self, document: &Document) -> Arc<Stylesheet> {
-        let shared_lock = document.style_shared_lock().clone();
+        let shared_lock = document.style_shared_author_lock().clone();
         let quirks_mode = document.quirks_mode();
 
         Arc::new(Stylesheet::from_bytes(
@@ -295,7 +295,7 @@ impl StylesheetContext {
                 // but Layout doesn't know about any new web fonts that it contains.
                 document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
 
-                let mut guard = document.style_shared_lock().write();
+                let mut guard = document.style_shared_author_lock().write();
                 import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
             },
         }
@@ -544,7 +544,7 @@ impl ElementStylesheetLoader<'_> {
         document: &Document,
         cx: &mut js::context::JSContext,
     ) {
-        let shared_lock = document.style_shared_lock().clone();
+        let shared_lock = document.style_shared_author_lock().clone();
         let quirks_mode = document.quirks_mode();
         let window = element.owner_window();
 

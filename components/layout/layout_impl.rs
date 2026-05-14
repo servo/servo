@@ -4,10 +4,9 @@
 
 #![expect(unsafe_code)]
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::process;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
@@ -27,7 +26,7 @@ use layout_api::{
     ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
-use log::{debug, error, warn};
+use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::ImageCache;
 use paint_api::CrossProcessPaintApi;
@@ -486,10 +485,10 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let document = unsafe { node.dangerous_style_node() }.owner_doc();
-            let document_shared_lock = document.style_shared_lock();
+            let shared_locks = document.shared_style_locks();
             let guards = StylesheetGuards {
-                author: &document_shared_lock.read(),
-                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+                author: &shared_locks.author.read(),
+                ua_or_user: &shared_locks.ua_or_user.read(),
             };
             let snapshot_map = SnapshotMap::new();
 
@@ -516,10 +515,11 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let document = unsafe { node.dangerous_style_node() }.owner_doc();
-            let document_shared_lock = document.style_shared_lock();
+            let shared_locks = document.shared_style_locks();
+            let shared_author_lock = &shared_locks.author;
             let guards = StylesheetGuards {
-                author: &document_shared_lock.read(),
-                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+                author: &shared_author_lock.read(),
+                ua_or_user: &shared_locks.ua_or_user.read(),
             };
             let snapshot_map = SnapshotMap::new();
             let shared_style_context = self.build_shared_style_context(
@@ -535,7 +535,7 @@ impl Layout for LayoutThread {
                 node,
                 value,
                 self.url.clone(),
-                document_shared_lock,
+                shared_author_lock,
             )
         })
     }
@@ -1086,12 +1086,11 @@ impl LayoutThread {
             None => return Default::default(),
         };
 
-        let document_shared_lock = document.style_shared_lock();
-        let author_guard = document_shared_lock.read();
-        let ua_stylesheets = &*UA_STYLESHEETS;
+        let shared_locks = document.shared_style_locks();
+        let user_agent_stylesheets = get_ua_stylesheets(&shared_locks.ua_or_user);
         let guards = StylesheetGuards {
-            author: &author_guard,
-            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+            author: &shared_locks.author.read(),
+            ua_or_user: &shared_locks.ua_or_user.read(),
         };
 
         let rayon_pool = STYLE_THREAD_POOL.lock();
@@ -1112,7 +1111,7 @@ impl LayoutThread {
             }
         }
 
-        self.prepare_stylist_for_reflow(reflow_request, document, &guards, ua_stylesheets)
+        self.prepare_stylist_for_reflow(reflow_request, document, &guards, &user_agent_stylesheets)
             .process_style(dangerous_root_element, Some(&snapshot_map));
 
         if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
@@ -1510,16 +1509,23 @@ impl LayoutThread {
     }
 }
 
-fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
+fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
+    // There is an assumption here that there is only a single ScriptThread per thread, which
+    // is currently the case in Servo. If this were to change, these user agent stylesheets
+    // would need to be managed by the ScriptThread instance.
+    thread_local! {
+        static USER_AGENT_STYLESHEETS: OnceCell<Rc<UserAgentStylesheets>> = const { OnceCell::new() };
+    }
+
     fn parse_ua_stylesheet(
         shared_lock: &SharedRwLock,
         filename: &str,
         content: &[u8],
-    ) -> Result<DocumentStyleSheet, &'static str> {
-        let url = Url::parse(&format!("chrome://resources/{:?}", filename))
-            .ok()
-            .unwrap();
-        Ok(DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
+    ) -> DocumentStyleSheet {
+        let url = Url::parse(&format!("chrome://resources/{filename}")).unwrap_or_else(|_| {
+            panic!("Could not parse user stylesheet URL: {filename}");
+        });
+        DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
             content,
             url.into(),
             None,
@@ -1530,29 +1536,33 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             None,
             QuirksMode::NoQuirks,
-        ))))
+        )))
     }
 
-    let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+    USER_AGENT_STYLESHEETS.with(|user_stylesheets| {
+        user_stylesheets
+            .get_or_init(|| {
+                // FIXME: presentational-hints.css should be at author origin with zero specificity.
+                //        (Does it make a difference?)
+                let user_agent_stylesheets = vec![
+                    parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS),
+                    parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS),
+                    parse_ua_stylesheet(
+                        shared_lock,
+                        "presentational-hints.css",
+                        PRESENTATIONAL_HINTS_CSS,
+                    ),
+                ];
 
-    // FIXME: presentational-hints.css should be at author origin with zero specificity.
-    //        (Does it make a difference?)
-    let user_agent_stylesheets = vec![
-        parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS)?,
-        parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS)?,
-        parse_ua_stylesheet(
-            shared_lock,
-            "presentational-hints.css",
-            PRESENTATIONAL_HINTS_CSS,
-        )?,
-    ];
+                let quirks_mode_stylesheet =
+                    parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS);
 
-    let quirks_mode_stylesheet =
-        parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
-
-    Ok(UserAgentStylesheets {
-        user_agent_stylesheets,
-        quirks_mode_stylesheet,
+                Rc::new(UserAgentStylesheets {
+                    user_agent_stylesheets,
+                    quirks_mode_stylesheet,
+                })
+            })
+            .clone()
     })
 }
 
@@ -1563,15 +1573,6 @@ pub struct UserAgentStylesheets {
     /// The quirks mode stylesheet.
     pub quirks_mode_stylesheet: DocumentStyleSheet,
 }
-
-static UA_STYLESHEETS: LazyLock<UserAgentStylesheets> =
-    LazyLock::new(|| match get_ua_stylesheets() {
-        Ok(stylesheets) => stylesheets,
-        Err(filename) => {
-            error!("Failed to load UA stylesheet {}!", filename);
-            process::exit(1);
-        },
-    });
 
 struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,

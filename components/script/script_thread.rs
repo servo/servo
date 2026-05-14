@@ -101,8 +101,8 @@ use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use style::context::QuirksMode;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::media_queries::MediaList;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{AllowImportRules, DocumentStyleSheet, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
@@ -222,9 +222,8 @@ struct ScriptThreadUserContents {
     user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
 }
 
-impl From<UserContents> for ScriptThreadUserContents {
-    fn from(user_contents: UserContents) -> Self {
-        let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+impl ScriptThreadUserContents {
+    fn new(user_contents: UserContents, shared_locks: &SharedRwLocks) -> Self {
         let user_stylesheets = user_contents
             .stylesheets
             .iter()
@@ -233,8 +232,8 @@ impl From<UserContents> for ScriptThreadUserContents {
                     user_stylesheet.source(),
                     user_stylesheet.url().into(),
                     Origin::User,
-                    ServoArc::new(shared_lock.wrap(MediaList::empty())),
-                    shared_lock.clone(),
+                    ServoArc::new(shared_locks.ua_or_user.wrap(MediaList::empty())),
+                    shared_locks.ua_or_user.clone(),
                     None,
                     Some(&RustLogReporter),
                     QuirksMode::NoQuirks,
@@ -245,6 +244,21 @@ impl From<UserContents> for ScriptThreadUserContents {
         Self {
             user_scripts: Rc::new(user_contents.scripts),
             user_stylesheets: Rc::new(user_stylesheets),
+        }
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct SharedRwLocks {
+    pub author: SharedRwLock,
+    pub ua_or_user: SharedRwLock,
+}
+
+impl Default for SharedRwLocks {
+    fn default() -> Self {
+        Self {
+            author: SharedRwLock::new(),
+            ua_or_user: SharedRwLock::new(),
         }
     }
 }
@@ -354,6 +368,10 @@ pub struct ScriptThread {
 
     /// Unminify Css.
     unminify_css: bool,
+
+    /// The [`SharedRwLocks`] that are used by all Stylo operations in this ScriptThread.
+    #[no_trace]
+    shared_style_locks: SharedRwLocks,
 
     /// A map from [`UserContentManagerId`] to its [`UserContents`]. This is initialized
     /// with a copy of the map in constellation (via the `InitialScriptState`). After that,
@@ -529,6 +547,10 @@ impl ScriptThread {
 
     pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
         with_script_thread(|script_thread| script_thread.microtask_queue.clone())
+    }
+
+    pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
+        &self.shared_style_locks
     }
 
     pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
@@ -975,10 +997,14 @@ impl ScriptThread {
 
         debugger_global.execute(&mut cx);
 
+        let shared_style_locks = Default::default();
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
                 |(user_content_manager_id, user_contents)| {
-                    (user_content_manager_id, user_contents.into())
+                    (
+                        user_content_manager_id,
+                        ScriptThreadUserContents::new(user_contents, &shared_style_locks),
+                    )
                 },
             ));
 
@@ -1018,6 +1044,7 @@ impl ScriptThread {
                     unminify_js: opts.unminify_js,
                     local_script_source: opts.local_script_source.clone(),
                     unminify_css: opts.unminify_css,
+                    shared_style_locks,
                     user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
                     player_context: state.player_context,
                     pipeline_to_node_ids: Default::default(),
@@ -1971,9 +1998,10 @@ impl ScriptThread {
                 self.handle_embedder_control_response(id, response, cx);
             },
             ScriptThreadMessage::SetUserContents(user_content_manager_id, user_contents) => {
-                self.user_contents_for_manager_id
-                    .borrow_mut()
-                    .insert(user_content_manager_id, user_contents.into());
+                self.user_contents_for_manager_id.borrow_mut().insert(
+                    user_content_manager_id,
+                    ScriptThreadUserContents::new(user_contents, &self.shared_style_locks),
+                );
             },
             ScriptThreadMessage::DestroyUserContentManager(user_content_manager_id) => {
                 self.user_contents_for_manager_id

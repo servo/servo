@@ -176,7 +176,7 @@ impl CssPropertyName {
         let style_attribute = element.style_attribute().borrow();
         let declarations = style_attribute.as_ref()?;
         let document = element.owner_document();
-        let shared_lock = document.style_shared_lock();
+        let shared_lock = document.style_shared_author_lock();
         let read_lock = shared_lock.read();
         let style = declarations.read_with(&read_lock);
 

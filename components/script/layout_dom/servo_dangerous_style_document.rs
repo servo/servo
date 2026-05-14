@@ -16,6 +16,7 @@ use style::values::AtomIdent;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::document::Document;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode, ServoLayoutElement};
+use crate::script_thread::SharedRwLocks;
 
 /// A wrapper around documents that ensures layout can only ever access safe properties.
 ///
@@ -48,7 +49,7 @@ impl<'dom> ::style::dom::TDocument for ServoDangerousStyleDocument<'dom> {
     }
 
     fn shared_lock(&self) -> &StyleSharedRwLock {
-        self.document.style_shared_lock()
+        &self.document.shared_style_locks().author
     }
 
     fn elements_with_id<'a>(
@@ -83,9 +84,9 @@ impl<'dom> ServoDangerousStyleDocument<'dom> {
             .map(|element| element.layout_element())
     }
 
-    /// Get the shared style lock for styling with Stylo for this [`ServoDangerousStyleDocument`].
-    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
-        self.document.style_shared_lock()
+    /// Get the shared style lock for author stylesheets for this [`ServoDangerousStyleDocument`].
+    pub fn shared_style_locks(&self) -> &SharedRwLocks {
+        self.document.shared_style_locks()
     }
 
     /// Flush the the stylesheets of all descendant shadow roots.

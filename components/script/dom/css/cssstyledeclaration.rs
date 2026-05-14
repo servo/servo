@@ -77,7 +77,7 @@ impl CSSStyleOwner {
             ),
             CSSStyleOwner::Element(ref el) => {
                 let document = el.owner_document();
-                let shared_lock = document.style_shared_lock();
+                let shared_lock = document.style_shared_author_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
                 let result = if let Some(lock) = attr.as_ref() {
                     let mut guard = shared_lock.write();
@@ -146,7 +146,7 @@ impl CSSStyleOwner {
             CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
                 Some(ref pdb) => {
                     let document = el.owner_document();
-                    let guard = document.style_shared_lock().read();
+                    let guard = document.style_shared_author_lock().read();
                     f(pdb.read_with(&guard))
                 },
                 None => {

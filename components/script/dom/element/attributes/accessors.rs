@@ -196,7 +196,7 @@ impl Element {
             let Some(ref pdb) = *self.style_attribute().borrow()
         {
             let document = self.owner_document();
-            let shared_lock = document.style_shared_lock();
+            let shared_lock = document.style_shared_author_lock();
             let new_pdb = pdb.read_with(&shared_lock.read()).clone();
             return AttrValue::Declaration(
                 (**attr.value()).to_owned(),
