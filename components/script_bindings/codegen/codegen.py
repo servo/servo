@@ -2745,7 +2745,7 @@ class CGPrototypeJSClass(CGThing):
             slotCount += 1
         slotCountStr = f"{slotCount} & JSCLASS_RESERVED_SLOTS_MASK" if slotCount > 0 else "0"
         return f"""
-static PrototypeClass: JSClass = JSClass {{
+pub static PrototypeClass: JSClass = JSClass {{
     name: {name},
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS()
@@ -3621,7 +3621,9 @@ class PropertyArrays():
     def __str__(self) -> str:
         define = ""
         for array in self.arrayNames():
-            define += str(getattr(self, array))
+            val = str(getattr(self, array))
+            if val:
+                define += "pub " + str(getattr(self, array))
         return define
 
 
@@ -3710,48 +3712,48 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         self.haveLegacyWindowAliases = haveLegacyWindowAliases
 
     def definition_body(self) -> CGThing:
-        name = self.descriptor.interface.identifier.name
-        if self.descriptor.interface.isNamespace():
-            if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
-                proto = "GetRealmObjectPrototype(cx.raw_cx())"
+        def rust_bool(b) -> str:
+            if b:
+                return "true"
             else:
-                proto = "JS_NewPlainObject(cx.raw_cx())"
-            if self.properties.static_methods.length():
-                methods = f"{self.properties.static_methods.variableName()}.get()"
-            else:
-                methods = "&[]"
-            if self.descriptor.interface.hasConstants():
-                constants = "sConstants.get()"
-            else:
-                constants = "&[]"
-            id = MakeNativeName(name)
-            return CGGeneric(f"""
-rooted!(&in(cx) let proto = {proto});
-assert!(!proto.is_null());
-rooted!(&in(cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object::<D>(cx.into(), global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
-                        {methods}, {constants}, {str_to_cstr(name)}, namespace.handle_mut());
-assert!(!namespace.is_null());
-assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
-(*cache)[PrototypeList::Constructor::{id} as usize] = namespace.get();
-<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::{id} as isize),
-                              ptr::null_mut(),
-                              namespace.get());
-""")
-        if self.descriptor.interface.isCallback():
-            assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
-            cName = str_to_cstr(name)
-            return CGGeneric(f"""
-rooted!(&in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object::<D>(cx.into(), global, sConstants.get(), {cName}, interface.handle_mut());
-assert!(!interface.is_null());
-assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
-(*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
-<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::{name} as isize),
-                              ptr::null_mut(),
-                              interface.get());
-""")
+                return "false"
 
+
+        if self.properties.static_methods.length():
+            methods = f"{self.properties.static_methods.variableName()}.get()"
+        else:
+            methods = "&[]"
+
+        if self.descriptor.interface.hasConstants():
+            constants = "sConstants.get()"
+        else:
+            constants = "&[]"
+        id = f"PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)}"
+
+
+        if self.descriptor.interface.isNamespace():
+            return CGGeneric(f"""
+                use crate::constructor::{{CreateInterfaceObjectsOptions, CreateInterfaceObjectsRust, ConstructorType, NamespaceInit }};
+                let init = NamespaceInit {{
+                    is_proto_hack: {rust_bool(self.descriptor.interface.getExtendedAttribute("ProtoObjectHack") is not None)},
+                    static_methods: {methods},
+                    constructor_name: PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)},
+                    namespace_object_class: &NAMESPACE_OBJECT_CLASS,
+                    constants: {constants},
+                }};
+
+                let init = CreateInterfaceObjectsOptions {{
+                    t: ConstructorType::Namespace(init),
+                    name: "{self.descriptor.interface.identifier.name}",
+                }};
+                CreateInterfaceObjectsRust::<D>(init, cx, global, cache);
+                """)
+
+        elif self.descriptor.interface.isCallback():
+            return CGGeneric("")
+
+
+        name = self.descriptor.interface.identifier.name
         parentName = self.descriptor.getParentName()
         if not parentName:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
