@@ -2025,8 +2025,8 @@ pub(crate) fn encode_multipart_form_data(
     // The user agent must not perform any other escapes.
     fn escape_for_header(s: &DOMString) -> String {
         s.str()
-            .replace('\r', "%0D")
             .replace('\n', "%0A")
+            .replace('\r', "%0D")
             .replace('"', "%22")
     }
 
@@ -2053,6 +2053,7 @@ pub(crate) fn encode_multipart_form_data(
         // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
+                // Step 2.4
                 let content_disposition = format!("form-data; name=\"{}\"", escaped_name);
                 let mut bytes =
                     format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
