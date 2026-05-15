@@ -204,17 +204,17 @@ impl ServiceWorkerRegistration {
     fn update_registration_state(
         &mut self,
         target: RegistrationUpdateTarget,
-        worker: ServiceWorker,
+        worker: Option<ServiceWorker>,
     ) {
         match target {
             RegistrationUpdateTarget::Active => {
-                self.active_worker = Some(worker);
+                self.active_worker = worker;
             },
             RegistrationUpdateTarget::Waiting => {
-                self.waiting_worker = Some(worker);
+                self.waiting_worker = worker;
             },
             RegistrationUpdateTarget::Installing => {
-                self.installing_worker = Some(worker);
+                self.installing_worker = worker;
             },
         }
     }
@@ -518,59 +518,23 @@ impl ServiceWorkerManager {
             self.registrations
                 .insert(job.scope_url.clone(), new_registration);
 
-            // Step 7: Schedule update
+            // Step 7: Invoke Update algorithm passing job as the argument.
             job.job_type = JobType::Update;
-
-            // Note: synchronous call; there doesn't to be a reason to queue this via the channel.
             self.handle_update_job(job);
         }
     }
 
-    /// <https://w3c.github.io/ServiceWorker/#update>
-    fn handle_update_job(&mut self, job: Job) {
-        // Step 1: Get registation
-        if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
-            // Step 3.
-            let newest_worker = registration.get_newest_worker();
+    /// <https://www.w3.org/TR/service-workers/#install>
+    fn install(&mut self, job: Job, new_worker: ServiceWorker) {
+        let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
+            error!("Registration should exist when installing a worker.");
+            return;
+        };
 
-            // Step 4.
-            if let Some(worker) = newest_worker &&
-                worker.script_url != job.script_url
-            {
-                let _ =
-                    job.client
-                        .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
-                            JobError::TypeError,
-                        )));
-                return;
-            }
-
-            let scope_things = job
-                .scope_things
-                .clone()
-                .expect("Update job should have scope things.");
-
-            // Very roughly steps 5 to 18.
-            // TODO: implement all steps precisely.
-            let (new_worker, join_handle, control_sender, context, closing) = update_serviceworker(
-                self.own_sender.clone(),
-                job.scope_url.clone(),
-                scope_things,
-                self.font_context.clone(),
-            );
-
-            // Since we've just started the worker thread, ensure we can shut it down later.
-            registration.note_worker_thread(join_handle, control_sender, context, closing);
-
-            // Step 19, run Install.
-
-            // Install: Step 4, run Update Registration State.
-            registration
-                .update_registration_state(RegistrationUpdateTarget::Installing, new_worker);
-
-            // Install: Step 7, run Resolve Job Promise.
-            let client = job.client.clone();
-            let _ = client.send(ServiceWorkerAlgorithmResult::Job(
+        // Step 7: Invoke Resolve Job Promise with job and registration
+        let client = job.client.clone();
+        if client
+            .send(ServiceWorkerAlgorithmResult::Job(
                 JobResult::ResolvePromise(JobResultValue::Register(
                     ServiceWorkerRegistrationInfo {
                         scope_url: job.scope_url.clone(),
@@ -588,15 +552,71 @@ impl ServiceWorkerManager {
                         active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
                     },
                 )),
-            ));
-        } else {
-            // Step 2
-            let _ = job
-                .client
-                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
-                    JobError::TypeError,
-                )));
+            ))
+            .is_err()
+        {
+            warn!("Failed to send resolve job promise result to script.");
         }
+
+        // Step 17: Run the Update Registration State algorithm passing registration,
+        // "waiting" and registration’s installing worker as the arguments.
+        registration.update_registration_state(RegistrationUpdateTarget::Waiting, Some(new_worker));
+
+        // Step 18: Run the Update Registration State algorithm passing registration, "installing" and null as the arguments.
+        registration.update_registration_state(RegistrationUpdateTarget::Installing, None);
+
+        // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.
+        // TODO: queue tasks above and wait for them to execute.
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#update>
+    fn handle_update_job(&mut self, job: Job) {
+        // Step 1: Get registation
+        let (job, new_worker) =
+            if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
+                // Step 3.
+                let newest_worker = registration.get_newest_worker();
+
+                // Step 4.
+                if let Some(worker) = newest_worker &&
+                    worker.script_url != job.script_url
+                {
+                    let _ = job.client.send(ServiceWorkerAlgorithmResult::Job(
+                        JobResult::RejectPromise(JobError::TypeError),
+                    ));
+                    return;
+                }
+
+                let scope_things = job
+                    .scope_things
+                    .clone()
+                    .expect("Update job should have scope things.");
+
+                // Very roughly steps 5 to 18.
+                // TODO: implement all steps precisely.
+                let (new_worker, join_handle, control_sender, context, closing) =
+                    update_serviceworker(
+                        self.own_sender.clone(),
+                        job.scope_url.clone(),
+                        scope_things,
+                        self.font_context.clone(),
+                    );
+
+                // Since we've just started the worker thread, ensure we can shut it down later.
+                registration.note_worker_thread(join_handle, control_sender, context, closing);
+
+                (job, new_worker)
+            } else {
+                // Step 2
+                let _ =
+                    job.client
+                        .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                            JobError::TypeError,
+                        )));
+                return;
+            };
+        // Step 17: Else, invoke Install algorithm with job, worker, and registration as its arguments.
+        self.install(job, new_worker);
     }
 }
 
