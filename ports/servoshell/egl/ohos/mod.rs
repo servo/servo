@@ -1085,8 +1085,8 @@ impl HostCallbacks {
             .enterkey_type(options.enterkey_type)
             .build();
         let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
-            .map_err(|e| ImeError::TextEditorProxy(e))?;
-        ImeProxy::new(editor, attach_options).map_err(|e| ImeError::ImeProxy(e))
+            .map_err(ImeError::TextEditorProxy)?;
+        ImeProxy::new(editor, attach_options).map_err(ImeError::ImeProxy)
     }
 }
 

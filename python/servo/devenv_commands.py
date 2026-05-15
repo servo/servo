@@ -139,6 +139,14 @@ class MachCommands(CommandBase):
         # Note that some lints can additionally be configured by `.clippy.toml` at the repository root.
         clippy_args = ["--deny=clippy::disallowed_types", "--warn=clippy::redundant-clone"]
 
+        if self.target.is_cross_build():
+            if "--target" not in params:
+                params.append("--target")
+                params.append(self.target.triple())
+                # Suppress false positives for thread_local_statics when cross-compiling.
+                # Upstream issue: https://github.com/rust-lang/rust-clippy/issues/13422#issuecomment-3282764205
+            clippy_args.append("--allow=clippy::missing_const_for_thread_local")
+
         if "--" not in params:
             params.append("--")
         params.extend(clippy_args)
