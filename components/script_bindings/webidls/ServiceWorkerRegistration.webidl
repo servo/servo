@@ -14,7 +14,7 @@ interface ServiceWorkerRegistration : EventTarget {
   readonly attribute ServiceWorkerUpdateViaCache updateViaCache;
 
   // [NewObject] Promise<void> update();
-  // [NewObject] Promise<boolean> unregister();
+  [NewObject] Promise<boolean> unregister();
 
   // event
   // attribute EventHandler onupdatefound;
