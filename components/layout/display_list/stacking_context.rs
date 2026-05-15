@@ -69,6 +69,11 @@ pub(crate) struct ContainingBlock {
     /// The physical rect of this containing block.
     rect: PhysicalRect<Au>,
 
+    /// Normally containing block offsets and display list items are positioned relative
+    /// to their parent reference frame, but cumulative containing block boundaries on
+    /// fragments need to disregard reference frames entirely. This value tracks the
+    /// accumulated offset from the origin of the parent reference frame of this
+    /// containing block.
     accumulated_reference_frame_offset: PhysicalVec<Au>,
 }
 

@@ -174,6 +174,10 @@ pub struct LayoutThread {
     /// layout trees remain the same.
     need_new_display_list: Cell<bool>,
 
+    /// Whether or not cumulative containing blocks offsets have been set into the
+    /// [`FragmentTree`]. This typically happens during [`StackingContextTree`]
+    /// construction, but if a layout query needs these value beforehand, they are
+    /// eagerly calculated.
     need_containing_block_calculation: Cell<bool>,
 
     /// Whether or not the existing stacking context tree is dirty and needs to be

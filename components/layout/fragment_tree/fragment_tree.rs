@@ -48,7 +48,7 @@ impl FragmentTree {
             scrollable_overflow: Cell::default(),
             initial_containing_block,
             viewport_scroll_sensitivity,
-       }
+        }
     }
 
     pub fn print(&self) {

@@ -23,10 +23,10 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, Fra
 use crate::SharedStyle;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
+use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
-use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
@@ -136,26 +136,6 @@ pub(crate) struct BoxFragment {
     /// used to for determining final viewport size and position of this node and will
     /// also be used in the future for hit testing.
     pub spatial_tree_node: AtomicRefCell<Option<ScrollTreeNodeId>>,
-}
-
-pub(crate) enum ContainingBlockCalculation<'a> {
-    Lazy { layout_thread: &'a LayoutThread },
-    AlreadyDoneWithStackingContextTree,
-}
-
-impl ContainingBlockCalculation<'_> {
-    pub(crate) fn ensure(&self) {
-        match self {
-            Self::Lazy { layout_thread } => layout_thread.ensure_containing_block_calculation(),
-            Self::AlreadyDoneWithStackingContextTree => {},
-        }
-    }
-}
-
-impl<'a> From<&'a LayoutThread> for ContainingBlockCalculation<'a> {
-    fn from(layout_thread: &'a LayoutThread) -> Self {
-        Self::Lazy { layout_thread }
-    }
 }
 
 impl BoxFragment {
