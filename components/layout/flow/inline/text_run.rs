@@ -23,7 +23,7 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::OverflowWrap;
+use style::values::computed::{FontVariantLigatures, OverflowWrap};
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 
@@ -62,7 +62,6 @@ pub(crate) struct FontAndScriptInfo {
     /// The [`Language`] used when shaping a [`TextRunSegment`].
     pub language: Language,
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
-    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.
@@ -73,6 +72,8 @@ pub(crate) struct FontAndScriptInfo {
     pub text_rendering: TextRendering,
     /// The value of the `font-kerning` property from the original style.
     pub kerning: FontKerning,
+    /// The value of the `font-variant-ligatures` property from the original style.
+    pub ligatures: FontVariantLigatures,
 }
 
 impl FontAndScriptInfo {
@@ -89,12 +90,14 @@ impl FontAndScriptInfo {
             word_spacing: None,
             text_rendering: TextRendering::Auto,
             kerning: FontKerning::Auto,
+            ligatures: FontVariantLigatures::NORMAL,
         }
     }
 }
 
 impl From<&FontAndScriptInfo> for ShapingOptions {
     fn from(info: &FontAndScriptInfo) -> Self {
+        let mut ligatures = info.ligatures;
         let mut flags = ShapingFlags::empty();
         if info.bidi_level.is_rtl() {
             flags.insert(ShapingFlags::RTL_FLAG);
@@ -107,10 +110,10 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             .letter_spacing
             .filter(|_| !is_cursive_script(info.script));
         if letter_spacing.is_some() {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            ligatures = FontVariantLigatures::NONE;
         };
         if info.text_rendering == TextRendering::Optimizespeed {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            ligatures = FontVariantLigatures::NONE;
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
         }
 
@@ -124,6 +127,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             word_spacing: info.word_spacing,
             script: info.script,
             language: info.language,
+            ligatures,
             flags,
         }
     }
@@ -488,6 +492,7 @@ impl TextRun {
         let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
         let font_size = font_style.font_size.computed_size().into();
         let kerning = font_style.font_kerning;
+        let ligatures = font_style.font_variant_ligatures;
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -573,6 +578,7 @@ impl TextRun {
                 letter_spacing,
                 text_rendering,
                 kerning,
+                ligatures,
             };
 
             finish_current_segment(&mut current, &mut results);
