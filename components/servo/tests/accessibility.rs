@@ -335,6 +335,7 @@ fn test_accessibility_basic_mutation() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
+        preferences.dom_servo_helpers_enabled = true;
         builder.preferences(preferences)
     });
     let url = "data:text/html,<!DOCTYPE html>\
@@ -361,12 +362,11 @@ fn test_accessibility_basic_mutation() {
     let h2 = children[1];
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 
-    webview.force_needs_accessibility_update_for_testing();
-
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "document.getElementById('h2').remove()",
+        "document.getElementById('h2').remove();\
+         window.ServoTestUtils.forceAccessibilityUpdate();",
     );
 
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
