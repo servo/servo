@@ -20,6 +20,8 @@ namespace ServoTestUtils {
   undefined js_backtrace();
 
   undefined panic();
+
+  undefined forceAccessibilityUpdate();
 };
 
 [Exposed=Window, Pref="dom_servo_helpers_enabled"]

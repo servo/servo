@@ -174,7 +174,7 @@ net = { workspace = true, features = ["test-util"] }
 rustls = { version = "0.23", default-features = false }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
-servo = { path = ".", features = ["tracing"] }
+servo = { path = ".", features = ["tracing", "testbinding"] }
 tracing = { workspace = true }
 winit = { workspace = true }
 
