@@ -2003,7 +2003,6 @@ pub(crate) fn encode_multipart_form_data(
                 // This character isn't LF but is
                 // preceded by CR
                 _ if prev == '\r' => {
-                    buf.push('\r');
                     buf.push('\n');
                     buf.push(ch);
                 },
@@ -2016,6 +2015,19 @@ pub(crate) fn encode_multipart_form_data(
             buf.push('\n');
         }
         DOMString::from(buf)
+    }
+
+    // For field names and filenames for file fields, the result
+    // of the encoding must be escaped by replacing:
+    //   0x0A (LF) bytes with `%0A`,
+    //   0x0D (CR) bytes with `%0D`,
+    //   0x22 (") bytes with `%22`.
+    // The user agent must not perform any other escapes.
+    fn escape_for_header(s: &DOMString) -> String {
+        s.str()
+            .replace('\n', "%0A")
+            .replace('\r', "%0D")
+            .replace('"', "%22")
     }
 
     for entry in form_data.iter_mut() {
@@ -2035,11 +2047,14 @@ pub(crate) fn encode_multipart_form_data(
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
 
+        let escaped_name = escape_for_header(&entry.name);
+
         // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
         // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
-                let content_disposition = format!("form-data; name=\"{}\"", entry.name);
+                // Step 2.4
+                let content_disposition = format!("form-data; name=\"{}\"", escaped_name);
                 let mut bytes =
                     format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
                         .into_bytes();
@@ -2047,8 +2062,16 @@ pub(crate) fn encode_multipart_form_data(
             },
             FormDatumValue::File(ref f) => {
                 let charset = encoding.name();
+                // Step 2.4
+                // For field names and filenames for file fields, the result
+                // of the encoding must be escaped by replacing:
+                //   0x0A (LF) bytes with `%0A`,
+                //   0x0D (CR) bytes with `%0D`,
+                //   0x22 (") bytes with `%22`.
+                // The user agent must not perform any other escapes.
                 let extra = if charset.to_lowercase() == "utf-8" {
-                    format!("filename=\"{}\"", String::from(f.name().str()))
+                    let escaped = escape_for_header(f.name());
+                    format!("filename=\"{}\"", escaped)
                 } else {
                     format!(
                         "filename*=\"{}\"''{}",
@@ -2057,7 +2080,8 @@ pub(crate) fn encode_multipart_form_data(
                     )
                 };
 
-                let content_disposition = format!("form-data; name=\"{}\"; {}", entry.name, extra);
+                let content_disposition =
+                    format!("form-data; name=\"{}\"; {}", escaped_name, extra);
                 // https://tools.ietf.org/html/rfc7578#section-4.4
                 let content_type: Mime = f
                     .upcast::<Blob>()
