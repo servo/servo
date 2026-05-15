@@ -42,9 +42,6 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
             phases.push(DOMString::from("RanLayout"))
         }
-        if phases_run.contains(ReflowPhasesRun::CalculatedOverflow) {
-            phases.push(DOMString::from("CalculatedOverflow"))
-        }
         if phases_run.contains(ReflowPhasesRun::BuiltStackingContextTree) {
             phases.push(DOMString::from("BuiltStackingContextTree"))
         }

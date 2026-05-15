@@ -167,10 +167,6 @@ pub struct LayoutThread {
     /// Whether the last display list we sent was effectively empty.
     last_display_list_was_empty: Cell<bool>,
 
-    /// Whether a new overflow calculation needs to happen due to changes to the fragment
-    /// tree. This is set to true every time a restyle requests overflow calculation.
-    need_overflow_calculation: Cell<bool>,
-
     /// Whether a new display list is necessary due to changes to layout or stacking
     /// contexts. This is set to true every time layout changes, even when a display list
     /// isn't requested for this layout, such as for layout queries. The next time a
@@ -774,7 +770,6 @@ impl LayoutThread {
             have_ever_generated_display_list: Cell::new(false),
             last_display_list_was_empty: Cell::new(true),
             device_has_changed: false,
-            need_overflow_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
@@ -987,9 +982,6 @@ impl LayoutThread {
             root_element,
             &image_resolver,
         );
-        if self.calculate_overflow() {
-            reflow_phases_run.insert(ReflowPhasesRun::CalculatedOverflow);
-        }
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
@@ -1001,6 +993,13 @@ impl LayoutThread {
         }
         if self.handle_accessibility_tree_update(&root_element.as_node()) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
+        }
+
+        if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) &&
+            reflow_phases_run.contains(ReflowPhasesRun::RanLayout) &&
+            let Some(fragment_tree) = &*self.fragment_tree.borrow()
+        {
+            fragment_tree.print();
         }
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
@@ -1198,16 +1197,24 @@ impl LayoutThread {
             }
         };
 
-        if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
-            self.need_overflow_calculation.set(true);
-        }
         if damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
             self.need_new_stacking_context_tree.set(true);
         }
         if damage.contains(RestyleDamage::REPAINT) {
             self.need_new_display_list.set(true);
         }
+
         if !damage.contains(RestyleDamage::RELAYOUT) {
+            if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+                assert!(self.need_new_display_list.get());
+                assert!(self.need_new_stacking_context_tree.get());
+                self.fragment_tree
+                    .borrow()
+                    .as_ref()
+                    .expect("Should always have a FragmentTree when layout unnecessary")
+                    .clear_scrollable_overflow();
+            }
+
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return (ReflowPhasesRun::empty(), IFrameSizes::default());
         }
@@ -1251,26 +1258,6 @@ impl LayoutThread {
             ReflowPhasesRun::RanLayout,
             std::mem::take(&mut *iframe_sizes),
         )
-    }
-
-    #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
-    fn calculate_overflow(&self) -> bool {
-        if !self.need_overflow_calculation.get() {
-            return false;
-        }
-
-        if let Some(fragment_tree) = &*self.fragment_tree.borrow() {
-            fragment_tree.calculate_scrollable_overflow();
-            if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) {
-                fragment_tree.print();
-            }
-        }
-
-        self.need_overflow_calculation.set(false);
-        assert!(self.need_new_display_list.get());
-        assert!(self.need_new_stacking_context_tree.get());
-
-        true
     }
 
     fn build_stacking_context_tree_for_reflow(&self, reflow_request: &ReflowRequest) -> bool {

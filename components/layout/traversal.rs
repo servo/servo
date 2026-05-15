@@ -122,7 +122,9 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     // 2. Box tree reconstruction needs to run at the dirty root, in which case we need to
     //    find an appropriate place to run box tree reconstruction and *also* invalidate all
     //    fragments to the root of the DOM.
-    if !restyle_damage.contains(RestyleDamage::RELAYOUT) {
+    let needs_fragment_tree_rebuild = restyle_damage.contains(RestyleDamage::RELAYOUT);
+    let needs_overflow_recalculation = restyle_damage.contains(RestyleDamage::RECALCULATE_OVERFLOW);
+    if !needs_fragment_tree_rebuild && !needs_overflow_recalculation {
         return restyle_damage;
     }
 
@@ -146,7 +148,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
             // node's boxes to ensure that they are invalidated for the reconstruction we
             // will run later.
             parent_node.unset_all_boxes();
-        } else {
+        } else if needs_fragment_tree_rebuild {
             // Reconstruction has already run or was not necessary, so we just need to
             // ensure that fragment tree layout does not reuse any cached fragments.
             let new_damage_for_ancestors = Cell::new(LayoutDamage::empty());
@@ -157,6 +159,14 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
                 );
             });
             damage_for_ancestors = new_damage_for_ancestors.get();
+        } else {
+            // No fragment layout is necessary, but a descendant had scrollable overflow
+            // damage. In this case, clear any preexisting scrollable overflow so that it
+            // gets recalculated the next time it is queried.
+            assert!(needs_overflow_recalculation);
+            parent_node.with_layout_box_base_including_pseudos(|base| {
+                base.clear_scrollable_overflow_all_on_fragments();
+            });
         }
 
         maybe_parent_node = unsafe { parent_node.dangerous_flat_tree_parent() };
@@ -262,11 +272,11 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
                 .insert(RestyleDamage::RELAYOUT | LayoutDamage::recompute_inline_content_sizes());
         }
     } else {
-        // In this case, this node's boxes are preserved! It's possible that we still need
-        // to run fragment tree layout in this subtree due to an ancestor, this node, or a
-        // descendant changing style. In that case, we ask the `LayoutBoxBase` to clear
-        // any cached information that cannot be used.
         if (element_and_parent_damage | damage_from_children).contains(RestyleDamage::RELAYOUT) {
+            // In this case, this node's boxes are preserved! It's possible that we still need
+            // to run fragment tree layout in this subtree due to an ancestor, this node, or a
+            // descendant changing style. In that case, we ask the `LayoutBoxBase` to clear
+            // any cached information that cannot be used.
             let extra_layout_damage_for_parent = Cell::new(LayoutDamage::empty());
             node.with_layout_box_base_including_pseudos(|base| {
                 extra_layout_damage_for_parent.set(
@@ -275,6 +285,15 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
                 );
             });
             layout_damage_for_parent.insert(extra_layout_damage_for_parent.get().into());
+        } else if (damage_from_children | element_damage)
+            .contains(RestyleDamage::RECALCULATE_OVERFLOW)
+        {
+            // In this case the node's fragments are preserved, but it or one of its descendants
+            // had scrollable overflow damage, which means that scrollable overflow should be
+            // cleared. This causes it to be recalculated the next time it's queried.
+            node.with_layout_box_base_including_pseudos(|base| {
+                base.clear_scrollable_overflow_all_on_fragments();
+            });
         }
 
         // The box is preserved. Whether or not we run fragment tree layout, we need to

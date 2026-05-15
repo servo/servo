@@ -155,6 +155,19 @@ impl Fragment {
         }
     }
 
+    /// Clear the scrollable overflow on this [`Fragment`]. This is called during damage
+    /// propagation when a fragment is preserved, itself or one of its descendants has
+    /// scrollable overflow damage.
+    pub(crate) fn clear_scrollable_overflow(&self) {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.clear_scrollable_overflow()
+            },
+            Fragment::Positioning(fragment) => fragment.clear_scrollable_overflow(),
+            _ => {},
+        }
+    }
+
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
@@ -165,21 +178,6 @@ impl Fragment {
             Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
-        }
-    }
-
-    pub(crate) fn calculate_scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        self.calculate_scrollable_overflow();
-        self.scrollable_overflow_for_parent()
-    }
-
-    pub(crate) fn calculate_scrollable_overflow(&self) {
-        match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.calculate_scrollable_overflow()
-            },
-            Fragment::Positioning(fragment) => fragment.calculate_scrollable_overflow(),
-            _ => {},
         }
     }
 
