@@ -2003,7 +2003,6 @@ pub(crate) fn encode_multipart_form_data(
                 // This character isn't LF but is
                 // preceded by CR
                 _ if prev == '\r' => {
-                    buf.push('\r');
                     buf.push('\n');
                     buf.push(ch);
                 },
