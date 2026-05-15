@@ -93,7 +93,7 @@ impl FontAndScriptInfo {
             text_rendering: TextRendering::Auto,
             kerning: FontKerning::Auto,
             ligatures: FontVariantLigatures::NORMAL,
-            numeric: FontVariantNumeric::NORMAL
+            numeric: FontVariantNumeric::NORMAL,
         }
     }
 }
@@ -584,7 +584,7 @@ impl TextRun {
                 text_rendering,
                 kerning,
                 ligatures,
-                numeric
+                numeric,
             };
 
             finish_current_segment(&mut current, &mut results);
