@@ -24,6 +24,7 @@ use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::inline::line::TextRunOffsets;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
+use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
@@ -146,11 +147,10 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn scrolling_area(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrolling_area(&self, layout_thread: &LayoutThread) -> PhysicalRect<Au> {
         match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.offset_by_containing_block(&fragment.scrollable_overflow())
-            },
+            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
+                .offset_by_containing_block(&fragment.scrollable_overflow(), layout_thread.into()),
             _ => self.scrollable_overflow_for_parent(),
         }
     }
@@ -212,15 +212,28 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn cumulative_box_area_rect(&self, area: BoxAreaType) -> Option<PhysicalRect<Au>> {
+    pub(crate) fn cumulative_box_area_rect(
+        &self,
+        area: BoxAreaType,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
-                BoxAreaType::Content => fragment.cumulative_content_box_rect(),
-                BoxAreaType::Padding => fragment.cumulative_padding_box_rect(),
-                BoxAreaType::Border => fragment.cumulative_border_box_rect(),
+                BoxAreaType::Content => {
+                    fragment.cumulative_content_box_rect(containing_block_computation)
+                },
+                BoxAreaType::Padding => {
+                    fragment.cumulative_padding_box_rect(containing_block_computation)
+                },
+                BoxAreaType::Border => {
+                    fragment.cumulative_border_box_rect(containing_block_computation)
+                },
             }),
             Fragment::Positioning(fragment) => {
-                Some(fragment.offset_by_containing_block(&fragment.base.rect()))
+                Some(fragment.offset_by_containing_block(
+                    &fragment.base.rect(),
+                    containing_block_computation,
+                ))
             },
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
@@ -486,5 +499,39 @@ impl CollapsedMargin {
 
     pub fn solve(&self) -> Au {
         self.max_positive + self.min_negative
+    }
+}
+
+/// A token which ensures the calculation and assignment of cumulative containing
+/// blocks to fragments in the fragment tree. This is used because these cumulative
+/// containing block offsets are set during stacking context tree construction, but
+/// some queries might need them beforehand. If the query is executed before stacking
+/// context tree construction, a quick traversal is performed to calculate them for
+/// the purpose of the query.
+pub(crate) enum ContainingBlockCalculation<'a> {
+    /// This token variant is for the purpose of a layout query. In this case, if stacking
+    /// context tree construction has not yet taken place, a cumulative containing block
+    /// calculation traversal will be performed.
+    Lazy { layout_thread: &'a LayoutThread },
+    /// This token variant is used when the code can guarantee that stacking context
+    /// tree construction has already taken place.
+    ///
+    /// Note: Using this before stacking context tree construction can lead
+    /// to incorrect layout or layout query results!
+    AlreadyDoneWithStackingContextTree,
+}
+
+impl ContainingBlockCalculation<'_> {
+    pub(crate) fn ensure(&self) {
+        match self {
+            Self::Lazy { layout_thread } => layout_thread.ensure_containing_block_calculation(),
+            Self::AlreadyDoneWithStackingContextTree => {},
+        }
+    }
+}
+
+impl<'a> From<&'a LayoutThread> for ContainingBlockCalculation<'a> {
+    fn from(layout_thread: &'a LayoutThread) -> Self {
+        Self::Lazy { layout_thread }
     }
 }

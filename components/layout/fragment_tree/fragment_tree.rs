@@ -43,22 +43,12 @@ impl FragmentTree {
         initial_containing_block: PhysicalRect<Au>,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
-        let fragment_tree = Self {
+        Self {
             root_fragments,
             scrollable_overflow: Cell::default(),
             initial_containing_block,
             viewport_scroll_sensitivity,
-        };
-
-        // Trigger scrollable overflow calculation unconditionally when creating a new Fragment.
-        fragment_tree.scrollable_overflow();
-
-        fragment_tree.find(|fragment, _level, containing_block| {
-            fragment.set_containing_block(containing_block);
-            None::<()>
-        });
-
-        fragment_tree
+        }
     }
 
     pub fn print(&self) {

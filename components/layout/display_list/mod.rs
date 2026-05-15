@@ -53,8 +53,8 @@ use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
-    SpecificLayoutInfo, Tag, TextFragment,
+    BackgroundMode, BoxFragment, ContainingBlockCalculation, Fragment, FragmentFlags,
+    FragmentStatus, FragmentTree, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -487,7 +487,10 @@ impl DisplayListBuilder<'_> {
                     }
 
                     let bounds = box_fragment
-                        .offset_by_containing_block(&fragment_relative_bounds)
+                        .offset_by_containing_block(
+                            &fragment_relative_bounds,
+                            ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+                        )
                         .to_webrender();
 
                     // We paint each highlighted area as if it was a border for simplicity

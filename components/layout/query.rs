@@ -11,7 +11,7 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleElementOf, LayoutElement,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
     LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
     ScrollContainerQueryFlags, ScrollContainerResponse,
 };
@@ -51,6 +51,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, TextFragment,
 };
+use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
@@ -86,6 +87,7 @@ pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<Physi
 }
 
 pub(crate) fn process_box_area_request(
+    layout_thread: &LayoutThread,
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
@@ -100,7 +102,7 @@ pub(crate) fn process_box_area_request(
                     .retrieve_box_fragment()
                     .is_none_or(|fragment| !fragment.is_inline_box())
         })
-        .filter_map(|node| node.cumulative_box_area_rect(area))
+        .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
         .peekable();
 
     rects.peek()?;
@@ -120,22 +122,27 @@ pub(crate) fn process_box_area_request(
 }
 
 pub(crate) fn process_box_areas_request(
+    layout_thread: &LayoutThread,
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
-) -> CSSPixelRectIterator {
+) -> CSSPixelRectVec {
     let fragments = node
         .fragments_for_pseudo(None)
         .into_iter()
-        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area));
+        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
     else {
-        return Box::new(fragments.map(|rect| Rect::new(rect.origin, Size2D::zero())));
+        return fragments
+            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
+            .collect();
     };
 
-    Box::new(fragments.filter_map(move |rect| transform_au_rectangle(rect, transform)))
+    fragments
+        .filter_map(move |rect| transform_au_rectangle(rect, transform))
+        .collect()
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32, CSSPixel> {
@@ -166,6 +173,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
+    layout_thread: &LayoutThread,
     requested_node: Option<ServoLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
 ) -> Rect<i32, CSSPixel> {
@@ -177,7 +185,7 @@ pub fn process_node_scroll_area_request(
         Some(node) => node
             .fragments_for_pseudo(None)
             .first()
-            .map(Fragment::scrolling_area)
+            .map(|fragment| fragment.scrolling_area(layout_thread))
             .unwrap_or_default(),
         None => tree.scrollable_overflow(),
     };
@@ -193,6 +201,7 @@ pub fn process_node_scroll_area_request(
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request(
+    layout_thread: &LayoutThread,
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
     pseudo: &Option<PseudoElement>,
@@ -318,7 +327,9 @@ pub fn process_resolved_style_request(
         let (content_rect, margins, padding, specific_layout_info) = match fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 if style.get_box().position != Position::Static {
-                    let resolved_insets = || box_fragment.calculate_resolved_insets_if_positioned();
+                    let resolved_insets = || {
+                        box_fragment.calculate_resolved_insets_if_positioned(layout_thread.into())
+                    };
                     match longhand_id {
                         LonghandId::Top => return resolved_insets().top.to_css_string(),
                         LonghandId::Right => {
@@ -633,6 +644,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
 
 #[inline]
 pub fn process_offset_parent_query(
+    layout_thread: &LayoutThread,
     scroll_tree: &ScrollTree,
     node: ServoLayoutNode<'_>,
 ) -> Option<OffsetParentResponse> {
@@ -653,7 +665,8 @@ pub fn process_offset_parent_query(
     // > 1. If the element is the HTML body element or does not have any associated CSS
     //      layout box return zero and terminate this algorithm.
     let fragment = node.fragments_for_pseudo(None).first().cloned()?;
-    let mut border_box = fragment.cumulative_box_area_rect(BoxAreaType::Border)?;
+    let mut border_box =
+        fragment.cumulative_box_area_rect(BoxAreaType::Border, layout_thread.into())?;
     let cumulative_sticky_offsets = fragment
         .retrieve_box_fragment()
         .and_then(|box_fragment| box_fragment.spatial_tree_node())
@@ -707,12 +720,17 @@ pub fn process_offset_parent_query(
     // See <https://github.com/w3c/csswg-drafts/issues/10549>.
     let parent_offset_rect = if parent_is_static_body_element {
         if let Some(grandparent_fragment) = grandparent_box_fragment() {
-            grandparent_fragment.offset_by_containing_block(&grandparent_fragment.border_rect())
+            grandparent_fragment.offset_by_containing_block(
+                &grandparent_fragment.border_rect(),
+                layout_thread.into(),
+            )
         } else {
-            parent_fragment.offset_by_containing_block(&parent_fragment.padding_rect())
+            parent_fragment
+                .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
         }
     } else {
-        parent_fragment.offset_by_containing_block(&parent_fragment.padding_rect())
+        parent_fragment
+            .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
     }
     .translate(
         cumulative_sticky_offsets

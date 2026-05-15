@@ -23,6 +23,7 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, Fra
 use crate::SharedStyle;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
+use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
@@ -387,7 +388,12 @@ impl BoxFragment {
         *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
     }
 
-    pub(crate) fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+    pub(crate) fn offset_by_containing_block(
+        &self,
+        rect: &PhysicalRect<Au>,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        containing_block_computation.ensure();
         rect.translate(
             self.cumulative_containing_block_rect
                 .borrow()
@@ -396,16 +402,25 @@ impl BoxFragment {
         )
     }
 
-    pub(crate) fn cumulative_content_box_rect(&self) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.base.rect())
+    pub(crate) fn cumulative_content_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.base.rect(), containing_block_computation)
     }
 
-    pub(crate) fn cumulative_padding_box_rect(&self) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.padding_rect())
+    pub(crate) fn cumulative_padding_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.padding_rect(), containing_block_computation)
     }
 
-    pub(crate) fn cumulative_border_box_rect(&self) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.border_rect())
+    pub(crate) fn cumulative_border_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.border_rect(), containing_block_computation)
     }
 
     pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
@@ -549,7 +564,10 @@ impl BoxFragment {
         }
     }
 
-    pub(crate) fn calculate_resolved_insets_if_positioned(&self) -> PhysicalSides<AuOrAuto> {
+    pub(crate) fn calculate_resolved_insets_if_positioned(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalSides<AuOrAuto> {
         let style = self.style();
         let position = style.get_box().position;
         debug_assert_ne!(
@@ -571,8 +589,10 @@ impl BoxFragment {
             )
         };
 
-        let containing_block_size =
-            LazyCell::new(|| self.cumulative_containing_block_rect.borrow().size);
+        let containing_block_size = LazyCell::new(|| {
+            containing_block_computation.ensure();
+            self.cumulative_containing_block_rect.borrow().size
+        });
 
         // "A resolved value special case property like top defined in another
         // specification If the property applies to a positioned element and the
