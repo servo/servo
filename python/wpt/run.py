@@ -77,6 +77,8 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
+    if kwargs.pop("gc_zeal", False):
+        prefs.extend(["js_mem_gc_zeal_level=2", "js_mem_gc_zeal_frequency=1"])
     if multiprocess:
         kwargs.setdefault("binary_args", ["-M"])
 

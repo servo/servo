@@ -33,6 +33,13 @@ def create_parser() -> ArgumentParser:
     )
     parser.add_argument("--pref", default=[], action="append", dest="prefs", help="Pass preferences to servo")
     parser.add_argument(
+        "--gc-zeal",
+        default=False,
+        action="store_true",
+        help="Enable SpiderMonkey GC zeal mode for debugging unsafe JS integration code "
+        "(only effective with debug-mozjs builds)",
+    )
+    parser.add_argument(
         "--log-servojson",
         action="append",
         type=mozlog.commandline.log_file,

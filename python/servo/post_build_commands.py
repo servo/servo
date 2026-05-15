@@ -72,6 +72,12 @@ class PostBuildCommands(CommandBase):
     @CommandArgument("--debugger-cmd", default=None, type=str, help="Name of debugger to use.")
     @CommandArgument("--headless", "-z", action="store_true", help="Launch in headless mode")
     @CommandArgument("--software", "-s", action="store_true", help="Launch with software rendering")
+    @CommandArgument(
+        "--gc-zeal",
+        action="store_true",
+        help="Enable SpiderMonkey GC zeal mode for debugging unsafe JS integration code "
+        "(only effective with debug-mozjs builds)",
+    )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
     @CommandBase.allow_target_configuration
@@ -85,8 +91,9 @@ class PostBuildCommands(CommandBase):
         software: bool = False,
         emulator: bool = False,
         usb: bool = False,
+        gc_zeal: bool = False,
     ) -> int | None:
-        return self._run(servo_binary, params, debugger, debugger_cmd, headless, software, emulator, usb)
+        return self._run(servo_binary, params, debugger, debugger_cmd, headless, software, emulator, usb, gc_zeal)
 
     def _run(
         self,
@@ -98,7 +105,16 @@ class PostBuildCommands(CommandBase):
         software: bool = False,
         emulator: bool = False,
         usb: bool = False,
+        gc_zeal: bool = False,
     ) -> int | None:
+        if gc_zeal:
+            params = [
+                "--pref",
+                "js_mem_gc_zeal_level=2",
+                "--pref",
+                "js_mem_gc_zeal_frequency=1",
+                *params,
+            ]
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
