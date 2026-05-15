@@ -253,7 +253,7 @@ impl HTMLDetailsElement {
         if let Some(summary) = self.find_corresponding_summary_element() {
             shadow_tree
                 .summary
-                .Assign(vec![ElementOrText::Element(DomRoot::upcast(summary))]);
+                .Assign(cx, vec![ElementOrText::Element(DomRoot::upcast(summary))]);
         }
 
         let mut slottable_children = vec![];
@@ -270,7 +270,7 @@ impl HTMLDetailsElement {
                 slottable_children.push(ElementOrText::Text(DomRoot::from_ref(text)));
             }
         }
-        shadow_tree.details_content.Assign(slottable_children);
+        shadow_tree.details_content.Assign(cx, slottable_children);
     }
 
     fn update_shadow_tree_styles(&self, cx: &mut JSContext) {

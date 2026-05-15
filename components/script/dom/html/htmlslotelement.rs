@@ -6,7 +6,7 @@ use std::cell::{Cell, Ref, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
@@ -60,7 +60,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
     make_atomic_setter!(SetName, "name");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-slot-assignednodes>
-    fn AssignedNodes(&self, options: &AssignedNodesOptions) -> Vec<DomRoot<Node>> {
+    fn AssignedNodes(&self, cx: &JSContext, options: &AssignedNodesOptions) -> Vec<DomRoot<Node>> {
         // Step 1. If options["flatten"] is false, then return this's assigned nodes.
         if !options.flatten {
             return self
@@ -74,7 +74,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 
         // Step 2. Return the result of finding flattened slottables with this.
         rooted_vec!(let mut flattened_slottables);
-        self.find_flattened_slottables(&mut flattened_slottables);
+        self.find_flattened_slottables(cx.no_gc(), &mut flattened_slottables);
 
         flattened_slottables
             .iter()
@@ -83,17 +83,19 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-slot-assignedelements>
-    fn AssignedElements(&self, options: &AssignedNodesOptions) -> Vec<DomRoot<Element>> {
-        self.AssignedNodes(options)
+    fn AssignedElements(
+        &self,
+        cx: &JSContext,
+        options: &AssignedNodesOptions,
+    ) -> Vec<DomRoot<Element>> {
+        self.AssignedNodes(cx, options)
             .into_iter()
             .flat_map(|node| node.downcast::<Element>().map(DomRoot::from_ref))
             .collect()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-slot-assign>
-    fn Assign(&self, nodes: Vec<ElementOrText>) {
-        let cx = GlobalScope::get_cx();
-
+    fn Assign(&self, cx: &JSContext, nodes: Vec<ElementOrText>) {
         // Step 1. For each node of this's manually assigned nodes, set node's manual slot assignment to null.
         for slottable in self.manually_assigned_nodes.borrow().iter() {
             slottable.set_manual_slot_assignment(None);
@@ -104,7 +106,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 
         // Step 3. For each node of nodes:
         for element_or_text in nodes.into_iter() {
-            rooted!(in(*cx) let node = match element_or_text {
+            rooted!(&in(cx) let node = match element_or_text {
                 ElementOrText::Element(element) => Slottable(Dom::from_ref(element.upcast())),
                 ElementOrText::Text(text) => Slottable(Dom::from_ref(text.upcast())),
             });
@@ -136,7 +138,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
         // Step 5. Run assign slottables for a tree for this's root.
         self.upcast::<Node>()
             .GetRootNode(&GetRootNodeOptions::empty())
-            .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Force);
+            .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Force);
     }
 }
 
@@ -201,7 +203,7 @@ impl HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
-    fn find_flattened_slottables(&self, result: &mut RootedVec<Slottable>) {
+    fn find_flattened_slottables(&self, no_gc: &NoGC, result: &mut RootedVec<Slottable>) {
         // Step 1. Let result be an empty list.
         // NOTE: In our case "result" is not necessarily empty, because it contains
         // the results of multiple successive calls to "find_flattened_slottables". This method
@@ -214,19 +216,19 @@ impl HTMLSlotElement {
 
         // Step 3. Let slottables be the result of finding slottables given slot.
         rooted_vec!(let mut slottables);
-        self.find_slottables(&mut slottables);
+        self.find_slottables(no_gc, &mut slottables);
 
         // Step 4. If slottables is the empty list, then append each slottable
         // child of slot, in tree order, to slottables.
         if slottables.is_empty() {
-            for child in self.upcast::<Node>().children() {
+            for child in self.upcast::<Node>().children_unrooted(no_gc) {
                 let is_slottable = matches!(
                     child.type_id(),
                     NodeTypeId::Element(_) |
                         NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
                 );
                 if is_slottable {
-                    slottables.push(Slottable(child.as_traced()));
+                    slottables.push(Slottable(Dom::from_ref(&*child)));
                 }
             }
         }
@@ -238,7 +240,7 @@ impl HTMLSlotElement {
                 Some(slot_element) if slot_element.upcast::<Node>().is_in_a_shadow_tree() => {
                     // Step 5.1.1 Let temporaryResult be the result of finding flattened slottables given node.
                     // Step 5.1.2 Append each slottable in temporaryResult, in order, to result.
-                    slot_element.find_flattened_slottables(result);
+                    slot_element.find_flattened_slottables(no_gc, result);
                 },
                 // Step 5.2 Otherwise, append node to result.
                 _ => {
@@ -254,7 +256,7 @@ impl HTMLSlotElement {
     ///
     /// To avoid rooting shenanigans, this writes the returned slottables
     /// into the `result` argument
-    fn find_slottables(&self, result: &mut RootedVec<Slottable>) {
+    fn find_slottables(&self, no_gc: &NoGC, result: &mut RootedVec<Slottable>) {
         let cx = GlobalScope::get_cx();
 
         // Step 1. Let result be an empty list.
@@ -288,14 +290,14 @@ impl HTMLSlotElement {
         }
         // Step 6. Otherwise, for each slottable child slottable of host, in tree order:
         else {
-            for child in host.upcast::<Node>().children() {
+            for child in host.upcast::<Node>().children_unrooted(no_gc) {
                 let is_slottable = matches!(
                     child.type_id(),
                     NodeTypeId::Element(_) |
                         NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
                 );
                 if is_slottable {
-                    rooted!(in(*cx) let slottable = Slottable(child.as_traced()));
+                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(&*child)));
                     // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
                     let found_slot = slottable.find_a_slot(false);
 
@@ -311,10 +313,10 @@ impl HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables>
-    pub(crate) fn assign_slottables(&self) {
+    pub(crate) fn assign_slottables(&self, no_gc: &NoGC) {
         // Step 1. Let slottables be the result of finding slottables for slot.
         rooted_vec!(let mut slottables);
-        self.find_slottables(&mut slottables);
+        self.find_slottables(no_gc, &mut slottables);
 
         // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
@@ -399,13 +401,13 @@ impl Slottable {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
-    pub(crate) fn assign_a_slot(&self) {
+    pub(crate) fn assign_a_slot(&self, no_gc: &NoGC) {
         // Step 1. Let slot be the result of finding a slot with slottable.
         let slot = self.find_a_slot(false);
 
         // Step 2. If slot is non-null, then run assign slottables for slot.
         if let Some(slot) = slot {
-            slot.assign_slottables();
+            slot.assign_slottables(no_gc);
         }
     }
 
@@ -477,7 +479,7 @@ impl VirtualMethods for HTMLSlotElement {
             // Changing the name might cause slot assignments to change
             self.upcast::<Node>()
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
         }
     }
 

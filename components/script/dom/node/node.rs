@@ -1439,7 +1439,7 @@ impl Node {
 
         // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
-            slot.assign_slottables();
+            slot.assign_slottables(cx.no_gc());
         }
 
         // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
@@ -1459,10 +1459,10 @@ impl Node {
             // Step 16.1. Run assign slottables for a tree with oldParent’s root.
             old_parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 16.2. Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+            node.assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
         }
 
         // Step 17. If child is non-null:
@@ -1496,7 +1496,7 @@ impl Node {
             (node.is::<Element>() || node.is::<Text>())
         {
             rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(node)));
-            slottable.assign_a_slot();
+            slottable.assign_a_slot(cx.no_gc());
         }
 
         // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
@@ -1510,7 +1510,7 @@ impl Node {
 
         // Step 23. Run assign slottables for a tree with node’s root.
         node.GetRootNode(&GetRootNodeOptions::empty())
-            .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+            .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
         // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
         // shadow-including tree order:
@@ -1936,7 +1936,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
-    pub(crate) fn assign_slottables_for_a_tree(&self, force: ForceSlottableNodeReconciliation) {
+    pub(crate) fn assign_slottables_for_a_tree(
+        &self,
+        no_gc: &NoGC,
+        force: ForceSlottableNodeReconciliation,
+    ) {
         // NOTE: This method traverses all descendants of the node and is potentially very
         // expensive. If the node is neither a shadowroot nor a slot then assigning slottables
         // for it won't have any effect, so we take a fast path out.
@@ -1955,9 +1959,9 @@ impl Node {
 
         // > To assign slottables for a tree, given a node root, run assign slottables for each slot
         // > slot in root’s inclusive descendants, in tree order.
-        for node in self.traverse_preorder(ShadowIncluding::No) {
+        for node in self.traverse_preorder_non_rooting(no_gc, ShadowIncluding::No) {
             if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                slot.assign_slottables();
+                slot.assign_slottables(no_gc);
             }
         }
     }
@@ -3160,13 +3164,11 @@ impl Node {
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
             if let Some(ref shadow_root) = parent_shadow_root &&
-                shadow_root.SlotAssignment() == SlotAssignmentMode::Named
+                shadow_root.SlotAssignment() == SlotAssignmentMode::Named &&
+                (kid.is::<Element>() || kid.is::<Text>())
             {
-                let cx = GlobalScope::get_cx();
-                if kid.is::<Element>() || kid.is::<Text>() {
-                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(kid)));
-                    slottable.assign_a_slot();
-                }
+                rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(kid)));
+                slottable.assign_a_slot(cx.no_gc());
             }
 
             // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
@@ -3180,7 +3182,7 @@ impl Node {
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
@@ -3367,7 +3369,7 @@ impl Node {
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
-            slot.assign_slottables();
+            slot.assign_slottables(cx.no_gc());
         }
 
         // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
@@ -3387,10 +3389,10 @@ impl Node {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 10.2 Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Force);
+            node.assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Force);
         }
 
         // TODO: Step 15. transient registered observers
