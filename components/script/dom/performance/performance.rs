@@ -770,7 +770,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             !options.detail.get().is_null_or_undefined()
         {
             // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
-            let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
+            let record = structuredclone::write(cx, options.detail.handle(), None)?;
 
             // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
             structuredclone::read(
