@@ -133,6 +133,9 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     let mut needs_box_tree_rebuild = layout_damage.needs_new_box();
 
     let mut damage_for_ancestors = LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES;
+    if restyle_damage.contains(LayoutDamage::layout_affected_by_inflow_descendant()) {
+        damage_for_ancestors.insert(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT);
+    }
 
     let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
     while let Some(parent_node) = maybe_parent_node {
@@ -155,10 +158,23 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
             parent_node.with_layout_box_base_including_pseudos(|base| {
                 new_damage_for_ancestors.set(
                     new_damage_for_ancestors.get() |
-                        base.add_damage(Default::default(), damage_for_ancestors),
+                        base.add_damage(
+                            Default::default(),
+                            damage_for_ancestors,
+                            RestyleDamage::empty(),
+                        ),
                 );
             });
             damage_for_ancestors = new_damage_for_ancestors.get();
+
+            // If doing a fragment tree layout, we also need to apply the LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT
+            // damage flag, unless this node is out of flow. In that case our ancestors are rebuilt, but
+            // their resulting fragments should be equivalent to the previous ones.
+            if damage_for_ancestors.contains(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT) &&
+                parent_node.is_absolutely_positioned()
+            {
+                damage_for_ancestors.remove(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT);
+            }
         } else {
             // No fragment layout is necessary, but a descendant had scrollable overflow
             // damage. In this case, clear any preexisting scrollable overflow so that it
@@ -239,10 +255,12 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         }
     }
 
-    // Only propagate up layout phases from children. Other types of damage can be
-    // propagated from children but via the `LayoutBoxBase::add_damage` return value.
-    let mut layout_damage_for_parent =
-        element_and_parent_damage | (damage_from_children & RestyleDamage::RELAYOUT);
+    // Only propagate up layout phases and whether layout affects inflow descendants from
+    // children. Other types of damage can be propagated from children but via the
+    // `LayoutBoxBase::add_damage` return value.
+    let mut layout_damage_for_parent = element_and_parent_damage |
+        (damage_from_children &
+            (RestyleDamage::RELAYOUT | LayoutDamage::layout_affected_by_inflow_descendant()));
 
     let element_or_ancestors_need_rebuild =
         element_and_parent_damage.contains(LayoutDamage::descendant_has_box_damage());
@@ -281,7 +299,11 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
             node.with_layout_box_base_including_pseudos(|base| {
                 extra_layout_damage_for_parent.set(
                     extra_layout_damage_for_parent.get() |
-                        base.add_damage(element_damage.into(), damage_from_children.into()),
+                        base.add_damage(
+                            element_damage.into(),
+                            damage_from_children.into(),
+                            damage_from_parent,
+                        ),
                 );
             });
             layout_damage_for_parent.insert(extra_layout_damage_for_parent.get().into());
@@ -301,6 +323,21 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         // element's style has changed.
         if !element_damage.is_empty() {
             node.repair_style(&layout_context.style_context);
+        }
+    }
+
+    // If doing a fragment tree layout, we also need to apply the LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT
+    // damage flag, unless this node is out of flow. In that case our ancestors are rebuilt, but
+    // their resulting fragments should be equivalent to the previous ones.
+    if !layout_damage_for_parent.contains(LayoutDamage::descendant_has_box_damage()) {
+        if element_damage.contains(RestyleDamage::RELAYOUT) {
+            layout_damage_for_parent.insert(LayoutDamage::layout_affected_by_inflow_descendant());
+        }
+
+        if layout_damage_for_parent.contains(LayoutDamage::layout_affected_by_inflow_descendant()) &&
+            node.is_absolutely_positioned()
+        {
+            layout_damage_for_parent.remove(LayoutDamage::layout_affected_by_inflow_descendant());
         }
     }
 
