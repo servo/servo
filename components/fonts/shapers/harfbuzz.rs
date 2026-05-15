@@ -28,13 +28,14 @@ use harfbuzz_sys::{
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
-use style::values::computed::FontVariantLigatures;
+use style::values::computed::{FontVariantLigatures, FontVariantNumeric};
 
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, CALT, CLIG, DLIG, Font, FontBaseline, FontTableMethods, GlyphId, HLIG, KERN, LIGA,
-    ShapedText, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed,
+    AFRC, BASE, CALT, CLIG, DLIG, FRAC, Font, FontBaseline, FontTableMethods, GlyphId, HLIG, KERN,
+    LIGA, LNUM, ONUM, ORDN, PNUM, ShapedText, ShapingFlags, ShapingOptions, TNUM, ZERO,
+    fixed_to_float, float_to_fixed,
 };
 
 const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
@@ -345,6 +346,37 @@ impl Shaper {
                 {
                     add_feature(CALT, 0);
                 }
+            }
+
+            if options.numeric.contains(FontVariantNumeric::LINING_NUMS) {
+                add_feature(LNUM, 1);
+            } else if options.numeric.contains(FontVariantNumeric::OLDSTYLE_NUMS) {
+                add_feature(ONUM, 1);
+            }
+            if options
+                .numeric
+                .contains(FontVariantNumeric::PROPORTIONAL_NUMS)
+            {
+                add_feature(PNUM, 1);
+            } else if options.numeric.contains(FontVariantNumeric::TABULAR_NUMS) {
+                add_feature(TNUM, 1);
+            }
+            if options
+                .numeric
+                .contains(FontVariantNumeric::DIAGONAL_FRACTIONS)
+            {
+                add_feature(FRAC, 1);
+            } else if options
+                .numeric
+                .contains(FontVariantNumeric::STACKED_FRACTIONS)
+            {
+                add_feature(AFRC, 1);
+            }
+            if options.numeric.contains(FontVariantNumeric::ORDINAL) {
+                add_feature(ORDN, 1);
+            }
+            if options.numeric.contains(FontVariantNumeric::SLASHED_ZERO) {
+                add_feature(ZERO, 1);
             }
 
             if options
