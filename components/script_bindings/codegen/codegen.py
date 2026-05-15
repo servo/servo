@@ -3728,7 +3728,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constants = "sConstants.get()"
         else:
             constants = "&[]"
-        id = f"PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)}"
 
 
         if self.descriptor.interface.isNamespace():
@@ -3740,17 +3739,27 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     constructor_name: PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)},
                     namespace_object_class: &NAMESPACE_OBJECT_CLASS,
                     constants: {constants},
+                    name: "{self.descriptor.interface.identifier.name}",
                 }};
-
                 let init = CreateInterfaceObjectsOptions {{
                     t: ConstructorType::Namespace(init),
-                    name: "{self.descriptor.interface.identifier.name}",
                 }};
                 CreateInterfaceObjectsRust::<D>(init, cx, global, cache);
                 """)
 
         elif self.descriptor.interface.isCallback():
-            return CGGeneric("")
+            return CGGeneric(f"""
+                use crate::constructor::{{CreateInterfaceObjectsOptions, CreateInterfaceObjectsRust, ConstructorType, NamespaceInit, CallbackInit }};
+                let init = CallbackInit {{
+                    constants: {constants},
+                    name: "{self.descriptor.interface.identifier.name}",
+                    p_name: PrototypeList::Constructor::{self.descriptor.interface.identifier.name},
+                }};
+                let init = CreateInterfaceObjectsOptions {{
+                    t: ConstructorType::Callback(init),
+                }};
+                CreateInterfaceObjectsRust::<D>(init, cx, global, cache);
+                """)
 
 
         name = self.descriptor.interface.identifier.name
