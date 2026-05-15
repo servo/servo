@@ -183,9 +183,6 @@ skip = [
     # this.
     "hybrid-array",
 
-    # duplicated by zbus
-    "winnow",
-
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
     # are added here to allow the fix for this issue to land as a priority.
