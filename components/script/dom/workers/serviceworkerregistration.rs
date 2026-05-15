@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
@@ -24,6 +26,7 @@ use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
+use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
@@ -188,6 +191,11 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             .borrow()
             .as_ref()
             .map(|sw| DomRoot::from_ref(&**sw))
+    }
+
+    fn Unregister(&self, cx: &mut JSContext) -> Rc<Promise> {
+        // TODO: Implement
+        Promise::new_resolved(&self.global(), cx.into(), true, CanGc::from_cx(cx))
     }
 
     /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute>
