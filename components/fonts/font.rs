@@ -33,7 +33,7 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontWeight,
+    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -58,6 +58,14 @@ pub(crate) const CLIG: Tag = Tag::new(b"clig");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
 pub(crate) const CALT: Tag = Tag::new(b"calt");
+pub(crate) const LNUM: Tag = Tag::new(b"lnum");
+pub(crate) const ONUM: Tag = Tag::new(b"onum");
+pub(crate) const PNUM: Tag = Tag::new(b"pnum");
+pub(crate) const TNUM: Tag = Tag::new(b"tnum");
+pub(crate) const FRAC: Tag = Tag::new(b"frac");
+pub(crate) const AFRC: Tag = Tag::new(b"afrc");
+pub(crate) const ORDN: Tag = Tag::new(b"ordn");
+pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -395,6 +403,8 @@ pub struct ShapingOptions {
     pub language: Language,
     /// The value of the `font-variant-ligatures` property.
     pub ligatures: FontVariantLigatures,
+    /// The value of the `font-variant-numeric` property.
+    pub numeric: FontVariantNumeric,
     /// Various flags.
     pub flags: ShapingFlags,
 }

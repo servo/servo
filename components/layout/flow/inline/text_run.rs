@@ -23,7 +23,7 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::{FontVariantLigatures, OverflowWrap};
+use style::values::computed::{FontVariantLigatures, FontVariantNumeric, OverflowWrap};
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 
@@ -74,6 +74,8 @@ pub(crate) struct FontAndScriptInfo {
     pub kerning: FontKerning,
     /// The value of the `font-variant-ligatures` property from the original style.
     pub ligatures: FontVariantLigatures,
+    /// The value of the `font-variant-numeric` property from the original style.
+    pub numeric: FontVariantNumeric,
 }
 
 impl FontAndScriptInfo {
@@ -91,6 +93,7 @@ impl FontAndScriptInfo {
             text_rendering: TextRendering::Auto,
             kerning: FontKerning::Auto,
             ligatures: FontVariantLigatures::NORMAL,
+            numeric: FontVariantNumeric::NORMAL
         }
     }
 }
@@ -128,6 +131,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             script: info.script,
             language: info.language,
             ligatures,
+            numeric: info.numeric,
             flags,
         }
     }
@@ -493,6 +497,7 @@ impl TextRun {
         let font_size = font_style.font_size.computed_size().into();
         let kerning = font_style.font_kerning;
         let ligatures = font_style.font_variant_ligatures;
+        let numeric = font_style.font_variant_numeric;
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -579,6 +584,7 @@ impl TextRun {
                 text_rendering,
                 kerning,
                 ligatures,
+                numeric
             };
 
             finish_current_segment(&mut current, &mut results);
