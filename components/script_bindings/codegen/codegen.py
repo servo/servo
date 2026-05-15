@@ -3712,7 +3712,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         self.haveLegacyWindowAliases = haveLegacyWindowAliases
 
     def definition_body(self) -> CGThing:
-        def rust_bool(b) -> str:
+        def rust_bool(b: bool) -> str:
             if b:
                 return "true"
             else:
