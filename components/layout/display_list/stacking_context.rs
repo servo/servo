@@ -597,7 +597,7 @@ impl StackingContext {
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
             !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-            style.clone_clip_path() == ClipPath::None &&
+            style.get_svg().clip_path == ClipPath::None &&
             transform_style == TransformStyle::Flat
         {
             return false;
@@ -1188,7 +1188,7 @@ impl BoxFragment {
         let stacking_context_clip_id = stacking_context_tree
             .clip_store
             .add_for_clip_path(
-                self.style().clone_clip_path(),
+                &self.style().get_svg().clip_path,
                 containing_block.scroll_node_id,
                 containing_block.clip_id,
                 BuilderForBoxFragment::new(
@@ -1273,7 +1273,7 @@ impl BoxFragment {
 
         let style = self.style();
         if let Some(clip_id) = stacking_context_tree.clip_store.add_for_clip_path(
-            style.clone_clip_path(),
+            &style.get_svg().clip_path,
             new_scroll_node_id,
             new_clip_id,
             BuilderForBoxFragment::new(
