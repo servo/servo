@@ -183,8 +183,7 @@ impl AccessibilityTree {
         self.epoch
     }
 
-    /// Assert that the tree is a tree without any dangling references or orphaned nodes,
-    /// and that nodes are either new, stale or neither.
+    /// Assert that the tree is a tree without any dangling references or orphaned nodes.
     ///
     /// For accessibility tests only, because it’s expensive and calls [`eprintln`].
     fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
