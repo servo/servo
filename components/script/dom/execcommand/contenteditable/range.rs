@@ -5,66 +5,20 @@
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::basecommand::{
+    BoolOrOptionalString, CommandName, RecordedStateOfCommand,
+};
 use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
+use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-
-enum BoolOrOptionalString {
-    Bool(bool),
-    OptionalString(Option<DOMString>),
-}
-
-impl From<Option<DOMString>> for BoolOrOptionalString {
-    fn from(optional_string: Option<DOMString>) -> Self {
-        Self::OptionalString(optional_string)
-    }
-}
-
-impl From<bool> for BoolOrOptionalString {
-    fn from(bool_: bool) -> Self {
-        Self::Bool(bool_)
-    }
-}
-
-pub(crate) struct RecordedStateOfNode {
-    command: CommandName,
-    value: BoolOrOptionalString,
-}
-
-impl RecordedStateOfNode {
-    fn for_command_node(command: CommandName, node: &Node) -> Self {
-        let value = node.effective_command_value(&command).into();
-        Self { command, value }
-    }
-
-    fn for_command_node_with_inline_activated_values(command: CommandName, node: &Node) -> Self {
-        let effective_command_value = node.effective_command_value(&command);
-        let value = effective_command_value
-            .is_some_and(|effective_command_value| {
-                command
-                    .inline_command_activated_values()
-                    .contains(&effective_command_value.str().as_ref())
-            })
-            .into();
-        Self { command, value }
-    }
-
-    fn for_command_node_with_value(
-        cx: &mut JSContext,
-        command: CommandName,
-        document: &Document,
-    ) -> Self {
-        let value = command.current_value(cx, document).into();
-        Self { command, value }
-    }
-}
 
 impl Range {
     /// <https://w3c.github.io/editing/docs/execCommand/#effectively-contained>
@@ -145,11 +99,97 @@ impl Range {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#block-extend>
+    pub(crate) fn block_extend(&self, cx: &mut JSContext, document: &Document) -> DomRoot<Range> {
+        // Step 1. Let start node, start offset, end node,
+        // and end offset be the start and end nodes and offsets of range.
+        let mut start_node = self.start_container();
+        let mut start_offset = self.start_offset();
+        let mut end_node = self.end_container();
+        let mut end_offset = self.end_offset();
+        // Step 2. If some inclusive ancestor of start node is an li,
+        // set start offset to the index of the last such li in tree order, and set start node to that li's parent.
+        if let Some(li_ancestor) = start_node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .find(|ancestor| ancestor.is::<HTMLLIElement>())
+        {
+            start_offset = li_ancestor.index();
+            start_node = li_ancestor
+                .GetParentNode()
+                .expect("Must always have a parent");
+        }
+        // Step 3. If (start node, start offset) is not a block start point, repeat the following steps:
+        while !start_node.is_block_start_point(start_offset as usize) {
+            // Step 3.1. If start offset is zero, set it to start node's index, then set start node to its parent.
+            if start_offset == 0 {
+                start_offset = start_node.index();
+                start_node = start_node
+                    .GetParentNode()
+                    .expect("Must always have a parent");
+            } else {
+                // Step 3.2. Otherwise, subtract one from start offset.
+                start_offset -= 1;
+            }
+            // Step 3.3. If (start node, start offset) is a block boundary point, break from this loop.
+            //
+            // That's the while-condition
+        }
+        // Step 4. While start offset is zero and start node's parent is not null,
+        // set start offset to start node's index, then set start node to its parent.
+        while start_offset == 0 &&
+            let Some(parent) = start_node.GetParentNode()
+        {
+            start_offset = start_node.index();
+            start_node = parent;
+        }
+        // Step 5. If some inclusive ancestor of end node is an li,
+        // set end offset to one plus the index of the last such li in tree order,
+        // and set end node to that li's parent.
+        if let Some(li_ancestor) = end_node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .find(|ancestor| ancestor.is::<HTMLLIElement>())
+        {
+            end_offset = 1 + li_ancestor.index();
+            end_node = li_ancestor
+                .GetParentNode()
+                .expect("Must always have a parent");
+        }
+        // Step 6. If (end node, end offset) is not a block end point, repeat the following steps:
+        while !end_node.is_block_end_point(end_offset) {
+            // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
+            if end_offset == end_node.len() {
+                end_offset = 1 + end_node.index();
+                end_node = end_node.GetParentNode().expect("Must always have a parent");
+            } else {
+                // Step 6.2. Otherwise, add one to end offset.
+                end_offset += 1;
+            }
+            // Step 6.3. If (end node, end offset) is a block boundary point, break from this loop.
+            //
+            // That's the while-condition
+        }
+        // Step 7. While end offset is end node's length and end node's parent is not null,
+        // set end offset to one plus end node's index, then set end node to its parent.
+        while end_offset == end_node.len() &&
+            let Some(parent) = end_node.GetParentNode()
+        {
+            end_offset = 1 + end_node.index();
+            end_node = parent;
+        }
+        // Step 8. Let new range be a new range whose start and end nodes and offsets are start node,
+        // start offset, end node, and end offset.
+        let new_range = document.CreateRange(cx);
+        new_range.set_start(&start_node, start_offset);
+        new_range.set_end(&end_node, end_offset);
+        // Step 9. Return new range.
+        new_range
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#record-current-states-and-values>
     pub(crate) fn record_current_states_and_values(
         &self,
         cx: &mut JSContext,
-    ) -> Vec<RecordedStateOfNode> {
+    ) -> Vec<RecordedStateOfCommand> {
         // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
         //
         // We return the vec in one go for the relevant values
@@ -164,46 +204,54 @@ impl Range {
         let document = node.owner_doc();
         vec![
             // Step 4. Add ("createLink", node's effective command value for "createLink") to overrides.
-            RecordedStateOfNode::for_command_node(CommandName::CreateLink, &node),
+            RecordedStateOfCommand::for_command_node(CommandName::CreateLink, &node),
             // Step 5. For each command in the list
             // "bold", "italic", "strikethrough", "subscript", "superscript", "underline", in order:
             // if node's effective command value for command is one of its inline command activated values,
             // add (command, true) to overrides, and otherwise add (command, false) to overrides.
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Bold,
                 &node,
             ),
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Italic,
                 &node,
             ),
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Strikethrough,
                 &node,
             ),
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Subscript,
                 &node,
             ),
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Superscript,
                 &node,
             ),
-            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+            RecordedStateOfCommand::for_command_node_with_inline_activated_values(
                 CommandName::Underline,
                 &node,
             ),
             // Step 6. For each command in the list "fontName", "foreColor", "hiliteColor", in order:
             // add (command, command's value) to overrides.
-            RecordedStateOfNode::for_command_node_with_value(cx, CommandName::FontName, &document),
-            RecordedStateOfNode::for_command_node_with_value(cx, CommandName::ForeColor, &document),
-            RecordedStateOfNode::for_command_node_with_value(
+            RecordedStateOfCommand::for_command_node_with_value(
+                cx,
+                CommandName::FontName,
+                &document,
+            ),
+            RecordedStateOfCommand::for_command_node_with_value(
+                cx,
+                CommandName::ForeColor,
+                &document,
+            ),
+            RecordedStateOfCommand::for_command_node_with_value(
                 cx,
                 CommandName::HiliteColor,
                 &document,
             ),
             // Step 7. Add ("fontSize", node's effective command value for "fontSize") to overrides.
-            RecordedStateOfNode::for_command_node(CommandName::FontSize, &node),
+            RecordedStateOfCommand::for_command_node(CommandName::FontSize, &node),
         ]
     }
 
@@ -213,7 +261,7 @@ impl Range {
         cx: &mut JSContext,
         selection: &Selection,
         context_object: &Document,
-        overrides: Vec<RecordedStateOfNode>,
+        overrides: Vec<RecordedStateOfCommand>,
     ) {
         // Step 1. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.

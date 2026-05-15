@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::local_name;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::document::Document;
-use crate::dom::execcommand::contenteditable::node::split_the_parent;
+use crate::dom::element::Element;
+use crate::dom::execcommand::contenteditable::node::{
+    node_matches_local_name, record_the_values, restore_the_values, split_the_parent,
+};
 use crate::dom::execcommand::contenteditable::selection::SelectionDeleteDirection;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
@@ -150,31 +153,39 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 7. If node is an li or dt or dd and is the first child of its parent, and offset is zero:
-    //
-    // TODO: Handle dt or dd
-    if offset == 0 &&
-        node.is::<HTMLLIElement>() &&
-        node.GetParentNode()
-            .and_then(|parent| parent.children().next())
-            .is_some_and(|first| first == node)
+    if node_matches_local_name!(
+        node,
+        local_name!("li") | local_name!("dt") | local_name!("dd")
+    ) && node
+        .GetParentNode()
+        .and_then(|parent| parent.children_unrooted(cx.no_gc()).next())
+        .is_some_and(|first| first == &node) &&
+        offset == 0
     {
         // Step 7.1. Let items be a list of all lis that are ancestors of node.
         // TODO
         // Step 7.2. Normalize sublists of each item in items.
         // TODO
         // Step 7.3. Record the values of the one-node list consisting of node, and let values be the result.
-        // TODO
+        let values = record_the_values(vec![node.clone()]);
         // Step 7.4. Split the parent of the one-node list consisting of node.
         split_the_parent(cx, &[&node]);
         // Step 7.5. Restore the values from values.
-        // TODO
+        restore_the_values(cx, values);
         // Step 7.6. If node is a dd or dt, and it is not an allowed child of
         // any of its ancestors in the same editing host,
         // set the tag name of node to the default single-line container name
         // and let node be the result.
-        // TODO
+        if node_matches_local_name!(node, local_name!("dd") | local_name!("dt")) &&
+            node.is_no_allowed_child_in_same_editing_host()
+        {
+            node = node
+                .downcast::<Element>()
+                .expect("Must always be an element")
+                .set_the_tag_name(cx, document.default_single_line_container_name().str());
+        }
         // Step 7.7. Fix disallowed ancestors of node.
-        // TODO
+        node.fix_disallowed_ancestors(cx, document);
         // Step 7.8. Return true.
         return true;
     }

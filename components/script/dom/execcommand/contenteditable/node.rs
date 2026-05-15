@@ -12,6 +12,7 @@ use script_bindings::inheritance::Castable;
 use style::attr::parse_legacy_color;
 use style::values::specified::box_::DisplayOutside;
 
+use crate::dom::Document;
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -56,6 +57,19 @@ impl NodeOrString {
         }
     }
 }
+
+macro_rules! node_matches_local_name(
+    ( $node:ident, $pattern:pat $(if $guard:expr)? $(,)? ) => (
+        $node.downcast::<Element>().is_some_and(|element|
+            matches!(
+                *element.local_name(),
+                $pattern
+            )
+        )
+    );
+);
+
+pub(crate) use node_matches_local_name;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#prohibited-paragraph-child-name>
 const PROHIBITED_PARAGRAPH_CHILD_NAMES: [&str; 47] = [
@@ -563,7 +577,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#wrap>
-fn wrap_node_list<SiblingCriteria, NewParentInstructions>(
+pub(crate) fn wrap_node_list<SiblingCriteria, NewParentInstructions>(
     cx: &mut JSContext,
     node_list: Vec<DomRoot<Node>>,
     sibling_criteria: SiblingCriteria,
@@ -571,7 +585,7 @@ fn wrap_node_list<SiblingCriteria, NewParentInstructions>(
 ) -> Option<DomRoot<Node>>
 where
     SiblingCriteria: Fn(&Node) -> bool,
-    NewParentInstructions: Fn() -> Option<DomRoot<Node>>,
+    NewParentInstructions: Fn(&mut JSContext) -> Option<DomRoot<Node>>,
 {
     // Step 1. If every member of node list is invisible,
     // and none is a br, return null and abort these steps.
@@ -631,7 +645,7 @@ where
     });
     // Step 8. Otherwise, run new parent instructions, and let new parent be the result.
     // Step 9. If new parent is null, abort these steps and return null.
-    let new_parent = new_parent.or_else(new_parent_instructions)?;
+    let new_parent = new_parent.or_else(|| new_parent_instructions(cx))?;
     // Step 11. Let original parent be the parent of the first member of node list.
     let first_in_node_list = node_list
         .first()
@@ -1176,7 +1190,7 @@ impl Node {
                                 )
                         })
                 },
-                || None,
+                |_| None,
             );
         }
         // Step 5. If node is invisible, abort this algorithm.
@@ -1302,12 +1316,10 @@ impl Node {
                 while let Some(current_ancestor) = ancestor {
                     // Step 11.4.1. If ancestor is an a, set the tag name of ancestor to "span", and let ancestor be the result.
                     let current_ancestor = if current_ancestor.is::<HTMLAnchorElement>() {
-                        DomRoot::upcast(
-                            current_ancestor
-                                .downcast::<Element>()
-                                .expect("Must always be an element")
-                                .set_the_tag_name(cx, "span"),
-                        )
+                        current_ancestor
+                            .downcast::<Element>()
+                            .expect("Must always be an element")
+                            .set_the_tag_name(cx, "span")
                     } else {
                         current_ancestor
                     };
@@ -1561,8 +1573,22 @@ impl Node {
             (self.is::<Text>() || self.is::<HTMLImageElement>() || self.is::<HTMLBRElement>())
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#single-line-container>
+    pub(crate) fn is_single_line_container(&self) -> bool {
+        // > A single-line container is either a non-list single-line container,
+        // > or an HTML element with local name "li", "dt", or "dd".
+        let Some(element) = self.downcast::<Element>() else {
+            return false;
+        };
+        element.is_non_list_single_line_container() ||
+            matches!(
+                *element.local_name(),
+                local_name!("li") | local_name!("dt") | local_name!("dd")
+            )
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#block-start-point>
-    fn is_block_start_point(&self, offset: usize) -> bool {
+    pub(crate) fn is_block_start_point(&self, offset: usize) -> bool {
         // > A boundary point (node, offset) is a block start point if either node's parent is null and offset is zero;
         if offset == 0 {
             return self.GetParentNode().is_none();
@@ -1574,7 +1600,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-end-point>
-    fn is_block_end_point(&self, offset: u32) -> bool {
+    pub(crate) fn is_block_end_point(&self, offset: u32) -> bool {
         // > A boundary point (node, offset) is a block end point if either node's parent is null and offset is node's length;
         if self.GetParentNode().is_none() && offset == self.len() {
             return true;
@@ -1589,6 +1615,129 @@ impl Node {
     fn is_block_boundary_point(&self, offset: u32) -> bool {
         // > A boundary point is a block boundary point if it is either a block start point or a block end point.
         self.is_block_start_point(offset as usize) || self.is_block_end_point(offset)
+    }
+
+    pub(crate) fn is_no_allowed_child_in_same_editing_host(&self) -> bool {
+        // > If node is not an allowed child of any of its ancestors in the same editing host
+        let Some(editing_host) = self.editing_host_of() else {
+            return false;
+        };
+        self.ancestors()
+            .take_while(|ancestor| ancestor.editing_host_of().as_ref() == Some(&editing_host))
+            .all(|ancestor| {
+                !is_allowed_child(
+                    NodeOrString::Node(DomRoot::from_ref(self)),
+                    NodeOrString::Node(ancestor),
+                )
+            })
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#prohibited-paragraph-child>
+    pub(crate) fn is_prohibited_paragraph_child(&self) -> bool {
+        // > A prohibited paragraph child is an HTML element whose local name is a prohibited paragraph child name.
+        let Some(node_as_element) = self.downcast::<HTMLElement>() else {
+            return false;
+        };
+        PROHIBITED_PARAGRAPH_CHILD_NAMES.contains(&node_as_element.local_name())
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#fix-disallowed-ancestors>
+    pub(crate) fn fix_disallowed_ancestors(&self, cx: &mut JSContext, context_object: &Document) {
+        // Step 1. If node is not editable, abort these steps.
+        if !self.is_editable() {
+            return;
+        }
+        // Step 2. If node is not an allowed child of any of its ancestors in the same editing host:
+        if self.is_no_allowed_child_in_same_editing_host() {
+            // Step 2.1. If node is a dd or dt, wrap the one-node list consisting of node,
+            // with sibling criteria returning true for any dl with no attributes and false otherwise,
+            // and new parent instructions returning
+            // the result of calling createElement("dl") on the context object.
+            // Then abort these steps.
+            if node_matches_local_name!(self, local_name!("dd") | local_name!("dt")) {
+                wrap_node_list(
+                    cx,
+                    vec![DomRoot::from_ref(self)],
+                    |sibling| {
+                        sibling
+                            .downcast::<Element>()
+                            .is_some_and(|sibling_element| {
+                                let attrs = sibling_element.attrs().borrow();
+                                sibling_element.local_name() == &local_name!("dl") &&
+                                    attrs.is_empty()
+                            })
+                    },
+                    |cx| Some(DomRoot::upcast(context_object.create_element(cx, "dl"))),
+                );
+                return;
+            }
+            // Step 2.2. If "p" is not an allowed child of the editing host of node,
+            // abort these steps.
+            if let Some(editing_host) = self.editing_host_of() &&
+                !is_allowed_child(
+                    NodeOrString::String("p".to_owned()),
+                    NodeOrString::Node(editing_host),
+                )
+            {
+                return;
+            }
+            // Step 2.3. If node is not a prohibited paragraph child, abort these steps.
+            if !self.is_prohibited_paragraph_child() {
+                return;
+            }
+            // Step 2.4. Set the tag name of node to the default single-line container name,
+            // and let node be the result.
+            let node = self
+                .downcast::<Element>()
+                .expect("Must always be an element")
+                .set_the_tag_name(
+                    cx,
+                    context_object.default_single_line_container_name().str(),
+                );
+            // Step 2.5. Fix disallowed ancestors of node.
+            //
+            // NOTE: We should only do this if we actually changed node. If node didn't change
+            // (for example it was already the correct tag), then we would infinitely recurse
+            // here. Therefore, we should check if we changed the node and only then do it
+            // again.
+            if *node != *self {
+                node.fix_disallowed_ancestors(cx, context_object);
+            }
+            // Step 2.6. Let children be node's children.
+            let children = node.children().collect::<Vec<DomRoot<Node>>>();
+            // Step 2.7. For each child in children, if child is a prohibited paragraph child:
+            for child in children {
+                if child.is_prohibited_paragraph_child() {
+                    // Step 2.7.1. Record the values of the one-node list consisting of child,
+                    // and let values be the result.
+                    let values = record_the_values(vec![child.clone()]);
+                    // Step 2.7.2. Split the parent of the one-node list consisting of child.
+                    split_the_parent(cx, &[&child]);
+                    // Step 2.7.3. Restore the values from values.
+                    restore_the_values(cx, values);
+                }
+            }
+            // Step 2.8. Abort these steps.
+            return;
+        }
+        // Step 3. Record the values of the one-node list consisting of node, and let values be the result.
+        let values = record_the_values(vec![DomRoot::from_ref(self)]);
+        // Step 4. While node is not an allowed child of its parent,
+        // split the parent of the one-node list consisting of node.
+        loop {
+            let Some(parent) = self.GetParentNode() else {
+                break;
+            };
+            if is_allowed_child(
+                NodeOrString::Node(DomRoot::from_ref(self)),
+                NodeOrString::Node(parent),
+            ) {
+                break;
+            }
+            split_the_parent(cx, &[self]);
+        }
+        // Step 5. Restore the values from values.
+        restore_the_values(cx, values);
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-block-prop>
