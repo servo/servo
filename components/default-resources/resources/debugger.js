@@ -8,6 +8,8 @@ const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
 const environmentsToEnvironmentActors = new Map;
+let suspendedFrame = null;
+let lastPauseLocation = null;
 
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
 // Possible values for the `why.type` attribute in "paused" event
@@ -353,6 +355,7 @@ function handlePauseAndRespond(frame, pauseReason) {
         column: offsetMetadata.columnNumber - 1,
         line: offsetMetadata.lineNumber
     };
+    lastPauseLocation = { line: offsetMetadata.lineNumber, column: offsetMetadata.columnNumber };
 
     // Notify devtools and enter pause loop. This blocks until Resume.
     pauseAndRespond(
@@ -427,28 +430,37 @@ addEventListener("interrupt", event => {
     );
 });
 
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1088>
+function hasMoved(frame) {
+    if (!lastPauseLocation) {
+        return true;
+    }
+    const meta = frame.script.getOffsetMetadata(frame.offset);
+    return meta.lineNumber !== lastPauseLocation.line ||
+           meta.columnNumber !== lastPauseLocation.column;
+}
+
 function makeSteppingHooks(steppingType, startFrame) {
     return {
-        onEnterFrame: (frame) => {
+        onEnterFrame: function (frame) {
             const { onStep, onPop } = makeSteppingHooks("next", frame);
             frame.onStep = onStep;
             frame.onPop = onPop;
         },
-        onStep: () => {
-            const meta = startFrame.script.getOffsetMetadata(startFrame.offset);
-            if (meta.isBreakpoint && meta.isStepStart) {
-                return handlePauseAndRespond(startFrame, { type_: PAUSE_REASONS.RESUME_LIMIT });
+        onStep: function () {
+            const meta = this.script.getOffsetMetadata(this.offset);
+            if (!meta.isBreakpoint || !hasMoved(this)) {
+                return undefined;
+            }
+            if (this !== startFrame || meta.isStepStart) {
+                return handlePauseAndRespond(this, { type_: PAUSE_REASONS.RESUME_LIMIT });
             }
         },
-        onPop: (completion) => {
+        onPop: function (completion) {
             this.reportedPop = true;
-            suspendedFrame = startFrame;
-            if (steppingType !== "finish") {
-                // TODO: completion contains the return value, we have to send it back
-                // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1026>
-                return handlePauseAndRespond(startFrame, { type_: steppingType });
-            }
-            attachSteppingHooks("next", startFrame);
+            suspendedFrame = this;
+            attachSteppingHooks(steppingType, this);
+            return undefined;
         },
     }
 }
@@ -501,7 +513,7 @@ function clearSteppingHooks(suspendedFrame) {
         suspendedFrame.onStep = undefined;
         suspendedFrame.onPop = undefined;
     }
-    let frame = this.youngestFrame;
+    let frame = dbg.getNewestFrame();
     if (frame?.onStack) {
         while (frame) {
             frame.onStep = undefined;
@@ -522,6 +534,10 @@ addEventListener("resume", event => {
         }
     }
     if (steppingType) {
+        // This is a temporary fix until we support async contexts.
+        if (steppingType === "finish") {
+            lastPauseLocation = null;
+        }
         attachSteppingHooks(steppingType, frame);
     } else {
         clearSteppingHooks(frame);
