@@ -6,26 +6,39 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
-use html5ever::{Namespace, ns};
+use html5ever::{LocalName, Namespace, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use style::attr::AttrValue;
+use url::Url;
 
+use crate::dom::Node;
+use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElement,
     SanitizerElementNamespace, SanitizerElementNamespaceWithAttributes,
     SanitizerElementWithAttributes, SanitizerMethods, SanitizerPI, SanitizerPresets,
-    SanitizerProcessingInstruction,
+    SanitizerProcessingInstruction, SetHTMLOptions, SetHTMLUnsafeOptions,
 };
-use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
+use crate::dom::bindings::codegen::UnionTypes::{
+    SanitizerConfigOrSanitizerPresets, SanitizerOrSanitizerConfigOrSanitizerPresets,
+};
 use crate::dom::bindings::domname::is_custom_data_attribute;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::console::Console;
+use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::Element;
 use crate::dom::eventtarget::CONTENT_EVENT_HANDLER_NAMES;
-use crate::dom::types::Console;
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::node::node::NodeTraits;
+use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -55,6 +68,85 @@ impl Sanitizer {
             proto,
             cx,
         )
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-get-a-sanitizer-instance-from-options>
+    pub(crate) fn get_sanitizer_instance_from_options(
+        cx: &mut JSContext,
+        window: &Window,
+        options: &impl SanitizerMember,
+        safe: bool,
+    ) -> Fallible<DomRoot<Sanitizer>> {
+        // Step 1. Let sanitizerSpec be "default".
+        // Step 2. If options["sanitizer"] exists, then:
+        // Step 2.1. Set sanitizerSpec to options["sanitizer"]
+        //
+        // NOTE: options["sanitizer"] always exists.
+        let mut sanitizer_spec = options.sanitizer().clone();
+
+        // Step 3. Assert: sanitizerSpec is either a Sanitizer instance, a string which is a
+        // SanitizerPresets member, or a dictionary.
+        assert!(matches!(
+            sanitizer_spec,
+            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
+                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerPresets(_) |
+                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
+        ));
+
+        // Step 4. If sanitizerSpec is a string:
+        if let SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerPresets(
+            sanitizer_spec_string,
+        ) = sanitizer_spec
+        {
+            // Step 4.1. Assert: sanitizerSpec is "default"
+            assert_eq!(sanitizer_spec_string, SanitizerPresets::Default);
+
+            // Step 4.2. Set sanitizerSpec to the built-in safe default configuration.
+            sanitizer_spec = SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(
+                built_in_safe_default_configuration(),
+            );
+        }
+
+        // Step 5. Assert: sanitizerSpec is either a Sanitizer instance, or a dictionary.
+        assert!(matches!(
+            sanitizer_spec,
+            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
+                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
+        ));
+
+        // Step 6. If sanitizerSpec is a dictionary:
+        if let SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(
+            sanitizer_spec_dictionary,
+        ) = sanitizer_spec
+        {
+            // Step 6.1. Let sanitizer be a new Sanitizer instance.
+            let sanitizer = Sanitizer::new_with_proto(cx, window, None, SanitizerConfig::default());
+
+            // Step 6.2. Let setConfigurationResult be the result of set a configuration with
+            // sanitizerSpec and not safe on sanitizer.
+            // Step 6.3. If setConfigurationResult is false, throw a TypeError.
+            if !sanitizer.set_configuration(sanitizer_spec_dictionary, !safe) {
+                return Err(Error::Type(
+                    c"Failed to set a configuration for a new sanitizer".into(),
+                ));
+            }
+
+            // Step 6.4. Set sanitizerSpec to sanitizer.
+            sanitizer_spec = SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(sanitizer);
+        }
+
+        // Step 7. Assert: sanitizerSpec is a Sanitizer instance.
+        assert!(matches!(
+            sanitizer_spec,
+            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_)
+        ));
+
+        // Step 8. Return sanitizerSpec.
+        if let SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(sanitizer) = sanitizer_spec {
+            Ok(sanitizer)
+        } else {
+            unreachable!("Guaranteed by Step 7")
+        }
     }
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration>
@@ -779,6 +871,407 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         // configuration.
         self.configuration.borrow_mut().remove_unsafe()
     }
+}
+
+/// <https://wicg.github.io/sanitizer-api/#sanitize>
+pub(crate) fn sanitize(
+    cx: &mut JSContext,
+    node: &Node,
+    sanitizer: &Sanitizer,
+    safe: bool,
+) -> ErrorResult {
+    // Step 1. Let configuration be the value of sanitizer’s configuration.
+    let mut configuration = sanitizer.configuration.borrow_mut();
+
+    // Step 2. Assert: configuration is valid.
+    debug_assert!(configuration.is_valid());
+
+    // Step 3. If safe is true, then set configuration to the result of calling remove unsafe on
+    // configuration.
+    if safe {
+        configuration.remove_unsafe();
+    }
+
+    // Step 4. Call sanitize core on node, configuration, and with handleJavascriptNavigationUrls
+    // set to safe.
+    sanitize_core(cx, node, &configuration, safe)
+}
+
+/// <https://wicg.github.io/sanitizer-api/#sanitize-core>
+fn sanitize_core(
+    cx: &mut JSContext,
+    node: &Node,
+    configuration: &SanitizerConfig,
+    handle_javascript_navigation_urls: bool,
+) -> ErrorResult {
+    // Step 1. For each child of node’s children:
+    for child in node.children() {
+        // Step 1.1. Assert: child implements Text, Comment, Element, ProcessingInstruction or
+        // DocumentType.
+        assert!(matches!(
+            child.type_id(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) |
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+                NodeTypeId::Element(_) |
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+                NodeTypeId::DocumentType
+        ));
+
+        match child.type_id() {
+            // Step 1.2. If child implements DocumentType, then continue.
+            NodeTypeId::DocumentType => continue,
+
+            // Step 1.3. If child implements Text, then continue.
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => continue,
+
+            // Step 1.4. If child implements Comment:
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                // Step 1.4.1. If configuration["comments"] is not true, then remove child.
+                if configuration.comments != Some(true) {
+                    child.remove_self(cx);
+                }
+            },
+
+            // Step 1.5. If child implements ProcessingInstruction:
+            //
+            // FIXME: <https://github.com/whatwg/html/pull/12118>
+            // Currently, processing instructions are parsed as comments, since HTML parsing has not
+            // yet supported processing instructions. This will be resolved once the PR
+            // <https://github.com/whatwg/html/pull/12118> at HTML specification is merged and the
+            // relavent changes are implemented in html5ever.
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                // Step 1.5.1. Let piTarget be child’s target.
+                let pi_target = SanitizerPI::String(
+                    child
+                        .downcast::<ProcessingInstruction>()
+                        .expect("Guaranteed by pattern matching of child.type_id()")
+                        .target()
+                        .clone(),
+                );
+
+                // Step 1.5.2. If configuration["processingInstructions"] exists:
+                // Step 1.5.2.1. If configuration["processingInstructions"] does not contain piTarget:
+                // Step 1.5.2.1.1. Remove child.
+                // Step 1.5.3. Otherwise:
+                // Step 1.5.3.1. If configuration["removeProcessingInstructions"] contains piTarget:
+                // Step 1.5.3.1.1. Remove child.
+                if configuration.processingInstructions.as_ref().is_some_and(
+                    |configuration_processing_instructions| {
+                        !configuration_processing_instructions.contains_target(&pi_target)
+                    },
+                ) || configuration
+                    .removeProcessingInstructions
+                    .as_ref()
+                    .is_some_and(|configuration_remove_processing_instructions| {
+                        configuration_remove_processing_instructions.contains_target(&pi_target)
+                    })
+                {
+                    child.remove_self(cx);
+                }
+            },
+
+            // Step 1.6. Otherwise:
+            _ => {
+                // Step 1.6.1. Let elementName be a SanitizerElementNamespace with child’s local
+                // name and namespace.
+                let child = DomRoot::downcast::<Element>(child).expect("Guaranteed by Step 1.1");
+                let element_name =
+                    SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                        name: DOMString::from(&**child.local_name()),
+                        namespace: Some(DOMString::from(&**child.namespace())),
+                    });
+
+                // Step 1.6.2. If configuration["replaceWithChildrenElements"] exists and if
+                // configuration["replaceWithChildrenElements"] contains elementName:
+                if configuration
+                    .replaceWithChildrenElements
+                    .as_ref()
+                    .is_some_and(|configuration_replace_with_children_elements| {
+                        configuration_replace_with_children_elements.contains_item(&element_name)
+                    })
+                {
+                    // Step 1.6.2.1. Assert: node does not implement Document.
+                    assert!(!matches!(node.type_id(), NodeTypeId::Document(_)));
+
+                    // Step 1.6.2.2. Call sanitize core on child with configuration and
+                    // handleJavascriptNavigationUrls.
+                    sanitize_core(
+                        cx,
+                        child.upcast(),
+                        configuration,
+                        handle_javascript_navigation_urls,
+                    )?;
+
+                    // Step 1.6.2.3. Let fragment be a new DocumentFragment whose node document is
+                    // node’s node document.
+                    let fragment = DocumentFragment::new(cx, &node.owner_document());
+
+                    // Step 1.6.2.4. For each innerChild of child’s children, append innerChild to
+                    // fragment.
+                    let child = DomRoot::upcast::<Node>(child);
+                    let fragment = DomRoot::upcast::<Node>(fragment);
+                    for inner_child in child.children() {
+                        fragment.AppendChild(cx, &inner_child)?;
+                    }
+
+                    // Step 1.6.2.5. Replace child with fragment within node.
+                    node.ReplaceChild(cx, &fragment, &child)?;
+
+                    // Step 1.6.2.6. Continue.
+                    continue;
+                }
+
+                // Step 1.6.3. If configuration["elements"] exists:
+                // Step 1.6.3.1. If configuration["elements"] does not contain elementName:
+                if configuration
+                    .elements
+                    .as_ref()
+                    .is_some_and(|configuration_elements| {
+                        !configuration_elements.contains_item(&element_name)
+                    })
+                {
+                    // Step 1.6.3.1.1. Remove child.
+                    child.upcast::<Node>().remove_self(cx);
+
+                    // Step 1.6.3.1.2. Continue.
+                    continue;
+                }
+
+                // Step 1.6.4. Otherwise:
+                // Step 1.6.4.1. If configuration["removeElements"] contains elementName:
+                if configuration.removeElements.as_ref().is_some_and(
+                    |configuration_remove_elements| {
+                        configuration_remove_elements.contains_item(&element_name)
+                    },
+                ) {
+                    // Step 1.6.4.1.1. Remove child.
+                    child.upcast::<Node>().remove_self(cx);
+
+                    // Step 1.6.4.1.2. Continue.
+                    continue;
+                }
+
+                // Step 1.6.5. If elementName equals «[ "name" → "template", "namespace" → HTML
+                // namespace ]», then call sanitize core on child’s template contents with
+                // configuration and handleJavascriptNavigationUrls.
+                if element_name.name().str() == "template" &&
+                    element_name
+                        .namespace()
+                        .is_some_and(|namespace| *namespace.str() == ns!(html))
+                {
+                    let template_contents = child
+                        .downcast::<HTMLTemplateElement>()
+                        .expect("Guaranteed by elementName's name being \"template\"")
+                        .Content(cx);
+                    sanitize_core(
+                        cx,
+                        template_contents.upcast(),
+                        configuration,
+                        handle_javascript_navigation_urls,
+                    )?;
+                }
+
+                // Step 1.6.6. If child is a shadow host, then call sanitize core on child’s shadow
+                // root with configuration and handleJavascriptNavigationUrls.
+                if let Some(shadow_root) = child.shadow_root() {
+                    sanitize_core(
+                        cx,
+                        shadow_root.upcast(),
+                        configuration,
+                        handle_javascript_navigation_urls,
+                    )?;
+                }
+
+                // Step 1.6.7. Let elementWithLocalAttributes be « [] ».
+                let mut element_with_local_attributes =
+                    SanitizerElementWithAttributes::String("".into());
+
+                // Step 1.6.8. If configuration["elements"] exists and configuration["elements"]
+                // contains elementName:
+                if let Some(configuration_elements) = &configuration.elements &&
+                    let Some(found) = configuration_elements.iter().find(|entry| {
+                        entry.name() == element_name.name() &&
+                            entry.namespace() == element_name.namespace()
+                    })
+                {
+                    // Step 1.6.8.1. Set elementWithLocalAttributes to
+                    // configuration["elements"][elementName].
+                    element_with_local_attributes = found.clone();
+                }
+
+                // Step 1.6.9. For each attribute in child’s attribute list:
+                //
+                // NOTE: We will modify the attribute list in the "for" block. So, we clone the
+                // attribute list first to avoid holding an immutable reference to the attribute
+                // list.
+                let attribute_list = child
+                    .attrs()
+                    .borrow()
+                    .iter()
+                    .map(|attribute| {
+                        (
+                            attribute.local_name().clone(),
+                            attribute.namespace().clone(),
+                            attribute.value().clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                for (attribute_local_name, attribute_namespace, attribute_value) in
+                    attribute_list.iter()
+                {
+                    // Step 1.6.9.1. Let attrName be a SanitizerAttributeNamespace with attribute’s
+                    // local name and namespace.
+                    let attribute_name = SanitizerAttribute::SanitizerAttributeNamespace(
+                        SanitizerAttributeNamespace {
+                            name: DOMString::from(attribute_local_name.as_ref()),
+                            namespace: if attribute_namespace.as_ref().is_empty() {
+                                None
+                            } else {
+                                Some(DOMString::from(attribute_namespace.as_ref()))
+                            },
+                        },
+                    );
+
+                    // Step 1.6.9.2. If elementWithLocalAttributes["removeAttributes"] with default
+                    // « » contains attrName:
+                    if element_with_local_attributes
+                        .remove_attributes()
+                        .is_some_and(|remove_attributes| {
+                            remove_attributes.contains_item(&attribute_name)
+                        })
+                    {
+                        // Step 1.6.9.2.1. Remove attribute.
+                        child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                    }
+                    // Step 1.6.9.3. Otherwise, if configuration["attributes"] exists:
+                    // Step 1.6.9.3.1. If configuration["attributes"] does not contain attrName and
+                    // elementWithLocalAttributes["attributes"] with default « » does not contain
+                    // attrName, and if "data-" is not a code unit prefix of attribute’s local name
+                    // and namespace is not null or configuration["dataAttributes"] is not true:
+                    //
+                    // FIXME: <https://github.com/WICG/sanitizer-api/issues/380>
+                    else if let Some(configuration_attributes) = configuration.attributes.as_ref()
+                    {
+                        if (!configuration_attributes.contains_item(&attribute_name) &&
+                            !element_with_local_attributes
+                                .attributes()
+                                .unwrap_or_default()
+                                .contains_item(&attribute_name)) &&
+                            (!attribute_local_name.starts_with("data-") ||
+                                !attribute_namespace.is_empty() ||
+                                configuration.dataAttributes != Some(true))
+                        {
+                            // Step 1.6.9.3.1.1. Remove attribute.
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+                    }
+                    // Step 1.6.9.4. Otherwise:
+                    else {
+                        // Step 1.6.9.4.1. If elementWithLocalAttributes["attributes"] exists and
+                        // elementWithLocalAttributes["attributes"] does not contain attrName:
+                        if element_with_local_attributes.attributes().is_some_and(
+                            |local_attributes| !local_attributes.contains_item(&attribute_name),
+                        ) {
+                            // Step 1.6.9.4.1.1. Remove attribute.
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+                        // Step 1.6.9.4.2. Otherwise, if configuration["removeAttributes"] contains
+                        // attrName:
+                        else if configuration.removeAttributes.as_ref().is_some_and(
+                            |configuration_remove_attributes| {
+                                configuration_remove_attributes.contains_item(&attribute_name)
+                            },
+                        ) {
+                            // Step 1.6.9.4.2.1. Remove attribute.
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+                    }
+
+                    // Step 1.6.9.5. If handleJavascriptNavigationUrls:
+                    if handle_javascript_navigation_urls {
+                        // Step 1.6.9.5.1. If «[elementName, attrName]» matches an entry in the
+                        // built-in navigating URL attributes list, and if attribute contains a
+                        // javascript: URL, then remove attribute.
+                        if BUILT_IN_NAVIGATING_URL_ATTRIBUTES_LIST.iter().any(
+                            |&(
+                                entry_element_name,
+                                entry_element_namespace,
+                                entry_attribute_name,
+                                entry_attribute_namespace,
+                            )| {
+                                element_name.name().str() == entry_element_name.as_ref() &&
+                                    element_name.namespace().map(DOMString::str).as_deref() ==
+                                        entry_element_namespace.map(Namespace::as_ref) &&
+                                    attribute_name.name().str() == entry_attribute_name.as_ref() &&
+                                    attribute_name.namespace().map(DOMString::str).as_deref() ==
+                                        entry_attribute_namespace.map(Namespace::as_ref)
+                            },
+                        ) && contains_javascript_url(attribute_value)
+                        {
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+
+                        // Step 1.6.9.5.2. If child’s namespace is the MathML Namespace and attr’s
+                        // local name is "href" and attr’s namespace is null or the XLink namespace
+                        // and attr contains a javascript: URL, then remove attribute.
+                        if child.namespace() == &ns!(mathml) &&
+                            attribute_local_name == &local_name!("href") &&
+                            (attribute_namespace.is_empty() ||
+                                attribute_namespace == &ns!(xlink)) &&
+                            contains_javascript_url(attribute_value)
+                        {
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+
+                        // Step 1.6.9.5.3. If the built-in animating URL attributes list contains
+                        // «[elementName, attrName]» and attr’s value is "href" or "xlink:href",
+                        // then remove attribute.
+                        if BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST.iter().any(
+                            |&(
+                                entry_element_name,
+                                entry_element_namespace,
+                                entry_attribute_name,
+                                entry_attribute_namespace,
+                            )| {
+                                element_name.name().str() == entry_element_name.as_ref() &&
+                                    element_name.namespace().map(DOMString::str).as_deref() ==
+                                        entry_element_namespace.map(Namespace::as_ref) &&
+                                    attribute_name.name().str() == entry_attribute_name.as_ref() &&
+                                    attribute_name.namespace().map(DOMString::str).as_deref() ==
+                                        entry_attribute_namespace.map(Namespace::as_ref)
+                            },
+                        ) && matches!(attribute_value.as_ref(), "href" | "xlink:href")
+                        {
+                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
+                        }
+                    }
+                }
+
+                // Step 1.6.10. Call sanitize core on child with configuration and
+                // handleJavascriptNavigationUrls.
+                sanitize_core(
+                    cx,
+                    child.upcast(),
+                    configuration,
+                    handle_javascript_navigation_urls,
+                )?;
+            },
+        }
+    }
+
+    Ok(())
+}
+
+/// <https://wicg.github.io/sanitizer-api/#contains-a-javascript-url>
+fn contains_javascript_url(attribute_value: &AttrValue) -> bool {
+    // Step 1. Let url be the result of running the basic URL parser on attribute’s value.
+    // Step 2. If url is failure, then return false.
+    let Ok(url) = Url::parse(attribute_value) else {
+        return false;
+    };
+
+    // Step 3. Return whether url’s scheme is "javascript".
+    url.scheme() == "javascript"
 }
 
 trait SanitizerConfigAlgorithm {
@@ -2231,6 +2724,24 @@ where
     }
 }
 
+/// Helper functions for accessing the "sanitizer" members of [`SetHTMLOptions`] and
+/// [`SetHTMLUnsafeOptions`].
+pub(crate) trait SanitizerMember {
+    fn sanitizer(&self) -> &SanitizerOrSanitizerConfigOrSanitizerPresets;
+}
+
+impl SanitizerMember for SetHTMLOptions {
+    fn sanitizer(&self) -> &SanitizerOrSanitizerConfigOrSanitizerPresets {
+        &self.sanitizer
+    }
+}
+
+impl SanitizerMember for SetHTMLUnsafeOptions {
+    fn sanitizer(&self) -> &SanitizerOrSanitizerConfigOrSanitizerPresets {
+        &self.sanitizer
+    }
+}
+
 /// <https://wicg.github.io/sanitizer-api/#built-in-safe-default-configuration>
 fn built_in_safe_default_configuration() -> SanitizerConfig {
     const ELEMENTS: &[(&str, &Namespace, &[&str])] = &[
@@ -2571,6 +3082,90 @@ fn built_in_safe_baseline_configuration() -> SanitizerConfig {
         dataAttributes: None,
     }
 }
+
+/// <https://wicg.github.io/sanitizer-api/#built-in-navigating-url-attributes-list>
+const BUILT_IN_NAVIGATING_URL_ATTRIBUTES_LIST: &[(
+    &LocalName,
+    Option<&Namespace>,
+    &LocalName,
+    Option<&Namespace>,
+)] = &[
+    (
+        &local_name!("a"),
+        Some(&ns!(html)),
+        &local_name!("href"),
+        None,
+    ),
+    (
+        &local_name!("area"),
+        Some(&ns!(html)),
+        &local_name!("href"),
+        None,
+    ),
+    (
+        &local_name!("base"),
+        Some(&ns!(html)),
+        &local_name!("href"),
+        None,
+    ),
+    (
+        &local_name!("button"),
+        Some(&ns!(html)),
+        &local_name!("formaction"),
+        None,
+    ),
+    (
+        &local_name!("form"),
+        Some(&ns!(html)),
+        &local_name!("action"),
+        None,
+    ),
+    (
+        &local_name!("input"),
+        Some(&ns!(html)),
+        &local_name!("formaction"),
+        None,
+    ),
+    (
+        &local_name!("a"),
+        Some(&ns!(svg)),
+        &local_name!("href"),
+        None,
+    ),
+    (
+        &local_name!("a"),
+        Some(&ns!(svg)),
+        &local_name!("href"),
+        Some(&ns!(xlink)),
+    ),
+];
+
+/// <https://wicg.github.io/sanitizer-api/#built-in-animating-url-attributes-list>
+const BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST: &[(
+    &LocalName,
+    Option<&Namespace>,
+    &LocalName,
+    Option<&Namespace>,
+)] = &[
+    (
+        &local_name!("animate"),
+        Some(&ns!(svg)),
+        &local_name!("attributeName"),
+        None,
+    ),
+    (
+        &local_name!("animateTransform"),
+        Some(&ns!(svg)),
+        &local_name!("attributeName"),
+        None,
+    ),
+    (
+        &local_name!("set"),
+        Some(&ns!(svg)),
+        &local_name!("attributeName"),
+        None,
+    ),
+];
 
 /// <https://wicg.github.io/sanitizer-api/#built-in-non-replaceable-elements-list>
 fn built_in_non_replaceable_elements_list() -> Vec<SanitizerElement> {
