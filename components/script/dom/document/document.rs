@@ -311,6 +311,7 @@ impl PendingScrollEvent {
 }
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AccessibilityData {
     /// Nodes which have corresponding nodes in the accessibility tree, which need to be rooted
     /// until their corresponding nodes removed from the accessibility tree.
