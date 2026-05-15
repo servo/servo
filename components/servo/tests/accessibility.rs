@@ -355,7 +355,7 @@ fn test_accessibility_basic_mutation() {
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let mut tree = build_tree(updates);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let children: Vec<_> = root.children().collect();
     assert_eq!(children.len(), 2);
     let h1 = children[0];
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
@@ -378,7 +378,7 @@ fn test_accessibility_basic_mutation() {
     tree.update_and_process_changes(update, &mut NoOpChangeHandler);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let children: Vec<_> = root.children().collect();
     assert_eq!(children.len(), 1);
     let h1 = children[0];
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));

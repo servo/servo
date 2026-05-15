@@ -78,10 +78,9 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         panic!("explicit panic from script")
     }
 
-    fn ForceAccessibilityUpdate(
-        r#global: &<crate::DomTypeHolder as script_bindings::DomTypes>::GlobalScope,
-    ) {
-        global.as_window().layout().set_needs_accessibility_update();
-        let _ = global.as_window().Document().update_the_rendering();
+    fn ForceAccessibilityUpdate(global: &GlobalScope) {
+        let window = global.as_window();
+        window.layout().set_needs_accessibility_update();
+        let _ = window.Document().update_the_rendering();
     }
 }
