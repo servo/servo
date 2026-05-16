@@ -40,7 +40,11 @@ jobs:
         run: |
           if [[ "${{ inputs.release_tag }}" != "" ]]; then
             RELEASE_TAG="${{ inputs.release_tag }}"
-            RELEASE_NOTES="Servo release ${{ inputs.release_tag }}"
+            if [[ "${{ inputs.regular_release }}" == "true" ]]; then
+              RELEASE_NOTES="Servo release ${{ inputs.release_tag }}"
+            else
+              RELEASE_NOTES="Servo release ${{ inputs.release_tag }} based on ${{ github.repository }}@${{ github.sha }}"          
+            fi
           else
             RELEASE_TAG=$(date "+%F")
             RELEASE_NOTES="Nightly build based on servo/servo@${{ github.sha }}"
