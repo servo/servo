@@ -1136,9 +1136,8 @@ fn sanitize_core(
                     // « » contains attrName:
                     if element_with_local_attributes
                         .remove_attributes()
-                        .is_some_and(|remove_attributes| {
-                            remove_attributes.contains_item(&attribute_name)
-                        })
+                        .unwrap_or_default()
+                        .contains_item(&attribute_name)
                     {
                         // Step 1.6.9.2.1. Remove attribute.
                         child.remove_attribute(cx, attribute_namespace, attribute_local_name);
