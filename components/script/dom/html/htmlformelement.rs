@@ -921,13 +921,7 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(
-                    &mut form_data,
-                    load_data,
-                    encoding,
-                    target_window,
-                    history_handling,
-                );
+                self.mutate_action_url(&mut form_data, load_data, target_window, history_handling);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
@@ -967,17 +961,14 @@ impl HTMLFormElement {
         &self,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
-        encoding: &'static Encoding,
         target: &Window,
         history_handling: NavigationHistoryBehavior,
     ) {
-        let charset = encoding.name();
-
         self.set_url_query_pairs(
             &mut load_data.url,
             form_data
                 .iter()
-                .map(|field| (field.name.str(), field.replace_value(charset))),
+                .map(|field| (field.name.str(), field.replace_value().to_string())),
         );
 
         self.plan_to_navigate(load_data, target, history_handling);
@@ -998,7 +989,6 @@ impl HTMLFormElement {
         let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
-                let charset = encoding.name();
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
@@ -1010,9 +1000,10 @@ impl HTMLFormElement {
                     // converting to a list of name-value pairs with entry list.
                     // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
                     form_data.iter().map(|field| {
-                        let name = normalize_crlf_for_domstring(&field.name);
-                        let value = field.replace_value(charset);
-                        (name, normalize_crlf(&value))
+                        (
+                            field.name.normalize_crlf(),
+                            field.replace_value().normalize_crlf(),
+                        )
                     }),
                 );
 
@@ -1503,14 +1494,10 @@ pub(crate) struct FormDatum {
 }
 
 impl FormDatum {
-    pub(crate) fn replace_value(&self, charset: &str) -> String {
-        if self.name.to_ascii_lowercase() == "_charset_" && self.ty == "hidden" {
-            return charset.to_string();
-        }
-
+    pub(crate) fn replace_value(&self) -> &DOMString {
         match self.value {
-            FormDatumValue::File(ref f) => String::from(f.name().clone()),
-            FormDatumValue::String(ref s) => String::from(s.clone()),
+            FormDatumValue::File(ref f) => f.name(),
+            FormDatumValue::String(ref s) => s,
         }
     }
 }
@@ -1984,45 +1971,6 @@ impl FormControlElementHelpers for Element {
     }
 }
 
-/// Newline replacement routine as described in step 1 of the multipart/form-data
-/// encoding algorithm and step 1 of application/x-www-form-urlencoded.
-///
-/// Replace every occurrence of U+000D (CR) not followed by U+000A (LF),
-/// and every occurrence of U+000A (LF) not preceded by U+000D (CR), in entry's name,
-/// by a string consisting of a U+000D (CR) and U+000A (LF).
-fn normalize_crlf(s: &str) -> String {
-    let mut buf = String::new();
-    let mut prev = ' ';
-    for ch in s.chars() {
-        match ch {
-            '\n' if prev != '\r' => {
-                buf.push('\r');
-                buf.push('\n');
-            },
-            '\n' => {
-                buf.push('\n');
-            },
-            // This character isn't LF but is
-            // preceded by CR
-            _ if prev == '\r' => {
-                buf.push('\n');
-                buf.push(ch);
-            },
-            _ => buf.push(ch),
-        };
-        prev = ch;
-    }
-    // In case the last character was CR
-    if prev == '\r' {
-        buf.push('\n');
-    }
-    buf
-}
-
-fn normalize_crlf_for_domstring(s: &DOMString) -> String {
-    normalize_crlf(&s.str())
-}
-
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
 pub(crate) fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
@@ -2046,12 +1994,12 @@ pub(crate) fn encode_multipart_form_data(
 
     for entry in form_data.iter_mut() {
         // Step 1.1: Perform newline replacement on entry's name
-        entry.name = normalize_crlf_for_domstring(&entry.name).into();
+        entry.name = entry.name.normalize_crlf().into();
 
         // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
         // value
         if let FormDatumValue::String(ref s) = entry.value {
-            entry.value = FormDatumValue::String(normalize_crlf_for_domstring(s).into());
+            entry.value = FormDatumValue::String(s.normalize_crlf().into());
         }
 
         // Step 2: Return the byte sequence resulting from encoding the entry list.

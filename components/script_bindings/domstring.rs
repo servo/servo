@@ -692,6 +692,43 @@ impl DOMString {
         };
         callback(self.str().deref())
     }
+
+    /// Newline replacement routine as described in step 1 of the multipart/form-data
+    /// encoding algorithm and many steps of application/x-www-form-urlencoded.
+    /// e.g. <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
+    ///
+    /// Replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+    /// and every occurrence of U+000A (LF) not preceded by U+000D (CR), in entry's name,
+    /// by a string consisting of a U+000D (CR) and U+000A (LF).
+    pub fn normalize_crlf(&self) -> String {
+        let s = self.str();
+        let mut buf = String::new();
+        let mut prev = ' ';
+        for ch in s.chars() {
+            match ch {
+                '\n' if prev != '\r' => {
+                    buf.push('\r');
+                    buf.push('\n');
+                },
+                '\n' => {
+                    buf.push('\n');
+                },
+                // This character isn't LF but is
+                // preceded by CR
+                _ if prev == '\r' => {
+                    buf.push('\n');
+                    buf.push(ch);
+                },
+                _ => buf.push(ch),
+            };
+            prev = ch;
+        }
+        // In case the last character was CR
+        if prev == '\r' {
+            buf.push('\n');
+        }
+        buf
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
