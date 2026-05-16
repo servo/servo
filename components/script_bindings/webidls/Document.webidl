@@ -238,3 +238,9 @@ partial interface Document {
 
 // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
 typedef (WindowProxy or Element or HTMLCollection) NamedPropertyValue;
+
+// https://wicg.github.io/sanitizer-api/#sanitizer-api
+partial interface Document {
+  [Throws]
+  static Document parseHTML(DOMString html, optional SetHTMLOptions options = {});
+};

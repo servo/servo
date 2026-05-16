@@ -94,6 +94,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
@@ -175,6 +176,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
@@ -4816,6 +4818,59 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
         // Step 5. Return document.
         document.set_ready_state(cx, DocumentReadyState::Complete);
+        Ok(document)
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-document-parsehtml>
+    fn ParseHTML(
+        cx: &mut js::context::JSContext,
+        window: &Window,
+        html: DOMString,
+        options: &SetHTMLOptions,
+    ) -> Fallible<DomRoot<Document>> {
+        // Step 1. Let document be a new Document, whose content type is "text/html".
+        // Step 2. Set document's allow declarative shadow roots to true.
+        let url = window.get_url();
+        let doc = window.Document();
+        let loader = DocumentLoader::new(&doc.loader());
+        let content_type = "text/html"
+            .parse()
+            .expect("Supported type is not a MIME type");
+        let document = Document::new(
+            window,
+            HasBrowsingContext::No,
+            Some(ServoUrl::parse("about:blank").unwrap()),
+            None,
+            doc.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            Some(content_type),
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+            false,
+            true,
+            Some(doc.insecure_requests_policy()),
+            doc.has_trustworthy_ancestor_or_current_origin(),
+            doc.custom_element_reaction_stack(),
+            doc.creation_sandboxing_flag_set(),
+            CanGc::from_cx(cx),
+        );
+
+        // Step 3. Parse HTML from a string given document and html.
+        ServoParser::parse_html_document(&document, Some(html), url, None, None, cx);
+
+        // Step 4. Let sanitizer be the result of calling get a sanitizer instance from options with
+        // options and true.
+        let sanitizer = Sanitizer::get_sanitizer_instance_from_options(cx, window, options, true)?;
+
+        // Step 5. Call sanitize on document with sanitizer and true.
+        sanitizer.sanitize(cx, document.upcast(), true)?;
+
+        // Step 6. Return document.
         Ok(document)
     }
 
