@@ -492,12 +492,17 @@ fn sanitize_core(
                                 entry_attribute_name,
                                 entry_attribute_namespace,
                             )| {
-                                element_name.name().str() == entry_element_name.as_ref() &&
-                                    element_name.namespace().map(DOMString::str).as_deref() ==
-                                        entry_element_namespace.map(Namespace::as_ref) &&
-                                    attribute_name.name().str() == entry_attribute_name.as_ref() &&
-                                    attribute_name.namespace().map(DOMString::str).as_deref() ==
-                                        entry_attribute_namespace.map(Namespace::as_ref)
+                                (
+                                    entry_element_name.as_ref(),
+                                    entry_element_namespace.map(Namespace::as_ref),
+                                    entry_attribute_name.as_ref(),
+                                    entry_attribute_namespace.map(Namespace::as_ref),
+                                ) == (
+                                    element_name.name().str().as_ref(),
+                                    element_name.namespace().map(DOMString::str).as_deref(),
+                                    attribute_name.name().str().as_ref(),
+                                    attribute_name.namespace().map(DOMString::str).as_deref(),
+                                )
                             },
                         ) && contains_javascript_url(attribute_value)
                         {
@@ -526,12 +531,17 @@ fn sanitize_core(
                                 entry_attribute_name,
                                 entry_attribute_namespace,
                             )| {
-                                element_name.name().str() == entry_element_name.as_ref() &&
-                                    element_name.namespace().map(DOMString::str).as_deref() ==
-                                        entry_element_namespace.map(Namespace::as_ref) &&
-                                    attribute_name.name().str() == entry_attribute_name.as_ref() &&
-                                    attribute_name.namespace().map(DOMString::str).as_deref() ==
-                                        entry_attribute_namespace.map(Namespace::as_ref)
+                                (
+                                    entry_element_name.as_ref(),
+                                    entry_element_namespace.map(Namespace::as_ref),
+                                    entry_attribute_name.as_ref(),
+                                    entry_attribute_namespace.map(Namespace::as_ref),
+                                ) == (
+                                    element_name.name().str().as_ref(),
+                                    element_name.namespace().map(DOMString::str).as_deref(),
+                                    attribute_name.name().str().as_ref(),
+                                    attribute_name.namespace().map(DOMString::str).as_deref(),
+                                )
                             },
                         ) && matches!(attribute_value.as_ref(), "href" | "xlink:href")
                         {
