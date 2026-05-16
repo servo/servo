@@ -1006,9 +1006,14 @@ impl HTMLFormElement {
                 let mut url = load_data.url.clone();
                 self.set_url_query_pairs(
                     &mut url,
-                    form_data
-                        .iter()
-                        .map(|field| (field.name.str(), field.replace_value(charset))),
+                    // Let pairs be the result of
+                    // converting to a list of name-value pairs with entry list.
+                    // <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#convert-to-a-list-of-name-value-pairs>
+                    form_data.iter().map(|field| {
+                        let name = normalize_crlf_for_domstring(&field.name);
+                        let value = field.replace_value(charset);
+                        (name, normalize_crlf(&value))
+                    }),
                 );
 
                 url.query().unwrap_or("").to_string().into_bytes()
@@ -1979,6 +1984,41 @@ impl FormControlElementHelpers for Element {
     }
 }
 
+/// Newline replacement routine as described in step 1 of the multipart/form-data
+/// encoding algorithm and step 1 of application/x-www-form-urlencoded.
+fn normalize_crlf(s: &str) -> String {
+    let mut buf = String::new();
+    let mut prev = ' ';
+    for ch in s.chars() {
+        match ch {
+            '\n' if prev != '\r' => {
+                buf.push('\r');
+                buf.push('\n');
+            },
+            '\n' => {
+                buf.push('\n');
+            },
+            // This character isn't LF but is
+            // preceded by CR
+            _ if prev == '\r' => {
+                buf.push('\n');
+                buf.push(ch);
+            },
+            _ => buf.push(ch),
+        };
+        prev = ch;
+    }
+    // In case the last character was CR
+    if prev == '\r' {
+        buf.push('\n');
+    }
+    buf
+}
+
+fn normalize_crlf_for_domstring(s: &DOMString) -> String {
+    normalize_crlf(&*s.str())
+}
+
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
 pub(crate) fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
@@ -1986,36 +2026,6 @@ pub(crate) fn encode_multipart_form_data(
     encoding: &'static Encoding,
 ) -> Vec<u8> {
     let mut result = vec![];
-
-    // Newline replacement routine as described in Step 1
-    fn clean_crlf(s: &DOMString) -> DOMString {
-        let mut buf = "".to_owned();
-        let mut prev = ' ';
-        for ch in s.str().chars() {
-            match ch {
-                '\n' if prev != '\r' => {
-                    buf.push('\r');
-                    buf.push('\n');
-                },
-                '\n' => {
-                    buf.push('\n');
-                },
-                // This character isn't LF but is
-                // preceded by CR
-                _ if prev == '\r' => {
-                    buf.push('\n');
-                    buf.push(ch);
-                },
-                _ => buf.push(ch),
-            };
-            prev = ch;
-        }
-        // In case the last character was CR
-        if prev == '\r' {
-            buf.push('\n');
-        }
-        DOMString::from(buf)
-    }
 
     // For field names and filenames for file fields, the result
     // of the encoding must be escaped by replacing:
@@ -2032,12 +2042,12 @@ pub(crate) fn encode_multipart_form_data(
 
     for entry in form_data.iter_mut() {
         // Step 1.1: Perform newline replacement on entry's name
-        entry.name = clean_crlf(&entry.name);
+        entry.name = normalize_crlf_for_domstring(&entry.name).into();
 
         // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
         // value
         if let FormDatumValue::String(ref s) = entry.value {
-            entry.value = FormDatumValue::String(clean_crlf(s));
+            entry.value = FormDatumValue::String(normalize_crlf_for_domstring(s).into());
         }
 
         // Step 2: Return the byte sequence resulting from encoding the entry list.
