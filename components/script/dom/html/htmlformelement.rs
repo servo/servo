@@ -2016,7 +2016,7 @@ fn normalize_crlf(s: &str) -> String {
 }
 
 fn normalize_crlf_for_domstring(s: &DOMString) -> String {
-    normalize_crlf(&*s.str())
+    normalize_crlf(&s.str())
 }
 
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
