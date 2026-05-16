@@ -966,9 +966,12 @@ impl HTMLFormElement {
     ) {
         self.set_url_query_pairs(
             &mut load_data.url,
-            form_data
-                .iter()
-                .map(|field| (field.name.str(), field.replace_value().to_string())),
+            form_data.iter().map(|field| {
+                (
+                    field.name.normalize_crlf(),
+                    field.replace_value().normalize_crlf(),
+                )
+            }),
         );
 
         self.plan_to_navigate(load_data, target, history_handling);
