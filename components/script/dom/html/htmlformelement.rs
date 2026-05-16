@@ -921,13 +921,7 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(
-                    &mut form_data,
-                    load_data,
-                    encoding,
-                    target_window,
-                    history_handling,
-                );
+                self.mutate_action_url(&mut form_data, load_data, target_window, history_handling);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
@@ -967,20 +961,14 @@ impl HTMLFormElement {
         &self,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
-        encoding: &'static Encoding,
         target: &Window,
         history_handling: NavigationHistoryBehavior,
     ) {
-        let charset = encoding.name();
-
         self.set_url_query_pairs(
             &mut load_data.url,
-            form_data.iter().map(|field| {
-                (
-                    field.name.str(),
-                    field.replace_value(charset).str().to_owned(),
-                )
-            }),
+            form_data
+                .iter()
+                .map(|field| (field.name.str(), field.replace_value().to_string())),
         );
 
         self.plan_to_navigate(load_data, target, history_handling);
@@ -1001,7 +989,6 @@ impl HTMLFormElement {
         let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
-                let charset = encoding.name();
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
@@ -1013,9 +1000,10 @@ impl HTMLFormElement {
                     // converting to a list of name-value pairs with entry list.
                     // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
                     form_data.iter().map(|field| {
-                        let name = field.name.normalize_crlf();
-                        let value = field.replace_value(charset);
-                        (name, value.normalize_crlf())
+                        (
+                            field.name.normalize_crlf(),
+                            field.replace_value().normalize_crlf(),
+                        )
                     }),
                 );
 
@@ -1506,7 +1494,7 @@ pub(crate) struct FormDatum {
 }
 
 impl FormDatum {
-    pub(crate) fn replace_value(&self, _charset: &str) -> &DOMString {
+    pub(crate) fn replace_value(&self) -> &DOMString {
         match self.value {
             FormDatumValue::File(ref f) => f.name(),
             FormDatumValue::String(ref s) => s,
