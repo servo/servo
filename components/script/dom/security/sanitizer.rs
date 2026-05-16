@@ -487,7 +487,7 @@ fn sanitize_core(
                         // built-in navigating URL attributes list, and if attribute contains a
                         // javascript: URL, then remove attribute.
                         if BUILT_IN_NAVIGATING_URL_ATTRIBUTES_LIST.iter().any(
-                            |&(
+                            |(
                                 entry_element_name,
                                 entry_element_namespace,
                                 entry_attribute_name,
@@ -495,9 +495,9 @@ fn sanitize_core(
                             )| {
                                 (
                                     entry_element_name.as_ref(),
-                                    entry_element_namespace.map(Namespace::as_ref),
+                                    entry_element_namespace.as_deref(),
                                     entry_attribute_name.as_ref(),
-                                    entry_attribute_namespace.map(Namespace::as_ref),
+                                    entry_attribute_namespace.as_deref(),
                                 ) == (
                                     element_name.name().str().as_ref(),
                                     element_name.namespace().map(DOMString::str).as_deref(),
@@ -526,7 +526,7 @@ fn sanitize_core(
                         // «[elementName, attrName]» and attr’s value is "href" or "xlink:href",
                         // then remove attribute.
                         if BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST.iter().any(
-                            |&(
+                            |(
                                 entry_element_name,
                                 entry_element_namespace,
                                 entry_attribute_name,
@@ -534,9 +534,9 @@ fn sanitize_core(
                             )| {
                                 (
                                     entry_element_name.as_ref(),
-                                    entry_element_namespace.map(Namespace::as_ref),
+                                    entry_element_namespace.as_deref(),
                                     entry_attribute_name.as_ref(),
-                                    entry_attribute_namespace.map(Namespace::as_ref),
+                                    entry_attribute_namespace.as_deref(),
                                 ) == (
                                     element_name.name().str().as_ref(),
                                     element_name.namespace().map(DOMString::str).as_deref(),
@@ -3090,84 +3090,74 @@ fn built_in_safe_baseline_configuration() -> SanitizerConfig {
 
 /// <https://wicg.github.io/sanitizer-api/#built-in-navigating-url-attributes-list>
 const BUILT_IN_NAVIGATING_URL_ATTRIBUTES_LIST: &[(
-    &LocalName,
-    Option<&Namespace>,
-    &LocalName,
-    Option<&Namespace>,
+    LocalName,
+    Option<Namespace>,
+    LocalName,
+    Option<Namespace>,
 )] = &[
+    (local_name!("a"), Some(ns!(html)), local_name!("href"), None),
     (
-        &local_name!("a"),
-        Some(&ns!(html)),
-        &local_name!("href"),
+        local_name!("area"),
+        Some(ns!(html)),
+        local_name!("href"),
         None,
     ),
     (
-        &local_name!("area"),
-        Some(&ns!(html)),
-        &local_name!("href"),
+        local_name!("base"),
+        Some(ns!(html)),
+        local_name!("href"),
         None,
     ),
     (
-        &local_name!("base"),
-        Some(&ns!(html)),
-        &local_name!("href"),
+        local_name!("button"),
+        Some(ns!(html)),
+        local_name!("formaction"),
         None,
     ),
     (
-        &local_name!("button"),
-        Some(&ns!(html)),
-        &local_name!("formaction"),
+        local_name!("form"),
+        Some(ns!(html)),
+        local_name!("action"),
         None,
     ),
     (
-        &local_name!("form"),
-        Some(&ns!(html)),
-        &local_name!("action"),
+        local_name!("input"),
+        Some(ns!(html)),
+        local_name!("formaction"),
         None,
     ),
+    (local_name!("a"), Some(ns!(svg)), local_name!("href"), None),
     (
-        &local_name!("input"),
-        Some(&ns!(html)),
-        &local_name!("formaction"),
-        None,
-    ),
-    (
-        &local_name!("a"),
-        Some(&ns!(svg)),
-        &local_name!("href"),
-        None,
-    ),
-    (
-        &local_name!("a"),
-        Some(&ns!(svg)),
-        &local_name!("href"),
-        Some(&ns!(xlink)),
+        local_name!("a"),
+        Some(ns!(svg)),
+        local_name!("href"),
+        Some(ns!(xlink)),
     ),
 ];
 
 /// <https://wicg.github.io/sanitizer-api/#built-in-animating-url-attributes-list>
 const BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST: &[(
-    &LocalName,
-    Option<&Namespace>,
-    &LocalName,
-    Option<&Namespace>,
+    LocalName,
+    Option<Namespace>,
+    LocalName,
+    Option<Namespace>,
 )] = &[
     (
-        &local_name!("animate"),
-        Some(&ns!(svg)),
-        &local_name!("attributeName"),
+        local_name!("animate"),
+        Some(ns!(svg)),
+        local_name!("attributeName"),
         None,
     ),
     (
-        &local_name!("animateTransform"),
-        Some(&ns!(svg)),
-        &local_name!("attributeName"),
+        local_name!("animateTransform"),
+        Some(ns!(svg)),
+        local_name!("attributeName"),
         None,
     ),
     (
-        &local_name!("set"),
-        Some(&ns!(svg)),
-        &local_name!("attributeName"),
+        local_name!("set"),
+        Some(ns!(svg)),
+        local_name!("attributeName"),
         None,
     ),
 ];
