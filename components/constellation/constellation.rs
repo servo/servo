@@ -2589,12 +2589,9 @@ where
         }
     }
 
-    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
-    /// and
-    /// <https://w3c.github.io/ServiceWorker/#dfn-job-queue>
-    ///
-    /// The Job Queue is essentially the channel to a SW manager,
-    /// which are scoped per origin.
+    /// <https://www.w3.org/TR/service-workers/#algorithms>
+    /// Algorithms invoked from in-parallel steps run on the service worker mananager,
+    /// per origin and routed by the constellation.
     #[servo_tracing::instrument(skip_all)]
     fn handle_serviceworker_algorithm(
         &mut self,
