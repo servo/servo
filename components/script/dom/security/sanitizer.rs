@@ -170,6 +170,25 @@ impl Sanitizer {
         // Step 4. Return true.
         true
     }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitize>
+    pub(crate) fn sanitize(&self, cx: &mut JSContext, node: &Node, safe: bool) -> ErrorResult {
+        // Step 1. Let configuration be the value of sanitizer’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If safe is true, then set configuration to the result of calling remove unsafe on
+        // configuration.
+        if safe {
+            configuration.remove_unsafe();
+        }
+
+        // Step 4. Call sanitize core on node, configuration, and with
+        // handleJavascriptNavigationUrls set to safe.
+        sanitize_core(cx, node, &configuration, safe)
+    }
 }
 
 impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
@@ -871,30 +890,6 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         // configuration.
         self.configuration.borrow_mut().remove_unsafe()
     }
-}
-
-/// <https://wicg.github.io/sanitizer-api/#sanitize>
-pub(crate) fn sanitize(
-    cx: &mut JSContext,
-    node: &Node,
-    sanitizer: &Sanitizer,
-    safe: bool,
-) -> ErrorResult {
-    // Step 1. Let configuration be the value of sanitizer’s configuration.
-    let mut configuration = sanitizer.configuration.borrow_mut();
-
-    // Step 2. Assert: configuration is valid.
-    debug_assert!(configuration.is_valid());
-
-    // Step 3. If safe is true, then set configuration to the result of calling remove unsafe on
-    // configuration.
-    if safe {
-        configuration.remove_unsafe();
-    }
-
-    // Step 4. Call sanitize core on node, configuration, and with handleJavascriptNavigationUrls
-    // set to safe.
-    sanitize_core(cx, node, &configuration, safe)
 }
 
 /// <https://wicg.github.io/sanitizer-api/#sanitize-core>

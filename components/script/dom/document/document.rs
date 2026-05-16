@@ -176,7 +176,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
-use crate::dom::sanitizer::{Sanitizer, sanitize};
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
@@ -4868,7 +4868,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let sanitizer = Sanitizer::get_sanitizer_instance_from_options(cx, window, options, true)?;
 
         // Step 5. Call sanitize on document with sanitizer and true.
-        sanitize(cx, document.upcast(), &sanitizer, true)?;
+        sanitizer.sanitize(cx, document.upcast(), true)?;
 
         // Step 6. Return document.
         Ok(document)
