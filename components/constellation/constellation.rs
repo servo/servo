@@ -2649,7 +2649,9 @@ where
                 entry.insert(own_sender)
             },
         };
-        let _ = sw_manager.send(ServiceWorkerMsg::HandleAlgorithm(algorithm));
+        if let Err(err) = sw_manager.send(ServiceWorkerMsg::HandleAlgorithm(algorithm)) {
+            warn!("Failed to send algorithm to SW manager: {:?}", err);
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
