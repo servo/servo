@@ -1008,7 +1008,7 @@ impl HTMLFormElement {
                     &mut url,
                     // Let pairs be the result of
                     // converting to a list of name-value pairs with entry list.
-                    // <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#convert-to-a-list-of-name-value-pairs>
+                    // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
                     form_data.iter().map(|field| {
                         let name = normalize_crlf_for_domstring(&field.name);
                         let value = field.replace_value(charset);
@@ -1986,6 +1986,10 @@ impl FormControlElementHelpers for Element {
 
 /// Newline replacement routine as described in step 1 of the multipart/form-data
 /// encoding algorithm and step 1 of application/x-www-form-urlencoded.
+///
+/// Replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+/// and every occurrence of U+000A (LF) not preceded by U+000D (CR), in entry's name,
+/// by a string consisting of a U+000D (CR) and U+000A (LF).
 fn normalize_crlf(s: &str) -> String {
     let mut buf = String::new();
     let mut prev = ' ';
