@@ -12,9 +12,6 @@ import android.view.Surface;
 import org.servo.servoview.JNIServo.ServoCoordinates;
 import org.servo.servoview.JNIServo.ServoOptions;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
-
 public class Servo {
     private static final String LOGTAG = "Servo";
     private JNIServo mJNI = new JNIServo();
@@ -38,7 +35,7 @@ public class Servo {
     }
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {
-      mServoCallbacks.resetGfxCallbacks(gfxcb);
+        mServoCallbacks.resetGfxCallbacks(gfxcb);
     }
 
     public String version() {
@@ -124,6 +121,7 @@ public class Servo {
     public void pausePainting() {
         mRunCallback.inGLThread(() -> mJNI.pausePainting());
     }
+
     public void resumePainting(Surface surface, ServoCoordinates coords) {
         mRunCallback.inGLThread(() -> mJNI.resumePainting(surface, coords));
     }
@@ -160,6 +158,7 @@ public class Servo {
         void onRedrawing(boolean redrawing);
 
         void onImeShow();
+
         void onImeHide();
 
         void onMediaSessionMetadata(String title, String artist, String album);
@@ -192,7 +191,7 @@ public class Servo {
         }
 
         private void resetGfxCallbacks(GfxCallbacks gfxcb) {
-          mGfxCb = gfxcb;
+            mGfxCb = gfxcb;
         }
 
         public void wakeup() {

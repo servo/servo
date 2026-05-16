@@ -68,15 +68,15 @@ impl StackingContextTreeClipStore {
 
     pub(super) fn add_for_clip_path(
         &mut self,
-        clip_path: ClipPath,
+        clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
         fragment_builder: BuilderForBoxFragment,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
-            ClipPath::Shape(_, ShapeGeometryBox::ShapeBox(shape_box)) => shape_box,
+            ClipPath::Shape(_, ShapeGeometryBox::ShapeBox(shape_box)) => *shape_box,
             ClipPath::Shape(_, ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
-            ClipPath::Box(ShapeGeometryBox::ShapeBox(shape_box)) => shape_box,
+            ClipPath::Box(ShapeGeometryBox::ShapeBox(shape_box)) => *shape_box,
             ClipPath::Box(ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
             _ => return None,
         };
@@ -87,10 +87,10 @@ impl StackingContextTreeClipStore {
             ShapeBox::MarginBox => *fragment_builder.margin_rect(),
         };
         if let ClipPath::Shape(shape, _) = clip_path {
-            match *shape {
+            match **shape {
                 BasicShape::Circle(_) | BasicShape::Ellipse(_) | BasicShape::Rect(_) => self
                     .add_for_basic_shape(
-                        *shape,
+                        shape,
                         layout_rect,
                         parent_scroll_node_id,
                         parent_clip_chain_id,
@@ -117,7 +117,7 @@ impl StackingContextTreeClipStore {
     #[servo_tracing::instrument(name = "StackingContextClipStore::add_for_basic_shape", skip_all)]
     fn add_for_basic_shape(
         &mut self,
-        shape: BasicShape,
+        shape: &BasicShape,
         layout_box: LayoutRect,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
@@ -164,8 +164,8 @@ impl StackingContextTreeClipStore {
                 ))
             },
             BasicShape::Circle(circle) => {
-                let center = match circle.position {
-                    GenericPositionOrAuto::Position(position) => position,
+                let center = match &circle.position {
+                    GenericPositionOrAuto::Position(position) => position.clone(),
                     GenericPositionOrAuto::Auto => Position::center(),
                 };
                 let anchor_x = center
@@ -210,8 +210,8 @@ impl StackingContextTreeClipStore {
                 Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             BasicShape::Ellipse(ellipse) => {
-                let center = match ellipse.position {
-                    GenericPositionOrAuto::Position(position) => position,
+                let center = match &ellipse.position {
+                    GenericPositionOrAuto::Position(position) => position.clone(),
                     GenericPositionOrAuto::Auto => Position::center(),
                 };
                 let anchor_x = center

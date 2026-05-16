@@ -42,9 +42,6 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
             phases.push(DOMString::from("RanLayout"))
         }
-        if phases_run.contains(ReflowPhasesRun::CalculatedOverflow) {
-            phases.push(DOMString::from("CalculatedOverflow"))
-        }
         if phases_run.contains(ReflowPhasesRun::BuiltStackingContextTree) {
             phases.push(DOMString::from("BuiltStackingContextTree"))
         }
@@ -63,7 +60,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             phases,
             statistics.rebuilt_fragment_count,
             statistics.restyle_fragment_count,
-            statistics.possibly_moved_fragment_count,
+            statistics.only_descendants_changed_count,
             can_gc,
         )
     }
@@ -76,5 +73,11 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
 
     fn Panic(_: &GlobalScope) {
         panic!("explicit panic from script")
+    }
+
+    fn ForceAccessibilityUpdate(global: &GlobalScope) {
+        let window = global.as_window();
+        window.layout().set_needs_accessibility_update();
+        let _ = window.Document().update_the_rendering();
     }
 }

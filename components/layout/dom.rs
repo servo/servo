@@ -373,6 +373,10 @@ pub(crate) trait NodeExt<'dom> {
         &self,
         layout_context: &LayoutContext,
     ) -> bool;
+
+    /// Whether or not the style of this node indicates that it should be absolutely
+    /// positioned.
+    fn is_absolutely_positioned(&self) -> bool;
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -772,5 +776,16 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             LayoutBox::TaffyItemBox(..) => false,
             LayoutBox::Text(..) => unreachable!("An element should never be a text node"),
         }
+    }
+
+    fn is_absolutely_positioned(&self) -> bool {
+        self.as_element().is_some_and(|element| {
+            element
+                .element_data()
+                .styles
+                .primary()
+                .clone_position()
+                .is_absolutely_positioned()
+        })
     }
 }

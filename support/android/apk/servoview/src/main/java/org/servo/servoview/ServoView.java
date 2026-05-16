@@ -7,16 +7,18 @@ package org.servo.servoview;
 
 import android.app.Activity;
 import android.content.Context;
-import android.util.AttributeSet;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Choreographer;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.Surface;
-import android.view.SurfaceView;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
 
 import org.servo.servoview.JNIServo.ServoCoordinates;
 import org.servo.servoview.JNIServo.ServoOptions;
@@ -24,20 +26,13 @@ import org.servo.servoview.Servo.Client;
 import org.servo.servoview.Servo.GfxCallbacks;
 import org.servo.servoview.Servo.RunCallback;
 
-import android.view.Choreographer;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
-import android.view.View;
-import android.widget.OverScroller;
-
 import java.util.ArrayList;
 
 public class ServoView extends SurfaceView
-                        implements
-                        GfxCallbacks,
-                        RunCallback,
-                        Choreographer.FrameCallback {
+        implements
+        GfxCallbacks,
+        RunCallback,
+        Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
     private GLThread mGLThread;
     private Handler mGLLooperHandler;
@@ -70,7 +65,6 @@ public class ServoView extends SurfaceView
         ArrayList<View> view = new ArrayList<>();
         view.add(this);
         addTouchables(view);
-        setWillNotCacheDrawing(false);
 
         mGLThread = new GLThread(mActivity, this);
         getHolder().addCallback(mGLThread);
@@ -180,7 +174,7 @@ public class ServoView extends SurfaceView
     }
 
     public void goBack() {
-       mServo.goBack();
+        mServo.goBack();
     }
 
     public void goForward() {
@@ -212,6 +206,7 @@ public class ServoView extends SurfaceView
     class GLThread extends Thread implements SurfaceHolder.Callback {
         private Activity mActivity;
         private ServoView mServoView;
+
         GLThread(Activity activity, ServoView servoView) {
             mActivity = activity;
             mServoView = servoView;
@@ -233,8 +228,7 @@ public class ServoView extends SurfaceView
             options.enableSubpixelTextAntialiasing = true;
             options.experimentalMode = mServoView.mExperimentalMode;
 
-            DisplayMetrics metrics = new DisplayMetrics();
-            mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            DisplayMetrics metrics = mActivity.getResources().getDisplayMetrics();
             options.density = metrics.density;
             if (mServoView.mServo == null && !mPaused) {
                 mServoView.mServo = new Servo(
@@ -270,7 +264,7 @@ public class ServoView extends SurfaceView
         public void run() {
             Looper.prepare();
 
-            mGLLooperHandler = new Handler();
+            mGLLooperHandler = new Handler(Looper.myLooper());
 
             Looper.loop();
         }

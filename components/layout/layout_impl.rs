@@ -20,7 +20,7 @@ use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleNode, IFrameSizes, Layout,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
     LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
@@ -167,16 +167,18 @@ pub struct LayoutThread {
     /// Whether the last display list we sent was effectively empty.
     last_display_list_was_empty: Cell<bool>,
 
-    /// Whether a new overflow calculation needs to happen due to changes to the fragment
-    /// tree. This is set to true every time a restyle requests overflow calculation.
-    need_overflow_calculation: Cell<bool>,
-
     /// Whether a new display list is necessary due to changes to layout or stacking
     /// contexts. This is set to true every time layout changes, even when a display list
     /// isn't requested for this layout, such as for layout queries. The next time a
     /// layout requests a display list, it is produced unconditionally, even when the
     /// layout trees remain the same.
     need_new_display_list: Cell<bool>,
+
+    /// Whether or not cumulative containing blocks offsets have been set into the
+    /// [`FragmentTree`]. This typically happens during [`StackingContextTree`]
+    /// construction, but if a layout query needs these value beforehand, they are
+    /// eagerly calculated.
+    need_containing_block_calculation: Cell<bool>,
 
     /// Whether or not the existing stacking context tree is dirty and needs to be
     /// rebuilt. This happens after a relayout or overflow update. The reason that we
@@ -397,6 +399,7 @@ impl Layout for LayoutThread {
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
             process_box_area_request(
+                self,
                 stacking_context_tree,
                 node,
                 area,
@@ -410,7 +413,7 @@ impl Layout for LayoutThread {
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator {
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectVec {
         with_layout_state(|| {
             // If we have not built a fragment tree yet, there is no way we have layout information for
             // this query, which can be run without forcing a layout (for IntersectionObserver).
@@ -421,9 +424,14 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            Some(process_box_areas_request(stacking_context_tree, node, area))
+            Some(process_box_areas_request(
+                self,
+                stacking_context_tree,
+                node,
+                area,
+            ))
         })
-        .unwrap_or_else(|| Box::new(std::iter::empty()))
+        .unwrap_or_default()
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -455,7 +463,7 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
+            process_offset_parent_query(self, &stacking_context_tree.paint_info.scroll_tree, node)
         })
         .unwrap_or_default()
     }
@@ -500,7 +508,7 @@ impl Layout for LayoutThread {
                 TraversalFlags::empty(),
             );
 
-            process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+            process_resolved_style_request(self, &shared_style_context, node, &pseudo, &property_id)
         })
     }
 
@@ -544,7 +552,7 @@ impl Layout for LayoutThread {
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
         with_layout_state(|| {
             let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
-            process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+            process_node_scroll_area_request(self, node, self.fragment_tree.borrow().clone())
         })
     }
 
@@ -774,7 +782,7 @@ impl LayoutThread {
             have_ever_generated_display_list: Cell::new(false),
             last_display_list_was_empty: Cell::new(true),
             device_has_changed: false,
-            need_overflow_calculation: Cell::new(false),
+            need_containing_block_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
@@ -987,9 +995,6 @@ impl LayoutThread {
             root_element,
             &image_resolver,
         );
-        if self.calculate_overflow() {
-            reflow_phases_run.insert(ReflowPhasesRun::CalculatedOverflow);
-        }
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
@@ -1001,6 +1006,13 @@ impl LayoutThread {
         }
         if self.handle_accessibility_tree_update(&root_element.as_node()) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
+        }
+
+        if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) &&
+            reflow_phases_run.contains(ReflowPhasesRun::RanLayout) &&
+            let Some(fragment_tree) = &*self.fragment_tree.borrow()
+        {
+            fragment_tree.print();
         }
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
@@ -1198,16 +1210,24 @@ impl LayoutThread {
             }
         };
 
-        if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
-            self.need_overflow_calculation.set(true);
-        }
         if damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
             self.need_new_stacking_context_tree.set(true);
         }
         if damage.contains(RestyleDamage::REPAINT) {
             self.need_new_display_list.set(true);
         }
+
         if !damage.contains(RestyleDamage::RELAYOUT) {
+            if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+                assert!(self.need_new_display_list.get());
+                assert!(self.need_new_stacking_context_tree.get());
+                self.fragment_tree
+                    .borrow()
+                    .as_ref()
+                    .expect("Should always have a FragmentTree when layout unnecessary")
+                    .clear_scrollable_overflow();
+            }
+
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return (ReflowPhasesRun::empty(), IFrameSizes::default());
         }
@@ -1253,26 +1273,6 @@ impl LayoutThread {
         )
     }
 
-    #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
-    fn calculate_overflow(&self) -> bool {
-        if !self.need_overflow_calculation.get() {
-            return false;
-        }
-
-        if let Some(fragment_tree) = &*self.fragment_tree.borrow() {
-            fragment_tree.calculate_scrollable_overflow();
-            if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) {
-                fragment_tree.print();
-            }
-        }
-
-        self.need_overflow_calculation.set(false);
-        assert!(self.need_new_display_list.get());
-        assert!(self.need_new_stacking_context_tree.get());
-
-        true
-    }
-
     fn build_stacking_context_tree_for_reflow(&self, reflow_request: &ReflowRequest) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::StackingContextTreeConstruction)
@@ -1296,6 +1296,9 @@ impl LayoutThread {
         let old_scroll_offsets = stacking_context_tree
             .as_ref()
             .map(|tree| tree.paint_info.scroll_tree.scroll_offsets());
+
+        // This will be done during `StackingContextTree::new` below
+        self.need_containing_block_calculation.set(true);
 
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
@@ -1506,6 +1509,20 @@ impl LayoutThread {
             reflow_phases_run: ReflowPhasesRun::BuiltDisplayList,
             ..Default::default()
         })
+    }
+
+    pub(crate) fn ensure_containing_block_calculation(&self) {
+        if !self.need_containing_block_calculation.get() {
+            return;
+        }
+        let fragment_tree = self.fragment_tree.borrow();
+        fragment_tree.as_ref().expect("missing fragment tree").find(
+            |fragment, _level, containing_block| {
+                fragment.set_containing_block(containing_block);
+                None::<()>
+            },
+        );
+        self.need_containing_block_calculation.set(false)
     }
 }
 

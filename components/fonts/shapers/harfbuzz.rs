@@ -28,12 +28,14 @@ use harfbuzz_sys::{
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
+use style::values::computed::{FontVariantLigatures, FontVariantNumeric};
 
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, GlyphId, KERN, LIGA, ShapedText, ShapingFlags,
-    ShapingOptions, fixed_to_float, float_to_fixed,
+    AFRC, BASE, CALT, CLIG, DLIG, FRAC, Font, FontBaseline, FontTableMethods, GlyphId, HLIG, KERN,
+    LIGA, LNUM, ONUM, ORDN, PNUM, ShapedText, ShapingFlags, ShapingOptions, TNUM, ZERO,
+    fixed_to_float, float_to_fixed,
 };
 
 const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
@@ -278,17 +280,105 @@ impl Shaper {
             hb_buffer_set_language(hb_buffer, hb_language);
 
             let mut features = Vec::new();
-            if options
-                .flags
-                .contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG)
-            {
+
+            let mut add_feature = |tag: Tag, value: u32| {
                 features.push(hb_feature_t {
-                    tag: u32::from_be_bytes(LIGA.to_be_bytes()),
-                    value: 0,
+                    tag: u32::from_be_bytes(tag.to_be_bytes()),
+                    value,
                     start: 0,
                     end: hb_buffer_get_length(hb_buffer),
                 })
+            };
+
+            if options.ligatures == FontVariantLigatures::NORMAL {
+                add_feature(LIGA, 1);
+                add_feature(CLIG, 1);
+            } else if options.ligatures == FontVariantLigatures::NONE {
+                add_feature(LIGA, 0);
+                add_feature(CLIG, 0);
+                add_feature(DLIG, 0);
+                add_feature(HLIG, 0);
+                add_feature(CALT, 0);
+            } else {
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::COMMON_LIGATURES)
+                {
+                    add_feature(LIGA, 1);
+                    add_feature(CLIG, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_COMMON_LIGATURES)
+                {
+                    add_feature(LIGA, 0);
+                    add_feature(CLIG, 0);
+                }
+
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::DISCRETIONARY_LIGATURES)
+                {
+                    add_feature(DLIG, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_DISCRETIONARY_LIGATURES)
+                {
+                    add_feature(DLIG, 0);
+                }
+
+                if options
+                    .ligatures
+                    .contains(FontVariantLigatures::HISTORICAL_LIGATURES)
+                {
+                    add_feature(HLIG, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_HISTORICAL_LIGATURES)
+                {
+                    add_feature(HLIG, 0);
+                }
+
+                if options.ligatures.contains(FontVariantLigatures::CONTEXTUAL) {
+                    add_feature(CALT, 1);
+                } else if options
+                    .ligatures
+                    .contains(FontVariantLigatures::NO_CONTEXTUAL)
+                {
+                    add_feature(CALT, 0);
+                }
             }
+
+            if options.numeric.contains(FontVariantNumeric::LINING_NUMS) {
+                add_feature(LNUM, 1);
+            } else if options.numeric.contains(FontVariantNumeric::OLDSTYLE_NUMS) {
+                add_feature(ONUM, 1);
+            }
+            if options
+                .numeric
+                .contains(FontVariantNumeric::PROPORTIONAL_NUMS)
+            {
+                add_feature(PNUM, 1);
+            } else if options.numeric.contains(FontVariantNumeric::TABULAR_NUMS) {
+                add_feature(TNUM, 1);
+            }
+            if options
+                .numeric
+                .contains(FontVariantNumeric::DIAGONAL_FRACTIONS)
+            {
+                add_feature(FRAC, 1);
+            } else if options
+                .numeric
+                .contains(FontVariantNumeric::STACKED_FRACTIONS)
+            {
+                add_feature(AFRC, 1);
+            }
+            if options.numeric.contains(FontVariantNumeric::ORDINAL) {
+                add_feature(ORDN, 1);
+            }
+            if options.numeric.contains(FontVariantNumeric::SLASHED_ZERO) {
+                add_feature(ZERO, 1);
+            }
+
             if options
                 .flags
                 .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)

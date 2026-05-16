@@ -24,14 +24,14 @@ pub fn font_file_cached_on_disk() -> bool {
             let Ok(res) = fs::exists(file_path) else {
                 return false;
             };
-            return res;
+            res
         },
         Err(e) => {
             error!(
                 "Failed to parse the file path of the OHOS FontList cache file: {:?}",
                 e
             );
-            return false;
+            false
         },
     }
 }
@@ -80,14 +80,13 @@ fn remove_redundant_cache_files() {
             if (filename_components.len() == 2) && // the font cache file only has one `_`. So the vector length from splitting must be 2.
                         (filename_components[1] == cache_filename_components[1]) && // check if the suffix is the same
                         (filename_components[0] != cache_filename_components[0])
+                && let Err(e) = fs::remove_file(format!("{}{}", &base_dir, filename))
             {
-                if let Err(e) = fs::remove_file(format!("{}{}", &base_dir, filename).to_string()) {
-                    error!(
-                        "Obsolete font cache file found; but failed to remove it: {:?}",
-                        e
-                    );
-                };
-            }
+                error!(
+                    "Obsolete font cache file found; but failed to remove it: {:?}",
+                    e
+                );
+            };
         }
     }
 }
@@ -97,7 +96,7 @@ fn parse_file_path() -> Result<String, Box<dyn Error>> {
     let base_dir = get_directory()?;
     let cache_filename = parse_filename()?;
 
-    Ok(format!("{}{}", base_dir, cache_filename).to_string())
+    Ok(format!("{}{}", base_dir, cache_filename))
 }
 
 /// Helper function to obtain the path to the directory where we'll eventually store our cache file in.
@@ -118,7 +117,7 @@ fn parse_filename() -> Result<String, Box<dyn Error>> {
         os_version_c_str.to_str()?
     };
 
-    Ok(format!("{}{}", os_version, "_font-cache.bin").to_string())
+    Ok(format!("{}{}", os_version, "_font-cache.bin"))
 }
 
 /// This function serializes `FontList` and caches its result into disk.

@@ -1330,6 +1330,8 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribu
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantLigatures);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantNumeric);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::box_::Overflow);

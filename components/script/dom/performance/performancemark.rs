@@ -80,7 +80,7 @@ impl PerformanceMark {
         // Step 8 Otherwise:
         if !mark_options.detail.get().is_null_or_undefined() {
             // Step 8.1. Let record be the result of calling the StructuredSerialize algorithm on markOptions’s detail.
-            let record = structuredclone::write(cx.into(), mark_options.detail.handle(), None)?;
+            let record = structuredclone::write(cx, mark_options.detail.handle(), None)?;
 
             // Step 8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
             structuredclone::read(global, record, detail.handle_mut(), CanGc::from_cx(cx))?;

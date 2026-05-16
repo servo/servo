@@ -25,7 +25,7 @@ use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 
-#[derive(Clone, Debug, Default, MallocSizeOf, FromPrimitive)]
+#[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
 #[repr(u8)]
 pub(crate) enum FragmentStatus {
     /// This is a brand new fragment.
@@ -33,9 +33,9 @@ pub(crate) enum FragmentStatus {
     New,
     /// The style of the fragment has changed.
     StyleChanged,
-    /// The fragment was reused between layouts, but its final layout
-    /// position may have changed.
-    PositionMaybeChanged,
+    /// The fragment was reused between layouts, some descendant fragment may be different,
+    /// but otherwise nothing has changed on the fragment itself.
+    OnlyDescendantsChanged,
     /// The fragment hasn't changed.
     Clean,
 }

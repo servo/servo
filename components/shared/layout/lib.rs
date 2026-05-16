@@ -361,7 +361,7 @@ pub trait Layout {
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>>;
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectVec;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel>;
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
@@ -445,7 +445,7 @@ pub enum BoxAreaType {
     Border,
 }
 
-pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
+pub type CSSPixelRectVec = Vec<Rect<Au, CSSPixel>>;
 
 /// Whether or not this node is being rendered or delegates rendering according
 /// to the HTML standard.
@@ -631,7 +631,6 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     pub struct ReflowPhasesRun: u8 {
         const RanLayout = 1 << 0;
-        const CalculatedOverflow = 1 << 1;
         const BuiltStackingContextTree = 1 << 2;
         const BuiltDisplayList = 1 << 3;
         const UpdatedScrollNodeOffset = 1 << 4;
@@ -657,9 +656,9 @@ pub struct ReflowStatistics {
     pub rebuilt_fragment_count: u32,
     /// A count of the number of fragments that are reused, but have had their style change.
     pub restyle_fragment_count: u32,
-    /// A count of the number of fragments that are reused, but may have had their final
-    /// position change.
-    pub possibly_moved_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but may have had some descendant
+    /// fragment change.
+    pub only_descendants_changed_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle

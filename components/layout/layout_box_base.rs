@@ -15,6 +15,7 @@ use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::selector_parser::RestyleDamage;
 use style::values::specified::align::AlignFlags;
 use style_traits::CSSPixel;
 
@@ -47,6 +48,7 @@ pub(crate) struct LayoutBoxBase {
     pub cached_layout_result: AtomicRefCell<Option<LayoutResultAndInputs>>,
     pub fragments: AtomicRefCell<Vec<Fragment>>,
     pub parent_box: Option<WeakLayoutBox>,
+    only_descendants_changed: AtomicBool,
 }
 
 impl LayoutBoxBase {
@@ -62,6 +64,7 @@ impl LayoutBoxBase {
             cached_layout_result: AtomicRefCell::default(),
             fragments: AtomicRefCell::default(),
             parent_box: None,
+            only_descendants_changed: AtomicBool::default(),
         }
     }
 
@@ -95,10 +98,20 @@ impl LayoutBoxBase {
     }
 
     pub(crate) fn add_fragment(&self, fragment: Fragment) {
+        if self.only_descendants_changed.load(Ordering::Relaxed) &&
+            let Some(base) = fragment.base()
+        {
+            base.set_status(FragmentStatus::OnlyDescendantsChanged)
+        }
         self.fragments.borrow_mut().push(fragment);
     }
 
     pub(crate) fn set_fragment(&self, fragment: Fragment) {
+        if self.only_descendants_changed.load(Ordering::Relaxed) &&
+            let Some(base) = fragment.base()
+        {
+            base.set_status(FragmentStatus::OnlyDescendantsChanged)
+        }
         *self.fragments.borrow_mut() = vec![fragment];
     }
 
@@ -129,7 +142,19 @@ impl LayoutBoxBase {
         &self,
         element_damage: LayoutDamage,
         damage_from_children: LayoutDamage,
+        damage_from_parent: RestyleDamage,
     ) -> LayoutDamage {
+        let only_descendants_changed = !RestyleDamage::from(element_damage)
+            .contains(RestyleDamage::RELAYOUT) &&
+            !damage_from_parent.contains(RestyleDamage::RELAYOUT) &&
+            !damage_from_children.contains(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT) &&
+            self.fragments.borrow().iter().all(|fragment| {
+                fragment
+                    .base()
+                    .is_some_and(|base| base.status() == FragmentStatus::Clean)
+            });
+        self.only_descendants_changed
+            .store(only_descendants_changed, Ordering::Relaxed);
         self.clear_fragments_and_fragment_cache();
 
         if !element_damage.is_empty() ||
@@ -188,14 +213,6 @@ impl LayoutBoxBase {
 
         let fragment = result.result.fragment.clone();
         {
-            // Ideally when the final position doesn't change, this wouldn't be set, but we have
-            // no way currently to track whether the final position wil differ from the one set in
-            // the cached fragment. Final positioning is done in the containing block and depends
-            // on things like margins and the size of siblings.
-            fragment
-                .base
-                .set_status(FragmentStatus::PositionMaybeChanged);
-
             let mut origin = result.result.original_offset;
             if self.style.clone_position() == Position::Relative {
                 origin += relative_adjustement(&self.style, containing_block)
@@ -244,6 +261,12 @@ impl LayoutBoxBase {
                     has_inline_parent,
                 },
             )));
+    }
+
+    pub(crate) fn clear_scrollable_overflow_all_on_fragments(&self) {
+        for fragment in self.fragments.borrow().iter() {
+            fragment.clear_scrollable_overflow();
+        }
     }
 }
 

@@ -32,7 +32,9 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
+use style::values::computed::{
+    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontVariantNumeric, FontWeight,
+};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -44,14 +46,26 @@ use crate::{
     FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
 };
 
+pub(crate) const AFRC: Tag = Tag::new(b"afrc");
+pub(crate) const BASE: Tag = Tag::new(b"BASE");
+pub(crate) const CALT: Tag = Tag::new(b"calt");
+pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
+pub(crate) const CLIG: Tag = Tag::new(b"clig");
+pub(crate) const COLR: Tag = Tag::new(b"COLR");
+pub(crate) const FRAC: Tag = Tag::new(b"frac");
+pub(crate) const DLIG: Tag = Tag::new(b"dlig");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
+pub(crate) const HLIG: Tag = Tag::new(b"hlig");
 pub(crate) const KERN: Tag = Tag::new(b"kern");
-pub(crate) const SBIX: Tag = Tag::new(b"sbix");
-pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
-pub(crate) const COLR: Tag = Tag::new(b"COLR");
-pub(crate) const BASE: Tag = Tag::new(b"BASE");
 pub(crate) const LIGA: Tag = Tag::new(b"liga");
+pub(crate) const LNUM: Tag = Tag::new(b"lnum");
+pub(crate) const ONUM: Tag = Tag::new(b"onum");
+pub(crate) const ORDN: Tag = Tag::new(b"ordn");
+pub(crate) const PNUM: Tag = Tag::new(b"pnum");
+pub(crate) const SBIX: Tag = Tag::new(b"sbix");
+pub(crate) const TNUM: Tag = Tag::new(b"tnum");
+pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -364,8 +378,6 @@ impl Font {
 bitflags! {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
-        /// Set if we are to ignore ligatures.
-        const IGNORE_LIGATURES_SHAPING_FLAG = 1 << 2;
         /// Set if we are to disable kerning.
         const DISABLE_KERNING_SHAPING_FLAG = 1 << 3;
         /// Text direction is right-to-left.
@@ -379,7 +391,6 @@ bitflags! {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
-    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.
@@ -390,6 +401,10 @@ pub struct ShapingOptions {
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
     pub language: Language,
+    /// The value of the `font-variant-ligatures` property.
+    pub ligatures: FontVariantLigatures,
+    /// The value of the `font-variant-numeric` property.
+    pub numeric: FontVariantNumeric,
     /// Various flags.
     pub flags: ShapingFlags,
 }

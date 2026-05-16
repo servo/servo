@@ -20,6 +20,8 @@ namespace ServoTestUtils {
   undefined js_backtrace();
 
   undefined panic();
+
+  undefined forceAccessibilityUpdate();
 };
 
 [Exposed=Window, Pref="dom_servo_helpers_enabled"]
@@ -27,5 +29,5 @@ interface LayoutResult {
     readonly attribute /* FrozenArray<DOMString> */ any phases;
     readonly attribute unsigned long rebuiltFragmentCount;
     readonly attribute unsigned long restyleFragmentCount;
-    readonly attribute unsigned long possiblyMovedFragmentCount;
+    readonly attribute unsigned long onlyDescendantsChangedCount;
 };

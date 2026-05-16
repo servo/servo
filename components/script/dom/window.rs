@@ -43,12 +43,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags,
-    ElementsFromPointResult, FragmentType, Layout, LayoutImageDestination, PendingImage,
-    PendingImageState, PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointFlags, ElementsFromPointResult,
+    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2432,7 +2431,7 @@ impl Window {
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 1-2, 6-8.
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
 
         // Step 3-5.
         let target_origin = match target_origin.0[..].as_ref() {
@@ -2904,7 +2903,7 @@ impl Window {
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
-    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectIterator {
+    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectVec {
         self.layout_reflow(QueryMsg::BoxAreas);
         self.layout
             .borrow()

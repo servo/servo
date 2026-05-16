@@ -7,6 +7,7 @@ package org.servo.servoview;
 
 import android.app.Activity;
 import android.view.Surface;
+
 /**
  * Maps /ports/servoshell API
  */
@@ -44,6 +45,7 @@ public class JNIServo {
     public native void scroll(int dx, int dy, int x, int y);
 
     public native void keydown(int keycode, int unicode);
+
     public native void keyup(int keycode, int unicode);
 
     public native void touchDown(float x, float y, int pointer_id);
@@ -63,6 +65,7 @@ public class JNIServo {
     public native void click(float x, float y);
 
     public native void pausePainting();
+
     public native void resumePainting(Surface surface, ServoCoordinates coords);
 
     public native void mediaSessionAction(int action);
@@ -72,23 +75,23 @@ public class JNIServo {
     public native void doFrame();
 
     public static class ServoOptions {
-      public String args;
-      public String url;
-      public ServoCoordinates coordinates;
-      public float density = 1;
-      public boolean enableSubpixelTextAntialiasing = true;
-      public long VRExternalContext = 0;
-      public String logStr;
-      public String gstDebugStr;
-      public boolean enableLogs = false;
-      public boolean experimentalMode = false;
+        public String args;
+        public String url;
+        public ServoCoordinates coordinates;
+        public float density = 1;
+        public boolean enableSubpixelTextAntialiasing = true;
+        public long VRExternalContext = 0;
+        public String logStr;
+        public String gstDebugStr;
+        public boolean enableLogs = false;
+        public boolean experimentalMode = false;
     }
 
     public static class ServoCoordinates {
-      public int x = 0;
-      public int y = 0;
-      public int width = 0;
-      public int height = 0;
+        public int x = 0;
+        public int y = 0;
+        public int width = 0;
+        public int height = 0;
     }
 
     public interface Callbacks {
@@ -111,6 +114,7 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onImeShow();
+
         void onImeHide();
 
         void onMediaSessionMetadata(String title, String artist, String album);

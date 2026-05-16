@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
@@ -949,7 +950,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let element = element.canonicalize();
 
         // Step 4. If the built-in non-replaceable elements list contains element:
-        if built_in_non_replaceable_elements_list().contains_item(&element) {
+        if BUILT_IN_NON_REPLACEABLE_ELEMENTS_LIST.with(|list| list.contains_item(&element)) {
             // Step 4.1. Return false.
             return false;
         }
@@ -1427,7 +1428,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             for element in config_replace_with_children_elements {
                 // Step 15.1.1. If the built-in non-replaceable elements list contains element, then
                 // return false.
-                if built_in_non_replaceable_elements_list().contains_item(element) {
+                if BUILT_IN_NON_REPLACEABLE_ELEMENTS_LIST.with(|list| list.contains_item(element)) {
                     return false;
                 }
             }
@@ -3171,20 +3172,23 @@ const BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST: &[(
     ),
 ];
 
-/// <https://wicg.github.io/sanitizer-api/#built-in-non-replaceable-elements-list>
-fn built_in_non_replaceable_elements_list() -> Vec<SanitizerElement> {
-    vec![
-        SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-            name: "html".into(),
-            namespace: Some(ns!(html).to_string().into()),
-        }),
-        SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-            name: "svg".into(),
-            namespace: Some(ns!(svg).to_string().into()),
-        }),
-        SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-            name: "math".into(),
-            namespace: Some(ns!(mathml).to_string().into()),
-        }),
-    ]
+thread_local! {
+    /// <https://wicg.github.io/sanitizer-api/#built-in-non-replaceable-elements-list>
+    static BUILT_IN_NON_REPLACEABLE_ELEMENTS_LIST: LazyCell<Vec<SanitizerElement>> =
+        LazyCell::new(|| {
+            vec![
+                SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                    name: local_name!("html").as_ref().into(),
+                    namespace: Some(ns!(html).as_ref().into()),
+                }),
+                SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                    name: local_name!("svg").as_ref().into(),
+                    namespace: Some(ns!(svg).as_ref().into()),
+                }),
+                SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                    name: local_name!("math").as_ref().into(),
+                    namespace: Some(ns!(mathml).as_ref().into()),
+                }),
+            ]
+        });
 }
