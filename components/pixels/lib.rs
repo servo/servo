@@ -16,6 +16,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
+use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
@@ -814,6 +815,10 @@ where
     let mut frame_data = vec![];
     let mut total_number_of_bytes = 0;
     let mut is_opaque = true;
+    let loop_count = match animated_image_decoder.loop_count() {
+        LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
+        LoopCount::Infinite => Repeat::Infinite,
+    };
     let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
@@ -871,7 +876,7 @@ where
         format: PixelFormat::RGBA8,
         bytes: Arc::new(bytes),
         is_opaque,
-        loop_count: Some(Repeat::Infinite), // TODO(Ray): wait for image-rs 0.26 release for exposing repeat count, default to Infinite for now.
+        loop_count: Some(loop_count),
     })
 }
 
