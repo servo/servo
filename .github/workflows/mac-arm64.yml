@@ -38,6 +38,10 @@ on:
         required: false
         default: false
         type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -65,6 +69,10 @@ on:
           type: boolean
           default: false
       bencher:
+        required: false
+        default: false
+        type: boolean
+      capi:
         required: false
         default: false
         type: boolean
@@ -263,3 +271,29 @@ jobs:
       - name: Compile libservo with MSRV
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
+
+  capi:
+    if: ${{ inputs.capi }}
+    name: Build and test Servo's C API
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Install cargo-c # required by `ffi/capi_tests/build.rs`.
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c
+      - name: Build and test servo-capi-tests
+        env:
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+        run: cargo test -p servo-capi-tests --locked
