@@ -9,7 +9,6 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
@@ -70,9 +69,7 @@ pub(crate) fn execute_insert_paragraph_command(
         node = node.GetParentNode().expect("Must always have a parent");
     }
     // Step 7. Call collapse(node, offset) on the context object's selection.
-    if selection.Collapse(cx, Some(&node), offset).is_err() {
-        unreachable!("Must not fail to collapse");
-    }
+    selection.collapse_current_range(&node, offset);
     // Step 8. Let container equal node.
     let mut container = node.clone();
     // Step 9. While container is not a single-line container,
@@ -139,10 +136,7 @@ pub(crate) fn execute_insert_paragraph_command(
             vec![eligible_node]
         } else {
             // Step 11.3. Let node list be a list of nodes, initially empty.
-            vec![]
-        };
-        // Step 11.5. If node list is empty:
-        if node_list.is_empty() {
+            // Step 11.5. If node list is empty:
             // Step 11.5.1. If tag is not an allowed child of the active range's start node, return true.
             if !is_allowed_child(
                 NodeOrString::String(tag.str().to_owned()),
@@ -164,12 +158,10 @@ pub(crate) fn execute_insert_paragraph_command(
                 unreachable!("Must always be able to append");
             }
             // Step 11.5.5. Call collapse(container, 0) on the context object's selection.
-            if selection.Collapse(cx, Some(container), 0).is_err() {
-                unreachable!("Must not fail to collapse");
-            }
+            selection.collapse_current_range(container, 0);
             // Step 11.5.6. Return true.
             return true;
-        }
+        };
         // Step 11.6. While the nextSibling of the last member of node list is not null
         // and is an allowed child of "p", append it to node list.
         while let Some(next_of_last) = node_list
@@ -188,14 +180,13 @@ pub(crate) fn execute_insert_paragraph_command(
         // Step 11.7. Wrap node list, with sibling criteria returning false
         // and new parent instructions returning the result of calling createElement(tag) on the context object.
         // Set container to the result.
-        if let Some(new_node) = wrap_node_list(
+        container = wrap_node_list(
             cx,
             node_list,
             |_| false,
             |cx| Some(DomRoot::upcast(document.create_element(cx, tag.str()))),
-        ) {
-            container = new_node;
-        }
+        )
+        .expect("Must always be able to wrap");
     }
     // Step 12. If container's local name is "address", "listing", or "pre":
     if node_matches_local_name!(
@@ -209,9 +200,7 @@ pub(crate) fn execute_insert_paragraph_command(
             unreachable!("Must always be able to insert");
         }
         // Step 12.3. Call collapse(node, offset + 1) on the context object's selection.
-        if selection.Collapse(cx, Some(&node), offset + 1).is_err() {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&node, offset + 1);
         // Step 12.4. If br is the last descendant of container,
         // let br be the result of calling createElement("br") on the context object,
         // then call insertNode(br) on the active range.
@@ -427,12 +416,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 34. Call collapse(new container, 0) on the context object's selection.
-    if selection
-        .Collapse(cx, Some(&new_container_node), 0)
-        .is_err()
-    {
-        unreachable!("Must not fail to collapse");
-    }
+    selection.collapse_current_range(&new_container_node, 0);
     // Step 35. Return true.
     true
 }

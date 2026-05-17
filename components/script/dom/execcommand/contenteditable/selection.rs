@@ -10,7 +10,6 @@ use script_bindings::inheritance::Castable;
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
@@ -199,14 +198,16 @@ impl Selection {
         {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(cx).is_err() {
-                    unreachable!("Should be able to collapse to start");
-                }
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
             } else {
                 // Step 6.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(cx).is_err() {
-                    unreachable!("Should be able to collapse to end");
-                }
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
             }
             // Step 6.3. Abort these steps.
             return;
@@ -229,23 +230,16 @@ impl Selection {
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
-        if self.Collapse(cx, Some(&start_node), start_offset).is_err() {
-            unreachable!("Must always be able to collapse");
-        }
+        self.collapse_current_range(&start_node, start_offset);
 
         // Step 10. Call extend(end node, end offset) on the context object's selection.
-        if self.Extend(cx, &end_node, end_offset).is_err() {
-            unreachable!("Must always be able to extend");
-        }
+        self.extend_current_range(&end_node, end_offset);
 
         // Step 11.
         //
         // This step does not exist in the spec
 
         // Step 12. Let start block be the active range's start node.
-        let Some(active_range) = self.active_range() else {
-            return;
-        };
         let mut start_block = active_range.start_container();
 
         // Step 13. While start block's parent is in the same editing host and start block is an inline node,
@@ -333,14 +327,16 @@ impl Selection {
             start_node.canonicalize_whitespace(start_offset, false);
             // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(cx).is_err() {
-                    unreachable!("Should be able to collapse to start");
-                }
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
             } else {
                 // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(cx).is_err() {
-                    unreachable!("Should be able to collapse to end");
-                }
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
             }
             // Step 21.5. Restore states and values from overrides.
             active_range.restore_states_and_values(cx, self, context_object, overrides);
@@ -469,14 +465,16 @@ impl Selection {
         {
             // Step 30.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(cx).is_err() {
-                    unreachable!("Should be able to collapse to start");
-                }
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
             } else {
                 // Step 30.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(cx).is_err() {
-                    unreachable!("Should be able to collapse to end");
-                }
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
             }
             // Step 30.3. Restore states and values from overrides.
             active_range.restore_states_and_values(cx, self, context_object, overrides);
@@ -517,12 +515,7 @@ impl Selection {
             }
             // Step 32.3. Call collapse() on the context object's selection,
             // with first argument start block and second argument the index of reference node.
-            if self
-                .Collapse(cx, Some(&start_block), reference_node.index())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, reference_node.index());
             // Step 32.4. If end block has no children:
             if end_block.children_count() == 0 {
                 let mut end_block = end_block;
@@ -636,12 +629,7 @@ impl Selection {
         } else if end_block.is_ancestor_of(&start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            if self
-                .Collapse(cx, Some(&start_block), start_block.len())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, start_block.len());
             // Step 33.2. Let reference node be start block.
             let mut reference_node = start_block.clone();
             // Step 33.3. While reference node is not a child of end block, set reference node to its parent.
@@ -702,12 +690,7 @@ impl Selection {
         } else {
             // Step 34.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            if self
-                .Collapse(cx, Some(&start_block), start_block.len())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, start_block.len());
             // Step 34.2. If end block's firstChild is an inline node and start block's lastChild is a br,
             // remove start block's lastChild from it.
             if end_block

@@ -6,7 +6,6 @@ use html5ever::local_name;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::contenteditable::node::{
@@ -128,13 +127,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 5.1. Call collapse(node, offset) on the context object's selection.
-        if selection.Collapse(cx, Some(&node), offset).is_err() {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&node, offset);
         // Step 5.2. Call extend(node, offset − 1) on the context object's selection.
-        if selection.Extend(cx, &node, offset - 1).is_err() {
-            unreachable!("Must not fail to extend");
-        }
+        selection.extend_current_range(&node, offset - 1);
         // Step 5.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -263,16 +258,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
-        if selection
-            .Collapse(cx, Some(&start_node), start_offset - 1)
-            .is_err()
-        {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&start_node, start_offset - 1);
         // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        if selection.Extend(cx, &start_node, start_offset).is_err() {
-            unreachable!("Must not fail to extend");
-        }
+        selection.extend_current_range(&start_node, start_offset);
         // Step 13.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -282,9 +270,7 @@ pub(crate) fn execute_delete_command(
             Default::default(),
         );
         // Step 13.4. Call collapse(node, offset) on the selection.
-        if selection.Collapse(cx, Some(&node), offset).is_err() {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&node, offset);
         // Step 13.5. Return true.
         return true;
     }
@@ -323,17 +309,10 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 17. Call collapse(start node, start offset) on the context object's selection.
-    if selection
-        .Collapse(cx, Some(&start_node), start_offset)
-        .is_err()
-    {
-        unreachable!("Must not fail to collapse");
-    }
+    selection.collapse_current_range(&start_node, start_offset);
 
     // Step 18. Call extend(node, offset) on the context object's selection.
-    if selection.Extend(cx, &node, offset).is_err() {
-        unreachable!("Must not fail to extend");
-    }
+    selection.extend_current_range(&node, offset);
 
     // Step 19. Delete the selection, with direction "backward".
     selection.delete_the_selection(

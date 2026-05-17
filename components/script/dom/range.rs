@@ -399,6 +399,19 @@ impl Range {
     }
 }
 
+impl std::fmt::Debug for Range {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "[({:?}, {}) -> ({:?}, {})]",
+            self.start_container(),
+            self.start_offset(),
+            self.end_container(),
+            self.end_offset()
+        )
+    }
+}
+
 enum StartOrEnd {
     Start,
     End,
