@@ -59,6 +59,7 @@ use crate::{
 pub struct PendingTexture {
     pub texture_id: TextureId,
     pub encoder_id: CommandEncoderId,
+    pub command_buffer_id: CommandBufferId,
     pub configuration: ContextConfiguration,
 }
 
@@ -80,8 +81,10 @@ pub enum WebGPURequest {
         command_encoder_id: CommandEncoderId,
         device_id: DeviceId,
         desc: CommandBufferDescriptor<Label<'static>>,
+        command_buffer_id: CommandBufferId,
     },
     CopyBufferToBuffer {
+        device_id: DeviceId,
         command_encoder_id: CommandEncoderId,
         source_id: BufferId,
         source_offset: BufferAddress,
@@ -90,18 +93,21 @@ pub enum WebGPURequest {
         size: BufferAddress,
     },
     CopyBufferToTexture {
+        device_id: DeviceId,
         command_encoder_id: CommandEncoderId,
         source: TexelCopyBufferInfo,
         destination: TexelCopyTextureInfo,
         copy_size: Extent3d,
     },
     CopyTextureToBuffer {
+        device_id: DeviceId,
         command_encoder_id: CommandEncoderId,
         source: TexelCopyTextureInfo,
         destination: TexelCopyBufferInfo,
         copy_size: Extent3d,
     },
     CopyTextureToTexture {
+        device_id: DeviceId,
         command_encoder_id: CommandEncoderId,
         source: TexelCopyTextureInfo,
         destination: TexelCopyTextureInfo,
@@ -209,6 +215,7 @@ pub enum WebGPURequest {
     DropRenderPipeline(RenderPipelineId),
     DropBindGroup(BindGroupId),
     DropBindGroupLayout(BindGroupLayoutId),
+    DropCommandEncoder(CommandEncoderId),
     DropCommandBuffer(CommandBufferId),
     DropTextureView(TextureViewId),
     DropSampler(SamplerId),
@@ -272,7 +279,6 @@ pub enum WebGPURequest {
     EndComputePass {
         compute_pass_id: ComputePassId,
         device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
     },
     // Render Pass
     BeginRenderPass {
@@ -291,7 +297,6 @@ pub enum WebGPURequest {
     EndRenderPass {
         render_pass_id: RenderPassId,
         device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
     },
     Submit {
         device_id: DeviceId,

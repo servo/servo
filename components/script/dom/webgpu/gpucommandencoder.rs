@@ -10,7 +10,6 @@ use webgpu_traits::{
     WebGPURenderPass, WebGPURequest,
 };
 use wgpu_core::command as wgpu_com;
-use wgpu_core::id::Id;
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -31,15 +30,32 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUCommandEncoder {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    encoder: WebGPUCommandEncoder,
+}
+
 #[dom_struct]
 pub(crate) struct GPUCommandEncoder {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
+    droppable: DroppableGPUCommandEncoder,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    encoder: WebGPUCommandEncoder,
     device: Dom<GPUDevice>,
+}
+
+impl Drop for DroppableGPUCommandEncoder {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropCommandEncoder(self.encoder.0))
+        {
+            warn!("Failed to send WebGPURequest::DropCommandEncoder with {e:?}");
+        }
+    }
 }
 
 impl GPUCommandEncoder {
@@ -50,11 +66,10 @@ impl GPUCommandEncoder {
         label: USVString,
     ) -> Self {
         Self {
-            channel,
+            droppable: DroppableGPUCommandEncoder { channel, encoder },
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
-            encoder,
         }
     }
 
@@ -78,7 +93,7 @@ impl GPUCommandEncoder {
 
 impl GPUCommandEncoder {
     pub(crate) fn id(&self) -> WebGPUCommandEncoder {
-        self.encoder
+        self.droppable.encoder
     }
 
     pub(crate) fn device_id(&self) -> WebGPUDevice {
@@ -135,18 +150,23 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     ) -> DomRoot<GPUComputePassEncoder> {
         let compute_pass_id = self.global().wgpu_id_hub().create_compute_pass_id();
 
-        if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
-            command_encoder_id: self.id().0,
-            compute_pass_id,
-            label: (&descriptor.parent).convert(),
-            device_id: self.device.id().0,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::BeginComputePass {
+                command_encoder_id: self.id().0,
+                compute_pass_id,
+                label: (&descriptor.parent).convert(),
+                device_id: self.device.id().0,
+            })
+        {
             warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
         }
 
         GPUComputePassEncoder::new(
             &self.global(),
-            self.channel.clone(),
+            self.droppable.channel.clone(),
             self,
             WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone(),
@@ -204,20 +224,25 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .collect::<Fallible<Vec<_>>>()?;
         let render_pass_id = self.global().wgpu_id_hub().create_render_pass_id();
 
-        if let Err(e) = self.channel.0.send(WebGPURequest::BeginRenderPass {
-            command_encoder_id: self.id().0,
-            render_pass_id,
-            label: (&descriptor.parent).convert(),
-            depth_stencil_attachment,
-            color_attachments,
-            device_id: self.device.id().0,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::BeginRenderPass {
+                command_encoder_id: self.id().0,
+                render_pass_id,
+                label: (&descriptor.parent).convert(),
+                depth_stencil_attachment,
+                color_attachments,
+                device_id: self.device.id().0,
+            })
+        {
             warn!("Failed to send WebGPURequest::BeginRenderPass {e:?}");
         }
 
         Ok(GPURenderPassEncoder::new(
             &self.global(),
-            self.channel.clone(),
+            self.droppable.channel.clone(),
             WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone(),
@@ -234,15 +259,17 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         destination_offset: GPUSize64,
         size: GPUSize64,
     ) {
-        self.channel
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::CopyBufferToBuffer {
-                command_encoder_id: self.encoder.0,
+                command_encoder_id: self.droppable.encoder.0,
                 source_id: source.id().0,
                 source_offset,
                 destination_id: destination.id().0,
                 destination_offset,
                 size,
+                device_id: self.device.id().0,
             })
             .expect("Failed to send CopyBufferToBuffer");
     }
@@ -254,13 +281,15 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
-        self.channel
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::CopyBufferToTexture {
-                command_encoder_id: self.encoder.0,
+                command_encoder_id: self.droppable.encoder.0,
                 source: source.convert(),
                 destination: destination.try_convert()?,
                 copy_size: (&copy_size).try_convert()?,
+                device_id: self.device.id().0,
             })
             .expect("Failed to send CopyBufferToTexture");
 
@@ -274,13 +303,15 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         destination: &GPUImageCopyBuffer,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
-        self.channel
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
-                command_encoder_id: self.encoder.0,
+                command_encoder_id: self.droppable.encoder.0,
                 source: source.try_convert()?,
                 destination: destination.convert(),
                 copy_size: (&copy_size).try_convert()?,
+                device_id: self.device.id().0,
             })
             .expect("Failed to send CopyTextureToBuffer");
 
@@ -294,13 +325,15 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
-        self.channel
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::CopyTextureToTexture {
-                command_encoder_id: self.encoder.0,
+                command_encoder_id: self.droppable.encoder.0,
                 source: source.try_convert()?,
                 destination: destination.try_convert()?,
                 copy_size: (&copy_size).try_convert()?,
+                device_id: self.device.id().0,
             })
             .expect("Failed to send CopyTextureToTexture");
 
@@ -309,22 +342,24 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish>
     fn Finish(&self, descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
-        self.channel
+        let command_buffer_id = self.global().wgpu_id_hub().create_command_buffer_id();
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::CommandEncoderFinish {
-                command_encoder_id: self.encoder.0,
+                command_encoder_id: self.droppable.encoder.0,
                 device_id: self.device.id().0,
                 desc: wgpu_types::CommandBufferDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
+                command_buffer_id,
             })
             .expect("Failed to send Finish");
 
-        #[expect(unsafe_code)]
-        let buffer = WebGPUCommandBuffer(unsafe { Id::from_raw(self.encoder.0.into_raw()) });
+        let buffer = WebGPUCommandBuffer(command_buffer_id);
         GPUCommandBuffer::new(
             &self.global(),
-            self.channel.clone(),
+            self.droppable.channel.clone(),
             buffer,
             descriptor.parent.label.clone(),
             CanGc::deprecated_note(),

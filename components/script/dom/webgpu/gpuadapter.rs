@@ -313,6 +313,9 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
+                // TODO(sagudev): firefox always says operation error,
+                // meanwhile we create "invalid" device that is not invalid in wgpu
+                // causing crashes when one tries to use it
                 // 1. Let device be a new device.
                 let device = GPUDevice::new(
                     &self.global(),
