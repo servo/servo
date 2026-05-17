@@ -270,6 +270,7 @@ impl RefreshDriver for VsyncRefreshDriver {
     fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
         // We only need to request a vsync callback if the queue is empty,
         // otherwise we will already have a pending callback.
+        #[cfg_attr(not(target_env = "ohos"), allow(unused_variables))]
         let was_empty = {
             let mut callbacks = self.start_frame_callbacks.borrow_mut();
             let was_empty = callbacks.is_empty();
@@ -280,8 +281,6 @@ impl RefreshDriver for VsyncRefreshDriver {
         if was_empty {
             super::ohos::request_vsync_callback(&self.native_vsync);
         }
-        #[cfg(not(target_env = "ohos"))]
-        let _ = was_empty;
     }
 }
 
