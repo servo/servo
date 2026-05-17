@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Values: trig functions with runtime-dependent angle arguments via sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#trig-funcs">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .test > div {
+    --i: calc((sibling-index() - 1) / (sibling-count() - 1));
+    --angle: calc(30deg + 120deg * var(--i));
+    --cos-val: calc(cos(var(--angle)));
+    rotate: calc(var(--cos-val) * 45deg);
+    transform: rotate(calc(var(--cos-val) * 45deg));
+  }
+</style>
+<div class="test">
+  <div id="first"></div>
+  <div id="middle"></div>
+  <div id="last"></div>
+</div>
+<script>
+// first:  --i=0,   --angle=30deg,  cos(30deg)≈0.866,  rotate≈38.97deg
+// middle: --i=0.5, --angle=90deg,  cos(90deg)≈0,      rotate≈0deg
+// last:   --i=1,   --angle=150deg, cos(150deg)≈-0.866, rotate≈-38.97deg
+
+test(() => {
+  const rotate = getComputedStyle(middle).rotate;
+  const angle = parseFloat(rotate);
+  assert_approx_equals(angle, 0, 1,
+    "cos(90deg) ≈ 0, so rotate should be ≈ 0deg");
+}, "rotate property: cos() with runtime angle argument converts degrees to radians");
+
+test(() => {
+  const rotate = getComputedStyle(first).rotate;
+  const angle = parseFloat(rotate);
+  assert_approx_equals(angle, 38.97, 1,
+    "cos(30deg) ≈ 0.866, so rotate should be ≈ 38.97deg");
+}, "rotate property: first element gets correct cos(30deg) value");
+
+test(() => {
+  const rotate = getComputedStyle(last).rotate;
+  const angle = parseFloat(rotate);
+  assert_approx_equals(angle, -38.97, 1,
+    "cos(150deg) ≈ -0.866, so rotate should be ≈ -38.97deg");
+}, "rotate property: last element gets correct cos(150deg) value");
+
+test(() => {
+  const transform = getComputedStyle(middle).transform;
+  assert_not_equals(transform, "none");
+  const match = transform.match(/matrix\(([^)]+)\)/);
+  assert_true(!!match, "transform should be a matrix");
+  const values = match[1].split(",").map(Number);
+  // For ≈0deg rotation: matrix cos≈1, sin≈0
+  assert_approx_equals(values[0], 1, 0.05, "matrix a (cos) should be ≈ 1");
+  assert_approx_equals(values[1], 0, 0.05, "matrix b (sin) should be ≈ 0");
+}, "transform rotate(): cos() with runtime angle argument converts degrees to radians");
+</script>

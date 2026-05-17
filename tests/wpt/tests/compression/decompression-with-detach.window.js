@@ -1,4 +1,4 @@
-// META: global=window,worker,shadowrealm
+// META: global=window,worker
 // META: script=resources/concatenate-stream.js
 
 'use strict';

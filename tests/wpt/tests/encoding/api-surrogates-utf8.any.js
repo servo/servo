@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,shadowrealm
+// META: global=window,dedicatedworker
 // META: title=Encoding API: Invalid UTF-16 surrogates with UTF-8 encoding
 
 var badStrings = [

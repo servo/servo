@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with ideographic spaces and preserved tabs and EOL</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-006-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhang on top of the ideographic spaces and preserved tabs and EOL, but no further.">
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    font-size: 20px;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ&Tab;　&#x000A;<ruby>あ<rt>ああああああああああああああ</ruby>&#x000A;　&Tab;あ</div>
+<div class=test>あ&#x000A;　&Tab;<ruby>あ<rt>ああああああああああああああ</ruby>&Tab;　&#x000A;あ</div>
+<div class=test>あ　&#x000A;&Tab;<ruby>あ<rt>ああああああああああああああ</ruby>&Tab;&#x000A;　あ</div>
+<div class=test>あ&Tab;&#x000A;&Tab;<ruby>あ<rt>ああああああああああああああ</ruby>&Tab;&#x000A;&Tab;あ</div>
+<div class=measure>あ　　　あ　　　あ</div>
+</body>

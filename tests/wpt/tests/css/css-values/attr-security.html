@@ -134,7 +134,7 @@
     test_attr('--x',
               `attr(data-foo type(<url>))`,
               `url(${url})`,
-              `url("${url}")`);
+              ``);
     test_attr('background-image',
               `attr(data-foo type(<url>))`,
               `url(${url})`,

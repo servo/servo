@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Applies to a -webkit-box container.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .webkit-box-container {
+    display: -webkit-box;
+    width: 100px;
+    height: 50px;
+    background: red;
+    gap: 10px;
+    rule: solid green 10px;
+  }
+  .webkit-box-container > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="webkit-box-container">
+    <div style="width: 45px;"></div>
+    <div style="width: 45px;"></div>
+</div>
+<div class="webkit-box-container" style="-webkit-box-orient: vertical;">
+    <div style="height: 20px;"></div>
+    <div style="height: 20px;"></div>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-line-break">
+<meta name="assert" content="Clamping the hypothetical main size should only occur during line-breaking.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+#flex {
+  display: flex;
+  flex-wrap: wrap;
+  flex-wrap: balance;
+  margin: 100px;
+  width: 100px;
+  height: 100px;
+  background: purple;
+  padding: 10px;
+  gap: 10px;
+}
+#flex > div {
+  background: green;
+  flex-grow: 1;
+  outline: dashed 2px hotpink;
+  outline-offset: 2px;
+}
+</style>
+<div id="flex">
+  <div style="width: 150px;"></div>
+  <!-- Without clamping this item would "fit" on the first line. -->
+  <!-- The total "free-space" on this line is 180px. -->
+  <div data-expected-width=10  style="width: 0px; max-width: 10px; margin-left: -50px; margin-right: -50px;"></div>
+  <div data-expected-width=120 style="width: 0px;"></div>
+  <div data-expected-width=50  style="max-width: 50px;"></div>
+</div>
+
+<script>
+checkLayout('#flex > div');
+</script>

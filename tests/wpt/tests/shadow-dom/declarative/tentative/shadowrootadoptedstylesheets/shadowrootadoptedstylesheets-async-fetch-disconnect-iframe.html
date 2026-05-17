@@ -9,9 +9,10 @@
 <script type="module">
   promise_test(async (t) => {
     // Host is inside an iframe that is destroyed during the fetch. Destroying
-    // the iframe invalidates its browsing context. The completion callback for
-    // the pending module fetch should detect that the context is gone and bail
-    // out without crashing.
+    // the iframe invalidates its browsing context, which causes the pending
+    // module fetch to fail. The cleanup callback must handle this without
+    // crashing; the orphaned shadow root retains its synchronously-adopted
+    // empty sheet.
     const cssUrl = new URL("./support/styles-red.css?iframe", location.href).href;
 
     const iframe = document.createElement("iframe");
@@ -34,23 +35,21 @@
     const shadowRoot = iframeHost.shadowRoot;
 
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "Before iframe destruction: expected 1 placeholder(s).");
+      "Before iframe destruction: one entry exists synchronously.");
     assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "Before iframe destruction: placeholder at index 0 should be empty.");
+      "Before iframe destruction: entry at index 0 is empty pre-fetch.");
 
     iframe.remove();
 
     await new Promise(resolve => step_timeout(resolve, 500));
     await new Promise(resolve => requestAnimationFrame(resolve));
 
+    // After the browsing context is invalidated, the failed fetch is
+    // observed without crashing. The empty sheet is left in place.
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "Orphaned shadow root should still have one entry after iframe destruction.");
-
-    // The browsing context was invalidated, so the placeholder should remain empty.
-    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "After iframe destruction: expected 1 placeholder(s).");
+      "After iframe destruction: empty sheet remains.");
     assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "After iframe destruction: placeholder at index 0 should be empty.");
+      "After iframe destruction: sheet remains empty.");
 
     // Re-inserting the iframe creates a new browsing context with a fresh document.
     const iframeReloaded = new Promise(
@@ -62,9 +61,7 @@
     assert_equals(iframe.contentDocument.getElementById("host"), null,
       "The new iframe document should not contain the original host element.");
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "After iframe re-insertion: expected 1 placeholder(s).");
-    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "After iframe re-insertion: placeholder at index 0 should be empty.");
+      "After iframe re-insertion: orphaned shadow root still holds sheet.");
   }, "Destroying iframe during async adoptedStyleSheets fetch does not crash.");
 </script>
 </body>

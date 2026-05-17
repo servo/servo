@@ -20,7 +20,6 @@
       overflow-x: scroll;
       scroll-snap-type: x mandatory;
       list-style-type: none;
-      scroll-behavior: smooth;
       border: solid 2px grey;
       padding-top: 10%;
       text-align: center;
@@ -38,13 +37,15 @@
         margin: 3px;
         background-color: red;
       }
-      /* item 2 is child 3 */
+      /* item2 is child 3. item2.scrollIntoView aligns to its center. */
+      & > :nth-child(3) {
+        scroll-snap-align: center;
+      }
       & > :nth-child(3)::scroll-marker {
         background-color: green;
       }
 
       &>.item {
-        scroll-snap-align: center;
         height: 80%;
         width: 158px;
         border: 1px solid;

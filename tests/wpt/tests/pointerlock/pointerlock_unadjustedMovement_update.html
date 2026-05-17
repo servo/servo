@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<h2>Description</h2>
+<p>
+  This test checks that pointerlockchange should fire when requestPointerLock is
+  called with a different unadjustedMovement option as current locked one.
+</p>
+<hr/>
+<div id="target1">Target1</div>
+<div id="target2">Target2</div>
+<script type="text/javascript" >
+  const target1 = document.getElementById('target1');
+  const target2 = document.getElementById('target2');
+
+  async function requestPointerLockAndWait(target, option = {}) {
+    const { promise, resolve, reject } = Promise.withResolvers();
+    document.addEventListener('pointerlockchange', function handler() {
+      if (document.pointerLockElement === target) {
+        resolve();
+        return;
+      }
+
+      assert_unreached("should have pointerLockElement as target.");
+      reject(new Error('should have pointerLockElement as target.'));
+    }, { once: true});
+    await Promise.all([promise, target.requestPointerLock(option)]);
+  }
+
+  document.addEventListener('pointerlockerror', function() {
+    assert_unreached("should not receive pointerlockerror event.");
+  });
+
+  promise_test(async (t) => {
+    t.add_cleanup(async () => document.exitPointerLock());
+
+    await test_driver.bless("requestPointerLock");
+    await requestPointerLockAndWait(target1, {unadjustedMovement: false});
+    await requestPointerLockAndWait(target1, {unadjustedMovement: true});
+  }, "request pointer lock with different unadjustedMovement on the same locked element should still fire pointerlockchange event");
+
+  promise_test(async (t) => {
+    t.add_cleanup(async () => document.exitPointerLock());
+
+    await test_driver.bless("requestPointerLock");
+    await requestPointerLockAndWait(target1, {unadjustedMovement: false});
+    await requestPointerLockAndWait(target2, {unadjustedMovement: true});
+  }, "request pointer lock with different unadjustedMovement on the different element should still fire pointerlockchange event");
+</script>
+</body>
+</html>

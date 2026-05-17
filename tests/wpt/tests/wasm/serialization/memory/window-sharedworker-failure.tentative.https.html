@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shared WebAssembly.Memory cannot cross agent clusters: shared worker edition</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_true(self.crossOriginIsolated, "test page is cross-origin isolated");
+}, "precondition: window is cross-origin isolated");
+
+function assertSharedWorkerIsolated(data) {
+  assert_equals(data.kind, "ready", "first message is the ready signal");
+  assert_true(data.crossOriginIsolated,
+              "SharedWorker reports crossOriginIsolated; otherwise the headers are not being honored");
+}
+
+async_test(t => {
+  const sw = new SharedWorker("resources/sharedworker-receive-memory.js");
+  let ready = false;
+  sw.port.onmessage = t.step_func(e => {
+    if (!ready) {
+      assertSharedWorkerIsolated(e.data);
+      ready = true;
+      try {
+        sw.port.postMessage(new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 }));
+      } catch (err) {
+        assert_unreached("Window-side postMessage threw synchronously: " + err);
+      }
+    } else if (e.data && e.data.kind === "got-messageerror") {
+      t.done();
+    } else {
+      assert_unreached("SharedWorker reported: " + JSON.stringify(e.data));
+    }
+  });
+  sw.port.onmessageerror = t.unreached_func("messageerror on the window-side port");
+}, "Shared WebAssembly.Memory from window to SharedWorker fires messageerror on the SharedWorker");
+
+async_test(t => {
+  const sw = new SharedWorker("resources/sharedworker-send-memory.js");
+  let ready = false;
+  sw.port.onmessage = t.step_func(e => {
+    if (!ready) {
+      assertSharedWorkerIsolated(e.data);
+      ready = true;
+      sw.port.postMessage("send-me-memory");
+    } else if (e.data && e.data.kind === "threw") {
+      assert_unreached("SharedWorker postMessage threw synchronously: " + e.data.message);
+    } else {
+      assert_unreached("Window received unexpected message: " + JSON.stringify(e.data));
+    }
+  });
+  sw.port.onmessageerror = t.step_func(() => {
+    assert_true(ready, "messageerror should fire only after ready");
+    t.done();
+  });
+}, "Shared WebAssembly.Memory from SharedWorker to window fires messageerror on the window");
+</script>

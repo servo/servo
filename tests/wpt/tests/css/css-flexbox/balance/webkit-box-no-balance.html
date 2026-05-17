@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="flex-wrap:balance doesn't apply to a -webkit-box">
+<style>
+#webkit-box {
+  display: -webkit-box;
+  flex-wrap: balance;
+  width: 100px;
+}
+
+#webkit-box > div {
+  width: 50px;
+  height: 100px;
+  background: green;
+  -webkit-box-flex: 1;
+  flex-grow: 1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="webkit-box">
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

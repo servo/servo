@@ -19,6 +19,7 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureArrayLayers;
     readonly attribute unsigned long maxBindGroups;
     readonly attribute unsigned long maxBindGroupsPlusVertexBuffers;
+    readonly attribute unsigned long maxImmediateSize;
     readonly attribute unsigned long maxBindingsPerBindGroup;
     readonly attribute unsigned long maxDynamicUniformBuffersPerPipelineLayout;
     readonly attribute unsigned long maxDynamicStorageBuffersPerPipelineLayout;
@@ -602,6 +603,7 @@ GPUPipelineLayout includes GPUObjectBase;
 dictionary GPUPipelineLayoutDescriptor
          : GPUObjectDescriptorBase {
     required sequence<GPUBindGroupLayout?> bindGroupLayouts;
+    GPUSize32 immediateSize = 0;
 };
 
 [Exposed=(Window, Worker), SecureContext]
@@ -1018,6 +1020,9 @@ interface mixin GPUBindingCommandsMixin {
         [AllowShared] Uint32Array dynamicOffsetsData,
         GPUSize64 dynamicOffsetsDataStart,
         GPUSize32 dynamicOffsetsDataLength);
+
+    undefined setImmediates(GPUSize32 rangeOffset, AllowSharedBufferSource data,
+        optional GPUSize64 dataOffset = 0, optional GPUSize64 dataSize);
 };
 
 interface mixin GPUDebugCommandsMixin {

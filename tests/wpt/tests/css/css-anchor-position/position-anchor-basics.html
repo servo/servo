@@ -31,9 +31,9 @@ test_computed_value('position-anchor', 'none');
 test_computed_value('position-anchor', 'auto');
 test_computed_value('position-anchor', '--foo');
 
-// Initial: none
+// Initial: normal
 // Inherited: no
-assert_not_inherited('position-anchor', 'none', '--foo');
+assert_not_inherited('position-anchor', 'normal', '--foo');
 
 // Previous resolution added `position-anchor: auto` to popovers in
 // the UA stylesheet, but that is no longer required. See:

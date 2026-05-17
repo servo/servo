@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: removed sheet updated by fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // The pre-created CSSStyleSheet object's identity is owned by the module map
+    // entry, not by any tree scope's adoptedStyleSheets. When the fetch completes,
+    // replaceSync runs on that same object regardless of whether anything adopted it.
+    // Verify that:
+    //   - A retained reference to the original sheet gets its rules populated even
+    //     after we cleared adoptedStyleSheets.
+    //   - The cleared-out adoptedStyleSheets are not re-populated when the fetch
+    //     completes.
+    //   - Re-adopting the (now-populated) sheet applies its styles.
+    const url = "./support/styles-red.css?removed-still-updates";
+    const { shadowRoot, testElement } = createStylesheetHost(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before removal: expected 1 original_sheet.");
+    const original_sheet = shadowRoot.adoptedStyleSheets[0];
+    assert_equals(original_sheet.cssRules.length, 0,
+      "Before removal: original_sheet should be empty.");
+
+    shadowRoot.adoptedStyleSheets = [];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "adoptedStyleSheets should be empty after clearing.");
+
+    await fetchAndWait(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Cleared adoptedStyleSheets must not be re-populated by the fetch.");
+    assert_equals(original_sheet.cssRules.length, 1,
+      "The retained original_sheet reference should have one rule after fetch.");
+    assert_equals(original_sheet.cssRules[0].cssText, "span { color: red; }",
+      "Retained original_sheet reference should be populated with fetched rule.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
+      "No styles should apply: the populated sheet is not adopted.");
+
+    shadowRoot.adoptedStyleSheets = [original_sheet];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Re-adopting the populated sheet adds it to adoptedStyleSheets.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0], original_sheet,
+      "Re-adopted entry should be the same sheet object.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
+      "Red styles should apply once the populated sheet is re-adopted.");
+  }, "Removed original_sheet is still updated by fetch and applies styles when re-adopted.");
+</script>
+</body>

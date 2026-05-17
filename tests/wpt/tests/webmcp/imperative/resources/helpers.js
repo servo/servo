@@ -26,6 +26,12 @@ function toolsAreEqual(actual, expected) {
   if (actual.origin !== expected.origin) {
     return `origins are unequal: ${actual.origin} !== ${expected.origin}`;
   }
+  if (actual.annotations?.readOnlyHint !== expected.annotations?.readOnlyHint) {
+    return `readOnlyHints are unequal: ${actual.annotations?.readOnlyHint} !== ${expected.annotations?.readOnlyHint}`;
+  }
+  if (actual.annotations?.untrustedContentHint !== expected.annotations?.untrustedContentHint) {
+    return `untrustedContentHints are unequal: ${actual.annotations?.untrustedContentHint} !== ${expected.annotations?.untrustedContentHint}`;
+  }
 
   return true;
 }

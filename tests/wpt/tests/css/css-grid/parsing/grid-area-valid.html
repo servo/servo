@@ -56,6 +56,9 @@ test_valid_value("grid-row-start", "span i");
 test_valid_value("grid-column-start", "SpAn i 2", "span 2 i");
 test_valid_value("grid-row-end", "2 i span", "span 2 i");
 test_valid_value("grid-column-end", "2 SpAn", "span 2");
+test_valid_value("grid-column-start", "span calc(-2)");
+test_valid_value("grid-column-start", "span min(-1, 6)", "span calc(-1)");
+test_valid_value("grid-column-start", "span calc(sibling-index() - 2)");
 
 // <grid-line> [ / <grid-line> ]{0,3}
 test_valid_value("grid-area", "auto / i");

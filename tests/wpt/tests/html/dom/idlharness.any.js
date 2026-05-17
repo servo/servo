@@ -1,4 +1,4 @@
-// META: global=dedicatedworker,shadowrealm-in-window
+// META: global=dedicatedworker
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 
@@ -8,10 +8,6 @@ idl_test(
   ["html"],
   ["wai-aria", "dom", "cssom", "touch-events", "pointerevents", "uievents", "performance-timeline"],
   idlArray => {
-    if (self.GLOBAL.isShadowRealm()) {
-      return;
-    }
-
     idlArray.add_untested_idls('typedef Window WindowProxy;');
     idlArray.add_objects({
       WorkerLocation: ['self.location'],

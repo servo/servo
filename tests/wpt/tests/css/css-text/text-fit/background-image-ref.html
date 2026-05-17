@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grow-consistent {
+  font: 40px/2 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.grow-line {
+  font: 20px/2 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.gradient {
+  background-image: linear-gradient(to bottom, lime, green);
+}
+.image {
+  background-image: url(/images/background.png);
+}
+</style>
+
+<!-- linear-gradient -->
+<div class="grow-consistent"><span class="gradient">ÉpÉ
+pÉpÉ</span></div>
+<div class="grow-line"><span class="gradient" style="font-size:40px">ÉpÉp</span>
+<span class="gradient">pÉpÉpÉpÉ</span></div>
+
+<!-- image repeat -->
+<div class="grow-consistent"><span class="image">ÉpÉ
+pÉpÉ</span></div>
+<div class="grow-line"><span class="image" style="font-size:40px">ÉpÉp</span>
+<span class="image">pÉpÉpÉpÉ</span></div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

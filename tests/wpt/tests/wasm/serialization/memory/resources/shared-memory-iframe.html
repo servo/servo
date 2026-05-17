@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A test page that writes into a given shared WebAssembly.Memory</title>
+
+<script>
+"use strict";
+
+self.onmessage = ({ data }) => {
+  // Write into the shared backing store so the parent can verify shared semantics.
+  new Int32Array(data.buffer)[1] = 200;
+  parent.postMessage(data, "*");
+};
+</script>

@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,shadowrealm
+// META: global=window,dedicatedworker
 // META: title=Encoding API: UTF-16 surrogate handling
 
 var bad = [

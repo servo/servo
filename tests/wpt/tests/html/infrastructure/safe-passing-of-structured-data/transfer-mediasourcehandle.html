@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MessageChannel transfer of MediaSourceHandle</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+    const worker = new Worker(URL.createObjectURL(new Blob([`
+        const ms = new ManagedMediaSource();
+        const handle = ms.handle;
+        self.postMessage(handle, [handle]);
+    `], { type: "text/javascript" })));
+
+    const handle = await new Promise((resolve, reject) => {
+        worker.onmessage = e => resolve(e.data);
+        worker.onerror = e => { e.preventDefault(); reject(e.message); };
+    });
+    worker.terminate();
+
+    const channel = new MessageChannel();
+    const received = new Promise(resolve => {
+        channel.port2.onmessage = e => resolve(e.data);
+    });
+
+    channel.port1.postMessage(handle, [handle]);
+
+    const copy = await received;
+    assert_true(copy instanceof MediaSourceHandle);
+}, "MediaSourceHandle can be transferred through a MessageChannel");
+</script>

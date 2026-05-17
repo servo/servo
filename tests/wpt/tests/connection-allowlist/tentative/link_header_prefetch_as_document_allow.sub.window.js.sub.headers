@@ -1,0 +1,2 @@
+Connection-Allowlist: (response-origin "*://:subdomain.{{hosts[alt][]}}:*" "*://*:*/*\\?*&ignore-allowlist=true*")
+Link: <http://{{hosts[alt][www]}}:{{ports[http][0]}}/connection-allowlist/tentative/resources/key-value-store.py?key=d5c4b2a1-7e8d-4c60-91da-2a57191363c2&value=hello>; rel=prefetch; as=document

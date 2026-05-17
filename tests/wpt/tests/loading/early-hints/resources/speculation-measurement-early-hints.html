@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<script src="/speculation-rules/speculation-measurement/support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+const preloads = getPreloadsFromSearchParams();
+
+for (const expected of preloads) {
+  const coLabel = "crossorigin_attr" in expected
+      ? `crossorigin=${expected.crossorigin_attr || "anonymous"}`
+      : "no crossorigin";
+
+  promise_test(async t => {
+    assert_true(typeof performance.getSpeculations === 'function',
+      "SpeculationMeasurement feature must be enabled");
+
+    // Consume the resource so the preload is marked as used.
+    const url = new URL(expected.url, window.location).href;
+    const crossorigin = ('crossorigin_attr' in expected)
+        ? (expected.crossorigin_attr || 'anonymous') : null;
+    await usePreload({t, as: expected.as_attr, href: url, crossorigin});
+
+    const entry = performance.getSpeculations().preloads.find(
+        p => p.url === url);
+
+    assert_not_equals(entry, undefined,
+      "preload entry should exist");
+    assert_equals(entry.as, expected.as_attr,
+      `as should be '${expected.as_attr}'`);
+
+    let expectedCrossOrigin = "none";
+    if ("crossorigin_attr" in expected) {
+      if (expected.crossorigin_attr === "" ||
+          expected.crossorigin_attr === "anonymous") {
+        expectedCrossOrigin = "anonymous";
+      } else if (expected.crossorigin_attr === "use-credentials") {
+        expectedCrossOrigin = "use-credentials";
+      }
+    }
+    assert_equals(entry.crossorigin, expectedCrossOrigin,
+      `crossorigin should be '${expectedCrossOrigin}'`);
+
+    assert_not_equals(entry.used, null,
+      "preload should have been used after consumption");
+    assert_equals(typeof entry.used, "number",
+      "used should be a DOMHighResTimeStamp");
+    assert_greater_than(entry.used, 0,
+      "used timestamp should be positive");
+  }, `Early Hints preload: as=${expected.as_attr}, ${coLabel}`);
+}
+</script>
+</body>

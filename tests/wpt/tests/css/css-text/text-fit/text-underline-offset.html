@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="text-underline-offset-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grow-consistent {
+  font: 20px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  display: inline-block;
+  width: 160px;
+  text-fit: grow consistent;
+  white-space: pre;
+  border: 1px solid gray;
+  margin: 20px;
+  text-decoration: underline lime;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+}
+.grow-line {
+  font: 20px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  display: inline-block;
+  width: 160px;
+  text-fit: grow per-line-all;
+  white-space: pre;
+  border: 1px solid gray;
+  margin: 20px;
+  text-decoration: underline lime;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+}
+
+.length {
+  text-underline-offset: 8px;
+}
+
+.percentage {
+  text-underline-offset: 50%;
+}
+</style>
+
+<!-- DIVs with grow-consistent will be scaled by 2.0 -->
+<!-- DIVs with grow-line will be scaled by:
+      2.0 on the first line,
+      1.0 on the second line. -->
+
+<div>
+<!-- text-underline-offset:auto -->
+<div class="grow-consistent">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line">ÉpÉp
+pÉpÉpÉpÉ</div>
+<div>
+
+<div>
+<!-- text-underline-offset:<length> -->
+<div class="grow-consistent length">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line length">ÉpÉp
+pÉpÉpÉpÉ</div>
+<div>
+
+<div>
+<!-- text-underline-offset:<percentage> -->
+<div class="grow-consistent percentage">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line percentage">ÉpÉp
+pÉpÉpÉpÉ</div>
+<div>
+
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+

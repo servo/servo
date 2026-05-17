@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusgroup IDL attributes reflect focusgroup and focusgroupstart content attributes</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#htmlorsvgelement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="fg-empty"></div>
+<script>
+test(() => {
+  assert_equals(document.getElementById("fg-empty").focusGroup, "");
+}, "focusGroup IDL attribute on an element without the focusgroup content attribute is the empty string");
+</script>
+
+<div id="fg-set" focusgroup="toolbar"></div>
+<script>
+test(() => {
+  assert_equals(document.getElementById("fg-set").focusGroup, "toolbar");
+}, "focusGroup IDL attribute reflects the focusgroup content attribute value");
+</script>
+
+<script>
+test(() => {
+  const el = document.createElement("div");
+  el.focusGroup = "tablist inline";
+  assert_equals(el.getAttribute("focusgroup"), "tablist inline");
+}, "Setting focusGroup IDL attribute writes the focusgroup content attribute");
+</script>
+
+<script>
+test(() => {
+  const el = document.createElement("div");
+  el.setAttribute("focusgroup", "toolbar");
+  el.focusGroup = "";
+  assert_equals(el.getAttribute("focusgroup"), "");
+}, "Setting focusGroup IDL attribute to the empty string clears the content attribute value");
+</script>
+
+<div id="fgs-absent"></div>
+<script>
+test(() => {
+  assert_false(document.getElementById("fgs-absent").focusGroupStart);
+}, "focusGroupStart IDL attribute on an element without the focusgroupstart content attribute is false");
+</script>
+
+<div id="fgs-present" focusgroupstart></div>
+<script>
+test(() => {
+  assert_true(document.getElementById("fgs-present").focusGroupStart);
+}, "focusGroupStart IDL attribute reflects presence of the focusgroupstart content attribute as true");
+</script>
+
+<script>
+test(() => {
+  const el = document.createElement("div");
+  el.focusGroupStart = true;
+  assert_true(el.hasAttribute("focusgroupstart"));
+}, "Setting focusGroupStart IDL attribute to true adds the focusgroupstart content attribute");
+</script>
+
+<script>
+test(() => {
+  const el = document.createElement("div");
+  el.setAttribute("focusgroupstart", "");
+  el.focusGroupStart = false;
+  assert_false(el.hasAttribute("focusgroupstart"));
+}, "Setting focusGroupStart IDL attribute to false removes the focusgroupstart content attribute");
+</script>
+
+<script>
+test(() => {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  el.setAttribute("focusgroup", "toolbar");
+  assert_equals(el.focusGroup, "toolbar");
+  el.focusGroupStart = true;
+  assert_true(el.hasAttribute("focusgroupstart"));
+}, "focusGroup and focusGroupStart are exposed on SVGElement via the HTMLOrSVGOrMathMLElement mixin");
+
+test(() => {
+  const el = document.createElementNS("http://www.w3.org/1998/Math/MathML", "math");
+  el.setAttribute("focusgroup", "tablist");
+  assert_equals(el.focusGroup, "tablist");
+  el.focusGroupStart = true;
+  assert_true(el.hasAttribute("focusgroupstart"));
+}, "focusGroup and focusGroupStart are exposed on MathMLElement via the HTMLOrSVGOrMathMLElement mixin");
+</script>

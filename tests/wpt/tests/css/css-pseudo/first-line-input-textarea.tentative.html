@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>::first-line on input / textarea</title>
+<link rel="match" href="input-textarea-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-text-line">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13926">
+<style>
+input::first-line,
+textarea::first-line {
+  color: red;
+}
+</style>
+<input value="Some text">
+<textarea>
+  Some more text
+</textarea>

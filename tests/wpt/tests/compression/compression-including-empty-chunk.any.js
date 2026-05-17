@@ -1,4 +1,4 @@
-// META: global=window,worker,shadowrealm
+// META: global=window,worker
 // META: script=third_party/pako/pako_inflate.min.js
 // META: script=resources/decompress.js
 // META: script=resources/formats.js

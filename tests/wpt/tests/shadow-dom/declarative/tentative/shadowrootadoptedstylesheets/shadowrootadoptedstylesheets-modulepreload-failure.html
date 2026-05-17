@@ -29,15 +29,12 @@
 
     const { shadowRoot, testElement } = createStylesheetHost(badUrl);
 
-    // The module map should contain a failed entry, so the shadow root should
-    // still create a placeholder.
-    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "After failed preload: expected 1 entry.");
-    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "After failed preload: sheet should be empty.");
+    // A failed CSS module fetch should not contribute an entry.
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "After failed preload: no sheet should be added.");
     assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
       "No styles should be applied from a failed modulepreload.");
-  }, "Failed modulepreload (404) results in empty sheet for shadowrootadoptedstylesheets.");
+  }, "Failed modulepreload (404) is skipped by shadowrootadoptedstylesheets.");
 
   promise_test(async (t) => {
     // --- Scenario 2: mix of valid and invalid modulepreloads. ---
@@ -53,13 +50,11 @@
     const { shadowRoot: sr2, testElement: te2 } = createStylesheetHost(
       [badUrl2, goodUrl]);
 
-    assert_equals(sr2.adoptedStyleSheets.length, 2,
-      "Two entries should be present.");
-    assert_equals(sr2.adoptedStyleSheets[0].cssRules.length, 0,
-      "First entry (failed preload) should be empty.");
-    assertSheetRule(sr2, 1, "span { color: blue; }", "Second entry (valid)");
+    assert_equals(sr2.adoptedStyleSheets.length, 1,
+      "Only the valid preload should contribute a sheet.");
+    assertSheetRule(sr2, 0, "span { color: blue; }", "Valid preload");
     assert_equals(getComputedStyle(te2).color, "rgb(0, 0, 255)",
       "Blue styles from the valid preload should be applied.");
-  }, "Mixed valid/invalid modulepreloads: valid ones work, failed ones leave empty sheets.");
+  }, "Mixed valid/invalid modulepreloads: failed ones are skipped and valid ones work.");
 </script>
 </body>

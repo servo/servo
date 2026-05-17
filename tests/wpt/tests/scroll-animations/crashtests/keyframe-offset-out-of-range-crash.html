@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>This test passes if it does not crash</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+@keyframes anim {
+  cover -20% { margin-left: 0px; }
+  cover 120% { margin-left: 100px; }
+}
+#scroller {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+}
+.content {
+  height: 500px;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background: green;
+  animation-name: anim;
+  animation-timeline: view();
+}
+</style>
+<div id="scroller">
+  <div class="content"></div>
+  <div id="target"></div>
+  <div class="content"></div>
+</div>

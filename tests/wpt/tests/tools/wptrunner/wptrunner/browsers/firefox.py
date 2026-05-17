@@ -816,7 +816,6 @@ class ProfileCreator:
         # local copy of certutil
         # TODO: Maybe only set this if certutil won't launch?
         env = os.environ.copy()
-        certutil_dir = os.path.dirname(self.binary or self.certutil_binary)
         if mozinfo.isMac:
             env_var = "DYLD_LIBRARY_PATH"
         elif mozinfo.isLinux:
@@ -824,8 +823,18 @@ class ProfileCreator:
         else:
             env_var = "PATH"
 
-        env[env_var] = (os.path.pathsep.join([certutil_dir, env[env_var]])
-                        if env_var in env else certutil_dir)
+        # Certutil binary's directory is listed first so that a custom certutil
+        # (e.g. a non-ASAN build) picks up its own NSS libraries. The Firefox
+        # binary's directory is included as a fallback for certutil binaries that
+        # ship without their own NSS libraries (e.g. those in the test package).
+        dirs = []
+        if self.certutil_binary is not None:
+            dirs.append(os.path.dirname(self.certutil_binary))
+        if self.binary is not None:
+            dirs.append(os.path.dirname(self.binary))
+        lib_path = os.path.pathsep.join(dirs)
+        env[env_var] = (os.path.pathsep.join([lib_path, env[env_var]])
+                        if env_var in env else lib_path)
 
         def certutil(*args):
             cmd = [self.certutil_binary] + list(args)

@@ -26,6 +26,7 @@ promise_test(async t => {
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: async () => 'hello'
   }, { signal: controller.signal });
 
@@ -46,6 +47,7 @@ promise_test(async t => {
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    annotations: { readOnlyHint: true, untrustedContentHint: false },
     origin: self.origin
   }), 'Tool details should match');
 

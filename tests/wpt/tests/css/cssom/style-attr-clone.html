@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Style mutations on cloned element don't affect the original element</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/">
+<link rel="match" href="style-attr-clone-ref.html">
+<div id=wrapper style="display: none">
+  <div id="target" style="color: red">What color am I</div>
+</div>
+<script>
+  target.style.color = "green";
+  let clone = target.cloneNode(true);
+  clone.style.color = "blue";
+  wrapper.appendChild(clone);
+  wrapper.style.display = "";
+</script>

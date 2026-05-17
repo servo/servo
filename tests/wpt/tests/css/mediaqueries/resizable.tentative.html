@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/explainers-by-googlers/additional-windowing-controls/blob/main/README.md" />
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<script type="text/javascript" src="/css/mediaqueries/resources/matchmedia-utils.js"></script>
+<script>
+  query_should_be_known("(resizable: true)");
+  query_should_be_known("(resizable: false)");
+  query_should_be_known("(resizable)");
+
+  query_should_be_unknown("(resizable: 0)");
+  query_should_be_unknown("(resizable: 1)");
+  query_should_be_unknown("(resizable: none)");
+  query_should_be_unknown("(resizable: random)");
+  query_should_be_unknown("(resizable: 10px)");
+  query_should_be_unknown("(resizable: 1%)");
+
+  test(() => {
+    let booleanContext = window.matchMedia("(resizable)");
+    assert_true(booleanContext.matches);
+  }, "Check that resizable evaluates to true in the boolean context");
+</script>

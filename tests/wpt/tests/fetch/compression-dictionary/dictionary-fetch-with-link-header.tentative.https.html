@@ -35,8 +35,6 @@ compression_dictionary_promise_test(async (t) => {
   t.add_cleanup(() => {
     iframe.remove();
   });
-  // Wait for a while to ensure that the dictionary is fetched.
-  await new Promise(resolve => window.requestIdleCallback(resolve));
   const headers = await waitUntilPreviousRequestHeaders(t, dict_token);
   assert_true(headers !== undefined, 'Headers should be available');
   assert_equals(headers['sec-fetch-mode'], 'cors');
