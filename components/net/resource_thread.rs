@@ -273,9 +273,10 @@ impl ResourceChannelManager {
         let reporter_id = rx_set.add(memory_reporter);
         let revoker_id = rx_set.add(revoke_receiver);
         let refresh_id = rx_set.add(refresh_receiver);
+        let mut selector = rx_set.selector();
 
         loop {
-            for received in rx_set.select().into_iter() {
+            for received in selector.select().into_iter() {
                 // Handles case where profiler thread shuts down before resource thread.
                 match received {
                     GenericSelectionResult::ChannelClosed(_) => continue,
