@@ -135,24 +135,22 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                 .unwrap_or_else(|e| vec![GenericSelectionResult::Error(e.to_string())]),
             GenericReceiverSetVariants::Crossbeam(receivers) => {
                 let mut sel = crossbeam_channel::Select::new();
-                // we need to add all the receivers to the set
-                let _selected_receivers = receivers
-                    .iter()
-                    .map(|receiver| sel.recv(receiver))
-                    .collect::<Vec<usize>>();
+                for receiver in receivers.iter() {
+                    sel.recv(receiver);
+                }
                 let selector = sel.select();
                 let index = selector.index();
-                let Some(receiver) = receivers.get(index) else {
-                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
+                let selection_result = match receivers.get(index) {
+                    None => GenericSelectionResult::ChannelClosed(index as u64),
+                    Some(receiver) => match selector.recv(receiver) {
+                        Ok(Ok(value)) => {
+                            GenericSelectionResult::MessageReceived(index as u64, value)
+                        },
+                        Ok(Err(error)) => GenericSelectionResult::Error(error.to_string()),
+                        Err(_) => GenericSelectionResult::ChannelClosed(index as u64),
+                    },
                 };
-                let Ok(result) = selector.recv(receiver) else {
-                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
-                };
-
-                vec![GenericSelectionResult::MessageReceived(
-                    index.try_into().unwrap(),
-                    result.unwrap(),
-                )]
+                vec![selection_result]
             },
         }
     }
