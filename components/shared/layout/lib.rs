@@ -842,7 +842,7 @@ impl ImageAnimationState {
                 .as_secs_f64();
         }
         if let Some(Repeat::Finite(repeat_times)) = self.image.loop_count &&
-            let Some(current_loop_count) = self.current_loop_count 
+            let Some(current_loop_count) = self.current_loop_count
         {
             let new_loop_cnt = current_loop_count + advance_loop;
             self.current_loop_count = Some(new_loop_cnt);
