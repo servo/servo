@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use crossbeam_channel::{Receiver, SendError, Sender, select};
+use crossbeam_channel::{Receiver, Select, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
 use net_traits::FetchResponseMsg;
@@ -443,37 +443,49 @@ impl ScriptThreadReceivers {
         timer_scheduler: &TimerScheduler,
         fully_active: &FxHashSet<PipelineId>,
     ) -> MixedMessage {
-        select! {
-            recv(task_queue.select()) -> msg => {
-                task_queue.take_tasks(msg.unwrap(), fully_active);
-                let event = task_queue
-                    .recv()
-                    .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
-                MixedMessage::FromScript(event)
+        #[cfg(feature = "webgpu")]
+        let webgpu_receiver = self.webgpu_receiver.borrow();
+
+        let task_recv = task_queue.select();
+
+        let mut sel = Select::new();
+        let task_idx = sel.recv(task_recv);
+        let constellation_idx = sel.recv(&self.constellation_receiver);
+        let devtools_idx = sel.recv(&self.devtools_server_receiver);
+        let image_cache_idx = sel.recv(&self.image_cache_receiver);
+        #[cfg(feature = "webgpu")]
+        let webgpu_idx = sel.recv(&*webgpu_receiver);
+
+        let op = match timer_scheduler.next_deadline() {
+            Some(deadline) => match sel.select_deadline(deadline) {
+                Ok(op) => op,
+                Err(_) => return MixedMessage::TimerFired,
             },
-            recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap().unwrap()),
-            recv(self.devtools_server_receiver) -> msg => MixedMessage::FromDevtools(msg.unwrap().unwrap()),
-            recv(self.image_cache_receiver) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
-            recv(timer_scheduler.wait_channel()) -> _ => MixedMessage::TimerFired,
-            recv({
-                #[cfg(feature = "webgpu")]
-                {
-                    self.webgpu_receiver.borrow()
-                }
-                #[cfg(not(feature = "webgpu"))]
-                {
-                    crossbeam_channel::never::<()>()
-                }
-            }) -> msg => {
-                #[cfg(feature = "webgpu")]
-                {
-                    MixedMessage::FromWebGPUServer(msg.unwrap().unwrap())
-                }
-                #[cfg(not(feature = "webgpu"))]
-                {
-                    unreachable!("This should never be hit when webgpu is disabled ({msg:?})");
-                }
+            None => sel.select(),
+        };
+
+        let index = op.index();
+        if index == task_idx {
+            let msg = op.recv(task_recv).unwrap();
+            task_queue.take_tasks(msg, fully_active);
+            let event = task_queue
+                .recv()
+                .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
+            MixedMessage::FromScript(event)
+        } else if index == constellation_idx {
+            MixedMessage::FromConstellation(op.recv(&self.constellation_receiver).unwrap().unwrap())
+        } else if index == devtools_idx {
+            MixedMessage::FromDevtools(op.recv(&self.devtools_server_receiver).unwrap().unwrap())
+        } else if index == image_cache_idx {
+            MixedMessage::FromImageCache(op.recv(&self.image_cache_receiver).unwrap())
+        } else {
+            #[cfg(feature = "webgpu")]
+            {
+                debug_assert_eq!(index, webgpu_idx);
+                MixedMessage::FromWebGPUServer(op.recv(&*webgpu_receiver).unwrap().unwrap())
             }
+            #[cfg(not(feature = "webgpu"))]
+            unreachable!("select returned an unknown index {index}")
         }
     }
 
