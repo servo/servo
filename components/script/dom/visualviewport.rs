@@ -82,6 +82,13 @@ impl VisualViewport {
         )
     }
 
+    /// Update just the scale of the [`VisualViewport`] without modifying the rect.
+    /// Used to eagerly apply the initial-scale from a viewport meta tag
+    /// before the paint thread round-trip completes.
+    pub(crate) fn update_scale(&self, scale: f32) {
+        self.scale.set(Scale::new(scale));
+    }
+
     fn check_for_update(
         &self,
         old_rect: Rect<f32, CSSPixel>,
