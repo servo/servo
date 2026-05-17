@@ -109,6 +109,11 @@ impl TimerScheduler {
             .unwrap_or_else(never)
     }
 
+    /// The deadline of the next scheduled timer, or `None` if the queue is empty.
+    pub fn next_deadline(&self) -> Option<Instant> {
+        self.queue.peek().map(|event| event.for_time)
+    }
+
     /// Dispatch any timer events from this [`TimerScheduler`]'s `queue` when `now` is
     /// past the due time of the event.
     pub fn dispatch_completed_timers(&mut self) {
