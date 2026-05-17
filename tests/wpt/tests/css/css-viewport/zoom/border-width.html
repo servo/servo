@@ -20,6 +20,13 @@
 .zoom {
   zoom: 2;
 }
+.box-left {
+  border-left-style: solid;
+  display: inline-block;
+}
+.box-left-medium {
+  border-left-width: medium;
+}
 </style>
 
 <div class="box">unzoomed px</div>
@@ -31,3 +38,8 @@
 
 <div class="zoom box">zoomed inherited px</div>
 <div class="zoom box-rem">zoomed inherited rem</div>
+
+<div>
+  <div class="zoom box-left box-left-medium">zoomed px</div>
+  <div class="zoom box-left">zoomed px</div>
+</div>

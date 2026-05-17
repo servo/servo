@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/popover-hint.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id="auto1" popover="auto">Auto 1</div>
+<div id="auto2" popover="auto">Auto 2</div>
+<div id="hint1" popover="hint">Hint 1</div>
+<div id="hint2" popover="hint">Hint 2</div>
+<div id="hint3" popover="hint">Hint 3</div>
+
+<style>
+[popover] {
+  inset: auto;
+}
+#auto1 { top: 0; }
+#auto2 { top: 50px; }
+#hint1 { top: 100px; }
+#hint2 { top: 150px; }
+#hint3 { top: 200px; }
+</style>
+
+
+<script>
+const popovers = Array.from(document.querySelectorAll('[popover]'));
+function hideAll() {
+  popovers.forEach(p => {
+    try { p.hidePopover(); } catch {}
+  });
+}
+function assertOpen(msg, ...list) {
+  const openPopovers = popovers.filter((p) => p.matches(':popover-open'));
+  assert_array_equals(openPopovers,list,msg);
+}
+
+// this is "weirdness 1" from https://github.com/whatwg/html/issues/12304
+test((t) => {
+  t.add_cleanup(hideAll);
+
+  auto1.showPopover();
+  auto2.showPopover({source: auto1});
+  hint1.showPopover({source: auto1});
+  assertOpen('',auto1, auto2, hint1);
+}, 'Opening a hint popover will not hide unrelated auto popovers.');
+
+// this is "weirdness 2" from https://github.com/whatwg/html/issues/12304
+test((t) => {
+  t.add_cleanup(hideAll);
+
+  auto1.showPopover();
+  hint1.showPopover({source: auto1});
+  hint2.showPopover({source: hint1});
+  assertOpen('initial',auto1, hint1, hint2);
+  hint3.showPopover();
+  assertOpen('after hint3 show',auto1, hint3);
+  hint1.showPopover({source: auto1});
+  assertOpen('after hint1 show',auto1, hint1);
+}, 'Opening a hint popover closes only other non-ancestor hint popovers.');
+
+// this is "weirdness 3" from https://github.com/whatwg/html/issues/12304
+promise_test(async (t) => {
+  t.add_cleanup(hideAll);
+
+  auto1.showPopover();
+  hint1.showPopover();
+  assertOpen('initial',auto1, hint1);
+
+  await clickOn(hint1);
+  assertOpen('after hint click',hint1);
+
+  auto1.showPopover();
+  assertOpen('auto reopen hides hint',auto1);
+  hint1.showPopover();
+  assertOpen('reopen hint',auto1,hint1);
+
+  await clickOn(auto1);
+  assertOpen('after auto click',auto1);
+}, 'Clicking outside consistently closes both auto and hint popovers.');
+
+// Same as "weirdness 3" but with all popovers nested in an outer auto popover
+promise_test(async (t) => {
+  t.add_cleanup(hideAll);
+
+  auto1.showPopover();
+  auto2.showPopover({source: auto1});
+  hint1.showPopover({source: auto1});
+  assertOpen('initial', auto1, auto2, hint1);
+
+  await clickOn(hint1);
+  assertOpen('after hint click', auto1, hint1);
+
+  auto2.showPopover({source: auto1});
+  assertOpen('auto reopen hides hint', auto1, auto2);
+  hint1.showPopover({source: auto1});
+  assertOpen('reopen hint', auto1, auto2, hint1);
+
+  await clickOn(auto2);
+  assertOpen('after auto click', auto1, auto2);
+}, 'Clicking outside consistently closes both auto and hint popovers (nested).');
+
+// this is "weirdness 4" from https://github.com/whatwg/html/issues/12304
+test((t) => {
+  t.add_cleanup(hideAll);
+
+  auto1.showPopover();
+  hint1.showPopover();
+  assertOpen('initial',auto1, hint1);
+
+  auto1.hidePopover();
+  assertOpen('after auto hide',hint1);
+
+  auto1.showPopover();
+  assertOpen('auto reopen hides hint',auto1);
+  hint1.showPopover();
+  assertOpen('reopen hint',auto1,hint1);
+
+  hint1.hidePopover();
+  assertOpen('after hint hide',auto1);
+}, 'Hiding an auto popover closes only its child popovers.');
+
+// this is "weirdness 5" from https://github.com/whatwg/html/issues/12304
+promise_test(async (t) => {
+  t.add_cleanup(hideAll);
+
+  hint1.showPopover();
+  assertOpen('initial',hint1);
+
+  // Imperative
+  assert_throws_dom('InvalidStateError', () => {
+    auto1.showPopover({source: hint1});
+  }, 'Opening auto popover inside hint popover is not allowed');
+  assertOpen('after show',hint1);
+
+  // Declarative
+  const invoker = document.createElement('button');
+  invoker.popoverTargetElement = auto1;
+  t.add_cleanup(() => invoker.remove());
+  hint1.appendChild(invoker);
+  await clickOn(invoker);
+  assertOpen('after click',hint1);
+}, 'Opening an auto popover inside a hint popover is disallowed and will fail.');
+</script>

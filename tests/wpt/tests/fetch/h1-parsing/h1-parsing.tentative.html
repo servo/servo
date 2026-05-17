@@ -1,0 +1,266 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?include=first">
+<meta name="variant" content="?include=in-http">
+<meta name="variant" content="?include=before-slash">
+<meta name="variant" content="?include=after-slash">
+<meta name="variant" content="?include=before-dot">
+<meta name="variant" content="?include=after-dot">
+<meta name="variant" content="?include=after-ver">
+<meta name="variant" content="?include=before-num">
+<meta name="variant" content="?include=after-num">
+<meta name="variant" content="?include=before-reason">
+<meta name="variant" content="?include=after-reason">
+<meta name="variant" content="?include=leading">
+<meta name="variant" content="?include=in-name">
+<meta name="variant" content="?include=before-colon">
+<meta name="variant" content="?include=after-colon">
+<meta name="variant" content="?include=in-value">
+<meta name="variant" content="?include=after-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+
+<body>
+  <script>
+    // Use both "fetch" and "framing" to check how parsing of invalid HTTP responses work
+    // Fetch to detect network errors
+    // Framing (with XFO) to detect whether a header is still interpreted as valid or not
+
+    // Insert the following chars [LF, NUL, CR, SP, HTAB, COLON] at all of the following positions
+    // <first>HT<in-http>TP<before-slash>/<after-slash>1<before-dot>.<after-dot>1<after-ver> <before-num>200<after-num> <before-reason>OK<after-reason>\r
+    // <leading><header>:<value>, <hea <in-name> der>:<value>, <header><before-colon>:<value>, <header>:<after-colon><value>, <header>:<val <in-value> ue>, <header>:<value><after-value>\r
+    // Content-Length: 5\r
+    // \r
+    // Test.
+
+
+    // Mapping for each char at each position what should be the outcome
+    // Fetch: Network Error or Valid
+    // Framing: Network Error, no-XFO (either invalid value such as DE NY or line is ignored) or active-XFO
+    let expected = {
+      'LF': {
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-2.2
+        // Although the line terminator for the start-line and fields is the sequence CRLF, a recipient MAY recognize a single LF as a line terminator and ignore any preceding CR.
+        // Note: Some of the following could be interpreted as Valid or Line skipped (e.g., LF before HTTP (first), or after-reason (LFCRLF in the first line, rest could be interpreted as the body))
+        // Note: Obsolete Line Folding is not considered here (https://www.rfc-editor.org/rfc/rfc9112.html#section-5.2)
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        'before-reason': ['Network Error', 'Network Error'],
+        'after-reason': ['Network Error', 'Network Error'],
+        // XFO-Header line
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        'before-colon': ['Network Error', 'Network Error'],
+        'after-colon': ['Network Error', 'Network Error'],
+        'in-value': ['Network Error', 'Network Error'],
+        'after-value': ['Network Error', 'Network Error']
+      },
+      'CR': {
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-2.2
+        // A sender MUST NOT generate a bare CR (a CR character not immediately followed by LF) within any protocol elements other than the content. A recipient of such a bare CR MUST consider that element to be invalid or replace each bare CR with SP before processing the element or forwarding the message.
+        // Note: considering bare CR to always be invalid, replacing with SP would also b allowed by HTTP
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+        // Although the status-line grammar rule requires that each of the component elements be separated by a single SP octet, recipients MAY instead parse on whitespace-delimited word boundaries and, aside from the line terminator, treat any form of whitespace as the SP separator while ignoring preceding or trailing whitespace; such whitespace includes one or more of the following octets: SP, HTAB, VT (%x0B), FF (%x0C), or bare CR. However, lenient parsing can result in response splitting security vulnerabilities if there are multiple recipients of the message and each has its own unique interpretation of robustness
+        // Note: in status-line the HTTP spec mentions that recipients MAY allow other form of whitespace
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        'before-reason': ['Network Error', 'Network Error'],
+        'after-reason': ['Network Error', 'Network Error'],
+        // XFO-Header Line
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        'before-colon': ['Network Error', 'Network Error'],
+        'after-colon': ['Network Error', 'Network Error'],
+        'in-value': ['Network Error', 'Network Error'],
+        'after-value': ['Network Error', 'Network Error']
+      },
+      'HTAB': {
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+        // Although the status-line grammar rule requires that each of the component elements be separated by a single SP octet, recipients MAY instead parse on whitespace-delimited word boundaries and, aside from the line terminator, treat any form of whitespace as the SP separator while ignoring preceding or trailing whitespace; such whitespace includes one or more of the following octets: SP, HTAB, VT (%x0B), FF (%x0C), or bare CR
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        // reason-phrase  = 1*( HTAB / SP / VCHAR / obs-text ) https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+        // HTAB allowed in reason-phrase
+        'before-reason': ['Valid', 'active-XFO'],
+        'after-reason': ['Valid', 'active-XFO'],
+        // XFO-Header Line
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-5.1
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-2.2
+        // A recipient that receives whitespace between the start-line and the first header field MUST either reject the message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire line, along with any subsequent lines preceded by whitespace, until a properly formed header field is received or the header section is terminated).
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        // "No whitespace is allowed between the field name and colon."
+        'before-colon': ['Network Error', 'Network Error'],
+        // "A field line value might be preceded and/or followed by optional whitespace (OWS)"
+        'after-colon': ['Valid', 'active-XFO'],
+        'in-value': ['Valid', 'no-XFO'], // DE<HTAB>NY is not a valid XFO entry
+        'after-value': ['Valid', 'active-XFO']
+      },
+      'SP': {
+        // Status Line
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+        // Although the status-line grammar rule requires that each of the component elements be separated by a single SP octet, recipients MAY instead parse on whitespace-delimited word boundaries and, aside from the line terminator, treat any form of whitespace as the SP separator while ignoring preceding or trailing whitespace; such whitespace includes one or more of the following octets: SP, HTAB, VT (%x0B), FF (%x0C), or bare CR
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        // reason-phrase  = 1*( HTAB / SP / VCHAR / obs-text ) https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+        // HTAB allowed in reason-phrase
+        'before-reason': ['Valid', 'active-XFO'],
+        'after-reason': ['Valid', 'active-XFO'],
+        // XFO-Header Line
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-5.1
+        // https://www.rfc-editor.org/rfc/rfc9112.html#section-2.2
+        // A recipient that receives whitespace between the start-line and the first header field MUST either reject the message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire line, along with any subsequent lines preceded by whitespace, until a properly formed header field is received or the header section is terminated).
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        // "No whitespace is allowed between the field name and colon."
+        'before-colon': ['Network Error', 'Network Error'],
+        // "A field line value might be preceded and/or followed by optional whitespace (OWS)"
+        'after-colon': ['Valid', 'active-XFO'],
+        'in-value': ['Valid', 'no-XFO'], // DE<SP>NY is not a valid XFO entry
+        'after-value': ['Valid', 'active-XFO']
+
+      },
+      'NUL': {
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        'before-reason': ['Network Error', 'Network Error'],
+        'after-reason': ['Network Error', 'Network Error'],
+        // XFO-Header Line
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        'before-colon': ['Network Error', 'Network Error'],
+        // https://www.rfc-editor.org/rfc/rfc9110.html#fields.values
+        // Field values containing CR, LF, or NUL characters are invalid and dangerous, due to the varying ways that implementations might parse and interpret those characters; a recipient of CR, LF, or NUL within a field value MUST either reject the message or replace each of those characters with SP before further processing or forwarding of that message. Field values containing other CTL characters are also invalid; however, recipients MAY retain such characters for the sake of robustness when they appear within a safe context (e.g., an application-specific quoted string that will not be processed by any downstream HTTP parser).
+        'after-colon': ['Network Error', 'Network Error'],
+        'in-value': ['Network Error', 'Network Error'],
+        'after-value': ['Network Error', 'Network Error']
+      },
+      'COLON': {
+        // Colon is not in VCHAR and thus should not be allowed anywhere
+        // Status Line
+        'first': ['Network Error', 'Network Error'],
+        'in-http': ['Network Error', 'Network Error'],
+        'before-slash': ['Network Error', 'Network Error'],
+        'after-slash': ['Network Error', 'Network Error'],
+        'before-dot': ['Network Error', 'Network Error'],
+        'after-dot': ['Network Error', 'Network Error'],
+        'after-ver': ['Network Error', 'Network Error'],
+        'before-num': ['Network Error', 'Network Error'],
+        'after-num': ['Network Error', 'Network Error'],
+        // Everything above is mandatory:   status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        'before-reason': ['Network Error', 'Network Error'],
+        'after-reason': ['Network Error', 'Network Error'],
+        // XFO-Header Line
+        'leading': ['Network Error', 'Network Error'],
+        'in-name': ['Network Error', 'Network Error'],
+        'before-colon': ['Network Error', 'Network Error'],
+        'after-colon': ['Network Error', 'Network Error'],
+        'in-value': ['Network Error', 'Network Error'],
+        'after-value': ['Network Error', 'Network Error']
+      }
+    }
+
+    for (const [c, positions] of Object.entries(expected)) {
+      for (const [p, outcomes] of Object.entries(positions)) {
+        const outcome_fetch = outcomes[0];
+        const outcome_framing = outcomes[1];
+        const resource = `resources/parsing_${c}_${p}.asis`
+
+        // Check fetching: for heavy network errors fetch should fail, otherwise fetch should succeed
+        if (outcome_fetch === "Network Error") {
+          subsetTestByKey(p, promise_test, async (t) => {
+            await promise_rejects_js(t, TypeError, fetch(resource));
+          }, `${c} at <${p}> should result in Network Error (fetch)`);
+        } else {
+          subsetTestByKey(p, promise_test, async (t) => {
+            const response = await fetch(resource);
+            assert_true(response.ok, "Fetch should succeed");
+          }, `${c} at <${p}> should fetch without an error`);
+        }
+
+        // Check framing: for heavy network errors framing should fail (about:error or similar), for light errors (no-XFO) framing should succeed, for no-errors (active-XFO) framing should fail (valid XFO header blocking the framing)
+        // We do not distinguish between failures due to network errors or due to XFO here (i.e., tests could pass for the wrong reasons)
+        if (outcome_framing === "no-XFO") {
+          reason = `${c} at <${p}> should load a frame (XFO Header skipped)`
+        } else if (outcome_framing === "Network Error") {
+          reason = `${c} at <${p}> should result in Network Error frame`
+        } else if (outcome_framing === "active-XFO") {
+          reason = `${c} at <${p}> should block a frame due to XFO`
+        }
+        subsetTestByKey(p, async_test,
+        t => {
+          const frame = document.createElement("iframe");
+          t.add_cleanup(() => frame.remove());
+          frame.src = resource;
+          // Network Errors only result in load events in Chrome
+          // Thus a lot of tests would currently time out in Safari and some in Firefox
+          // Use step_timeout for now
+          // If network errors result in load events for frames per
+          // https://github.com/whatwg/html/issues/125 and https://github.com/whatwg/html/issues/1230 this
+          // should be changed to use the load event instead.
+          t.step_timeout(() => {
+            // If Network Error or active-XFO (blocked due to XFO), frame.contentDocument should be null
+            // Currently does not distinguish between Network Error and Valid (blocked due to XFO)
+            // If it is possible to distinguish between blocked due to Network Error and blocked due to XFO (reliably in all browsers) change this
+            if (outcome_framing !== 'no-XFO') {
+              assert_equals(frame.contentDocument, null);
+            }
+            // If Line (XFO) is skipped, frame should be rendered and accessible as it is SameOrigin
+            else {
+              assert_not_equals(frame.contentDocument, null);
+            }
+            t.done();
+          }, 4000);
+          document.body.append(frame);
+        }, reason);
+
+      }
+    }
+
+  </script>

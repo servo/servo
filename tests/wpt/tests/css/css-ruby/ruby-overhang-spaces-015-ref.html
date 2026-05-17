@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>test reference</title>
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: space-between; /* Use this for &#x1680; character. */
+}
+div {
+    font-size: 20px;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ<ruby>&#x1680;あ&#x1680;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2000;あ&#x2000;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2001;あ&#x2001;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2002;あ&#x2002;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2003;あ&#x2003;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2004;あ&#x2004;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2005;あ&#x2005;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2006;あ&#x2006;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2007;あ&#x2007;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2008;あ&#x2008;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x2009;あ&#x2009;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x200A;あ&#x200A;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x202F;あ&#x202F;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x205F;あ&#x205F;<rt>ああああああ</ruby>あ</div>
+<div class=test>あ<ruby>&#x3000;あ&#x3000;<rt>ああああああ</ruby>あ</div>
+<div class=measure>あ　あ　あ</div>
+</body>

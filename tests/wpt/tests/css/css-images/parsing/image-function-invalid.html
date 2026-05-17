@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: invalid image() values</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// image() requires a single <color> argument.
+test_invalid_value("background-image", "image()");
+test_invalid_value("background-image", "image(none)");
+test_invalid_value("background-image", "image(red, blue)");
+test_invalid_value("background-image", "image(notacolor)");
+test_invalid_value("background-image", "image(url(foo.png))");
+
+// image() is not a <color> and may not be used where a color is expected.
+test_invalid_value("background-color", "image(red)");
+</script>

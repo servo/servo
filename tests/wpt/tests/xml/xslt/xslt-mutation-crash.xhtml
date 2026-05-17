@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+<head>
+  <title>XSLT LoadChildSheets crash test</title>
+  <link rel="help" href="https://crbug.com/496271580"/>
+</head>
+<body>
+<p>Test passes if it does not crash.</p>
+<script><![CDATA[
+function go() {
+  // Unique URL to avoid memory cache returning synchronously.
+  var slow = 'xslt-mutation-crash-slow.xsl?pipe=trickle(d1)&t=' + Date.now() + Math.random();
+
+  // 1. Create an xml-stylesheet PI pointing at an external (delayed) XSL.
+  var pi = document.createProcessingInstruction(
+      'xml-stylesheet', 'type="text/xsl" href="' + slow + '"');
+
+  // 2. Insert as a direct child of the Document to initiate the external fetch.
+  document.insertBefore(pi, document.documentElement);
+
+  // 3. Mutate the PI to a local href while the external fetch is in flight.
+  //    This verifies that the browser correctly detaches the pending network
+  //    resource and does not crash when the delayed response eventually arrives.
+  pi.data = 'type="text/xsl" href="#x"';
+
+  // 4. Wait 1.5 seconds for the trickle(d1) fetch to complete and verify no crash occurs.
+  setTimeout(() => {
+    document.documentElement.classList.remove('test-wait');
+  }, 1500);
+}
+if (document.readyState === 'complete') {
+  go();
+} else {
+  window.addEventListener('load', go);
+}
+]]></script>
+</body>
+</html>

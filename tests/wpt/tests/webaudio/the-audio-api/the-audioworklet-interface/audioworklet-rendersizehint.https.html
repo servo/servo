@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioContextOptions renderSizeHint with AudioWorklet
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const filePath = 'processors/rendersizehint-processor.js';
+      const RENDER_SIZE_HINT = 256;
+
+      // Verify that the negotiated renderQuantumSize propagates correctly to
+      // the AudioWorkletGlobalScope upon construction.
+      promise_test(async (t) => {
+        const context = new AudioContext({renderSizeHint: RENDER_SIZE_HINT});
+        t.add_cleanup(() => context.close());
+        await context.audioWorklet.addModule(filePath);
+
+        const messagePromise = new Promise((resolve) => {
+          const node =
+              new AudioWorkletNode(context, 'rendersizehint-processor');
+          node.port.onmessage = (event) => {
+            if (event.data.type === 'constructor') {
+              resolve(event.data);
+            }
+          };
+        });
+
+        const result = await messagePromise;
+        assert_equals(
+            context.renderQuantumSize, RENDER_SIZE_HINT,
+            'Context has custom size');
+        assert_equals(
+            result.renderQuantumSize,
+            RENDER_SIZE_HINT,
+            'Worklet should see custom size');
+      }, 'Worklet inherits context render quantum size');
+
+      // Verify that the audio rendering thread processes data in chunks of the
+      // requested render size hint within the process() loop.
+      promise_test(async (t) => {
+        const context = new AudioContext({renderSizeHint: RENDER_SIZE_HINT});
+        t.add_cleanup(() => context.close());
+        await context.audioWorklet.addModule(filePath);
+
+        const node = new AudioWorkletNode(context, 'rendersizehint-processor');
+        const source = new ConstantSourceNode(context);
+        source.connect(node).connect(context.destination);
+        source.start();
+
+        const messagePromise = new Promise((resolve) => {
+          node.port.onmessage = (event) => {
+            if (event.data.type === 'process') {
+              resolve(event.data);
+            }
+          };
+        });
+
+        const result = await messagePromise;
+        assert_equals(
+            result.length,
+            RENDER_SIZE_HINT,
+            'Process block size should match negotiated size');
+      }, 'Worklet process block size matches hint');
+    </script>
+  </body>
+</html>

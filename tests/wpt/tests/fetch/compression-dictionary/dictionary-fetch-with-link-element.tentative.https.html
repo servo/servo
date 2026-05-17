@@ -30,8 +30,6 @@ compression_dictionary_promise_test(async (t) => {
   const dict_token = token();
   const url = `${kRegisterDictionaryPath}?save_header=${dict_token}`;
   addLinkRelCompressionDictionaryElement(url);
-  // Wait for a while to ensure that the dictionary is fetched.
-  await new Promise(resolve => window.requestIdleCallback(resolve));
   const headers = await waitUntilPreviousRequestHeaders(t, dict_token);
   assert_true(headers !== undefined, 'Headers should be available');
   assert_equals(headers['sec-fetch-mode'], 'cors');
@@ -50,8 +48,6 @@ compression_dictionary_promise_test(async (t) => {
   const url =
       getRemoteHostUrl(`${kRegisterDictionaryPath}?save_header=${dict_token}`);
   addLinkRelCompressionDictionaryElement(url, 'anonymous');
-  // Wait for a while to ensure that the dictionary is fetched.
-  await new Promise(resolve => window.requestIdleCallback(resolve));
   const headers = await waitUntilPreviousRequestHeaders(
       t, dict_token, /*check_remote=*/ true);
   assert_true(headers !== undefined, 'Headers should be available');

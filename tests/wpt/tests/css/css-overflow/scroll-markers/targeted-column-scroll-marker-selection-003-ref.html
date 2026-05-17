@@ -15,7 +15,7 @@
     }
 
     .carousel {
-      width: 800px;
+      width: 500px;
       height: 200px;
       overflow-x: scroll;
       scroll-snap-type: x mandatory;
@@ -68,15 +68,14 @@
       &>.item {
         scroll-snap-align: none;
         height: 80%;
-        width: 158px;
+        width: 80px;
         border: 1px solid;
         place-content: center;
         display: inline-block;
       }
 
-      /* Make only item 16 (index 15) a snap target so we are scrolled all the
-      way to the right edge */
-      & > :nth-child(14){
+      /* item14 is child 15. item14.scrollIntoView() aligns to its center. */
+      & > :nth-child(15){
         scroll-snap-align: center;
       }
 

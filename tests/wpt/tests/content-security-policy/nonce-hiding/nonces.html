@@ -6,6 +6,7 @@
   const namespace_url= {
     "HTML": "http://www.w3.org/1999/xhtml",
     "SVG": "http://www.w3.org/2000/svg",
+    "MathML": "http://www.w3.org/1998/Math/MathML",
   }
   const test_cases = [
     ["meh"    , "HTML"],
@@ -15,7 +16,10 @@
     ["svg"    , "SVG"],
     ["script" , "SVG"],
     ["style"  , "HTML"],
-    ["link"   , "HTML"]
+    ["link"   , "HTML"],
+    ["math"   , "MathML"],
+    ["mrow"   , "MathML"],
+    ["mtext"  , "MathML"],
   ];
 
   test_cases.forEach(([localName, namespace]) => {
@@ -62,5 +66,12 @@
       assert_equals(element.nonce, "");
       assert_equals(element.getAttribute("nonce"), null);
     }, `Test empty nonces for ${localName} in ${namespace} namespace`);
+
+    test(t => {
+      const element = document.createElementNS(namespace_url[namespace], localName);
+      element.setAttribute('nonce', 'x');
+      const clonedElement = element.cloneNode();
+      assert_equals(clonedElement.nonce, 'x', 'IDL attribute');
+    }, `Ensure that cloned node retains nonce for ${localName} in ${namespace} namespace`);
   });
 </script>

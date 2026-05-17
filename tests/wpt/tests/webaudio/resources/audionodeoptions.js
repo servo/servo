@@ -466,7 +466,7 @@ function testAudioNodeOptions_W3CTH(context, nodeName, expectedNodeOptions) {
 
 function testInvalidConstructor_W3CTH(name, context) {
   assert_throws_js(TypeError, () => new window[name](), 'new ' + name + '()');
-  assert_throws_js(TypeError, () => new window , 'new ' + name + '(1)');
+  assert_throws_js(TypeError, () => new window[name](1) , 'new ' + name + '(1)');
   assert_throws_js(
       TypeError,
       () => new window[name](context, 42), 'new ' + name + '(context, 42)');

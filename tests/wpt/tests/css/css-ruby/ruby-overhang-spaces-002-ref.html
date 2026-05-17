@@ -7,13 +7,16 @@ ruby {
     ruby-align: center;
 }
 div {
+    font-size: 20px;
     border-left: 5px solid;
     border-right: 5px solid;
     width: max-content;
+    text-spacing-trim: space-all;
 }
 .test { border-color: orange; }
 .measure { border-color: blue; }
 </style>
+<body lang="ja">
 <p>Test passes if orange and blue lines are aligned.
 <div class=test>あ<ruby>）　あ　（<rt>ああああああああ</ruby>あ</div>
 <div class=test>あ<ruby>」　あ　「<rt>ああああああああ</ruby>あ</div>
@@ -31,3 +34,4 @@ div {
 <div class=test>あ<ruby>｝　あ　｛<rt>ああああああああ</ruby>あ</div>
 <div class=test>あ<ruby>｠　あ　｟<rt>ああああああああ</ruby>あ</div>
 <div class=measure>あ）　あ　（あ</div>
+</body>

@@ -6,44 +6,157 @@
 <script src='/resources/testharnessreport.js'></script>
 <script src='./support/helpers.js'></script>
 <body>
+<script type="importmap">
+{
+  "imports": {
+    "blocked-by-null": null
+  }
+}
+</script>
 <script type="module">
+  // A failed CSS module fetch leaves its synchronously-adopted empty sheet
+  // in `adoptedStyleSheets`. There is no observable cleanup when the fetch
+  // fails: the empty sheet remains, but the module map's entry is sticky-
+  // failed so subsequent imperative imports of the same URL still reject
+  // and subsequent declarative consumers contribute no sheet for that URL.
+
   promise_test(async (t) => {
     // --- Scenario 1: a specifier that resolves to a 404 URL. ---
-    // The fetch should fail gracefully; the placeholder sheet should remain
-    // empty and no crash should occur.
+    // Synchronously, an empty sheet is adopted while the fetch is pending.
+    // Once the fetch fails, that empty sheet is left behind as-is.
     const nonexistentUrl = "./support/nonexistent.css";
-    const { shadowRoot, testElement } = createStylesheetHost(nonexistentUrl);
+    const { shadowRoot } = createStylesheetHost(nonexistentUrl);
 
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "Before fetch settles: expected 1 placeholder(s).");
-    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "Before fetch settles: placeholder at index 0 should be empty.");
+      "Before fetch settles: expected 1 (empty) sheet.");
+    const placeholder = shadowRoot.adoptedStyleSheets[0];
+    assert_equals(placeholder.cssRules.length, 0,
+      "Before fetch settles: sheet at index 0 should be empty.");
 
     await fetchAndWait(nonexistentUrl);
 
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "After failed fetch: expected 1 placeholder(s).");
+      "After failed fetch: empty sheet remains in adoptedStyleSheets.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0], placeholder,
+      "After failed fetch: sheet identity is unchanged.");
     assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "After failed fetch: placeholder at index 0 should be empty.");
+      "After failed fetch: sheet remains empty.");
+  }, "Async fetch failure: empty placeholder sheet remains in adoptedStyleSheets.");
 
+  promise_test(async (t) => {
     // --- Scenario 2: mixed valid and invalid specifiers. ---
-    const nonexistentUrl2 = "./support/nonexistent-2.css";
+    // The valid sheet is populated; the invalid one stays empty. Both
+    // entries remain in the array.
+    const nonexistentUrl = "./support/nonexistent-2.css";
     const validUrl = "./support/styles.css?failure";
-    const { shadowRoot: shadowRoot2, testElement: testElement2 } =
-      createStylesheetHost([nonexistentUrl2, validUrl]);
+    const { shadowRoot, testElement } =
+      createStylesheetHost([nonexistentUrl, validUrl]);
 
-    assert_equals(shadowRoot2.adoptedStyleSheets.length, 2,
-      "Two entries should be present (one placeholder, one fetched or placeholder).");
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "Two entries should be present synchronously (both empty pre-fetch).");
 
-    await fetchAndWait(nonexistentUrl2, validUrl);
+    await fetchAndWait(nonexistentUrl, validUrl);
 
-    assert_equals(shadowRoot2.adoptedStyleSheets.length, 2,
-      "adoptedStyleSheets should still have two entries.");
-    assert_equals(shadowRoot2.adoptedStyleSheets[0].cssRules.length, 0,
-      "The first entry (failed fetch) should be an empty placeholder.");
-    assertSheetRule(shadowRoot2, 1, "span { color: blue; }", "Second entry (valid)");
-    assert_equals(getComputedStyle(testElement2).color, "rgb(0, 0, 255)",
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "After settled: both sheets remain (failed and valid).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Failed entry remains empty.");
+    assertSheetRule(shadowRoot, 1, "span { color: blue; }",
+      "Valid entry");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
       "The valid specifier's styles (blue) should be applied.");
-  }, "Async fetch failure: 404 leaves placeholder empty, valid specifier still works.");
+  }, "Async fetch failure: failed sheet remains empty; valid specifier still works.");
+
+  promise_test(async (t) => {
+    // JS may insert additional references to the synchronously-created
+    // placeholder before the fetch settles. Because nothing removes the
+    // placeholder on failure, all duplicate references remain.
+    const nonexistentUrl = "./support/nonexistent-3.css";
+    const { shadowRoot } = createStylesheetHost(nonexistentUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Sanity: declarative path produced one (empty) sheet synchronously.");
+    const declarativeSheet = shadowRoot.adoptedStyleSheets[0];
+
+    shadowRoot.adoptedStyleSheets = [
+      declarativeSheet, declarativeSheet, declarativeSheet];
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "Sanity: JS-duplicated references produced three entries.");
+
+    await fetchAndWait(nonexistentUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 3,
+      "After failed fetch: all duplicate references remain.");
+    for (let i = 0; i < 3; ++i) {
+      assert_equals(shadowRoot.adoptedStyleSheets[i], declarativeSheet,
+        `Entry ${i} should still reference the original empty sheet.`);
+      assert_equals(shadowRoot.adoptedStyleSheets[i].cssRules.length, 0,
+        `Entry ${i} should still be empty.`);
+    }
+  }, "Async fetch failure: JS-duplicated references all remain after failure.");
+
+  promise_test(async (t) => {
+    // A bare module specifier (one that is not a relative URL and has no
+    // matching import map entry) cannot be resolved, so no fetch is
+    // initiated and no sheet is contributed for that specifier.
+    // adoptedStyleSheets remains empty for the host. A subsequent imperative
+    // `import()` of the same specifier should also reject.
+    const bareSpecifier = "bare";
+    const { shadowRoot } = createStylesheetHost(bareSpecifier);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Bare specifier contributes no sheet to adoptedStyleSheets.");
+
+    await promise_rejects_js(t, TypeError,
+      import(bareSpecifier, { with: { type: "css" } }),
+      "Imperative import of a bare specifier should reject.");
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "After import rejection: still no sheet adopted.");
+  }, "Async fetch failure: bare module specifier contributes no sheet.");
+
+  promise_test(async (t) => {
+    // An invalid URL (containing a lone surrogate, which is not valid in
+    // any UTF-8-encoded URL) cannot be parsed, so module specifier
+    // resolution fails for the same reason as the bare-specifier case
+    // above. No fetch is initiated and no sheet is contributed.
+    const invalidUrl = "\uD800";  // Lone leading surrogate, no low surrogate.
+    const { shadowRoot } = createStylesheetHost(invalidUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Invalid URL (lone surrogate) contributes no sheet to " +
+      "adoptedStyleSheets.");
+
+    await promise_rejects_js(t, TypeError,
+      import(invalidUrl, { with: { type: "css" } }),
+      "Imperative import of an invalid URL (lone surrogate) should reject.");
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "After import rejection: still no sheet adopted.");
+  }, "Async fetch failure: invalid URL (lone surrogate) contributes no sheet.");
+
+  promise_test(async (t) => {
+    // The specifier here is by itself a valid bare specifier, AND the
+    // import map declared at the top of the document does have an entry
+    // for it -- but that entry is `null`, which the HTML spec defines as
+    // "blocked by a null entry" and surfaces to ResolveModuleSpecifier as
+    // an invalid resolved URL. This should be skipped for
+    // shadowrootadoptedstylesheets processing (no fetch, no sheet
+    // contributed). A subsequent imperative `import()` of the same specifier
+    // rejects with TypeError.
+    const blockedSpecifier = "blocked-by-null";
+    const { shadowRoot } = createStylesheetHost(blockedSpecifier);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Specifier blocked by null import map entry contributes no sheet.");
+
+    await promise_rejects_js(t, TypeError,
+      import(blockedSpecifier, { with: { type: "css" } }),
+      "Imperative import of a specifier mapped to null should reject.");
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "After import rejection: still no sheet adopted.");
+  }, "Async fetch failure: import map mapping specifier to null contributes " +
+     "no sheet.");
 </script>
 </body>

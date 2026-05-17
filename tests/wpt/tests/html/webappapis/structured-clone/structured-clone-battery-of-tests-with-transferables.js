@@ -19,7 +19,29 @@ structuredCloneBatteryOfTests.push({
   }
 });
 
-// TODO: ImageBitmap
+structuredCloneBatteryOfTests.push({
+  description: 'ImageBitmap',
+  async f(runner) {
+    const canvas = new OffscreenCanvas(10, 10);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "red";
+    ctx.fillRect(0, 0, 10, 10);
+    const bitmap = await createImageBitmap(canvas);
+    const copy = await runner.structuredClone(bitmap, [bitmap]);
+    assert_equals(copy.width, 10);
+    assert_equals(copy.height, 10);
+  }
+});
+
+structuredCloneBatteryOfTests.push({
+  description: 'OffscreenCanvas',
+  async f(runner) {
+    const canvas = new OffscreenCanvas(10, 10);
+    const copy = await runner.structuredClone(canvas, [canvas]);
+    assert_equals(copy.width, 10);
+    assert_equals(copy.height, 10);
+  }
+});
 
 structuredCloneBatteryOfTests.push({
   description: 'A detached ArrayBuffer cannot be transferred',

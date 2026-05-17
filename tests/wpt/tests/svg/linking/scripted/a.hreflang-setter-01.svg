@@ -12,10 +12,9 @@
     test(function() {
         var a = document.getElementById("test");
 
-        test(function() {
-            a.hreflang = "fr"
-            assert_equals(a.hreflang, "fr");
-        }, "Test anchor's hreflang setter");
-    });
+        a.hreflang = "fr"
+        assert_equals(a.hreflang, "fr");
+        assert_equals(a.getAttribute('hreflang'), "fr");
+    }, "Test anchor's hreflang setter");
   ]]></script>
 </svg>

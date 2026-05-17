@@ -146,15 +146,25 @@ promise_test(async t => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const vmin = Math.min(vw, vh);
+
+  // Compute viewport-relative equivalent values from absolute inset sizes.
+  // This makes the test invariant to absolute viewport size.
+  const startInsetPx = 10;
+  const endInsetPx = 20;
+
+  const vwStart = 100 * startInsetPx / vw;
+  const vwEnd = 100 * endInsetPx / vw;
+  const vminStart = 100 * startInsetPx / vmin;
+  const vminEnd = 100 * endInsetPx / vmin;
   await runTimelineInsetTest(t, {
-    inset: [ CSS.vw(10), CSS.vw(20) ],
-    startOffset: 600 + 0.2 * vw,
-    endOffset: 900 - 0.1 * vw
+    inset: [ CSS.vw(vwStart), CSS.vw(vwEnd) ],
+    startOffset: 600 + endInsetPx,
+    endOffset: 900 - startInsetPx
   });
   await runTimelineInsetTest(t, {
-    inset: [ CSS.vmin(10), CSS.vmin(20) ],
-    startOffset: 600 + 0.2 * vmin,
-    endOffset: 900 - 0.1 * vmin
+    inset: [ CSS.vmin(vminStart), CSS.vmin(vminEnd) ],
+    startOffset: 600 + endInsetPx,
+    endOffset: 900 - startInsetPx
   });
 }, 'view timeline with viewport relative insets.');
 

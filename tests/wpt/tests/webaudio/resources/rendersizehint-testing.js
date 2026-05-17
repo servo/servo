@@ -103,4 +103,19 @@ function runRenderSizeHintTests(contextType) {
     }, `${contextType} [Throws Exception]: sampleRate ${sampleRate}, ` +
        `renderSizeHint ${hint}`);
   });
+
+  if (!isOffline) {
+    // Verify that changing renderQuantumSize affects baseLatency logically.
+    test(t => {
+      const audioContext = new AudioContext();
+      const audioContext4096 = new AudioContext({renderSizeHint: 4096});
+      t.add_cleanup(() => {
+        audioContext.close();
+        audioContext4096.close();
+      });
+      assert_greater_than(
+          audioContext4096.baseLatency, audioContext.baseLatency,
+          'Large quantum should increase latency');
+    }, 'Base latency scales with render quantum size');
+  }
 }

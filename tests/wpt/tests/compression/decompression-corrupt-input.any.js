@@ -1,4 +1,4 @@
-// META: global=window,worker,shadowrealm
+// META: global=window,worker
 // META: script=resources/decompression-input.js
 
 // This test checks that DecompressionStream behaves according to the standard

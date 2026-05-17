@@ -5,10 +5,6 @@ from wptserve.utils import isomorphic_decode
 def main(request, response):
     if b"origin" in request.GET:
         response.headers.set(b"Access-Control-Allow-Origin", request.GET[b"origin"])
-    elif b"origins" in request.GET:
-        for origin in request.GET[b"origins"].split(b','):
-            response.headers.set(b"Access-Control-Allow-Origin", request.GET[b"origin"])
-
     if b"headers" in request.GET:
         response.headers.set(b"Access-Control-Allow-Headers", request.GET[b"headers"])
     if b"methods" in request.GET:

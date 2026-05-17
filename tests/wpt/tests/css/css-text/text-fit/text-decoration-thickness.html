@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="text-decoration-thickness-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#grow-consistent {
+  font: 20px/2 Ahem;
+  width: 160px;
+  text-fit: grow consistent;
+  white-space: pre;
+  border: 1px solid gray;
+  text-decoration: overline lime;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 4px;
+  margin-bottom: 8px;
+}
+#grow-line {
+  font: 20px/2 Ahem;
+  width: 160px;
+  text-fit: grow per-line-all;
+  white-space: pre;
+  border: 1px solid gray;
+  text-decoration: overline lime;
+  text-decoration-skip-ink: none;
+}
+</style>
+
+<div id="grow-consistent">ÉpÉ
+pÉpÉ</div>
+<div id="grow-line">ÉpÉp
+pÉpÉpÉpÉ</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+

@@ -8,22 +8,35 @@
   function parse_types(declaration) {
     const stylesheet = new CSSStyleSheet();
     stylesheet.replaceSync(`@view-transition { types: ${declaration} }`);
-    return stylesheet.rules.length ? stylesheet.rules[0].types : null;
+    return stylesheet.rules.length ? stylesheet.rules[0] : null;
   }
 
-  function types_parser_test(declaration, expected) {
+  // @view-transition { types: declaration; } has
+  // - CSSViewTransitionRule.types = expectedTypes
+  // - CSSViewTransitionRule.cssText = expectedTypesText ?? expectedTypes.join(" ")
+  function types_parser_test(declaration, expectedTypes, expectedTypesText) {
+    const typesText = expectedTypesText ?? expectedTypes.join(" ");
+    const expectedCssText = typesText
+      ? `@view-transition { types: ${typesText}; }`
+      : `@view-transition { }`;
+
     test(() => {
-      const result = parse_types(declaration);
-      assert_array_equals(result, expected);
-    }, `types: ${declaration} shoud result in ${JSON.stringify(expected)}`);
+      const rule = parse_types(declaration);
+      assert_array_equals(rule.types, expectedTypes);
+      assert_equals(rule.cssText, expectedCssText);
+    }, `types: ${declaration} shoud result in ${JSON.stringify(expectedTypes)}`);
   }
 
-  types_parser_test("none", []);
+  types_parser_test("nOnE", [], "none");
   types_parser_test("abc", ["abc"]);
   types_parser_test("abc xyz", ["abc", "xyz"]);
+  types_parser_test("abc\\ xyz", ["abc xyz"], "abc\\ xyz");
   types_parser_test("   abc \txyz ", ["abc", "xyz"]);
   types_parser_test("abc none", []);
+  types_parser_test("abc, def", []);
+  types_parser_test("dEfAuLt", []);
   types_parser_test("abc -ua-something", []);
+  types_parser_test("abc -uA-something", ["abc", "-uA-something"]);
   types_parser_test("abc -ok-something", ["abc", "-ok-something"]);
   types_parser_test("abc abc", ["abc", "abc"]);
   types_parser_test("abc ABC", ["abc", "ABC"]);

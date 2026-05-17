@@ -50,7 +50,7 @@
       hint.showPopover();
       assertState([true,true,true,true]);
       auto.hidePopover();
-      assertState([false,false,true,true]);
+      assertState([false,true,true,true]);
       hint.hidePopover();
       manual.hidePopover();
       assertState([false,false,false,true]);
@@ -104,9 +104,11 @@
     const auto = getPopovers()[1];
     hint.showPopover();
     assertState([true,false]);
-    auto.showPopover();
-    assertState([false,true]);
-    auto.hidePopover();
+    assert_throws_dom('InvalidStateError', () => {
+      auto.showPopover();
+    });
+    assertState([true,false]);
+    hint.hidePopover();
     assertState([false,false]);
   },'If a popover=auto is shown, it should hide any open popover=hint, including if the popover=hint is an ancestral popover of the popover=auto. (You can\'t nest a popover=auto inside a popover=hint)');
   </script>
@@ -125,8 +127,8 @@
     auto.showPopover();
     auto2.showPopover();
     assertState([true,true,false]);
-    hint.showPopover(); // This should hide auto2, since it is nested in auto1.
-    assertState([true,false,true]);
+    hint.showPopover(); // This should NOT hide auto2, since hint doesn't close unrelated autos.
+    assertState([true,true,true]);
     auto.hidePopover(); // Should hide both auto and hint.
     assertState([false,false,false]);
   },'If you: a) show a popover=auto (call it D), then b) show a descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (A popover=hint can be nested inside a popover=auto)');
@@ -144,7 +146,9 @@
     hint.showPopover();
     assertState([true,true]);
     auto.hidePopover();
+    assertState([false,true]);
+    hint.hidePopover();
     assertState([false,false]);
-  },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (Non-nested popover=hint gets hidden when unrelated popover=autos are hidden)');
+  },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should not be hidden. (Non-nested popover=hint are not hidden when unrelated popover=autos are hidden)');
   </script>
 </div>

@@ -1,33 +1,35 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html>
 <head>
-<svg width="0" height="0">
-    <filter id="svg-filter">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-    </filter>
-</svg>
 <style type="text/css">
-.svg-filter {
-    filter: url(#svg-filter);
-}
-</style>
-<script>
-    function waitForFinish() {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                document.documentElement.classList.remove('reftest-wait');
-            });
-        });
+    .square {
+        width: 20px;
+        height: 20px;
+        background: black;
     }
-</script>
+    .fake-iframe {
+        width: 100px;
+        height: 100px;
+    }
+    .svg-filter {
+        filter: url(#svg-filter);
+    }
+</style>
 </head>
-<body onload="waitForFinish()">
+<body>
+    <svg width="0" height="0" display="none">
+        <filter id="svg-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+        </filter>
+    </svg>
     <div>
         SVG filter security test: this test passes if there is a filter effect on the same-origin frame.
     </div>
     <br />
     <div>
-        <iframe width="100px" height="100px" frameBorder="0" class="svg-filter" src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+        <div class="svg-filter fake-iframe">
+            <div class="square"></div>
+        </div>
     </div>
 </body>
 </html>

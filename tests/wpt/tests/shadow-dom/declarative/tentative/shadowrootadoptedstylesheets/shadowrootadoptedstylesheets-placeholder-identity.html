@@ -8,15 +8,15 @@
 <body>
 <script type="module">
   promise_test(async (t) => {
-    // The placeholder CSSStyleSheet created before fetch should be a different
-    // object from the CSSStyleSheet that replaces it after fetch completes.
+    // The CSSStyleSheet created before fetch should be the same
+    // object from the CSSStyleSheet after fetch completes.
     const url = "./support/styles-red.css";
     const { shadowRoot, testElement } = createStylesheetHost(url);
 
     assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
-      "Before fetch: expected 1 placeholder(s).");
+      "Before fetch: expected 1 stylesheet(s).");
     assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
-      "Before fetch: placeholder at index 0 should be empty.");
+      "Before fetch: stylesheet at index 0 should be empty.");
 
     const placeholder = shadowRoot.adoptedStyleSheets[0];
 
@@ -24,13 +24,13 @@
 
     const fetchedSheet = shadowRoot.adoptedStyleSheets[0];
 
-    assert_not_equals(fetchedSheet, placeholder,
-      "The fetched sheet should be a different object from the placeholder.");
+    assert_equals(fetchedSheet, placeholder,
+      "The fetched sheet should not change after fetch.");
     assertSheetRule(shadowRoot, 0, "span { color: red; }", "Fetched sheet");
-    assert_equals(placeholder.cssRules.length, 0,
-      "The original placeholder object should still be empty.");
+    assert_equals(placeholder.cssRules.length, 1,
+      "The fetched sheet should not be empty.");
     assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
       "Red styles from the fetched sheet should be applied.");
-  }, "Placeholder CSSStyleSheet is replaced by a different object after fetch.");
+  }, "Sheet identity does not change after fetch completes.");
 </script>
 </body>

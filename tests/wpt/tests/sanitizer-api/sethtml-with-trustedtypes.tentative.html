@@ -95,6 +95,7 @@
           "beforeend",
           "beforebegin",
           "afterend",
+          "parseHTMLUnsafe",
         ]) {
           if (
             target === "ShadowRoot" &&
@@ -105,19 +106,32 @@
           ) {
             continue;
           }
+          if (method === "parseHTMLUnsafe" && target === "ShadowRoot") {
+            continue; // Static method, run only once.
+          }
+
+          function get_root(node, method, html, options) {
+            if (method === "parseHTMLUnsafe") {
+              return Document.parseHTMLUnsafe(html, options);
+            } else {
+              run_method(node, method, html);
+              return node;
+            }
+          }
+
           test((t) => {
             const node = createTarget(target, t);
             createParserOptions = (options) => ({
               ...options,
               sanitizer: { removeElements: ["span"] },
             });
-            run_method(
+            const root = get_root(
               node,
               method,
               "<div id='allowed'><span id=forbidden></span></div>",
             );
-            assert_equals(node.querySelector("#forbidden"), null);
-            assert_not_equals(node.querySelector("#allowed"), null);
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can inject a sanitizer config`);
 
           test((t) => {
@@ -127,13 +141,13 @@
               ...options,
               sanitizer: new Sanitizer({ removeElements: ["span"] }),
             });
-            run_method(
+            const root = get_root(
               node,
               method,
               "<div id=allowed><span id=forbidden></span></div>",
             );
-            assert_equals(node.querySelector("#forbidden"), null);
-            assert_not_equals(node.querySelector("#allowed"), null);
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can inject a sanitizer`);
 
           test((t) => {
@@ -141,7 +155,7 @@
             createParserOptions = (options) => ({
               sanitizer: { removeElements: ["span"] },
             });
-            run_method(
+            const root = get_root(
               node,
               method,
               "<div id=allowed><span id=forbidden></span></div>",
@@ -149,18 +163,18 @@
                 sanitizer: { removeElements: ["div"] },
               },
             );
-            assert_equals(node.querySelector("#forbidden"), null);
-            assert_not_equals(node.querySelector("#allowed"), null);
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can override a sanitizer config`);
 
           test((t) => {
             const node = createTarget(target, t);
             createParserOptions = (options) => ({});
-            run_method(node, method, "<div id=allowed></div>", {
+            const root = get_root(node, method, "<div id=allowed></div>", {
               sanitizer: { removeElements: ["div"] },
             });
-            assert_equals(node.querySelector("#forbidden"), null);
-            assert_not_equals(node.querySelector("#allowed"), null);
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can remove a sanitizer`);
 
           for (const value of [null, undefined, 0, 123, "foo"]) {
@@ -168,7 +182,7 @@
               const node = createTarget(target, t);
               createParserOptions = (options) => value;
               assert_throws_js(TypeError, () => {
-                run_method(
+                get_root(
                   node,
                   method,
                   "<div id='allowed'><span id=forbidden></span></div>",

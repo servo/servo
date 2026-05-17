@@ -45,6 +45,9 @@ function CreateViewTimelineOpacityAnimation(test, target, options) {
 //   endOffset: 900
 // });
 async function runTimelineBoundsTest(t, options, message) {
+  // Allow tiny sampling differences from subpixel scroll positions on
+  // highdpi configurations.
+  const opacityEpsilon = 0.001;
   const scrollOffsetProp = options.axis == 'block' ? 'scrollTop' : 'scrollLeft';
   container[scrollOffsetProp] = 0;
   await waitForNextFrame();
@@ -61,20 +64,23 @@ async function runTimelineBoundsTest(t, options, message) {
   // Advance to the start offset, which triggers entry to the active phase.
   container[scrollOffsetProp] = options.startOffset;
   await waitForNextFrame();
-  assert_equals(getComputedStyle(target).opacity, '0.3',
-                `Effect at the start of the active phase: ${message}`);
+  assert_approx_equals(Number(getComputedStyle(target).opacity), 0.3,
+      opacityEpsilon,
+      `Effect at the start of the active phase: ${message}`);
 
   // Advance to the midpoint of the animation.
   container[scrollOffsetProp] = (options.startOffset + options.endOffset) / 2;
   await waitForNextFrame();
-  assert_equals(getComputedStyle(target).opacity,'0.5',
-                `Effect at the midpoint of the active range: ${message}`);
+  assert_approx_equals(Number(getComputedStyle(target).opacity), 0.5,
+      opacityEpsilon,
+      `Effect at the midpoint of the active range: ${message}`);
 
   // Advance to the end of the animation.
   container[scrollOffsetProp] = options.endOffset;
   await waitForNextFrame();
-  assert_equals(getComputedStyle(target).opacity, '0.7',
-                `Effect is in the active phase at effect end time: ${message}`);
+  assert_approx_equals(Number(getComputedStyle(target).opacity), 0.7,
+      opacityEpsilon,
+      `Effect is in the active phase at effect end time: ${message}`);
 
   // Return the animation so that we can continue testing with the same object.
   return anim;

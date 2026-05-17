@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" nonce="abc"></script>
+<script src="/resources/testharnessreport.js" nonce="abc"></script>
+
+<!-- `Content-Security-Policy: script-src 'nonce-abc'` delivered via headers -->
+
+<style>
+  .cssTest[nonce=abc] { background: url(/security/resources/abe.png); }
+</style>
+<body nonce="abc" class="cssTest">
+  <div nonce="abc" class="cssTest">
+    <script nonce="abc" class="cssTest"></script>
+  </div>
+  <svg nonce="abc" class="cssTest">
+    <g nonce="abc" class="cssTest">
+      <script nonce="abc" class="cssTest"></script>
+    </g>
+  </svg>
+  <math nonce="abc" class="cssTest">
+    <mrow nonce="abc" class="cssTest">
+      <mtext nonce="abc" class="cssTest">Hello</mtext>
+    </mrow>
+  </math>
+  <script nonce="abc">
+    Array.from(document.getElementsByClassName('cssTest')).forEach(element => {
+      test(_ => {
+        var style = getComputedStyle(element);
+        assert_equals(style['background-image'], 'none');
+      }, `Nonce on ${element.nodeName} tag don't leak via CSS side-channels.`);
+    });
+  </script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with preserved spaces and &nbsp; in vertical writing modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-vertical-003-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhangs on top of preserved spaces and &nbsp; in vertical writing modes.">
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+span {
+    writing-mode: vertical-lr;
+    font-size: 20px;
+    border-top: 5px solid;
+    border-bottom: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+</br>
+<span class=test>あ <ruby>あ<rt>ああああああ</ruby> あ</span><span class=test>あ <ruby>あ<rt>ああああああ</ruby> あ</span><span class=measure>あ　あ　あ</span>
+</body>

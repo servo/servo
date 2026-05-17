@@ -77,10 +77,8 @@
         display: inline-block;
       }
 
-      /* The test calls scrollIntoView on item 13 (child 14). Make only item 11
-         (index 12) a snap target as it is what is aligned when scrollintoView
-         is called on item 13. */
-      & > :nth-child(12){
+      /* item13 is child 14. item13.scrollIntoView aligns to its center. */
+      & > :nth-child(14){
         scroll-snap-align: center;
       }
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fieldset anonymous content box inherits rule-inset</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#anonymous-fieldset-content-box">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset">
+<link rel="match" href="fieldset-content-box-rule-inset-ref.html">
+<meta name="assert" content="rule-inset set on a fieldset should be inherited by the anonymous fieldset content box.">
+<style>
+fieldset {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  column-rule: 5px solid green;
+  row-rule: 5px solid green;
+  rule-inset: 10px;
+  rule-break: intersection;
+  width: 200px;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.item {
+  height: 50px;
+  background: blue;
+}
+</style>
+<p>There should be a 2-column grid with inset green rules below.</p>
+<fieldset>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</fieldset>

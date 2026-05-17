@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: computed value of image(&lt;color&gt;)</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// The computed value resolves the inner <color>.
+test_computed_value("background-image", "image(red)", "image(rgb(255, 0, 0))");
+test_computed_value("background-image", "image(rgba(0, 128, 255, 0.5))",
+  "image(rgba(0, 128, 255, 0.5))");
+test_computed_value("background-image", "image(transparent)",
+  "image(rgba(0, 0, 0, 0))");
+</script>

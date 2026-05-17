@@ -5,7 +5,7 @@
 <title>CSS Overscroll Behavior: parsing overscroll-behavior with valid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior/#propdef-overscroll-behavior">
-<meta name="assert" content="overscroll-behavior supports the full grammar '[ contain | none | auto ]{1,2}'.">
+<meta name="assert" content="overscroll-behavior supports the full grammar '[ contain | none | auto | chain ]{1,2}'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -16,20 +16,24 @@
 test_valid_value("overscroll-behavior", "contain");
 test_valid_value("overscroll-behavior", "none");
 test_valid_value("overscroll-behavior", "auto");
+test_valid_value("overscroll-behavior", "chain");
 
 test_valid_value("overscroll-behavior", "contain none");
 test_valid_value("overscroll-behavior", "none auto");
 test_valid_value("overscroll-behavior", "auto contain");
+test_valid_value("overscroll-behavior", "chain auto");
 
 test_valid_value("overscroll-behavior", "contain contain", "contain");
 test_valid_value("overscroll-behavior", "none none", "none");
 test_valid_value("overscroll-behavior", "auto auto", "auto");
+test_valid_value("overscroll-behavior", "chain chain", "chain");
 
 
 for (let property of ["overscroll-behavior-x", "overscroll-behavior-y", "overscroll-behavior-inline", "overscroll-behavior-block"]) {
   test_valid_value(property, "contain");
   test_valid_value(property, "none");
   test_valid_value(property, "auto");
+  test_valid_value(property, "chain");
 }
 </script>
 </body>

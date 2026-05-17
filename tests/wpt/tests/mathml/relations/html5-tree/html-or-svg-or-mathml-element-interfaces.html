@@ -33,17 +33,6 @@
     let mathEl = document.querySelector("math");
     let mathAEl = mathEl.querySelector("a");
 
-    // this really belongs in
-    // https://github.com/web-platform-tests/wpt/blob/master/html/dom/elements/global-attributes/dataset.html
-    // it is here tentatively
-    test(function() {
-      var mathml = document.createElementNS(
-        "http://www.w3.org/1998/Math/MathML",
-        "math"
-      );
-      assert_true(mathml.dataset instanceof DOMStringMap);
-    }, "MathML elements should have a .dataset");
-
     // exercise some basic tests on .dataset
     test(function() {
       assert_equals(

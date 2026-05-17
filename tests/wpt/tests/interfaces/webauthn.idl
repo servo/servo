@@ -444,8 +444,8 @@ partial dictionary AuthenticationExtensionsClientInputsJSON {
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {
-  boolean remoteClientDataJson;
+  boolean remoteClientDataJSON;
 };
 partial dictionary AuthenticationExtensionsClientOutputsJSON {
-  boolean remoteClientDataJson;
+  boolean remoteClientDataJSON;
 };

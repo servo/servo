@@ -14,12 +14,12 @@ const HTML5_ELEMENTS = [
   'mark',     'menu',     'meta',     'meter',    'nav',        'noscript',
   'object',   'ol',       'optgroup', 'option',   'output',     'p',
   'param',    'pre',      'progress', 'q',        'rp',         'rt',
-  'ruby',     's',        'samp',     'script',   'section',    'select',
-  'slot',     'small',    'source',   'span',     'strong',     'style',
-  'sub',      'sup',      'summary',  'table',    'tbody',      'td',
-  'template', 'textarea', 'tfoot',    'th',       'thead',      'time',
-  'title',    'tr',       'track',    'u',        'ul',         'var',
-  'video',    'wbr'
+  'ruby',     's',        'samp',     'script',   'search',     'section',
+  'select',   'slot',     'small',    'source',   'span',       'strong',
+  'style',    'sub',      'sup',      'summary',  'table',      'tbody',
+  'td',       'template', 'textarea', 'tfoot',    'th',         'thead',
+  'time',     'title',    'tr',       'track',    'u',          'ul',
+  'var',      'video',    'wbr'
 ];
 
 // only void (without end tag) HTML5 elements

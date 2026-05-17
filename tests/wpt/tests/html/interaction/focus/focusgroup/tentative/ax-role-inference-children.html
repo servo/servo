@@ -37,7 +37,9 @@
 
 <!-- Explicit child role (should not be overridden) -->
 <div id=fgExplicitChild focusgroup="tablist">
-  <span id="explicitChild" tabindex=0 role=listitem>List Item</span>
+  <div role="list">
+    <span id="explicitChild" tabindex=0 role=listitem>List Item</span>
+  </div>
 </div>
 
 <!-- Native child semantics (link) should be preserved -->
@@ -72,7 +74,9 @@
 
 <!-- Button child with explicit role should be preserved -->
 <div id=fgButtonExplicit focusgroup="tablist">
-  <button tabindex=0 id=buttonExplicitChild role="listitem">List Item</button>
+  <div role="list">
+    <button tabindex=0 id=buttonExplicitChild role="listitem">List Item</button>
+  </div>
 </div>
 
 <!-- Popup button child should be inferred (menu) -->
@@ -97,7 +101,9 @@
 
 <!-- Popup button with explicit role should be preserved -->
 <div id=fgPopupButtonExplicit focusgroup="menubar">
-  <button tabindex=0 id=popupButtonExplicitChild aria-haspopup="menu" role="listitem">List Item</button>
+  <div role="list">
+    <button tabindex=0 id=popupButtonExplicitChild aria-haspopup="menu" role="listitem">List Item</button>
+  </div>
 </div>
 
 <!-- aria-haspopup="listbox" also produces kPopUpButton; should infer menuitem -->

@@ -29,6 +29,7 @@ var blocklist_exclude_reads_characteristic_uuid =
     'bad1c9a2-9a5b-4015-8b60-1579bbbf2135';
 var request_disconnection_characteristic_uuid =
     '01d7d88a-7451-419f-aeb8-d65e7b9277af';
+var heart_rate_measurement_uuid = '00002a37-0000-1000-8000-00805f9b34fb';
 
 /* Descriptor UUIDs */
 var blocklist_test_descriptor_uuid = 'bad2ddcf-60db-45cd-bef9-fd72b153cf7c';
@@ -610,12 +611,25 @@ async function getBlocklistExcludeWritesCharacteristic() {
  *         objects.
  */
 async function getBlocklistExcludeReadsDescriptor() {
-  let result = await getBlocklistExcludeWritesCharacteristic();
-  let descriptor = await result.characteristic.getDescriptor(
-      blocklist_exclude_reads_descriptor_uuid);
+  let result = await getBlocklistTestService();
+
+  let fake_heart_rate_characteristic =
+      await result.fake_service.addFakeCharacteristic({
+        uuid: heart_rate_measurement_uuid,
+        properties: ['read', 'write'],
+      });
+
+  let fake_descriptor = await fake_heart_rate_characteristic.addFakeDescriptor(
+      {uuid: blocklist_exclude_reads_descriptor_uuid});
+
+  let characteristic = await result.service.getCharacteristic(heart_rate_measurement_uuid);
+  let descriptor = await characteristic.getDescriptor(blocklist_exclude_reads_descriptor_uuid);
+
   return Object.assign(result, {
+    characteristic,
+    fake_characteristic: fake_heart_rate_characteristic,
     descriptor,
-    fake_descriptor: result.fake_blocklist_exclude_reads_descriptor
+    fake_descriptor
   });
 }
 
@@ -641,12 +655,25 @@ async function getBlocklistExcludeReadsDescriptor() {
  *         objects.
  */
 async function getBlocklistExcludeWritesDescriptor() {
-  let result = await getBlocklistExcludeWritesCharacteristic();
-  let descriptor = await result.characteristic.getDescriptor(
-      'gatt.client_characteristic_configuration');
+  let result = await getBlocklistTestService();
+
+  let fake_heart_rate_characteristic =
+      await result.fake_service.addFakeCharacteristic({
+        uuid: heart_rate_measurement_uuid,
+        properties: ['read', 'write'],
+      });
+
+  let fake_descriptor = await fake_heart_rate_characteristic.addFakeDescriptor(
+      {uuid: 'gatt.client_characteristic_configuration'});
+
+  let characteristic = await result.service.getCharacteristic(heart_rate_measurement_uuid);
+  let descriptor = await characteristic.getDescriptor('gatt.client_characteristic_configuration');
+
   return Object.assign(result, {
-    descriptor: descriptor,
-    fake_descriptor: result.fake_blocklist_exclude_writes_descriptor,
+    characteristic,
+    fake_characteristic: fake_heart_rate_characteristic,
+    descriptor,
+    fake_descriptor
   });
 }
 

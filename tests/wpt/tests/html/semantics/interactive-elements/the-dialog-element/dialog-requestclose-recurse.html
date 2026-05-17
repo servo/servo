@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-requestclose">
+<title>dialog: requestClose while cancelling</title>
+<link rel=author href="mailto:lwarlow@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog id="dialog">Dialog</dialog>
+
+<script>
+    test(() => {
+        dialog.showModal();
+        let cancelFiredCount = 0;
+        dialog.oncancel = () => {
+            cancelFiredCount++;
+
+            if (cancelFiredCount === 1)
+                dialog.requestClose();
+        }
+        dialog.requestClose();
+        assert_equals(cancelFiredCount, 1, 'Cancel event should only be called once')
+    }, 'Calling requestClose inside of cancel event handler doesn\'t trigger another cancel event');
+</script>

@@ -1,7 +1,6 @@
 self.GLOBAL = {
   isWindow: () => false,
   isWorker: () => false,
-  isShadowRealm: () => false,
 };
 
 self.addEventListener('message', async event => {

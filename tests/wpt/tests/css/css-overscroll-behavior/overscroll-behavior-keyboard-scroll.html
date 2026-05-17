@@ -132,6 +132,40 @@ promise_test(async t => {
 promise_test(async t => {
   await waitForCompositorReady();
 
+  container.style.overscrollBehaviorX = 'chain';
+  container.style.overscrollBehaviorY = 'none';
+  setScrollPosition(root, 100);
+  setScrollPosition(container, 0);
+  window.scrollTo(0, 0);
+
+  await scrollWithKeyboardWait(container, root);
+
+  assert_approx_equals(root.scrollTop, 100, 0.5,
+                      "root got unexpected scroll on Y axis");
+  assert_approx_equals(root.scrollLeft, 0, 0.5,
+                      "root expected to scroll on X axis");
+}, "overscroll-behavior-x: chain allows scroll propagation on x axis");
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'chain';
+  setScrollPosition(root, 100);
+  setScrollPosition(container, 0);
+  window.scrollTo(0, 0);
+
+  await scrollWithKeyboardWait(container, root);
+
+  assert_approx_equals(root.scrollTop, 0, 0.5,
+                      "root expected to scroll on Y axis");
+  assert_approx_equals(root.scrollLeft, 100, 0.5,
+                      "root got unexpected scroll on X axis");
+}, "overscroll-behavior-y: chain allows scroll propagation on y axis");
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
   container.style.overscrollBehaviorX = 'none';
   container.style.overscrollBehaviorY = 'none';
   setScrollPosition(root, 100);
