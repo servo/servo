@@ -810,13 +810,11 @@ impl ImageAnimationState {
             return false;
         }
         if let Some(repeat) = &self.image.loop_count &&
-            let Repeat::Finite(loop_times) = repeat
+            let Repeat::Finite(loop_times) = repeat &&
+            let Some(current_loop_count) = self.current_loop_count &&
+            current_loop_count >= loop_times.get()
         {
-            if let Some(current_loop_count) = self.current_loop_count {
-                if current_loop_count >= loop_times.get() {
-                    return false;
-                }
-            }
+            return false;
         }
         let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
@@ -843,15 +841,15 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         }
-        if let Some(Repeat::Finite(repeat_times)) = self.image.loop_count {
-            if let Some(current_loop_cnt) = self.current_loop_count {
-                let new_loop_cnt = current_loop_cnt + advance_loop;
-                self.current_loop_count = Some(new_loop_cnt);
-                // the "now" time value exceed the time value after iterating through loop_cnt times.
-                if new_loop_cnt >= repeat_times.get() {
-                    // should freeze at last frame
-                    return self.active_frame != (self.image.frames.len() - 1);
-                }
+        if let Some(Repeat::Finite(repeat_times)) = self.image.loop_count &&
+            let Some(current_loop_count) = self.current_loop_count 
+        {
+            let new_loop_cnt = current_loop_count + advance_loop;
+            self.current_loop_count = Some(new_loop_cnt);
+            // the "now" time value exceed the time value after iterating through loop_cnt times.
+            if new_loop_cnt >= repeat_times.get() {
+                // should freeze at last frame
+                return self.active_frame != (self.image.frames.len() - 1);
             }
         }
         if self.active_frame == next_active_frame_id {
