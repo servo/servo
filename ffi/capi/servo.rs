@@ -7,11 +7,19 @@ use servo_api::Servo;
 /// Destroys the `Servo` instance returned by `servo_builder_build` and
 /// frees its memory.
 ///
+/// `servo` is a handle to a `Servo` object.
+/// The ownership of `servo` is transferred to the function. The caller
+/// must not use or free `servo` again.
+///
 /// # Safety
 ///
-/// The caller must ensure that `servo` was previously returned by
-/// `servo_builder_build` and has not yet been freed nor passed to another
-/// API that takes ownership of it.
+/// The caller must ensure that:
+///
+/// - `servo` was previously returned by `servo_builder_build` and has
+///   not yet been freed nor passed to another API that takes ownership
+///   of it.
+/// - The call is made from the same thread that originally created the
+///   `Servo` instance via `servo_builder_build`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_free(servo: *mut Servo) {
     assert!(!servo.is_null(), "servo pointer must not be null");
@@ -27,11 +35,18 @@ pub unsafe extern "C" fn servo_free(servo: *mut Servo) {
 /// periodically to process incoming messages and perform rendering
 /// updates.
 ///
+/// `servo` is a handle to a `Servo` object.
+/// The ownership of `servo` remains with the caller after the call.
+///
 /// # Safety
 ///
-/// The caller must ensure that `servo` is a non-null pointer to a `Servo`
-/// instance previously returned by `servo_builder_build` and has not yet
-/// been freed nor passed to another API that takes ownership of it.
+/// The caller must ensure that:
+///
+/// - `servo` is a non-null pointer to a `Servo` instance previously
+///   returned by `servo_builder_build` and has not yet been freed nor
+///   passed to another API that takes ownership of it.
+/// - The call is made from the same thread that originally created the
+///   `Servo` instance via `servo_builder_build`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_spin_event_loop(servo: *mut Servo) {
     assert!(!servo.is_null(), "servo pointer must not be null");
@@ -45,11 +60,18 @@ pub unsafe extern "C" fn servo_spin_event_loop(servo: *mut Servo) {
 
 /// Initialize logging for the Servo instance.
 ///
+/// `servo` is a handle to a `Servo` object.
+/// The ownership of `servo` remains with the caller after the call.
+///
 /// # Safety
 ///
-/// The caller must ensure that `servo` is a non-null pointer to a `Servo`
-/// instance previously returned by `servo_builder_build` and has not yet
-/// been freed nor passed to another API that takes ownership of it.
+/// The caller must ensure that:
+///
+/// - `servo` is a non-null pointer to a `Servo` instance previously
+///   returned by `servo_builder_build` and has not yet been freed nor
+///   passed to another API that takes ownership of it.
+/// - The call is made from the same thread that originally created the
+///   `Servo` instance via `servo_builder_build`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_setup_logging(servo: *mut Servo) {
     assert!(!servo.is_null(), "servo pointer must not be null");
