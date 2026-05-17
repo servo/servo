@@ -43,10 +43,10 @@ base64 = "0.22.1"
 base64ct = { version = "1.8", features = ["alloc"] }
 bitflags = "2.11"
 brotli = "8.0.2"
+byte-slice-cast = "1.2.3"
 bytemuck = "1"
 byteorder = "1.5"
 bytes = "1.0"
-byte-slice-cast = "1.2.3"
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
@@ -99,17 +99,17 @@ http = "1.4"
 http-body-util = "0.1"
 hyper = "1.9"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
-hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio", "client-proxy"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http2", "tokio"] }
 icu_locid = "1.5.0"
 icu_properties = "1.5.0"
 icu_segmenter = "1.5.0"
-image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
+image = { version = "0.25", default-features = false, features = ["avif", "bmp", "gif", "ico", "jpeg", "png", "rayon", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
-inventory = { version = "0.3.24" }
+inventory = "0.3.24"
 ipc-channel = "0.22"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.14", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.14", default-features = false, features = ["intl", "libz-sys"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
@@ -136,7 +136,7 @@ objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
-ohos-deviceinfo-sys = { version = "0.1.6" }
+ohos-deviceinfo-sys = "0.1.6"
 openxr = "0.21"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
@@ -171,9 +171,9 @@ servo_arc = { git = "https://github.com/servo/stylo", rev = "a683655d35822dc2315
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
-speexdsp-resampler = "0.1.0"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
+speexdsp-resampler = "0.1.0"
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "a683655d35822dc231598ac67c9343df33c48c5d" }
@@ -200,20 +200,20 @@ tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
 tungstenite = "0.29"
 unicode-bidi = "0.3.18"
-unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.13.2"
+unicode_categories = "0.1.1"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.23.1", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
+web_atoms = "0.2"
 webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
-web_atoms = "0.2"
 wgpu-core = "26"
 wgpu-types = "26"
 winapi = "0.3"
@@ -365,9 +365,9 @@ codegen-units = 1
 #
 # html5ever = { path = "../html5ever/html5ever" }
 # markup5ever = { path = "../html5ever/markup5ever" }
+# tendril = { path = "../html5ever/tendril" }
 # web_atoms = { path = "../html5ever/web_atoms" }
 # xml5ever = { path = "../html5ever/xml5ever" }
-# tendril = { path = "../html5ever/tendril" }
 #
 # For WebRender:
 #
@@ -399,4 +399,3 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
-#
