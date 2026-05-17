@@ -15,6 +15,7 @@ use layout_api::{
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
 };
+use net_traits::request::InternalRequest;
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
 use script::layout_dom::ServoLayoutNode;
@@ -129,6 +130,7 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         destination: LayoutImageDestination,
+        is_internal_request: InternalRequest,
     ) -> LayoutImageCacheResult {
         // Check for available image or start tracking.
         let cache_result =
@@ -148,6 +150,7 @@ impl ImageResolver {
                     id,
                     origin: self.origin.clone(),
                     destination,
+                    is_internal_request,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -160,6 +163,7 @@ impl ImageResolver {
                     id,
                     origin: self.origin.clone(),
                     destination,
+                    is_internal_request,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -183,12 +187,14 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         destination: LayoutImageDestination,
+        is_internal_request: InternalRequest,
     ) -> Result<CachedImage, ResolveImageError> {
         if let Some(cached_image) = self.resolved_images_cache.read().get(&url) {
             return cached_image.clone();
         }
 
-        let result = self.get_or_request_image_or_meta(node, url.clone(), destination);
+        let result =
+            self.get_or_request_image_or_meta(node, url.clone(), destination, is_internal_request);
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -267,6 +273,7 @@ impl ImageResolver {
                     node,
                     image_url.clone().into(),
                     LayoutImageDestination::DisplayListBuilding,
+                    InternalRequest::No,
                 )?;
                 let metadata = image.metadata();
                 let size = Size2D::new(metadata.width, metadata.height).to_f32();

@@ -40,6 +40,7 @@ use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
+use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
 use pixels::RasterImage;
@@ -216,6 +217,7 @@ pub struct PendingImage {
     pub id: PendingImageId,
     pub origin: ImmutableOrigin,
     pub destination: LayoutImageDestination,
+    pub is_internal_request: InternalRequest,
 }
 
 /// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG

@@ -135,6 +135,14 @@ pub enum ResponseTainting {
     Opaque,
 }
 
+/// Servo-internal to keep track of which requests originate from Servo internal implementation
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum InternalRequest {
+    Yes,
+    #[default]
+    No,
+}
+
 /// <https://html.spec.whatwg.org/multipage/#preload-key>
 #[derive(Clone, Debug, Eq, Hash, Deserialize, MallocSizeOf, Serialize, PartialEq)]
 pub struct PreloadKey {
@@ -503,6 +511,8 @@ pub struct RequestBuilder {
     pub response_tainting: ResponseTainting,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+    /// Servo internal: whether this request originates from Servo internal implementation
+    pub is_internal_request: InternalRequest,
 }
 
 impl RequestBuilder {
@@ -544,6 +554,7 @@ impl RequestBuilder {
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
             response_tainting: ResponseTainting::Basic,
+            is_internal_request: Default::default(),
             crash: None,
         }
     }
@@ -722,6 +733,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn is_internal_request(mut self, is_internal_request: InternalRequest) -> RequestBuilder {
+        self.is_internal_request = is_internal_request;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
@@ -767,6 +783,7 @@ impl RequestBuilder {
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
         request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
+        request.is_internal_request = self.is_internal_request;
         request
     }
 
@@ -850,6 +867,8 @@ pub struct Request {
     pub has_trustworthy_ancestor_origin: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+    /// Servo internal: whether this request originates from Servo internal implementation
+    pub is_internal_request: InternalRequest,
 }
 
 impl Request {
@@ -896,6 +915,7 @@ impl Request {
             policy_container: RequestPolicyContainer::Client,
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             has_trustworthy_ancestor_origin: false,
+            is_internal_request: Default::default(),
             crash: None,
         }
     }

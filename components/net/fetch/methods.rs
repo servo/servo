@@ -25,8 +25,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestBody,
-    RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
+    InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
+    Request, RequestBody, RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
@@ -300,6 +300,9 @@ pub async fn fetch_with_cors_cache(
 }
 
 pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::Request> {
+    if request.is_internal_request == InternalRequest::Yes {
+        return None;
+    }
     let origin = match &request.origin {
         Origin::Client => return None,
         Origin::Origin(origin) => origin,

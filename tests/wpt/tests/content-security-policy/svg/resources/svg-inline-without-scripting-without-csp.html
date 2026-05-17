@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG without scripting should load</title>
+    <link rel="match" href="resources/svg-inline-only-path-without-csp.html">
+</head>
+
+<body>
+    <p>Tests that an SVG loaded without any scripting should load.</p>
+    <?xml version="1.0" standalone="no"?>
+
+    <svg width="6cm" height="5cm" viewBox="0 0 600 500"
+        xmlns="http://www.w3.org/2000/svg" version="1.1">
+
+      <circle cx="300" cy="225" r="100" fill="green"/>
+
+      <text x="300" y="250"
+            font-family="Verdana"
+            font-size="50"
+            text-anchor="middle">
+          PASS
+      </text>
+    </svg>
+</body>
+</html>
