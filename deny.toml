@@ -206,6 +206,20 @@ skip = [
     "roxmltree",
     "tiny-skia",
     "tiny-skia-path",
+
+    # wgpu-core stuff gets duplicated by vello (which is disabled by default)
+    "bit-set",
+    "bit-vec",
+    "codespan-reporting",
+    "gpu-allocator",
+    "naga",
+    "spirv",
+    "wgpu-core",
+    "wgpu-core-deps-apple",
+    "wgpu-core-deps-emscripten",
+    "wgpu-core-deps-windows-linux-android",
+    "wgpu-hal",
+    "wgpu-types",
 ]
 
 # github.com organizations to allow git sources for
