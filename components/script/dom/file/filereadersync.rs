@@ -68,13 +68,8 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2.
-        // > Return bytes as a binary string, in which every byte
-        // > is represented by a code unit of equal value [0..255].
-        Ok(DOMString::from(
-            blob_contents
-                .iter()
-                .map(|&byte| byte as char)
-                .collect::<String>(),
+        Ok(FileReaderSharedFunctionality::binary_string_for_bytes(
+            &blob_contents,
         ))
     }
 
@@ -88,7 +83,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         let blob_type = String::from(blob.Type());
 
         let output =
-            FileReaderSharedFunctionality::text_decode(&blob_contents, &blob_type, &blob_label);
+            FileReaderSharedFunctionality::text_for_bytes(&blob_contents, &blob_type, &blob_label);
 
         Ok(output)
     }
@@ -101,12 +96,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         // step 2. package data.
         // https://w3c.github.io/FileAPI/#blob-package-data
         let blob_type = blob.Type().to_string();
-        let mime_type = if blob_type.is_empty() {
-            "application/octet-stream".to_string()
-        } else {
-            blob_type
-        };
-        let output = FileReaderSharedFunctionality::dataurl_format(&blob_contents, mime_type);
+        let output = FileReaderSharedFunctionality::dataurl_for_bytes(&blob_contents, &blob_type);
 
         Ok(output)
     }
