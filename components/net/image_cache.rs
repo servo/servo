@@ -452,12 +452,7 @@ impl SvgRasterizationTaskStore {
         pending_image_id: PendingImageId,
         size: DeviceIntSize,
     ) -> bool {
-        if self.0.contains(&(pending_image_id, size)) {
-            true
-        } else {
-            self.0.insert((pending_image_id, size));
-            false
-        }
+        !self.0.insert((pending_image_id, size))
     }
 
     /// Removes the task
@@ -466,7 +461,7 @@ impl SvgRasterizationTaskStore {
     }
 
     fn remove_all_for_id(&mut self, pending_image_id: PendingImageId) {
-        self.0.retain(|(id, _size)| *id == pending_image_id);
+        self.0.retain(|(id, _size)| *id != pending_image_id);
     }
 }
 
@@ -511,6 +506,11 @@ struct ImageCacheStore {
 }
 
 impl ImageCacheStore {
+    #[cfg(feature = "test-util")]
+    fn number_of_rasterize_tasks(&self) -> usize {
+        self.svg_rasterization_task_store.0.len()
+    }
+
     /// Finishes loading the image by setting the WebRenderImageKey and calling `compete_load` or `complete_load_svg`.
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
@@ -840,6 +840,11 @@ impl ImageCache for ImageCacheImpl {
                 size: fontdb_size,
             },
         ]
+    }
+
+    #[cfg(feature = "test-util")]
+    fn number_of_rasterize_tasks(&self) -> usize {
+        self.store.lock().number_of_rasterize_tasks()
     }
 
     fn get_image_key(&self) -> Option<WebRenderImageKey> {

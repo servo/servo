@@ -15,6 +15,9 @@ path = "lib.rs"
 test = false
 doctest = false
 
+[features]
+test-util = []
+
 [dependencies]
 content-security-policy = { workspace = true }
 cookie = { workspace = true }

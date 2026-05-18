@@ -174,6 +174,10 @@ pub trait ImageCacheFactory: Sync + Send {
 pub trait ImageCache: Sync + Send {
     fn memory_reports(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report>;
 
+    #[cfg(feature = "test-util")]
+    /// Returns the number of rasterization tasks
+    fn number_of_rasterize_tasks(&self) -> usize;
+
     /// Get an [`ImageKey`] to be used for external WebRender image management for
     /// things like canvas rendering. Returns `None` when an [`ImageKey`] cannot
     /// be generated properly.
