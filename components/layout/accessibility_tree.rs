@@ -280,7 +280,7 @@ impl AccessibilityNode {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         let mut any_descendant_updated = false;
-        let mut newly_created: Vec<accesskit::NodeId> = vec![];
+        let mut newly_created: FxHashSet<accesskit::NodeId> = FxHashSet::default();
         let new_children: Vec<accesskit::NodeId> = dom_node
             .flat_tree_children()
             .map(|dom_child| {
@@ -289,7 +289,7 @@ impl AccessibilityNode {
                     None => {
                         let new_child = tree.get_or_create_node(&dom_child);
                         let child_node_id = new_child.borrow().id;
-                        newly_created.push(child_node_id);
+                        newly_created.insert(child_node_id);
                         child_node_id
                     },
                 };
@@ -306,16 +306,16 @@ impl AccessibilityNode {
             let old_children = self.children();
             for old_child_id in old_children {
                 if !new_children.contains(old_child_id) {
-                    let old_child = tree.assert_node_by_id(*old_child_id);
-                    old_child
+                    let removed_child = tree.assert_node_by_id(*old_child_id);
+                    removed_child
                         .borrow()
                         .set_subtree_state_change(tree, TreeStateChange::Removed);
                 }
             }
             for new_child_id in new_children.iter() {
-                if !old_children.contains(new_child_id) && !newly_created.contains(new_child_id) {
-                    let new_child = tree.assert_node_by_id(*new_child_id);
-                    new_child
+                if !newly_created.contains(new_child_id) && !old_children.contains(new_child_id) {
+                    let moved_child = tree.assert_node_by_id(*new_child_id);
+                    moved_child
                         .borrow()
                         .set_subtree_state_change(tree, TreeStateChange::Moved(MoveState::Pending));
                 }
@@ -332,10 +332,11 @@ impl AccessibilityNode {
 
         let old_change = tree.tree_state_changes.get(&self.id);
         let new_change = match (old_change, change) {
+            (None, Moved(_)) => Moved(Pending),
             (None, _) => change,
 
             (Some(Moved(Pending)), Removed) => Moved(Complete),
-            (Some(Removed), Moved(Pending)) => Moved(Complete),
+            (Some(Removed), Moved(_)) => Moved(Complete),
 
             (Some(old_change), _) => {
                 unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
