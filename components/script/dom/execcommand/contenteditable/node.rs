@@ -1612,7 +1612,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-boundary-point>
-    fn is_block_boundary_point(&self, offset: u32) -> bool {
+    pub(crate) fn is_block_boundary_point(&self, offset: u32) -> bool {
         // > A boundary point is a block boundary point if it is either a block start point or a block end point.
         self.is_block_start_point(offset as usize) || self.is_block_end_point(offset)
     }

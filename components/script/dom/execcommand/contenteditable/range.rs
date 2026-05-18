@@ -119,20 +119,23 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 3. If (start node, start offset) is not a block start point, repeat the following steps:
-        while !start_node.is_block_start_point(start_offset as usize) {
-            // Step 3.1. If start offset is zero, set it to start node's index, then set start node to its parent.
-            if start_offset == 0 {
-                start_offset = start_node.index();
-                start_node = start_node
-                    .GetParentNode()
-                    .expect("Must always have a parent");
-            } else {
-                // Step 3.2. Otherwise, subtract one from start offset.
-                start_offset -= 1;
+        if !start_node.is_block_start_point(start_offset as usize) {
+            loop {
+                // Step 3.1. If start offset is zero, set it to start node's index, then set start node to its parent.
+                if start_offset == 0 {
+                    start_offset = start_node.index();
+                    start_node = start_node
+                        .GetParentNode()
+                        .expect("Must always have a parent");
+                } else {
+                    // Step 3.2. Otherwise, subtract one from start offset.
+                    start_offset -= 1;
+                }
+                // Step 3.3. If (start node, start offset) is a block boundary point, break from this loop.
+                if start_node.is_block_boundary_point(start_offset) {
+                    break;
+                }
             }
-            // Step 3.3. If (start node, start offset) is a block boundary point, break from this loop.
-            //
-            // That's the while-condition
         }
         // Step 4. While start offset is zero and start node's parent is not null,
         // set start offset to start node's index, then set start node to its parent.
@@ -155,18 +158,21 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 6. If (end node, end offset) is not a block end point, repeat the following steps:
-        while !end_node.is_block_end_point(end_offset) {
-            // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
-            if end_offset == end_node.len() {
-                end_offset = 1 + end_node.index();
-                end_node = end_node.GetParentNode().expect("Must always have a parent");
-            } else {
-                // Step 6.2. Otherwise, add one to end offset.
-                end_offset += 1;
+        if !end_node.is_block_end_point(end_offset) {
+            loop {
+                // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
+                if end_offset == end_node.len() {
+                    end_offset = 1 + end_node.index();
+                    end_node = end_node.GetParentNode().expect("Must always have a parent");
+                } else {
+                    // Step 6.2. Otherwise, add one to end offset.
+                    end_offset += 1;
+                }
+                // Step 6.3. If (end node, end offset) is a block boundary point, break from this loop.
+                if end_node.is_block_boundary_point(end_offset) {
+                    break;
+                }
             }
-            // Step 6.3. If (end node, end offset) is a block boundary point, break from this loop.
-            //
-            // That's the while-condition
         }
         // Step 7. While end offset is end node's length and end node's parent is not null,
         // set end offset to one plus end node's index, then set end node to its parent.

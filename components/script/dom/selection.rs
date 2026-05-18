@@ -130,6 +130,26 @@ impl Selection {
         // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
         self.range.get()
     }
+
+    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
+        let range = self.range.get().expect("Must always have a range");
+        range.set_start(node, offset);
+        range.set_end(node, offset);
+    }
+
+    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
+        let range = self.range.get().expect("Must always have a range");
+        assert!(range.collapsed(), "Must only extend after collapsing");
+
+        let anchor_node = range.start_container();
+        if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
+            range.set_end(node, offset);
+            self.direction.set(Direction::Forwards);
+        } else {
+            range.set_start(node, offset);
+            self.direction.set(Direction::Backwards);
+        }
+    }
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {
