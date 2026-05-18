@@ -1188,7 +1188,13 @@ fn do_initial_flex_line_layout<'items>(
     // We didn't reach the end of the last line, so add all remaining items there.
     lines.push((items, line_size_so_far));
 
-    if flex_context.layout_context.use_rayon {
+    let job_sizes = lines
+        .iter()
+        .map(|line| line.0.iter().map(FlexItem::subtree_size).sum());
+    if flex_context
+        .layout_context
+        .should_parallelize_layout(job_sizes)
+    {
         lines.par_drain(..).map(construct_line).collect()
     } else {
         lines.into_iter().map(construct_line).collect()
@@ -1225,7 +1231,10 @@ impl InitialFlexLineLayout<'_> {
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let layout_results: Vec<_> = if flex_context.layout_context.use_rayon {
+        let layout_results: Vec<_> = if flex_context
+            .layout_context
+            .should_parallelize_layout(items.iter().map(FlexItem::subtree_size))
+        {
             items
                 .par_iter()
                 .zip(&item_used_main_sizes)
@@ -1955,6 +1964,10 @@ impl FlexItem<'_> {
             self.border.cross_start +
             self.border.cross_end +
             self.padding.cross_end
+    }
+
+    fn subtree_size(&self) -> usize {
+        self.box_.independent_formatting_context.subtree_size()
     }
 
     /// Return the cross-start, cross-end, main-start, and main-end margins, with `auto` values resolved.

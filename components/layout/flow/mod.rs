@@ -88,6 +88,18 @@ impl BlockContainer {
             },
         }
     }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        match self {
+            BlockContainer::BlockLevelBoxes(boxes) => boxes
+                .iter()
+                .map(|block_level_box| block_level_box.borrow().subtree_size())
+                .sum(),
+            BlockContainer::InlineFormattingContext(inline_formatting_context) => {
+                inline_formatting_context.subtree_size()
+            },
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -291,6 +303,10 @@ impl BlockLevelBox {
 
         true
     }
+
+    fn subtree_size(&self) -> usize {
+        self.with_base(|base| base.subtree_size())
+    }
 }
 
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
@@ -409,11 +425,12 @@ impl BlockFormattingContext {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
     ) -> IndependentFormattingContextLayoutResult {
-        let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
-            Some(SequentialLayoutState::new(containing_block.size.inline))
-        } else {
-            None
-        };
+        let mut sequential_layout_state =
+            if self.contains_floats || !layout_context.allow_parallel_layout {
+                Some(SequentialLayoutState::new(containing_block.size.inline))
+            } else {
+                None
+            };
 
         // Since this is an independent formatting context, we don't ignore block margins when
         // resolving a stretch block size of the children.
@@ -610,7 +627,11 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             }
             data
         };
-    let data = if layout_context.use_rayon {
+
+    let job_counts = boxes
+        .iter()
+        .map(|block_level_box| block_level_box.borrow().subtree_size());
+    let data = if layout_context.should_parallelize_layout(job_counts) {
         boxes
             .par_iter()
             .filter_map(get_box_info)
