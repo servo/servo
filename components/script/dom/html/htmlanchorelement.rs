@@ -347,7 +347,7 @@ impl Activatable for HTMLAnchorElement {
     /// <https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour>
     fn activation_behavior(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
         event: &Event,
         target: &EventTarget,
     ) {
@@ -372,6 +372,6 @@ impl Activatable for HTMLAnchorElement {
 
         // Step 2.
         // TODO: Download the link is `download` attribute is set.
-        follow_hyperlink(element, self.relations.get(), ismap_suffix);
+        follow_hyperlink(cx, element, self.relations.get(), ismap_suffix);
     }
 }

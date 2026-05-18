@@ -166,23 +166,23 @@ impl HTMLIFrameElement {
         self.already_fired_synchronous_load_event.set(false);
 
         self.start_new_pipeline(
+            cx,
             load_data,
             PipelineType::Navigation,
             history_handling,
             mode,
             target_snapshot_params,
-            cx,
         );
     }
 
     fn start_new_pipeline(
         &self,
+        cx: &mut JSContext,
         mut load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
         mode: ProcessingMode,
         target_snapshot_params: TargetSnapshotParams,
-        cx: &mut JSContext,
     ) {
         let document = self.owner_document();
 
@@ -200,6 +200,7 @@ impl HTMLIFrameElement {
 
         if load_data.url.scheme() != "javascript" {
             self.continue_navigation(
+                cx,
                 load_data,
                 pipeline_type,
                 history_handling,
@@ -236,12 +237,13 @@ impl HTMLIFrameElement {
                     }
                     load_data.about_base_url = doc.root().about_base_url();
                 }
-                this.continue_navigation(load_data, pipeline_type, history_handling, target_snapshot_params);
+                this.continue_navigation(cx, load_data, pipeline_type, history_handling, target_snapshot_params);
             }));
     }
 
     fn continue_navigation(
         &self,
+        cx: &mut JSContext,
         load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
@@ -312,7 +314,7 @@ impl HTMLIFrameElement {
 
                 self.pipeline_id.set(Some(new_pipeline_id));
                 with_script_thread(|script_thread| {
-                    script_thread.spawn_pipeline(new_pipeline_info);
+                    script_thread.spawn_pipeline(cx, new_pipeline_info);
                 });
             },
             PipelineType::Navigation => {
@@ -608,12 +610,12 @@ impl HTMLIFrameElement {
         self.webview_id.set(Some(webview_id));
         self.browsing_context_id.set(Some(browsing_context_id));
         self.start_new_pipeline(
+            cx,
             load_data,
             PipelineType::InitialAboutBlank,
             NavigationHistoryBehavior::Push,
             ProcessingMode::FirstTime,
             snapshot_self(self),
-            cx,
         );
     }
 

@@ -420,12 +420,15 @@ impl ContextMenuNodes {
             window.send_to_embedder(EmbedderMsg::SetClipboardText(window.webview_id(), string));
         };
 
-        let open_url_in_new_webview = |url: ServoUrl| {
+        let open_url_in_new_webview = |cx: &mut JSContext, url: ServoUrl| {
             let Some(browsing_context) = document.browsing_context() else {
                 return;
             };
-            let (browsing_context, new) = browsing_context
-                .choose_browsing_context("_blank".into(), true /* nooopener */);
+            let (browsing_context, new) = browsing_context.choose_browsing_context(
+                cx,
+                "_blank".into(),
+                true, /* nooopener */
+            );
             let Some(browsing_context) = browsing_context else {
                 return;
             };
@@ -474,7 +477,7 @@ impl ContextMenuNodes {
                     return;
                 };
                 if let Some(url) = anchor_element.full_href_url_for_user_interface() {
-                    open_url_in_new_webview(url);
+                    open_url_in_new_webview(cx, url);
                 };
             },
             ContextMenuAction::CopyImageLink => {
@@ -493,7 +496,7 @@ impl ContextMenuNodes {
                     return;
                 };
                 if let Some(url) = image_element.full_image_url_for_user_interface() {
-                    open_url_in_new_webview(url);
+                    open_url_in_new_webview(cx, url);
                 }
             },
             ContextMenuAction::Cut => {

@@ -73,7 +73,7 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
-use script_bindings::script_runtime::{JSContext, temp_cx};
+use script_bindings::script_runtime::JSContext;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -1446,7 +1446,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::SpawnPipeline(
                     new_pipeline_info,
                 )) => {
-                    self.spawn_pipeline(new_pipeline_info);
+                    self.spawn_pipeline(cx, new_pipeline_info);
                 },
                 MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -2734,10 +2734,11 @@ impl ScriptThread {
         }
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo) {
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    pub(crate) fn spawn_pipeline(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_pipeline_info: NewPipelineInfo,
+    ) {
         self.profile_event(
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
