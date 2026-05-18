@@ -6,6 +6,7 @@
 
 use backtrace::Backtrace;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use layout_api::ReflowPhasesRun;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
@@ -35,8 +36,8 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         unsafe { std::ptr::null_mut::<i32>().write(42) }
     }
 
-    fn ForceLayout(global: &GlobalScope, can_gc: CanGc) -> DomRoot<LayoutResult> {
-        let (phases_run, statistics) = global.as_window().Document().update_the_rendering();
+    fn ForceLayout(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<LayoutResult> {
+        let (phases_run, statistics) = global.as_window().Document().update_the_rendering(cx);
 
         let mut phases = Vec::new();
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
@@ -61,7 +62,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             statistics.rebuilt_fragment_count,
             statistics.restyle_fragment_count,
             statistics.only_descendants_changed_count,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -75,9 +76,9 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         panic!("explicit panic from script")
     }
 
-    fn ForceAccessibilityUpdate(global: &GlobalScope) {
+    fn ForceAccessibilityUpdate(cx: &mut JSContext, global: &GlobalScope) {
         let window = global.as_window();
         window.layout().set_needs_accessibility_update();
-        let _ = window.Document().update_the_rendering();
+        let _ = window.Document().update_the_rendering(cx);
     }
 }

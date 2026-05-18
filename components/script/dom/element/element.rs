@@ -21,7 +21,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 use js::context::JSContext;
-use js::jsapi::{Heap, JSAutoRealm};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
 use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
@@ -165,6 +165,7 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::layout_dom::ServoDangerousStyleElement;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
@@ -867,6 +868,7 @@ impl Element {
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
     pub(crate) fn scroll_into_view_with_options(
         &self,
+        cx: &mut JSContext,
         behavior: ScrollBehavior,
         block: ScrollAxisState,
         inline: ScrollAxisState,
@@ -918,7 +920,7 @@ impl Element {
                 //    null otherwise.
                 //    Step 3: Perform a scroll of the viewport to `position`, with `root element`
                 //    as the associated element and `behavior` as the scroll behavior.
-                scrolling_box.scroll_to(position, behavior);
+                scrolling_box.scroll_to(cx, position, behavior);
             }
 
             // Step 1.4: If `container` is not null and either `scrolling box` is a shadow-including
@@ -940,10 +942,12 @@ impl Element {
         };
 
         let inner_target_rect = Some(get_target_rect());
-        let parent_window = frame_element.owner_window();
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *parent_window.reflector().get_jsobject());
+
+        let mut realm = enter_auto_realm(cx, frame_element);
+        let cx = &mut realm;
+
         frame_element.scroll_into_view_with_options(
+            cx,
             behavior,
             block,
             inline,
@@ -2548,7 +2552,7 @@ impl Element {
     ///
     /// TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is
     /// quite outdated.
-    pub(crate) fn scroll(&self, x: f64, y: f64, behavior: ScrollBehavior) {
+    pub(crate) fn scroll(&self, cx: &mut JSContext, x: f64, y: f64, behavior: ScrollBehavior) {
         // Step 1.2 or 2.3
         let x = if x.is_finite() { x } else { 0.0 } as f32;
         let y = if y.is_finite() { y } else { 0.0 } as f32;
@@ -2572,7 +2576,7 @@ impl Element {
         // Step 7
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(x, y, behavior);
+                win.scroll(cx, x, y, behavior);
             }
 
             return;
@@ -2583,7 +2587,7 @@ impl Element {
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(x, y, behavior);
+            win.scroll(cx, x, y, behavior);
             return;
         }
 
@@ -2593,7 +2597,7 @@ impl Element {
         }
 
         // Step 11
-        win.scroll_an_element(self, x, y, behavior);
+        win.scroll_an_element(cx, self, x, y, behavior);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
@@ -3141,43 +3145,48 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
-    fn Scroll(&self, options: &ScrollToOptions) {
+    fn Scroll(&self, cx: &mut JSContext, options: &ScrollToOptions) {
         // Step 1
         let left = options.left.unwrap_or(self.ScrollLeft());
         let top = options.top.unwrap_or(self.ScrollTop());
-        self.scroll(left, top, options.parent.behavior);
+        self.scroll(cx, left, top, options.parent.behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
-    fn Scroll_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto);
+    fn Scroll_(&self, cx: &mut JSContext, x: f64, y: f64) {
+        self.scroll(cx, x, y, ScrollBehavior::Auto);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollto>
-    fn ScrollTo(&self, options: &ScrollToOptions) {
-        self.Scroll(options);
+    fn ScrollTo(&self, cx: &mut JSContext, options: &ScrollToOptions) {
+        self.Scroll(cx, options);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollto>
-    fn ScrollTo_(&self, x: f64, y: f64) {
-        self.Scroll_(x, y);
+    fn ScrollTo_(&self, cx: &mut JSContext, x: f64, y: f64) {
+        self.Scroll_(cx, x, y);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollby>
-    fn ScrollBy(&self, options: &ScrollToOptions) {
+    fn ScrollBy(&self, cx: &mut JSContext, options: &ScrollToOptions) {
         // Step 2
         let delta_left = options.left.unwrap_or(0.0f64);
         let delta_top = options.top.unwrap_or(0.0f64);
         let left = self.ScrollLeft();
         let top = self.ScrollTop();
-        self.scroll(left + delta_left, top + delta_top, options.parent.behavior);
+        self.scroll(
+            cx,
+            left + delta_left,
+            top + delta_top,
+            options.parent.behavior,
+        );
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollby>
-    fn ScrollBy_(&self, x: f64, y: f64) {
+    fn ScrollBy_(&self, cx: &mut JSContext, x: f64, y: f64) {
         let left = self.ScrollLeft();
         let top = self.ScrollTop();
-        self.scroll(left + x, top + y, ScrollBehavior::Auto);
+        self.scroll(cx, left + x, top + y, ScrollBehavior::Auto);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrolltop>
@@ -3228,7 +3237,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    fn SetScrollTop(&self, _cx: &mut JSContext, y_: f64) {
+    fn SetScrollTop(&self, cx: &mut JSContext, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3253,7 +3262,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if self.is_document_element() {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(win.ScrollX() as f32, y, behavior);
+                win.scroll(cx, win.ScrollX() as f32, y, behavior);
             }
 
             return;
@@ -3264,7 +3273,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(win.ScrollX() as f32, y, behavior);
+            win.scroll(cx, win.ScrollX() as f32, y, behavior);
             return;
         }
 
@@ -3274,7 +3283,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_an_element(self, self.ScrollLeft() as f32, y, behavior);
+        win.scroll_an_element(cx, self, self.ScrollLeft() as f32, y, behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
@@ -3324,7 +3333,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
-    fn SetScrollLeft(&self, _cx: &mut JSContext, x: f64) {
+    fn SetScrollLeft(&self, cx: &mut JSContext, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3352,7 +3361,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 return;
             }
 
-            win.scroll(x, win.ScrollY() as f32, behavior);
+            win.scroll(cx, x, win.ScrollY() as f32, behavior);
             return;
         }
 
@@ -3361,7 +3370,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.is_potentially_scrollable_body()
         {
-            win.scroll(x, win.ScrollY() as f32, behavior);
+            win.scroll(cx, x, win.ScrollY() as f32, behavior);
             return;
         }
 
@@ -3371,11 +3380,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 11
-        win.scroll_an_element(self, x, self.ScrollTop() as f32, behavior);
+        win.scroll_an_element(cx, self, x, self.ScrollTop() as f32, behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview>
-    fn ScrollIntoView(&self, arg: BooleanOrScrollIntoViewOptions) {
+    fn ScrollIntoView(&self, cx: &mut JSContext, arg: BooleanOrScrollIntoViewOptions) {
         let (behavior, block, inline, container) = match arg {
             // If arg is true:
             BooleanOrScrollIntoViewOptions::Boolean(true) => (
@@ -3415,6 +3424,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 8: Scroll the element into view with behavior, block, inline, and container.
         self.scroll_into_view_with_options(
+            cx,
             behavior,
             ScrollAxisState::new_always_scroll_position(block),
             ScrollAxisState::new_always_scroll_position(inline),

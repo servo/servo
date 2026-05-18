@@ -2205,7 +2205,7 @@ fn scroll_into_view(
         container: Default::default(),
     });
     // Step 2. Run scrollIntoView
-    element.ScrollIntoView(options);
+    element.ScrollIntoView(cx, options);
 }
 
 pub(crate) fn set_protocol_handler_automation_mode(

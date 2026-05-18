@@ -709,7 +709,7 @@ impl ServoParser {
             assert!(!self.suspended.get());
             assert!(!self.aborted.get());
 
-            self.document.window().reflow_if_reflow_timer_expired();
+            self.document.window().reflow_if_reflow_timer_expired(cx);
             let script = match feed(cx, &self.tokenizer) {
                 TokenizerResult::Done => return,
                 TokenizerResult::EncodingIndicator(_) => continue,
