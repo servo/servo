@@ -30,3 +30,8 @@ partial interface ShadowRoot {
 
   [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
 };
+
+// https://wicg.github.io/sanitizer-api/#sanitizer-api
+partial interface ShadowRoot {
+  [CEReactions, Throws] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
+};
