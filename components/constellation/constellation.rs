@@ -162,7 +162,7 @@ use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
     DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData,
     IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerMsg, SWManagerSenders,
+    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
     ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
     ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
     StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
@@ -382,16 +382,6 @@ pub struct Constellation<STF, SWF> {
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
-
-    /// An IPC channel for Service Worker Manager threads to send
-    /// messages to the constellation.  This is the SW Manager thread's
-    /// view of `swmanager_receiver`.
-    swmanager_ipc_sender: GenericSender<SWManagerMsg>,
-
-    /// A channel for the constellation to receive messages from the
-    /// Service Worker Manager thread. This is the constellation's view of
-    /// `swmanager_sender`.
-    swmanager_receiver: RoutedReceiver<SWManagerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -625,10 +615,6 @@ where
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
     ) {
-        // service worker manager to communicate with constellation
-        let (swmanager_ipc_sender, swmanager_ipc_receiver) =
-            generic_channel::channel().expect("ipc channel failure");
-
         thread::Builder::new()
             .name("Constellation".to_owned())
             .spawn(move || {
@@ -671,8 +657,6 @@ where
                     )
                 };
 
-                let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
-
                 PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
                 #[cfg(feature = "webgpu")]
@@ -710,8 +694,6 @@ where
                     private_storage_threads: state.private_storage_threads,
                     system_font_service: state.system_font_service,
                     sw_managers: Default::default(),
-                    swmanager_receiver,
-                    swmanager_ipc_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
                     message_ports: Default::default(),
@@ -1247,7 +1229,6 @@ where
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
             Embedder(EmbedderToConstellationMessage),
-            FromSWManager(SWManagerMsg),
             RemoveProcess(usize),
         }
         // Get one incoming request.
@@ -1266,7 +1247,6 @@ where
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
-        sel.recv(&self.swmanager_receiver);
 
         self.process_manager.register(&mut sel);
 
@@ -1294,10 +1274,6 @@ where
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
-                4 => oper
-                    .recv(&self.swmanager_receiver)
-                    .expect("Unexpected SW channel panic in constellation")
-                    .map(Request::FromSWManager),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
                     let process_index = index - 5;
@@ -1323,9 +1299,6 @@ where
             Request::BackgroundHangMonitor(message) => {
                 self.handle_request_from_background_hang_monitor(message);
             },
-            Request::FromSWManager(message) => {
-                self.handle_request_from_swmanager(message);
-            },
             Request::RemoveProcess(index) => self.process_manager.remove(index),
         }
     }
@@ -1346,16 +1319,6 @@ where
                 // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
                 // via the embedder?
                 warn!("Component hang alert: {:?}", hang);
-            },
-        }
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
-        match message {
-            SWManagerMsg::PostMessageToClient => {
-                // TODO: implement posting a message to a SW client.
-                // https://github.com/servo/servo/issues/24660
             },
         }
     }
@@ -2622,7 +2585,6 @@ where
                     generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
-                    swmanager_sender: self.swmanager_ipc_sender.clone(),
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,

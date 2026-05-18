@@ -18,12 +18,13 @@ use fonts::FontContext;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
-use profile_traits::generic_callback::GenericCallback;
-use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericSender, ReceiveError, RoutedReceiver,
+};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
 use servo_constellation_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerSenders,
     ScopeThings, ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
     ServiceWorkerMsg, ServiceWorkerRegistrationInfo,
 };
@@ -150,10 +151,15 @@ struct ServiceWorkerRegistration {
     context: Option<ThreadSafeJSContext>,
     /// The closing flag for the worker.
     closing: Option<Arc<AtomicBool>>,
+    /// <https://w3c.github.io/ServiceWorker/#serviceworkercontainer-service-worker-client>
+    /// The client of the container to which this registration belongs.
+    client: GenericCallback<ServiceWorkerAlgorithmResult>,
 }
 
 impl ServiceWorkerRegistration {
-    pub(crate) fn new() -> ServiceWorkerRegistration {
+    pub(crate) fn new(
+        client: GenericCallback<ServiceWorkerAlgorithmResult>,
+    ) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             id: ServiceWorkerRegistrationId::new(),
             active_worker: None,
@@ -163,6 +169,7 @@ impl ServiceWorkerRegistration {
             control_sender: None,
             context: None,
             closing: None,
+            client,
         }
     }
 
@@ -224,9 +231,6 @@ impl ServiceWorkerRegistration {
 pub struct ServiceWorkerManager {
     /// <https://w3c.github.io/ServiceWorker/#dfn-scope-to-registration-map>
     registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
-    // Will be useful to implement posting a message to a client.
-    // See https://github.com/servo/servo/issues/24660
-    _constellation_sender: GenericSender<SWManagerMsg>,
     // own sender to send messages here
     own_sender: GenericSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
@@ -242,7 +246,6 @@ impl ServiceWorkerManager {
         own_sender: GenericSender<ServiceWorkerMsg>,
         from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
         resource_port: Receiver<CustomResponseMediator>,
-        constellation_sender: GenericSender<SWManagerMsg>,
         font_context: Arc<FontContext>,
     ) -> ServiceWorkerManager {
         // Install a pipeline-namespace in the current thread.
@@ -253,7 +256,6 @@ impl ServiceWorkerManager {
             own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
-            _constellation_sender: constellation_sender,
             font_context,
         }
     }
@@ -317,6 +319,35 @@ impl ServiceWorkerManager {
                     } else if let Some(ref worker) = registration.installing_worker {
                         worker.forward_dom_message(msg);
                     }
+                }
+            },
+            ServiceWorkerMsg::ForwardWorkerMessage { data, url, source, origin } => {
+                let Some(registration) = self.registrations.get(&url) else {
+                    warn!("No registration found for scope URL when forwarding message to worker.");
+                    return true;
+                };
+                let script_url = if let Some(worker) = registration.active_worker.as_ref() {
+                    worker.script_url.clone()
+                } else if let Some(worker) = registration.waiting_worker.as_ref() {
+                    worker.script_url.clone()
+                } else if let Some(worker) = registration.installing_worker.as_ref() {
+                    worker.script_url.clone()
+                } else {
+                    warn!("No worker found for scope URL when forwarding message to worker.");
+                    return true;
+                };
+                if registration
+                    .client
+                    .send(ServiceWorkerAlgorithmResult::MessageFromWorker {
+                        message: data,
+                        source,
+                        scope_url: url,
+                        script_url,
+                        origin,
+                    })
+                    .is_err()
+                {
+                    warn!("Failed to forward message from worker to script.");
                 }
             },
             ServiceWorkerMsg::HandleAlgorithm(algorithm) => match algorithm {
@@ -514,7 +545,7 @@ impl ServiceWorkerManager {
         } else {
             // Step 6: Else
             // Step 6.1: Invoke Set Registration algorithm with job’s storage key, job’s scope url, and job’s update via cache mode.
-            let new_registration = ServiceWorkerRegistration::new();
+            let new_registration = ServiceWorkerRegistration::new(job.client.clone());
             self.registrations
                 .insert(job.scope_url.clone(), new_registration);
 
@@ -681,6 +712,7 @@ fn update_serviceworker(
         context_sender,
         closing.clone(),
         font_context,
+        worker_id,
     );
 
     let context = context_receiver
@@ -704,7 +736,6 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             resource_threads,
             own_sender,
             receiver,
-            swmanager_sender: constellation_sender,
             system_font_service_sender,
             paint_api,
         } = sw_senders;
@@ -726,7 +757,6 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
                 own_sender,
                 from_constellation,
                 resource_port,
-                constellation_sender,
                 font_context,
             )
             .handle_message()

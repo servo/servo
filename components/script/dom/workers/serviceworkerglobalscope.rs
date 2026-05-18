@@ -20,7 +20,7 @@ use net_traits::request::{
 };
 use rand::random;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
-use servo_base::id::PipelineId;
+use servo_base::id::{PipelineId, ServiceWorkerId};
 use servo_config::pref;
 use servo_constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
@@ -30,6 +30,7 @@ use style::thread_state::{self, ThreadState};
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
+use crate::dom::bindings::codegen::Bindings::ClientBinding::FrameType;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
@@ -39,13 +40,14 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::client::Client;
 use crate::dom::csp::Violation;
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
-use crate::dom::extendablemessageevent::ExtendableMessageEvent;
+use crate::dom::extendablemessageevent::{ExtendableMessageEvent, MessageSource};
 use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
@@ -182,6 +184,9 @@ pub(crate) struct ServiceWorkerGlobalScope {
     /// currently only used to signal shutdown.
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
+
+    #[no_trace]
+    worker_id: ServiceWorkerId,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
@@ -240,6 +245,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        worker_id: ServiceWorkerId,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -262,6 +268,7 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
             control_receiver,
+            worker_id,
         }
     }
 
@@ -280,6 +287,7 @@ impl ServiceWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
         debugger_global: &DebuggerGlobalScope,
+        worker_id: ServiceWorkerId,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
@@ -295,6 +303,7 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
             font_context,
+            worker_id,
         ));
         let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
         scope
@@ -318,6 +327,7 @@ impl ServiceWorkerGlobalScope {
         context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        worker_id: ServiceWorkerId,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -387,6 +397,7 @@ impl ServiceWorkerGlobalScope {
                     closing,
                     font_context,
                     &debugger_global,
+                    worker_id,
                     cx,
                 );
 
@@ -514,6 +525,14 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(scope);
                 rooted!(&in(cx) let mut message = UndefinedValue());
+                let client = Client::new(
+                    scope.upcast(),
+                    self.swmanager_sender.clone(),
+                    self.scope_url.clone(),
+                    FrameType::None,
+                    self.worker_id,
+                    CanGc::from_cx(cx),
+                );
                 if let Ok(ports) = structuredclone::read(
                     scope.upcast(),
                     *msg.data,
@@ -525,7 +544,7 @@ impl ServiceWorkerGlobalScope {
                         target,
                         scope.upcast(),
                         message.handle(),
-                        None,
+                        Some(MessageSource::Client(client)),
                         ports,
                     );
                 } else {
