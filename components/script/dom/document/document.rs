@@ -1230,7 +1230,7 @@ impl Document {
             //
             // FIXME(stshine): this should be the origin of the stacking context space,
             // which may differ under the influence of writing mode.
-            self.window.scroll(0.0, 0.0, ScrollBehavior::Instant);
+            self.window.scroll(cx, 0.0, 0.0, ScrollBehavior::Instant);
             // Step 2.3. Return.
             return;
         }
@@ -1246,6 +1246,7 @@ impl Document {
         // TODO
         // Step 3.5. Scroll target into view, with behavior set to "auto", block set to "start", and inline set to "nearest". [CSSOMVIEW]
         target.scroll_into_view_with_options(
+            cx,
             ScrollBehavior::Auto,
             ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Start),
             ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Nearest),
@@ -1962,7 +1963,7 @@ impl Document {
                 // We finished loading the page, so if the `Window` is still waiting for
                 // the first layout, allow it.
                 if self.has_browsing_context && self.is_fully_active() {
-                    self.window().allow_layout_if_necessary();
+                    self.window().allow_layout_if_necessary(cx);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -2919,7 +2920,10 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
-    pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
+    pub(crate) fn update_the_rendering(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> (ReflowPhasesRun, ReflowStatistics) {
         assert!(!self.is_render_blocked());
 
         let mut phases = ReflowPhasesRun::empty();
@@ -2957,7 +2961,7 @@ impl Document {
             );
         }
 
-        let (reflow_phases, statistics) = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        let (reflow_phases, statistics) = self.window().reflow(cx, ReflowGoal::UpdateTheRendering);
         let phases = phases.union(reflow_phases);
 
         self.window().paint_api().update_epoch(

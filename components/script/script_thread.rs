@@ -1304,7 +1304,7 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            if document.update_the_rendering().0.needs_frame() {
+            if document.update_the_rendering(cx).0.needs_frame() {
                 painters_generating_frames.insert(document.webview_id().into());
             }
 
@@ -1988,7 +1988,7 @@ impl ScriptThread {
             },
             ScriptThreadMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
                 if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-                    document.event_handler().do_keyboard_scroll(scroll);
+                    document.event_handler().do_keyboard_scroll(cx, scroll);
                 }
             },
             ScriptThreadMessage::RequestScreenshotReadiness(webview_id, pipeline_id) => {

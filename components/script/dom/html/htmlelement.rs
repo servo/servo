@@ -482,6 +482,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                 requirement: ScrollRequirement::IfNotVisible,
             };
             self.upcast::<Element>().scroll_into_view_with_options(
+                cx,
                 ScrollBehavior::Smooth,
                 scroll_axis,
                 scroll_axis,

@@ -22,7 +22,6 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Vector2D};
 use js::context::JSContext;
-use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
@@ -39,7 +38,6 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, W
 use script_bindings::inheritance::Castable;
 use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
-use script_bindings::reflector::DomObject;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
@@ -75,7 +73,7 @@ use crate::dom::types::{
     WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 
 /// A data structure used for tracking the current click count. This can be
 /// reset to 0 if a mouse button event happens at a sufficient distance or time
@@ -2007,10 +2005,10 @@ impl DocumentEventHandler {
             return;
         }
 
-        self.do_keyboard_scroll(scroll);
+        self.do_keyboard_scroll(cx, scroll);
     }
 
-    pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
+    pub(crate) fn do_keyboard_scroll(&self, cx: &mut JSContext, scroll: KeyboardScroll) {
         let scroll_axis = match scroll {
             KeyboardScroll::Left | KeyboardScroll::Right => ScrollingBoxAxis::X,
             _ => ScrollingBoxAxis::Y,
@@ -2086,13 +2084,13 @@ impl DocumentEventHandler {
             if let Some(iframe) = window_proxy.frame_element() {
                 // When the `<iframe>` is local (in this ScriptThread), we can
                 // synchronously chain up the keyboard scrolling event.
-                let cx = GlobalScope::get_cx();
                 let iframe_window = iframe.owner_window();
-                let _ac = JSAutoRealm::new(*cx, iframe_window.reflector().get_jsobject().get());
+                let mut realm = enter_auto_realm(cx, &*iframe_window);
+                let cx = &mut realm;
                 iframe_window
                     .Document()
                     .event_handler()
-                    .do_keyboard_scroll(scroll);
+                    .do_keyboard_scroll(cx, scroll);
             } else if let Some(parent_pipeline) = parent_pipeline {
                 // Otherwise, if we have a parent (presumably from a different origin)
                 // asynchronously ask the Constellation to forward the event to the parent
@@ -2105,7 +2103,7 @@ impl DocumentEventHandler {
         }
 
         let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
-        scrolling_box.scroll_to(delta + current_scroll_offset, ScrollBehavior::Auto);
+        scrolling_box.scroll_to(cx, delta + current_scroll_offset, ScrollBehavior::Auto);
     }
 
     /// Get or create a pointer ID for the given touch identifier.
@@ -2280,6 +2278,7 @@ impl DocumentEventHandler {
             requirement: ScrollRequirement::IfNotVisible,
         };
         element.scroll_into_view_with_options(
+            cx,
             ScrollBehavior::Auto,
             scroll_axis,
             scroll_axis,

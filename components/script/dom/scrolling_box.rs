@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use app_units::Au;
 use euclid::{Rect, Vector2D};
+use js::context::JSContext;
 use layout_api::{AxesOverflow, ScrollContainerQueryFlags};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::inheritance::Castable;
@@ -158,15 +159,22 @@ impl ScrollingBox {
         }
     }
 
-    pub(crate) fn scroll_to(&self, position: LayoutVector2D, behavior: ScrollBehavior) {
+    pub(crate) fn scroll_to(
+        &self,
+        cx: &mut JSContext,
+        position: LayoutVector2D,
+        behavior: ScrollBehavior,
+    ) {
         match &self.target {
             ScrollingBoxSource::Element(element) => {
                 element
                     .owner_window()
-                    .scroll_an_element(element, position.x, position.y, behavior);
+                    .scroll_an_element(cx, element, position.x, position.y, behavior);
             },
             ScrollingBoxSource::Viewport(document) => {
-                document.window().scroll(position.x, position.y, behavior);
+                document
+                    .window()
+                    .scroll(cx, position.x, position.y, behavior);
             },
         }
     }
