@@ -148,7 +148,7 @@ pub(crate) struct SharedWorkerGlobalScope {
     own_sender: Sender<SharedWorkerScriptMsg>,
     worker: DomRefCell<Option<TrustedSharedWorkerAddress>>,
     parent_event_loop_sender: ScriptEventLoopSender,
-    pending_connects: DomRefCell<Vec<Dom<MessagePort>>>,
+    pending_connect: DomRefCell<Option<Dom<MessagePort>>>,
     #[no_trace]
     control_receiver: Receiver<SharedWorkerControlMsg>,
     debugger_global: Dom<DebuggerGlobalScope>,
@@ -217,7 +217,6 @@ impl SharedWorkerGlobalScope {
         debugger_global: &DebuggerGlobalScope,
     ) -> SharedWorkerGlobalScope {
         SharedWorkerGlobalScope {
-            // Step 9. Set worker global scope's type to options["type"].
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 init,
                 worker_name,
@@ -235,7 +234,7 @@ impl SharedWorkerGlobalScope {
             own_sender,
             worker: DomRefCell::new(Some(worker)),
             parent_event_loop_sender,
-            pending_connects: DomRefCell::new(vec![]),
+            pending_connect: DomRefCell::new(None),
             control_receiver,
             debugger_global: Dom::from_ref(debugger_global),
         }
@@ -380,7 +379,8 @@ impl SharedWorkerGlobalScope {
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
                 let worker_id = init.worker_id;
-                // Step 8. Set worker global scope's name to options["name"].
+                // Creating the worker global scope initializes its name (step 8)
+                // and, for shared workers, its type (step 10.3 of run a worker).
                 let global = SharedWorkerGlobalScope::new(
                     init,
                     worker_name.into(),
@@ -478,15 +478,10 @@ impl SharedWorkerGlobalScope {
         )
     }
 
+    /// Step 1.1 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn forward_simple_error_at_worker(&self) {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let worker = self.worker.borrow().clone().expect("worker must be set");
-
-        // If script is null or if script's error to rethrow is non-null, then:
-        // Queue a global task on the DOM manipulation task source given worker's
-        // relevant global object to fire an event named error at worker.
-        // Run the environment discarding steps for inside settings.
-        // Abort these steps.
         self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
@@ -497,6 +492,7 @@ impl SharedWorkerGlobalScope {
             .expect("Sending to parent failed");
     }
 
+    /// Step 11 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn enable_outside_port_message_queue(&self) {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let worker = self.worker.borrow().clone().expect("worker must be set");
@@ -532,11 +528,11 @@ impl SharedWorkerGlobalScope {
         inside_port
     }
 
+    // Step 13. Queue a global task to fire a connect event.
     fn dispatch_connect_event(&self, inside_port: &MessagePort) {
         let worker_global = Trusted::new(self);
         let inside_port = Trusted::new(inside_port);
 
-        // If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
         self.upcast::<GlobalScope>()
             .task_manager()
             .dom_manipulation_task_source()
@@ -574,14 +570,13 @@ impl SharedWorkerGlobalScope {
             }));
     }
 
-    pub(crate) fn fire_queued_connects(&self, _cx: &mut JSContext) {
-        let queue: Vec<DomRoot<MessagePort>> = self
-            .pending_connects
+    pub(crate) fn fire_pending_connect(&self, _cx: &mut JSContext) {
+        let inside_port = self
+            .pending_connect
             .borrow_mut()
-            .drain(..)
-            .map(|inside_port| inside_port.as_rooted())
-            .collect();
-        for inside_port in queue {
+            .take()
+            .map(|inside_port| inside_port.as_rooted());
+        if let Some(inside_port) = inside_port {
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
             }
@@ -599,13 +594,21 @@ impl SharedWorkerGlobalScope {
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
                     self.dispatch_connect_event(&inside_port);
                 } else {
-                    self.pending_connects
-                        .borrow_mut()
-                        .push(Dom::from_ref(&*inside_port));
+                    let mut pending_connect = self.pending_connect.borrow_mut();
+                    debug_assert!(
+                        pending_connect.is_none(),
+                        "SharedWorkerGlobalScope only expects one pre-ready connect in the current implementation"
+                    );
+                    pending_connect.replace(Dom::from_ref(&*inside_port));
                 }
             },
             SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(_)) => {
-                unreachable!("SharedWorkerGlobalScope does not support direct DOMMessage dispatch")
+                // SharedWorker messages arrive through the entangled MessagePort and are
+                // surfaced as connect/message events, not as direct WorkerScriptMsg::DOMMessage.
+                debug_assert!(
+                    false,
+                    "SharedWorkerGlobalScope does not support direct DOMMessage dispatch"
+                );
             },
             SharedWorkerScriptMsg::WakeUp => {},
         }

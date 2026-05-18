@@ -86,6 +86,7 @@ impl SharedWorker {
         worker.upcast().fire_event(cx, atom!("error"));
     }
 
+    /// Step 11 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn enable_outside_port_message_queue(
         address: TrustedSharedWorkerAddress,
         cx: &mut JSContext,
@@ -134,6 +135,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let credentials = worker_options.parent.credentials.convert();
 
         // Step 3. Let outsideSettings be this's relevant settings object.
+        // (outsideSettings is `global` throughout.)
 
         // Step 4. Let urlRecord be the result of encoding-parsing a URL given
         // compliantScriptURL, relative to outsideSettings.
@@ -168,6 +170,8 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
 
         // Step 11. Enqueue the following steps to the shared worker manager.
         // TODO Steps 12-16.
+        // Until then, SharedWorker construction always takes the fresh-worker
+        // branch below instead of reusing an existing SharedWorkerGlobalScope.
         // Step 17. Otherwise, in parallel, run a worker given worker, urlRecord,
         // outsideSettings, outsidePort, and options.
         let inside_port = MessagePort::new(global, CanGc::from_cx(cx));
@@ -243,6 +247,8 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             global.font_context().cloned(),
         );
 
+        // Implementation hook for onComplete step 13: the receiving side fires
+        // the connect event immediately, or defers it until execution-ready.
         sender
             .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
             .expect("SharedWorker failed to receive its initial connection");

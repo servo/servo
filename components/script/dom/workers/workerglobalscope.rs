@@ -632,8 +632,11 @@ impl WorkerGlobalScope {
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.fire_queued_messages(cx);
             } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
+                // Step 11. Enable outside port's port message queue.
                 shared.enable_outside_port_message_queue();
-                shared.fire_queued_connects(cx);
+                // Step 13. If the initial Connect arrived before execution-ready,
+                // queue the global task to fire its connect event now.
+                shared.fire_pending_connect(cx);
             }
         }
     }
