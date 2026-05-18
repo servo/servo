@@ -24,7 +24,6 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use paint_api::CrossProcessPaintApi;
-use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
@@ -241,8 +240,6 @@ pub struct DOMMessage {
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 #[derive(Deserialize, Serialize)]
 pub struct SWManagerSenders {
-    /// Sender of messages to the constellation.
-    pub swmanager_sender: GenericSender<SWManagerMsg>,
     /// [`ResourceThreads`] for initating fetches or using i/o.
     pub resource_threads: ResourceThreads,
     /// [`CrossProcessPaintApi`] for communicating with `Paint`.
@@ -262,6 +259,7 @@ pub enum ServiceWorkerMsg {
     Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, ServoUrl),
+    ForwardWorkerMessage { data: StructuredSerializedData, url: ServoUrl, source: ServiceWorkerId, origin: ImmutableOrigin },
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
     HandleAlgorithm(ServiceWorkerAlgorithm),
     /// Exit the service worker manager
@@ -333,15 +331,30 @@ pub enum ServiceWorkerAlgorithm {
     MatchServiceWorkerRegistration {
         storage_key: ImmutableOrigin,
         client_url: ServoUrl,
-        result_handler: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
+        result_handler: GenericCallback<ServiceWorkerAlgorithmResult>,
     },
 }
 
 /// <https://w3c.github.io/ServiceWorker/#algorithms>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ServiceWorkerAlgorithmResult {
+    /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise-algorithm>
+    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise-algorithm>
     Job(JobResult),
+
+    /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
     MatchServiceWorkerRegistration(Option<ServiceWorkerRegistrationInfo>),
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-client-postmessage-message-options>
+    /// Note: this is not algorithm; re-using algo channel for convenience.
+    MessageFromWorker {
+        message: StructuredSerializedData,
+        source: ServiceWorkerId,
+        scope_url: ServoUrl,
+        script_url: ServoUrl,
+        origin: ImmutableOrigin,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -354,7 +367,7 @@ pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
     pub script_url: ServoUrl,
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-client>
-    pub client: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
+    pub client: GenericCallback<ServiceWorkerAlgorithmResult>,
     /// <https://w3c.github.io/ServiceWorker/#job-referrer>
     pub referrer: ServoUrl,
     /// Various data needed to process job.
@@ -369,7 +382,7 @@ impl Job {
         job_type: JobType,
         scope_url: ServoUrl,
         script_url: ServoUrl,
-        client: ProfileGenericCallback<ServiceWorkerAlgorithmResult>,
+        client: GenericCallback<ServiceWorkerAlgorithmResult>,
         referrer: ServoUrl,
         scope_things: Option<ScopeThings>,
         storage_key: ImmutableOrigin,
@@ -402,15 +415,6 @@ impl PartialEq for Job {
             false
         }
     }
-}
-
-/// Messages outgoing from the Service Worker Manager thread to constellation
-#[derive(Debug, Deserialize, Serialize)]
-pub enum SWManagerMsg {
-    /// Placeholder to keep the enum,
-    /// as it will be needed when implementing
-    /// <https://github.com/servo/servo/issues/24660>
-    PostMessageToClient,
 }
 
 /// Used to determine if a script has any pending asynchronous activity.

@@ -8,10 +8,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use profile_traits::generic_callback::GenericCallback;
 use script_bindings::cell::DomRefCell;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
+use servo_base::generic_channel::GenericCallback;
 use servo_constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
     ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerRegistrationInfo,
@@ -25,11 +27,13 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::types::MessageEvent;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
@@ -153,16 +157,66 @@ impl ServiceWorkerContainer {
     }
 
     fn handle_algorithm_result(&self, cx: &mut JSContext, result: ServiceWorkerAlgorithmResult) {
-        let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
-            debug_assert!(false, "No pending algorithm result.");
-            return;
-        };
         match result {
             ServiceWorkerAlgorithmResult::Job(job_result) => {
+                let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending algorithm result.");
+                    return;
+                };
                 self.handle_job_result(cx, job_result, promise);
             },
             ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(registration_info) => {
+                let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending algorithm result.");
+                    return;
+                };
                 self.handle_match_registration_result(cx, registration_info, promise);
+            },
+            ServiceWorkerAlgorithmResult::MessageFromWorker {
+                message,
+                source,
+                scope_url,
+                script_url,
+                origin,
+            } => {
+                // <https://w3c.github.io/ServiceWorker/#dom-client-postmessage-message-options>
+                // Add a task that runs the following steps to destination’s client message queue:
+                // Note: we are in the task.
+                // Step 4.5.2: Let source be the result of getting the service worker object
+                // that represents contextObject’s relevant global object’s service worker in targetClient.
+                let global = self.global();
+                
+                // Note: spec uses a MesssageEvent, so it's unclear what to do with source. 
+                // Perhaps an ExtendableMessageEvent should be used instead.
+                // See https://github.com/w3c/ServiceWorker/issues/1823
+                let _source =
+                    global.get_serviceworker(&script_url, &scope_url, source, CanGc::from_cx(cx));
+
+                // Step 4.5.4: Let messageClone be deserializeRecord.[[Deserialized]].
+                // Step 4.5.5: Let newPorts be a new frozen array consisting of all MessagePort objects
+                // in deserializeRecord.[[TransferredValues]], if any.
+                rooted!(&in(cx) let mut message_val = UndefinedValue());
+                if let Ok(ports) = structuredclone::read(
+                    &global,
+                    message,
+                    message_val.handle_mut(),
+                    CanGc::from_cx(cx),
+                ) {
+                    // Step 4.5.6: Dispatch an event named message at destination, using MessageEvent, with its origin initialized to origin,
+                    // the source attribute initialized to source,
+                    // the data attribute initialized to messageClone, and the ports attribute initialized to newPorts.
+                    MessageEvent::dispatch_jsval(
+                        self.upcast(),
+                        &global,
+                        message_val.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        ports,
+                        CanGc::from_cx(cx),
+                    );
+                } else {
+                    error!("Failed to deserialize message ports in message from service worker.");
+                }
             },
         }
     }
@@ -186,7 +240,7 @@ impl ServiceWorkerContainer {
             .task_manager()
             .database_access_task_source()
             .to_sendable();
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+        let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
             let response = match message {
                 Ok(inner) => inner,
