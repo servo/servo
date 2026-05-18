@@ -411,7 +411,14 @@ impl HoistedAbsolutelyPositionedBox {
         containing_block: &DefiniteContainingBlock,
         containing_block_padding: PhysicalSides<Au>,
     ) {
-        if layout_context.use_rayon {
+        let job_sizes = boxes.iter().map(|hoisted_box| {
+            hoisted_box
+                .absolutely_positioned_box
+                .borrow()
+                .context
+                .subtree_size()
+        });
+        if layout_context.should_parallelize_layout(job_sizes) {
             let mut new_fragments = Vec::new();
             let mut new_hoisted_boxes = Vec::new();
 

@@ -4,7 +4,7 @@
 
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -56,6 +56,10 @@ pub(crate) struct LayoutBoxBase {
     /// layout, but cannot be reused directly.
     cached_layout_result_dirty: AtomicBool,
 
+    /// A count of the number of boxes are in this box's subtree (including itself).
+    /// This is used as a heuristic to know when to perform parallel layout.
+    subtree_size: AtomicUsize,
+
     pub fragments: AtomicRefCell<Vec<Fragment>>,
     pub parent_box: Option<WeakLayoutBox>,
     only_descendants_changed: AtomicBool,
@@ -73,10 +77,21 @@ impl LayoutBoxBase {
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
             cached_layout_result: AtomicRefCell::default(),
             cached_layout_result_dirty: AtomicBool::default(),
+            subtree_size: AtomicUsize::default(),
             fragments: AtomicRefCell::default(),
             parent_box: None,
             only_descendants_changed: AtomicBool::default(),
         }
+    }
+
+    /// Set the subtree size on this [`LayoutBoxBase`]. This should be done once
+    /// box construction knows how many boxes are in this box's subtree.
+    pub(crate) fn set_subtree_size(&self, size: usize) {
+        self.subtree_size.store(size, Ordering::Relaxed);
+    }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.subtree_size.load(Ordering::Relaxed)
     }
 
     /// Get the inline content sizes of a box tree node that extends this [`LayoutBoxBase`], fetch

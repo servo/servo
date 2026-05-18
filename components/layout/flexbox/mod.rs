@@ -148,6 +148,13 @@ impl FlexContainer {
         self.config = FlexContainerConfig::new(new_style);
         self.style = new_style.clone();
     }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.children
+            .iter()
+            .map(|child| child.borrow().with_base(|base| base.subtree_size()))
+            .sum()
+    }
 }
 
 #[expect(clippy::large_enum_variant)]
