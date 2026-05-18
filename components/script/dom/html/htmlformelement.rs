@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::cell::Cell;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -14,7 +14,6 @@ use http::Method;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
@@ -1982,92 +1981,102 @@ pub(crate) fn encode_multipart_form_data(
 ) -> Vec<u8> {
     let mut result = vec![];
 
-    // For field names and filenames for file fields, the result
+    /// Step 2.3: Encode a string with the form's encoding.
+    /// <https://encoding.spec.whatwg.org/#encode>
+    /// Characters that can't be encoded in the given charset
+    /// are replaced with NCRs (e.g. 😂 → &#128514;).
+    fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
+        encoding.encode(input).0
+    }
+
+    // Step 2.4: For field names and filenames for file fields, the result
     // of the encoding must be escaped by replacing:
     //   0x0A (LF) bytes with `%0A`,
     //   0x0D (CR) bytes with `%0D`,
     //   0x22 (") bytes with `%22`.
     // The user agent must not perform any other escapes.
-    fn escape_for_header(s: &DOMString) -> String {
-        s.str()
-            .replace('\n', "%0A")
-            .replace('\r', "%0D")
-            .replace('"', "%22")
+    fn escape_header_bytes(input: &[u8]) -> Vec<u8> {
+        let mut output = Vec::with_capacity(input.len());
+        for &b in input {
+            match b {
+                b'\n' => output.extend_from_slice(b"%0A"),
+                b'\r' => output.extend_from_slice(b"%0D"),
+                b'"' => output.extend_from_slice(b"%22"),
+                _ => output.push(b),
+            }
+        }
+        output
     }
 
     for entry in form_data.iter_mut() {
-        // Step 1.1: Perform newline replacement on entry's name
+        // Step 1.1: Replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+        // and every occurrence of U+000A (LF) not preceded by U+000D (CR),
+        // in entry's name, by a string consisting of a U+000D (CR) and U+000A (LF).
         entry.name = entry.name.normalize_crlf().into();
 
-        // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
-        // value
+        // Step 1.2: If entry's value is not a File object,
+        // then replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+        // and every occurrence of U+000A (LF) not preceded by U+000D (CR), in entry's value,
+        // by a string consisting of a U+000D (CR) and U+000A (LF).
         if let FormDatumValue::String(ref s) = entry.value {
             entry.value = FormDatumValue::String(s.normalize_crlf().into());
         }
 
-        // Step 2: Return the byte sequence resulting from encoding the entry list.
-        // https://tools.ietf.org/html/rfc7578#section-4
-        // NOTE(izgzhen): The encoding here expected by most servers seems different from
-        // what spec says (that it should start with a '\r\n').
+        // Step 2.6: Boundary string
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
 
-        let escaped_name = escape_for_header(&entry.name);
+        // Step 2.3: Encode name with the form's encoding
+        let name_str = &*entry.name.str();
+        let encoded_name = encode_with_html_fallback(name_str, encoding);
+        // Step 2.4: Escape name for header
+        let escaped_name = escape_header_bytes(&encoded_name);
 
-        // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
-        // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
-                // Step 2.4
-                let content_disposition = format!("form-data; name=\"{}\"", escaped_name);
-                let mut bytes =
-                    format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
-                        .into_bytes();
-                result.append(&mut bytes);
+                // Step 2.3: Encode value with the form's encoding
+                let value_str = &*s.str();
+                let encoded_value = encode_with_html_fallback(value_str, encoding);
+
+                // Step 2.5: Non-file fields must not have `Content-Type` header specified
+                result.extend_from_slice(b"Content-Disposition: form-data; name=\"");
+                result.extend_from_slice(&escaped_name);
+                result.extend_from_slice(b"\"\r\n\r\n");
+                result.extend_from_slice(&encoded_value);
+                result.extend_from_slice(b"\r\n");
             },
             FormDatumValue::File(ref f) => {
-                let charset = encoding.name();
-                // Step 2.4
-                // For field names and filenames for file fields, the result
-                // of the encoding must be escaped by replacing:
-                //   0x0A (LF) bytes with `%0A`,
-                //   0x0D (CR) bytes with `%0D`,
-                //   0x22 (") bytes with `%22`.
-                // The user agent must not perform any other escapes.
-                let extra = if charset.to_lowercase() == "utf-8" {
-                    let escaped = escape_for_header(f.name());
-                    format!("filename=\"{}\"", escaped)
-                } else {
-                    format!(
-                        "filename*=\"{}\"''{}",
-                        charset,
-                        http_percent_encode(&f.name().as_bytes())
-                    )
-                };
+                // Step 2.3: Encode filename with the form's encoding
+                let filename_str = &*f.name().str();
+                let encoded_filename = encode_with_html_fallback(filename_str, encoding);
+                // Step 2.4: Escape filename for header
+                let escaped_filename = escape_header_bytes(&encoded_filename);
 
-                let content_disposition =
-                    format!("form-data; name=\"{}\"; {}", escaped_name, extra);
+                result.extend_from_slice(b"Content-Disposition: form-data; name=\"");
+                result.extend_from_slice(&escaped_name);
+                result.extend_from_slice(b"\"; filename=\"");
+                result.extend_from_slice(&escaped_filename);
+
                 // https://tools.ietf.org/html/rfc7578#section-4.4
+                result.extend_from_slice(b"\"\r\nContent-Type: ");
+
                 let content_type: Mime = f
                     .upcast::<Blob>()
                     .Type()
                     .parse()
                     .unwrap_or(mime::TEXT_PLAIN);
-                let mut type_bytes = format!(
-                    "Content-Disposition: {}\r\nContent-Type: {}\r\n\r\n",
-                    content_disposition, content_type
-                )
-                .into_bytes();
-                result.append(&mut type_bytes);
+                result.extend_from_slice(content_type.as_ref().as_bytes());
+                result.extend_from_slice(b"\r\n\r\n");
 
-                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
+                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or_else(|_| vec![]);
 
                 result.append(&mut bytes);
-                result.extend(b"\r\n");
+                result.extend_from_slice(b"\r\n");
             },
         }
     }
 
+    // Step 2.6: Closing boundary string
     let mut boundary_bytes = format!("--{boundary}--\r\n").into_bytes();
     result.append(&mut boundary_bytes);
 
