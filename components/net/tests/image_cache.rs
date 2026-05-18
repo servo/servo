@@ -681,7 +681,15 @@ fn test_svg_rasterization_do_not_double_rasterize() {
 
     let size = webrender_api::units::DeviceIntSize::new(100, 100);
     // Because we do not set image keys yet, the rasterization
-    assert_eq!(cache.rasterize_vector_image(vec_img.id, size, None), None);
-    assert_eq!(cache.rasterize_vector_image(vec_img.id, size, None), None);
+    assert!(
+        cache
+            .rasterize_vector_image(vec_img.id, size, None)
+            .is_none()
+    );
+    assert!(
+        cache
+            .rasterize_vector_image(vec_img.id, size, None)
+            .is_none()
+    );
     assert_eq!(cache.number_of_rasterize_tasks(), 1);
 }
