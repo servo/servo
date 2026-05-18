@@ -7,8 +7,9 @@ Test that enabling texture-formats-tier2 also enables rg11b10ufloat-renderable a
 
 Tests that abilities enabled by 'texture-formats-tier2' correctly generate validation errors
 when the feature is not enabled. This includes:
-- read-write stoorage access formats gaining this capability.
+- read-write storage access formats gaining this capability.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
+import { hasFeature } from '../../../../../common/util/util.js';
 import { kTextureFormatsTier2EnablesStorageReadWrite } from '../../../../format_info.js';
 import { UniqueFeaturesOrLimitsGPUTest } from '../../../../gpu_test.js';
 import * as vtu from '../../validation_test_utils.js';
@@ -23,8 +24,8 @@ desc(
 ).
 beforeAllSubcases((t) => t.selectDeviceOrSkipTestCase('texture-formats-tier2')).
 fn((t) => {
-  t.expect(() => t.device.features.has('rg11b10ufloat-renderable'));
-  t.expect(() => t.device.features.has('texture-formats-tier1'));
+  t.expect(() => hasFeature(t.device.features, 'rg11b10ufloat-renderable'));
+  t.expect(() => hasFeature(t.device.features, 'texture-formats-tier1'));
 });
 
 g.test('bind_group_layout,storage_binding_read_write_access').

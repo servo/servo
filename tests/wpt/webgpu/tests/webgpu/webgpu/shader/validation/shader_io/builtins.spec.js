@@ -2,11 +2,21 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `Validation tests for entry point built-in variables`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
+
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
 import { generateShader } from './util.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
+
+
+
+
+
+
+
+
+
 
 // List of all built-in variables and their stage, in|out usage, and type.
 // Taken from table in Section 15:
@@ -26,19 +36,103 @@ export const kBuiltins = [
 { name: 'sample_index', stage: 'fragment', io: 'in', type: 'u32' },
 { name: 'sample_mask', stage: 'fragment', io: 'in', type: 'u32' },
 { name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' },
-{ name: 'subgroup_invocation_id', stage: 'compute', io: 'in', type: 'u32' },
-{ name: 'subgroup_size', stage: 'compute', io: 'in', type: 'u32' },
-{ name: 'subgroup_invocation_id', stage: 'fragment', io: 'in', type: 'u32' },
-{ name: 'subgroup_size', stage: 'fragment', io: 'in', type: 'u32' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,1>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,2>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,3>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,4>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,5>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,6>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,7>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,8>' },
-{ name: 'primitive_id', stage: 'fragment', io: 'in', type: 'u32' }];
+{ name: 'subgroup_invocation_id', stage: 'compute', io: 'in', type: 'u32', enable: 'subgroups' },
+{ name: 'subgroup_size', stage: 'compute', io: 'in', type: 'u32', enable: 'subgroups' },
+{ name: 'subgroup_invocation_id', stage: 'fragment', io: 'in', type: 'u32', enable: 'subgroups' },
+{ name: 'subgroup_size', stage: 'fragment', io: 'in', type: 'u32', enable: 'subgroups' },
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,1>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,2>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,3>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,4>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,5>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,6>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,7>',
+  enable: 'clip_distances'
+},
+{
+  name: 'clip_distances',
+  stage: 'vertex',
+  io: 'out',
+  type: 'array<f32,8>',
+  enable: 'clip_distances'
+},
+{
+  name: 'primitive_id',
+  stage: 'fragment',
+  io: 'in',
+  type: 'u32',
+  enable: 'chromium_experimental_primitive_id'
+},
+{
+  name: 'subgroup_id',
+  stage: 'compute',
+  io: 'in',
+  type: 'u32',
+  enable: 'subgroups',
+  requires: 'subgroup_id'
+},
+{
+  name: 'num_subgroups',
+  stage: 'compute',
+  io: 'in',
+  type: 'u32',
+  enable: 'subgroups',
+  requires: 'subgroup_id'
+},
+{
+  name: 'workgroup_index',
+  stage: 'compute',
+  io: 'in',
+  type: 'u32',
+  requires: 'linear_indexing'
+},
+{
+  name: 'global_invocation_index',
+  stage: 'compute',
+  io: 'in',
+  type: 'u32',
+  requires: 'linear_indexing'
+}];
 
 
 // List of types to test against.
@@ -116,7 +210,8 @@ fn((t) => {
     type: t.params.type,
     stage: t.params.target_stage,
     io: t.params.target_io,
-    use_struct: t.params.use_struct
+    use_struct: t.params.use_struct,
+    enable: t.params.enable
   });
 
   // Expect to pass iff the built-in table contains an entry that matches.
@@ -126,7 +221,8 @@ fn((t) => {
     x.stage === t.params.target_stage ||
     t.params.use_struct && t.params.target_stage === '') && (
     x.io === t.params.target_io || t.params.target_stage === '') &&
-    x.type === t.params.type
+    x.type === t.params.type && (
+    x.requires === undefined || t.hasLanguageFeature(x.requires))
   );
   t.expectCompileResult(expectation, code);
 });
@@ -170,7 +266,8 @@ fn((t) => {
     type: t.params.target_type,
     stage: t.params.stage,
     io: t.params.io,
-    use_struct: t.params.use_struct
+    use_struct: t.params.use_struct,
+    enable: t.params.enable
   });
 
   // Expect to pass iff the built-in table contains an entry that matches.
@@ -179,7 +276,8 @@ fn((t) => {
     x.name === t.params.name &&
     x.stage === t.params.stage &&
     x.io === t.params.io &&
-    x.type === t.params.target_type
+    x.type === t.params.target_type && (
+    x.requires === undefined || t.hasLanguageFeature(x.requires))
   );
   t.expectCompileResult(expectation, code);
 });
@@ -321,28 +419,10 @@ desc(`Test that a builtin name can be used in different contexts`).
 params((u) =>
 u.
 combineWithParams(kBuiltins).
-combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var']).
-combine('enable_extension', [true, false]).
-unless(
-  (t) => t.enable_extension && !(t.name.includes('subgroup') || t.name === 'clip_distances')
-)
+combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var'])
 ).
-beforeAllSubcases((t) => {
-  if (!t.params.enable_extension) {
-    return;
-  }
-}).
 fn((t) => {
   let code = '';
-  if (t.params.enable_extension) {
-    if (t.params.name.includes('subgroups')) {
-      code += 'enable subgroup;\n';
-    } else if (t.params.name === 'clip_distances') {
-      code += 'enable clip_distances;\n';
-    } else if (t.params.name === 'primitive_id') {
-      code += 'enable chromium_experimental_primitive_id;\n';
-    }
-  }
   if (t.params.use === 'alias') {
     code += `alias ${t.params.name} = i32;`;
   } else if (t.params.use === `struct`) {

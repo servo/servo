@@ -10,8 +10,15 @@ Returns the nearest whole number whose absolute value is less than or equal to e
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
-import { Type } from '../../../../../util/conversion.js';
-import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
+import { kValue } from '../../../../../util/constants.js';
+import { Type, f32, f16 } from '../../../../../util/conversion.js';
+import { FP } from '../../../../../util/floating_point.js';
+import {
+  allInputSources,
+  onlyConstInputSource,
+  run,
+  basicExpressionBuilder } from
+'../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './trunc.cache.js';
@@ -59,4 +66,40 @@ fn(async (t) => {
   t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, builtin('trunc'), [Type.f16], Type.f16, t.params, cases);
+});
+
+g.test('subnormal_division').
+specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
+desc(`truncate subnormals made even smaller to zero`).
+params((u) => u.combine('inputSource', allInputSources).combine('type', ['f32', 'f16'])).
+fn(async (t) => {
+  const type = t.params.type;
+  if (type === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
+  const trait = FP[type];
+  const scalarBuilder = type === 'f32' ? f32 : f16;
+  const constant = kValue[type];
+  const cases = [
+  // Smallest subnormals (closest to zero)
+  {
+    input: [scalarBuilder(constant.negative.subnormal.max)],
+    expected: trait.toInterval(constant.negative.zero)
+  },
+  {
+    input: [scalarBuilder(constant.positive.subnormal.min)],
+    expected: trait.toInterval(constant.positive.zero)
+  }];
+
+
+  await run(
+    t,
+    // Divided by 10.0 to make subnormal even smaller and unrepresentable as subnormal, should truncate to zero
+    basicExpressionBuilder((values) => `trunc(${values[0]} / 10.0)`),
+    [Type[type]],
+    Type[type],
+    t.params,
+    cases
+  );
 });

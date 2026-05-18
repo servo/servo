@@ -5,6 +5,7 @@ Tests for texture_utils.ts
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { assert } from '../../../../../../common/util/util.js';
 import {
+  getTextureFormatType,
   isTextureFormatPossiblyMultisampled,
   kDepthStencilFormats } from
 '../../../../../format_info.js';
@@ -107,7 +108,12 @@ fn(async (t) => {
     dimension: getTextureDimensionFromView(viewDimension),
     size,
     mipLevelCount: viewDimension === '1d' || sampleCount > 1 ? 1 : 3,
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    usage:
+    sampleCount > 1 ?
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.RENDER_ATTACHMENT :
+    GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
     sampleCount,
     ...(t.isCompatibility && { textureBindingViewDimension: viewDimension })
   };
@@ -118,6 +124,16 @@ fn(async (t) => {
   const actualTexelViews = await readTextureToTexelViews(t, texture, descriptor, texelViewFormat);
 
   assert(actualTexelViews.length === expectedTexelViews.length, 'num mip levels match');
+
+  const type = getTextureFormatType(srcFormat, 'all');
+  const textureType =
+  type === 'depth' ?
+  'texture_depth_2d' :
+  type === 'uint' ?
+  'texture_2d<u32>' :
+  type === 'sint' ?
+  'texture_2d<i32>' :
+  'texture_2d<f32>';
 
   const errors = [];
   for (let mipLevel = 0; mipLevel < actualTexelViews.length; ++mipLevel) {
@@ -150,6 +166,9 @@ fn(async (t) => {
             const maxFractionalDiff = 0;
             if (
             !texelsApproximatelyEqual(
+              t.device,
+              'textureLoad',
+              textureType,
               actualRGBA,
               actualMipLevelTexelView.format,
               expectedRGBA,

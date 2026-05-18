@@ -510,7 +510,7 @@ fn((t) => {
   const { format, access } = t.params;
   t.skipIfTextureFormatNotSupported(format);
 
-  const success = isTextureFormatUsableWithStorageAccessMode(t.device, format, access);
+  const success = isTextureFormatUsableWithStorageAccessMode(t.device.features, format, access);
 
   t.expectValidationError(() => {
     t.device.createBindGroupLayout({

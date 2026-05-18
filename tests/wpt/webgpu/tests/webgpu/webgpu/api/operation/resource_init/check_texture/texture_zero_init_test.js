@@ -403,7 +403,7 @@ export class TextureZeroInitTest extends AllFeaturesMaxLimitsGPUTest {
       // Use a storeOp for now.
       if (isColorTextureFormat(this.p.format)) {
         assert(
-          isTextureFormatColorRenderable(this.device, this.p.format),
+          isTextureFormatColorRenderable(this.device.features, this.p.format),
           'not implemented for non-renderable color'
         );
       }

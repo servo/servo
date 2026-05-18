@@ -123,7 +123,14 @@ combine('usage1', kTextureUsages)
   ({ usage0, usage1, dimension }) =>
   ((usage0 | usage1) & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 && (
   dimension === '1d' || dimension === '3d')
-)
+).
+unless(({ usage0, usage1 }) => {
+  // TRANSIENT_ATTACHMENT is only valid when combined with RENDER_ATTACHMENT.
+  return (
+    usage0 === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT ||
+    usage1 === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT);
+
+})
 ).
 fn((t) => {
   const { usage0, usage1, method, size, dimension } = t.params;

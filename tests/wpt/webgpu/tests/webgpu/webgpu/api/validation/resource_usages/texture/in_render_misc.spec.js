@@ -5,6 +5,7 @@ Texture Usages Validation Tests on All Kinds of WebGPU Subresource Usage Scopes.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
+import { GPUConst } from '../../../../constants.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import * as vtu from '../../validation_test_utils.js';
 import {
@@ -613,7 +614,11 @@ desc(
 params((u) =>
 u.
 combine('bindingType', ['color-attachment', ...kTextureBindingTypes]).
-combine('viewUsage', [0, ...kTextureUsages])
+combine('viewUsage', [0, ...kTextureUsages]).
+unless(({ viewUsage }) => {
+  // TRANSIENT_ATTACHMENT is only valid when combined with RENDER_ATTACHMENT.
+  return viewUsage === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT;
+})
 ).
 fn((t) => {
   const { bindingType, viewUsage } = t.params;

@@ -162,7 +162,7 @@ const kWorkgroupSizeTests = {
   },
 
   override_expr: {
-    src: `override a = 5;
+    src: `override a = 3;
     override b = 6;
     @workgroup_size(a, b, a + b)`,
     pass: true,

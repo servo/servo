@@ -49,7 +49,7 @@ class FilterModeTest extends AllFeaturesMaxLimitsGPUTest {
   instanceCount)
   {
     let renderTargetFormat = format;
-    if (!isTextureFormatColorRenderable(this.device, format)) {
+    if (!isTextureFormatColorRenderable(this.device.features, format)) {
       // If the format is not renderable, we use rgba32float as the render target format
       // to verify the result, which is always renderable.
       renderTargetFormat = 'rgba32float';
@@ -953,7 +953,7 @@ fn((t) => {
   t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureFormatNotFilterable(format);
   let renderTargetFormat = format;
-  if (!isTextureFormatColorRenderable(t.device, format)) {
+  if (!isTextureFormatColorRenderable(t.device.features, format)) {
     // If the format is not renderable, we use rgba32float as the render target format
     // to verify the result, which is always renderable.
     renderTargetFormat = 'rgba32float';

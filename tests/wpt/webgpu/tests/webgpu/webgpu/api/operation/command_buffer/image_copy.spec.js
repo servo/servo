@@ -32,6 +32,9 @@ Note: more coverage of memory synchronization for different read and write textu
   - Convert the float32 values in initialData into the ones compatible to the depth aspect of
     depthFormats when depth16unorm is supported by the browsers in
     DoCopyTextureToBufferWithDepthAspectTest().
+  - add more cases for textureBindingViewDimension: 'cube'
+    - test compressed textures
+    - test more cases in general - refactor tests generate 'cube' compatible texture sizes.
 
 TODO: Expand tests of GPUExtent3D [1]
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
@@ -76,6 +79,7 @@ import {
 '../../../util/texture/layout.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 import { findFailedPixels } from '../../../util/texture/texture_ok.js';
+import { reifyExtent3D } from '../../../util/unions.js';
 
 
 
@@ -126,6 +130,21 @@ const kMethodsToTest = [
 
 const dataGenerator = new DataArrayGenerator();
 const altDataGenerator = new DataArrayGenerator();
+
+// If a texture could be textureBindingViewDimension: 'cube' then set it to 'cube'
+function applyTextureBindingViewDimensionForTest(descriptor) {
+  const size = reifyExtent3D(descriptor.size);
+  if (
+  descriptor.textureBindingViewDimension === undefined &&
+  descriptor.dimension === '2d' &&
+  size.width === size.height &&
+  size.depthOrArrayLayers === 6 &&
+  !isCompressedTextureFormat(descriptor.format))
+  {
+    descriptor.textureBindingViewDimension = 'cube';
+  }
+  return descriptor;
+}
 
 class ImageCopyTest extends AllFeaturesMaxLimitsGPUTest {
   /**
@@ -648,13 +667,16 @@ class ImageCopyTest extends AllFeaturesMaxLimitsGPUTest {
 
 
   }) {
-    const texture = this.createTextureTracked({
-      size: textureSize,
-      format,
-      dimension,
-      mipLevelCount: mipLevel + 1,
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    });
+    const texture = this.createTextureTracked(
+      applyTextureBindingViewDimensionForTest({
+        size: textureSize,
+        format,
+        dimension,
+        mipLevelCount: mipLevel + 1,
+        usage:
+        GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+      })
+    );
 
     const data = dataGenerator.generateView(dataSize);
 
@@ -1185,8 +1207,14 @@ const kRowsPerImageAndBytesPerRowParams = {
   //         bytesPerRow = 256 = 8 * 32 = bytesInACompleteCopyImage.
   { copyWidthInBlocks: 5, copyHeightInBlocks: 4, copyDepth: 1 }, // copyDepth = 1
 
-  { copyWidthInBlocks: 7, copyHeightInBlocks: 1, copyDepth: 1 } // copyHeight = 1 and copyDepth = 1
-  ],
+  { copyWidthInBlocks: 7, copyHeightInBlocks: 1, copyDepth: 1 }, // copyHeight = 1 and copyDepth = 1
+
+  // These 2 cases are for textureBindingViewDimension: 'cube'
+  // Note: this is indirect. The fact that the copyWidthInBlocks and copyHeightInBlocks
+  // are equal makes it possible to use as a cube
+  { copyWidthInBlocks: 3, copyHeightInBlocks: 3, copyDepth: 1 },
+  { copyWidthInBlocks: 4, copyHeightInBlocks: 4, copyDepth: 6 }],
+
 
   // Copy sizes that are suitable for 1D texture and check both some copy sizes and empty copies.
   copySizes1D: [
@@ -1276,7 +1304,7 @@ fn((t) => {
     textureSize: [
     Math.max(copyWidth, info.blockWidth),
     Math.max(copyHeight, info.blockHeight),
-    Math.max(copyDepth, 1)]
+    Math.max(copyDepth, dimension === '2d' ? 6 : 1)]
     /* making sure the texture is non-empty */,
     format,
     dimension,
@@ -1299,7 +1327,7 @@ const kOffsetsAndSizesParams = {
   { offsetInBlocks: 0, dataPaddingInBytes: 1 }, // dataPaddingInBytes > 0
   { offsetInBlocks: 1, dataPaddingInBytes: 8 } // offset > 0 and dataPaddingInBytes > 0
   ],
-  copyDepth: [1, 2]
+  copyDepth: [1, 2, 6] // 6 is for textureBindingViewDimension: 'cube'
 };
 
 g.test('offsets_and_sizes').
@@ -1433,9 +1461,9 @@ filter(({ dimension, format }) =>
 textureFormatAndDimensionPossiblyCompatible(dimension, format)
 ).
 beginSubcases().
-combine('originValueInBlocks', [0, 7, 8]).
-combine('copySizeValueInBlocks', [0, 7, 8]).
-combine('textureSizePaddingValueInBlocks', [0, 7, 8]).
+combine('originValueInBlocks', [0, 6, 7, 8]) // the 6 is needed for textureBindingViewDimension: 'cube'
+.combine('copySizeValueInBlocks', [0, 6, 7, 8]) // the 6 is needed for textureBindingViewDimension: 'cube'
+.combine('textureSizePaddingValueInBlocks', [0, 7, 8]).
 unless(
   (p) =>
   // we can't create an empty texture
@@ -1638,6 +1666,13 @@ combineWithParams([
   copySizeInBlocks: { width: 5, height: 4, depthOrArrayLayers: 2 },
   originInBlocks: { x: 3, y: 2, z: 1 },
   _mipSizeInBlocks: { width: 9, height: 7, depthOrArrayLayers: 4 },
+  mipLevel: 4
+},
+// width === height and depthOrArrayLayers = 6 for textureBindingViewDimension: 'cube'
+{
+  copySizeInBlocks: { width: 5, height: 4, depthOrArrayLayers: 2 },
+  originInBlocks: { x: 3, y: 2, z: 1 },
+  _mipSizeInBlocks: { width: 9, height: 9, depthOrArrayLayers: 6 },
   mipLevel: 4
 }]
 ).
