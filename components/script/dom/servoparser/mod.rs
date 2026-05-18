@@ -1245,7 +1245,7 @@ impl ParserContext {
     }
 
     /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-    fn submit_resource_timing(&mut self, cx: &mut JSContext) {
+    fn submit_or_update_resource_timing(&mut self, cx: &mut JSContext) {
         let Some(parser) = self.parser.as_ref() else {
             return;
         };
@@ -1256,11 +1256,22 @@ impl ParserContext {
 
         let document = &parser.document;
 
-        let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
-        self.pushed_entry_index = document
-            .global()
-            .performance(cx)
-            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+        let global = document.global();
+        let performance_entry = PerformanceNavigationTiming::new(cx, &global, document);
+        if let Some(pushed_index) = self.pushed_entry_index {
+            global
+                .performance(cx)
+                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        } else {
+            self.pushed_entry_index = global
+                .performance(cx)
+                .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+            if let Some(index) = self.pushed_entry_index &&
+                document.is_initial_about_blank()
+            {
+                global.as_window().set_about_blank_performance_entry(index);
+            }
+        }
     }
 }
 
@@ -1419,7 +1430,10 @@ impl FetchResponseListener for ParserContext {
             about_base_url: document.about_base_url(),
             resource_header: vec![],
         };
-        self.submit_resource_timing(cx);
+        if let Some(index) = document.window().about_blank_performance_entry() {
+            self.pushed_entry_index = Some(index);
+        }
+        self.submit_or_update_resource_timing(cx);
 
         // Part of https://html.spec.whatwg.org/multipage/#loading-a-document
         //
@@ -1551,16 +1565,7 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync(cx);
         }
 
-        // TODO: Only update if this is the current document resource.
-        if let Some(pushed_index) = self.pushed_entry_index {
-            let document = &parser.document;
-            let performance_entry =
-                PerformanceNavigationTiming::new(cx, &document.global(), document);
-            document
-                .global()
-                .performance(cx)
-                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
-        }
+        self.submit_or_update_resource_timing(cx);
     }
 
     fn process_csp_violations(&mut self, _: &mut JSContext, _: RequestId, _: Vec<Violation>) {

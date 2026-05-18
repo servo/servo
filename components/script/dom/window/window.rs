@@ -497,9 +497,20 @@ pub(crate) struct Window {
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the window.
     devtools_wants_updates: Cell<bool>,
+
+    about_blank_performance_entry: Cell<Option<usize>>,
 }
 
 impl Window {
+    pub(crate) fn set_about_blank_performance_entry(&self, index: usize) {
+        debug_assert!(self.about_blank_performance_entry.get().is_none());
+        self.about_blank_performance_entry.set(Some(index));
+    }
+
+    pub(crate) fn about_blank_performance_entry(&self) -> Option<usize> {
+        self.about_blank_performance_entry.get()
+    }
+
     pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
         Weak::upgrade(&self.weak_script_thread)
             .expect("Weak reference should always be upgradable when a ScriptThread is running")
@@ -3982,6 +3993,7 @@ impl Window {
             pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
+            about_blank_performance_entry: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)

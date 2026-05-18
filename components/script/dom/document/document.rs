@@ -6459,7 +6459,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
-        self.window().set_navigation_start(CrossProcessInstant::now());
+        self.window()
+            .set_navigation_start(CrossProcessInstant::now());
 
         // Step 8. If document's node navigable is non-null and document's node navigable's
         // ongoing navigation is a navigation ID, then stop loading document's node navigable.
