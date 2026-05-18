@@ -5,6 +5,7 @@
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
 use html5ever::local_name;
+use js::context::JSContext;
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
@@ -387,6 +388,7 @@ pub(crate) fn get_element_target(
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
 pub(crate) fn follow_hyperlink(
+    cx: &mut JSContext,
     subject: &Element,
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
@@ -435,7 +437,7 @@ pub(crate) fn follow_hyperlink(
     let source = document.browsing_context().unwrap();
     let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
-            let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
+            let (maybe_chosen, new) = source.choose_browsing_context(cx, name, noopener);
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace
             } else {

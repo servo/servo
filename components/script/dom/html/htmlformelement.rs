@@ -874,7 +874,7 @@ impl HTMLFormElement {
         // form's node navigable, and noopener.
         let source = doc.browsing_context().unwrap();
         let (maybe_chosen, _new) =
-            source.choose_browsing_context(target.unwrap_or_default(), noopener);
+            source.choose_browsing_context(cx, target.unwrap_or_default(), noopener);
 
         let Some(chosen) = maybe_chosen else {
             // Step 23. If targetNavigable is null, then return.

@@ -298,6 +298,7 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context>
     fn create_auxiliary_browsing_context(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
@@ -376,7 +377,7 @@ impl WindowProxy {
         };
 
         with_script_thread(|script_thread| {
-            script_thread.spawn_pipeline(new_pipeline_info);
+            script_thread.spawn_pipeline(cx, new_pipeline_info);
         });
 
         let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
@@ -529,7 +530,7 @@ impl WindowProxy {
         // Let targetNavigable and windowType be the result of applying the rules for
         // choosing a navigable given target, sourceDocument's node navigable, and noopener.
         // If targetNavigable is null, then return null.
-        let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
+        let (chosen, new) = match self.choose_browsing_context(cx, non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
             (None, _) => return Ok(None),
         };
@@ -618,6 +619,7 @@ impl WindowProxy {
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
     pub(crate) fn choose_browsing_context(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         noopener: bool,
     ) -> (Option<DomRoot<WindowProxy>>, bool) {
@@ -637,7 +639,10 @@ impl WindowProxy {
                 // Step 5
                 (Some(DomRoot::from_ref(self.top())), false)
             },
-            "_blank" => (self.create_auxiliary_browsing_context(name, noopener), true),
+            "_blank" => (
+                self.create_auxiliary_browsing_context(cx, name, noopener),
+                true,
+            ),
             _ => {
                 // Step 6.
                 // TODO: expand the search to all 'familiar' bc,
@@ -645,7 +650,10 @@ impl WindowProxy {
                 // See https://html.spec.whatwg.org/multipage/#familiar-with
                 match ScriptThread::find_window_proxy_by_name(&name) {
                     Some(proxy) => (Some(proxy), false),
-                    None => (self.create_auxiliary_browsing_context(name, noopener), true),
+                    None => (
+                        self.create_auxiliary_browsing_context(cx, name, noopener),
+                        true,
+                    ),
                 }
             },
         }
