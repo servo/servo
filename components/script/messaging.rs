@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use crossbeam_channel::{Receiver, Select, SendError, Sender};
+use crossbeam_channel::{Receiver, Select, SelectedOperation, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
 use net_traits::FetchResponseMsg;
@@ -443,49 +443,64 @@ impl ScriptThreadReceivers {
         timer_scheduler: &TimerScheduler,
         fully_active: &FxHashSet<PipelineId>,
     ) -> MixedMessage {
-        #[cfg(feature = "webgpu")]
-        let webgpu_receiver = self.webgpu_receiver.borrow();
+        let mut select = Select::new();
 
         let task_recv = task_queue.select();
+        let task_index = select.recv(task_recv);
+        let constellation_index = select.recv(&self.constellation_receiver);
+        let devtools_index = select.recv(&self.devtools_server_receiver);
+        let image_cache_index = select.recv(&self.image_cache_receiver);
 
-        let mut sel = Select::new();
-        let task_idx = sel.recv(task_recv);
-        let constellation_idx = sel.recv(&self.constellation_receiver);
-        let devtools_idx = sel.recv(&self.devtools_server_receiver);
-        let image_cache_idx = sel.recv(&self.image_cache_receiver);
         #[cfg(feature = "webgpu")]
-        let webgpu_idx = sel.recv(&*webgpu_receiver);
+        let webgpu_receiver = self.webgpu_receiver.borrow();
+        #[cfg(feature = "webgpu")]
+        let webgpu_index = select.recv(&*webgpu_receiver);
 
-        let op = match timer_scheduler.next_deadline() {
-            Some(deadline) => match sel.select_deadline(deadline) {
-                Ok(op) => op,
-                Err(_) => return MixedMessage::TimerFired,
-            },
-            None => sel.select(),
+        let message_from_operation = |operation: SelectedOperation| {
+            let index = operation.index();
+            if index == task_index {
+                let msg = operation.recv(task_recv).unwrap();
+                task_queue.take_tasks(msg, fully_active);
+                let event = task_queue.recv().expect(
+                    "Spurious wake-up of the event-loop, task-queue has no tasks available",
+                );
+                MixedMessage::FromScript(event)
+            } else if index == constellation_index {
+                MixedMessage::FromConstellation(
+                    operation
+                        .recv(&self.constellation_receiver)
+                        .unwrap()
+                        .unwrap(),
+                )
+            } else if index == devtools_index {
+                MixedMessage::FromDevtools(
+                    operation
+                        .recv(&self.devtools_server_receiver)
+                        .unwrap()
+                        .unwrap(),
+                )
+            } else if index == image_cache_index {
+                MixedMessage::FromImageCache(operation.recv(&self.image_cache_receiver).unwrap())
+            } else {
+                #[cfg(feature = "webgpu")]
+                {
+                    debug_assert_eq!(index, webgpu_index);
+                    MixedMessage::FromWebGPUServer(
+                        operation.recv(&*webgpu_receiver).unwrap().unwrap(),
+                    )
+                }
+                #[cfg(not(feature = "webgpu"))]
+                unreachable!("select returned an unknown index {index}")
+            }
         };
 
-        let index = op.index();
-        if index == task_idx {
-            let msg = op.recv(task_recv).unwrap();
-            task_queue.take_tasks(msg, fully_active);
-            let event = task_queue
-                .recv()
-                .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
-            MixedMessage::FromScript(event)
-        } else if index == constellation_idx {
-            MixedMessage::FromConstellation(op.recv(&self.constellation_receiver).unwrap().unwrap())
-        } else if index == devtools_idx {
-            MixedMessage::FromDevtools(op.recv(&self.devtools_server_receiver).unwrap().unwrap())
-        } else if index == image_cache_idx {
-            MixedMessage::FromImageCache(op.recv(&self.image_cache_receiver).unwrap())
+        if let Some(deadline) = timer_scheduler.next_deadline() {
+            select
+                .select_deadline(deadline)
+                .map(message_from_operation)
+                .unwrap_or(MixedMessage::TimerFired)
         } else {
-            #[cfg(feature = "webgpu")]
-            {
-                debug_assert_eq!(index, webgpu_idx);
-                MixedMessage::FromWebGPUServer(op.recv(&*webgpu_receiver).unwrap().unwrap())
-            }
-            #[cfg(not(feature = "webgpu"))]
-            unreachable!("select returned an unknown index {index}")
+            message_from_operation(select.select())
         }
     }
 
