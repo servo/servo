@@ -2060,9 +2060,7 @@ impl ScriptThread {
             WebGPUMsg::FreeComputePipeline(id) => self.gpu_id_hub.free_compute_pipeline_id(id),
             WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.free_bind_group_id(id),
             WebGPUMsg::FreeBindGroupLayout(id) => self.gpu_id_hub.free_bind_group_layout_id(id),
-            WebGPUMsg::FreeCommandBuffer(id) => self
-                .gpu_id_hub
-                .free_command_buffer_id(id.into_command_encoder_id()),
+            WebGPUMsg::FreeCommandBuffer(id) => self.gpu_id_hub.free_command_buffer_id(id),
             WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.free_sampler_id(id),
             WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.free_shader_module_id(id),
             WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.free_render_bundle_id(id),

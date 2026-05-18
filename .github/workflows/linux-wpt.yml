@@ -72,6 +72,18 @@ jobs:
       matrix:
         chunk_id: ${{ fromJSON(needs.runner-select.outputs.selected-runner-indices) }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - uses: thejerrybao/setup-swap-space@v1
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          swap-space-path: /swapfile
+          swap-size-gb: 12
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a

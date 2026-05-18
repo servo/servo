@@ -121,7 +121,6 @@ impl GPUComputePipeline {
                 device_id: device.id().0,
                 compute_pipeline_id,
                 descriptor: desc,
-                implicit_ids: pipeline_layout.implicit(),
                 async_sender,
             })
             .expect("Failed to create WebGPU ComputePipeline");

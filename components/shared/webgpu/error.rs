@@ -7,7 +7,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use wgpu_core::device::DeviceError;
+use wgpu_types::error::{ErrorType, WebGpuError};
 
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -70,23 +70,16 @@ impl Error {
         }
     }
 
-    // TODO: labels
-    // based on https://github.com/gfx-rs/wgpu/blob/trunk/wgpu/src/backend/wgpu_core.rs#L289
-    pub fn from_error<E: std::error::Error + 'static>(error: E) -> Self {
-        let mut source_opt: Option<&(dyn std::error::Error + 'static)> = Some(&error);
-        while let Some(source) = source_opt {
-            if let Some(DeviceError::OutOfMemory) = source.downcast_ref::<DeviceError>() {
-                return Self::OutOfMemory(error.to_string());
-            }
-            source_opt = source.source();
+    /// Converts a wgpu's errors into a (GPU)Error if possible.
+    /// Returns `None` if device is lost,
+    /// as those need to be ignored in validation as they are handled by device lost callback
+    pub fn from_wgpu_error<E: WebGpuError>(error: E) -> Option<Self> {
+        match error.webgpu_error_type() {
+            ErrorType::Validation => Some(Self::Validation(error.to_string())),
+            ErrorType::OutOfMemory => Some(Self::OutOfMemory(error.to_string())),
+            ErrorType::Internal => Some(Self::Internal(error.to_string())),
+            ErrorType::DeviceLost => None,
         }
-        // TODO: This hack is needed because there are
-        // multiple OutOfMemory error variant in wgpu-core
-        // and even upstream does not handle them correctly
-        if format!("{error:?}").contains("OutOfMemory") {
-            return Self::OutOfMemory(error.to_string());
-        }
-        Self::Validation(error.to_string())
     }
 }
 

@@ -194,6 +194,7 @@ impl StagingBuffer {
         &mut self,
         texture_id: TextureId,
         encoder_id: CommandEncoderId,
+        command_buffer_id: CommandBufferId,
         config: &ContextConfiguration,
     ) -> Result<CommandBufferId, Box<dyn std::error::Error>> {
         self.ensure_available(config)?;
@@ -235,10 +236,12 @@ impl StagingBuffer {
             &buffer_info,
             &copy_size,
         )?;
-        let (command_buffer_id, error) = self
-            .global
-            .command_encoder_finish(encoder_id, &CommandBufferDescriptor::default());
-        if let Some(error) = error {
+        let (command_buffer_id, error) = self.global.command_encoder_finish(
+            encoder_id,
+            &CommandBufferDescriptor::default(),
+            Some(command_buffer_id),
+        );
+        if let Some((_, error)) = error {
             return Err(error.into());
         };
         Ok(command_buffer_id)
@@ -572,6 +575,7 @@ impl crate::WGPU {
         if let Some(PendingTexture {
             texture_id,
             encoder_id,
+            command_buffer_id,
             configuration,
         }) = pending_texture
         {
@@ -591,6 +595,7 @@ impl crate::WGPU {
             self.texture_download(
                 texture_id,
                 encoder_id,
+                command_buffer_id,
                 staging_buffer,
                 configuration,
                 move |staging_buffer| {
@@ -651,6 +656,7 @@ impl crate::WGPU {
         let Some(PendingTexture {
             texture_id,
             encoder_id,
+            command_buffer_id,
             configuration,
         }) = pending_texture
         else {
@@ -687,6 +693,7 @@ impl crate::WGPU {
         self.texture_download(
             texture_id,
             encoder_id,
+            command_buffer_id,
             staging_buffer,
             configuration,
             move |staging_buffer| {
@@ -722,13 +729,17 @@ impl crate::WGPU {
         &self,
         texture_id: TextureId,
         encoder_id: CommandEncoderId,
+        command_buffer_id: CommandBufferId,
         mut staging_buffer: StagingBuffer,
         config: ContextConfiguration,
         callback: impl FnOnce(StagingBuffer) + Send + 'static,
     ) {
-        let Ok(command_buffer_id) =
-            staging_buffer.prepare_load_texture_command_buffer(texture_id, encoder_id, &config)
-        else {
+        let Ok(command_buffer_id) = staging_buffer.prepare_load_texture_command_buffer(
+            texture_id,
+            encoder_id,
+            command_buffer_id,
+            &config,
+        ) else {
             return callback(staging_buffer);
         };
         let StagingBufferState::Available(buffer) = &staging_buffer.state else {

@@ -348,6 +348,16 @@ impl Convert<wgpu_types::FilterMode> for GPUFilterMode {
     }
 }
 
+// TODO(sagudev): this will become GPUMipmapFilterMode once the webidl is updated
+impl Convert<wgpu_types::MipmapFilterMode> for GPUFilterMode {
+    fn convert(self) -> wgpu_types::MipmapFilterMode {
+        match self {
+            GPUFilterMode::Nearest => wgpu_types::MipmapFilterMode::Nearest,
+            GPUFilterMode::Linear => wgpu_types::MipmapFilterMode::Linear,
+        }
+    }
+}
+
 impl Convert<wgpu_types::TextureViewDimension> for GPUTextureViewDimension {
     fn convert(self) -> wgpu_types::TextureViewDimension {
         match self {
@@ -668,7 +678,7 @@ impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
                     BindingResource::Buffer(BufferBinding {
                         buffer: b.buffer.id().0,
                         offset: b.offset,
-                        size: b.size.and_then(wgpu_types::BufferSize::new),
+                        size: b.size,
                     })
                 },
             },
