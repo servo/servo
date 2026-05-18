@@ -24,6 +24,7 @@ use stylo_atoms::Atom;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -50,6 +51,7 @@ use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
     UnbindContext, VecPreOrderInsertionHelper,
 };
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -539,6 +541,20 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         Node::unsafely_set_html(target, &context_element, value, cx);
         Ok(())
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-shadowroot-sethtml>
+    fn SetHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+        html: DOMString,
+        options: &SetHTMLOptions,
+    ) -> ErrorResult {
+        // Step 1. Set and filter HTML using this (as target), this (as context element), html,
+        // options, and true.
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+        Sanitizer::set_and_filter_html(cx, target, &context_element, html, options, true)
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange

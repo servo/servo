@@ -74,6 +74,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMethods, ShadowRootMode, SlotAssignmentMode,
 };
@@ -152,6 +153,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::raredata::ElementRareData;
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
@@ -3481,6 +3483,24 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
         Node::unsafely_set_html(&target, self, html, cx);
         Ok(())
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-element-sethtml>
+    fn SetHTML(
+        &self,
+        cx: &mut JSContext,
+        html: DOMString,
+        options: &SetHTMLOptions,
+    ) -> ErrorResult {
+        // Step 1. Let target be this’s template contents if this is a template; otherwise this.
+        let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            DomRoot::upcast(template.Content(cx))
+        } else {
+            DomRoot::from_ref(self.upcast())
+        };
+
+        // Step 2. Set and filter HTML given target, this, html, options, and true.
+        Sanitizer::set_and_filter_html(cx, &target, self, html, options, true)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>

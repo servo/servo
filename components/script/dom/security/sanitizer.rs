@@ -40,6 +40,7 @@ use crate::dom::eventtarget::CONTENT_EVENT_HANDLER_NAMES;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::node::NodeTraits;
 use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::servoparser::ServoParser;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -170,6 +171,57 @@ impl Sanitizer {
 
         // Step 4. Return true.
         true
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#set-and-filter-html>
+    pub(crate) fn set_and_filter_html(
+        cx: &mut JSContext,
+        target: &Node,
+        context_element: &Element,
+        html: DOMString,
+        options: &impl SanitizerMember,
+        safe: bool,
+    ) -> ErrorResult {
+        // Step 1. If safe and contextElement’s local name is "script" and contextElement’s
+        // namespace is the HTML namespace or the SVG namespace, then return.
+        if safe &&
+            context_element.local_name() == &local_name!("script") &&
+            (context_element.namespace() == &ns!(html) ||
+                context_element.namespace() == &ns!(svg))
+        {
+            return Ok(());
+        }
+
+        // Step 2. Let sanitizer be the result of calling get a sanitizer instance from options with
+        // options and safe.
+        let sanitizer = Sanitizer::get_sanitizer_instance_from_options(
+            cx,
+            &target.owner_window(),
+            options,
+            safe,
+        )?;
+
+        // Step 3. Let newChildren be the result of the HTML fragment parsing algorithm given
+        // contextElement, html, and true.
+        let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
+
+        // Step 4. Let fragment be a new DocumentFragment whose node document is contextElement’s
+        // node document.
+        let context_document = context_element.owner_document();
+        let fragment = DomRoot::upcast::<Node>(DocumentFragment::new(cx, &context_document));
+
+        // Step 5. For each node in newChildren, append node to fragment.
+        for child in new_children {
+            fragment.AppendChild(cx, &child).unwrap();
+        }
+
+        // Step 6. Run sanitize on fragment using sanitizer and safe.
+        sanitizer.sanitize(cx, &fragment, safe)?;
+
+        // Step 7. Replace all with fragment within target.
+        Node::replace_all(cx, Some(&fragment), target);
+
+        Ok(())
     }
 
     /// <https://wicg.github.io/sanitizer-api/#sanitize>
