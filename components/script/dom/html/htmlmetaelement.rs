@@ -26,6 +26,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMetaElement {
@@ -58,7 +59,7 @@ impl HTMLMetaElement {
         )
     }
 
-    fn process_attributes(&self) {
+    fn process_attributes(&self, cx: &mut JSContext) {
         let element = self.upcast::<Element>();
         if let Some(ref name) = element.get_name() {
             let name = name.to_ascii_lowercase();
@@ -67,7 +68,7 @@ impl HTMLMetaElement {
                 self.apply_referrer();
             }
             if name == "viewport" {
-                self.parse_and_send_viewport_if_necessary();
+                self.parse_and_send_viewport_if_necessary(cx);
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
@@ -128,7 +129,7 @@ impl HTMLMetaElement {
     }
 
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
-    fn parse_and_send_viewport_if_necessary(&self) {
+    fn parse_and_send_viewport_if_necessary(&self, cx: &mut JSContext) {
         if !pref!(viewport_meta_enabled) {
             return;
         }
@@ -143,9 +144,12 @@ impl HTMLMetaElement {
         };
 
         if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
-            self.owner_window()
-                .paint_api()
-                .viewport(self.owner_window().webview_id(), viewport);
+            let initial_scale = viewport.initial_scale.get();
+            let window = self.owner_window();
+            window.paint_api().viewport(window.webview_id(), viewport);
+            window
+                .get_or_init_visual_viewport(CanGc::from_cx(cx))
+                .update_scale(initial_scale);
         }
     }
 
@@ -239,7 +243,7 @@ impl VirtualMethods for HTMLMetaElement {
         }
 
         if context.tree_connected {
-            self.process_attributes();
+            self.process_attributes(cx);
         }
     }
 
