@@ -589,10 +589,12 @@ impl WorkerGlobalScope {
                 Script::Module(module_tree)
             },
             _ => {
-                // Step 1.1 Queue a global task on the DOM manipulation task source given
+                // Step 1.1. Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
                 if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                     dedicated.forward_simple_error_at_worker();
+                } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
+                    shared.forward_simple_error_at_worker();
                 }
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
@@ -614,6 +616,7 @@ impl WorkerGlobalScope {
             let mut realm = enter_auto_realm(cx, self);
             let cx = &mut realm.current_realm();
             define_all_exposed_interfaces(cx, self.upcast());
+            // Step 9. Set inside settings's execution ready flag.
             self.execution_ready.store(true, Ordering::Relaxed);
             match script {
                 Script::Classic(script) => {
@@ -628,6 +631,12 @@ impl WorkerGlobalScope {
             }
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.fire_queued_messages(cx);
+            } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
+                // Step 11. Enable outside port's port message queue.
+                shared.enable_outside_port_message_queue();
+                // Step 13. If the initial Connect arrived before execution-ready,
+                // queue the global task to fire its connect event now.
+                shared.fire_pending_connect(cx);
             }
         }
     }
