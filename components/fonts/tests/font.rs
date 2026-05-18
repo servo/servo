@@ -17,7 +17,8 @@ use servo_url::ServoUrl;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::{
-    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 
@@ -84,6 +85,7 @@ fn test_font_can_do_fast_shaping() {
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
+        east_asian: FontVariantEastAsian::NORMAL,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
     assert!(dejavu_sans_fast_shapeable.can_do_fast_shaping("WAVE", &shaping_options));
@@ -97,6 +99,7 @@ fn test_font_can_do_fast_shaping() {
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
+        east_asian: FontVariantEastAsian::NORMAL,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
     assert!(!dejavu_sans_fast_shapeable.can_do_fast_shaping("WAVE", &shaping_options));
@@ -110,6 +113,7 @@ fn test_font_can_do_fast_shaping() {
         flags: ShapingFlags::RTL_FLAG,
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
+        east_asian: FontVariantEastAsian::NORMAL,
     };
     assert!(!dejavu_sans.can_do_fast_shaping("WAVE", &shaping_options));
     assert!(!dejavu_sans_fast_shapeable.can_do_fast_shaping("WAVE", &shaping_options));

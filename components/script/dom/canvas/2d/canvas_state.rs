@@ -37,7 +37,7 @@ use style::properties::longhands::font_variant_caps::computed_value::T as FontVa
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
 use style::values::computed::font::FontStyle;
-use style::values::computed::{FontVariantLigatures, FontVariantNumeric};
+use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
@@ -2440,6 +2440,7 @@ impl CanvasState {
                         string: Default::default(),
                         ligatures: FontVariantLigatures::NORMAL,
                         numeric: FontVariantNumeric::NORMAL,
+                        east_asian: FontVariantEastAsian::NORMAL,
                         language,
                     },
                 );
@@ -2520,6 +2521,7 @@ struct UnshapedTextRun<'a> {
     language: Language,
     ligatures: FontVariantLigatures,
     numeric: FontVariantNumeric,
+    east_asian: FontVariantEastAsian,
 }
 
 impl UnshapedTextRun<'_> {
@@ -2530,6 +2532,7 @@ impl UnshapedTextRun<'_> {
             string: Default::default(),
             ligatures: FontVariantLigatures::NORMAL,
             numeric: FontVariantNumeric::NORMAL,
+            east_asian: FontVariantEastAsian::NORMAL,
             language,
         }
     }
@@ -2558,6 +2561,7 @@ impl UnshapedTextRun<'_> {
             flags: ShapingFlags::empty(),
             ligatures: self.ligatures,
             numeric: self.numeric,
+            east_asian: self.east_asian,
         };
 
         let glyphs = font.shape_text(self.string, &options);

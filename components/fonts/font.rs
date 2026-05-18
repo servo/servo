@@ -33,7 +33,8 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -54,17 +55,26 @@ pub(crate) const CLIG: Tag = Tag::new(b"clig");
 pub(crate) const COLR: Tag = Tag::new(b"COLR");
 pub(crate) const FRAC: Tag = Tag::new(b"frac");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
+pub(crate) const FWID: Tag = Tag::new(b"fwid");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
+pub(crate) const JP04: Tag = Tag::new(b"jp04");
+pub(crate) const JP78: Tag = Tag::new(b"jp78");
+pub(crate) const JP83: Tag = Tag::new(b"jp83");
+pub(crate) const JP90: Tag = Tag::new(b"jp90");
 pub(crate) const KERN: Tag = Tag::new(b"kern");
 pub(crate) const LIGA: Tag = Tag::new(b"liga");
 pub(crate) const LNUM: Tag = Tag::new(b"lnum");
 pub(crate) const ONUM: Tag = Tag::new(b"onum");
 pub(crate) const ORDN: Tag = Tag::new(b"ordn");
 pub(crate) const PNUM: Tag = Tag::new(b"pnum");
+pub(crate) const PWID: Tag = Tag::new(b"pwid");
+pub(crate) const RUBY: Tag = Tag::new(b"ruby");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
+pub(crate) const SMPL: Tag = Tag::new(b"smpl");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
+pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
@@ -405,6 +415,8 @@ pub struct ShapingOptions {
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property.
     pub numeric: FontVariantNumeric,
+    /// The value of the `font-variant-east-asian` property.
+    pub east_asian: FontVariantEastAsian,
     /// Various flags.
     pub flags: ShapingFlags,
 }
