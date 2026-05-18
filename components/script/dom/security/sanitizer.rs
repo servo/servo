@@ -212,7 +212,9 @@ impl Sanitizer {
 
         // Step 5. For each node in newChildren, append node to fragment.
         for child in new_children {
-            fragment.AppendChild(cx, &child).unwrap();
+            fragment
+                .AppendChild(cx, &child)
+                .expect("Must be able to append child to node");
         }
 
         // Step 6. Run sanitize on fragment using sanitizer and safe.
