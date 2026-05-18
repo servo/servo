@@ -552,6 +552,8 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     ) -> ErrorResult {
         // Step 1. Set and filter HTML using this (as target), this (as context element), html,
         // options, and true.
+        // NOTE: The specification text is incorrect. We should use this's shadow host as context
+        // element.
         let target = self.upcast::<Node>();
         let context_element = self.Host();
         Sanitizer::set_and_filter_html(cx, target, &context_element, html, options, true)
