@@ -80,7 +80,7 @@ for line in lines:
     if line == "---":
         if current:
             if not current["highlight"]:
-                current["highlight"] = {"crate": "", "filename": "", "method": ""}
+                current["highlight"] = {"crate": "", "source": "", "method": ""}
             entries += [current]
         current = {
             "size": 0,
@@ -137,24 +137,29 @@ for line in lines:
     if any([skippable in method for skippable in skippable_methods]):
         continue
 
-    # The method looks like (<symbol_name>::<hash>), so strip the ()
-    method = method[1:-1]
-    # Extract the file path from the <path>:<line>
-    filename = "/".join(path.split("/")[1:]).split(":")[0]
+    # The method looks like (<symbol_name>::<hash>), so strip the () and remove the hash
+    method = method[1:-1].rsplit("::", 1)[0]
+    # Extract the file path and line from the full <path>:<line>
+    source = "/".join(path.split("/")[1:])
 
     # This frame is probably a Servo-originating allocation
     # that we want to use as the attribution.
-    current["highlight"] = {"crate": crate, "method": method, "filename": filename}
+    current["highlight"] = {"crate": crate, "method": method, "source": source}
     if crate not in crates:
         crates[crate] = 0
-    crates[crate] += 1
+    crates[crate] += current["size"]
 
 # Print the number of untracked allocations for each crate containing at least
 # one untracked allocations.
 if len(sys.argv) <= 2:
-    print("Overall stats")
+    print("Overall stats (crate: untracked bytes)")
+    print("--------------------------------------")
+    total = 0
     for crate in sorted(crates, key=lambda x: crates[x], reverse=True):
         print(f"{crate}: {crates[crate]}")
+        total += crates[crate]
+    print("--------------------------------------")
+    print(f"Total untracked: {total} bytes")
     sys.exit(0)
 
 # For a particular crate, print the N largest untracked allocations
@@ -165,5 +170,5 @@ limit = int(sys.argv[3]) if len(sys.argv) > 3 else 10
 for entry in sorted(relevant, key=lambda x: x["size"], reverse=True):
     if count == limit:
         break
-    print(f"{entry['size']} - {entry['highlight']['method']}")
+    print(f"{entry['size']} - {entry['highlight']['method']} at {entry['highlight']['source']} ")
     count += 1
