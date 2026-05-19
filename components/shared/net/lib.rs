@@ -622,6 +622,12 @@ impl ResourceThreads {
                 source,
             ));
     }
+
+    pub fn set_accept_third_party_cookies(&self, accept: bool) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::SetAcceptThirdPartyCookies(accept));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -683,6 +689,7 @@ pub enum CoreResourceMsg {
     Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
+    SetAcceptThirdPartyCookies(bool),
     /// Store a cookie for a given originating URL.
     /// If a sender is provided, the caller will block until the cookie is stored.
     SetCookieForUrl(

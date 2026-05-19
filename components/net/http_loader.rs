@@ -346,9 +346,18 @@ fn set_request_cookies(
     }
 }
 
-fn set_cookie_for_url(cookie_jar: &RwLock<CookieStorage>, request: &ServoUrl, cookie_val: &str) {
+fn set_cookie_for_url(
+    cookie_jar: &RwLock<CookieStorage>,
+    request: &ServoUrl,
+    cookie_val: &str,
+    is_third_party: bool,
+) {
     let mut cookie_jar = cookie_jar.write();
     let source = CookieSource::HTTP;
+
+    if is_third_party && !cookie_jar.accept_third_party_cookies() {
+        return;
+    }
 
     if let Some(cookie) = ServoCookie::from_cookie_string(cookie_val, request, source) {
         cookie_jar.push(cookie, request, source);
@@ -359,6 +368,7 @@ fn set_cookies_from_headers(
     url: &ServoUrl,
     headers: &HeaderMap,
     cookie_jar: &RwLock<CookieStorage>,
+    is_third_party: bool,
 ) {
     for cookie in headers.get_all(header::SET_COOKIE) {
         let cookie_bytes = cookie.as_bytes();
@@ -366,7 +376,7 @@ fn set_cookies_from_headers(
             continue;
         }
         if let Ok(cookie_str) = std::str::from_utf8(cookie_bytes) {
-            set_cookie_for_url(cookie_jar, url, cookie_str);
+            set_cookie_for_url(cookie_jar, url, cookie_str, is_third_party);
         }
     }
 }
@@ -2272,7 +2282,17 @@ async fn http_network_fetch(
     // TODO this step isn't possible yet
     // Step 15
     if credentials_flag {
-        set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
+        let is_third_party = match &request.origin {
+            Origin::Origin(page_origin) => page_origin != &url.origin(),
+            Origin::Client => false,
+        };
+
+        set_cookies_from_headers(
+            &url,
+            &response.headers,
+            &context.state.cookie_jar,
+            is_third_party,
+        );
     }
     context
         .state

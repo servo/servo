@@ -500,6 +500,10 @@ impl ResourceChannelManager {
                     protocols,
                 )
             },
+            CoreResourceMsg::SetAcceptThirdPartyCookies(accept) => {
+                self.resource_manager
+                    .set_accept_third_party_cookies(accept, http_state);
+            },
             CoreResourceMsg::SetCookieForUrl(request, cookie, source, sender) => {
                 self.resource_manager.set_cookie_for_url(
                     &request,
@@ -738,6 +742,11 @@ impl CoreResourceManager {
     /// Exit the core resource manager.
     pub fn exit(&mut self) {
         debug!("Exited CoreResourceManager");
+    }
+
+    fn set_accept_third_party_cookies(&self, accept: bool, http_state: &Arc<HttpState>) {
+        let mut cookie_jar = http_state.cookie_jar.write();
+        cookie_jar.set_accept_third_party_cookies(accept)
     }
 
     fn set_cookie_for_url(
