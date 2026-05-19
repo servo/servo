@@ -26,7 +26,7 @@ use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, report_pending_exception};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -98,11 +98,7 @@ impl GlobalScope {
 
         rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
 
-        // Step 1. If mutedErrors is true, then set baseURL to about:blank.
-        let url = match muted_errors {
-            ErrorReporting::Muted => ServoUrl::parse("about:blank").unwrap(),
-            ErrorReporting::Unmuted => url,
-        };
+        // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
 
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
 
@@ -224,7 +220,14 @@ impl GlobalScope {
                             },
                             ErrorReporting::Muted => {
                                 unsafe { JS_ClearPendingException(cx) };
-                                self.report_an_exception(cx, HandleValue::null());
+                                self.report_an_error(
+                                    cx,
+                                    ErrorInfo {
+                                        message: String::from("Script error."),
+                                        ..Default::default()
+                                    },
+                                    HandleValue::null(),
+                                );
                             },
                         }
                         return Err(Error::JSFailed);
