@@ -3368,7 +3368,6 @@ class CGWrapMethod(CGAbstractMethod):
             proxy_handler = "None"
         prototype_id = f"PrototypeList::ID::{self.descriptor.name}"
         proto_object_fn = "Box::new(GetProtoObject::<D>)"
-        unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
         if self.descriptor.proxy:
             c = "None"
         else:
@@ -3383,13 +3382,11 @@ class CGWrapMethod(CGAbstractMethod):
                     prototype_id: {prototype_id},
                     class: {c},
                     proto_object_fn: {proto_object_fn},
+                    is_global: {python_bool_to_rust(self.descriptor.isGlobal())},
+                    has_legacy_unforgeable_members: {python_bool_to_rust(self.descriptor.hasLegacyUnforgeableMembers)},
                 }};
 
-                let (canonical_proto, obj, root) = crate::wrap::wrap::<_, D>(cx, scope, given_proto, object, init);
-                rooted!(&in(cx) let canonical_proto = canonical_proto);
-                rooted!(&in(cx) let obj = obj);
-                {unforgeable}
-                DomRoot::from_ref(&*root)
+                crate::wrap::wrap::<_, D>(cx, scope, given_proto, object, init)
         """)
 
 

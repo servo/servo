@@ -80,8 +80,7 @@ pub(crate) mod module {
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers::{
         AppendToIdVector, Call, GetPropertyKeys, JS_CopyOwnPropertiesAndPrivateFields,
-        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty,
-        JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithoutMetadata,
+        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty, JS_NewObjectWithoutMetadata,
         JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype, RUST_INTERNED_STRING_TO_JSID,
         RUST_SYMBOL_TO_JSID, int_to_jsid,
     };
@@ -121,9 +120,7 @@ pub(crate) mod module {
     pub(crate) use crate::like::Setlike;
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
     pub(crate) use crate::namespace::{NamespaceObjectClass, create_namespace_object};
-    pub(crate) use crate::proxyhandler::{
-        ensure_expando_object, get_expando_object, set_property_descriptor,
-    };
+    pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::root::{Dom, DomSlice};

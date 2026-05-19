@@ -8,13 +8,19 @@ use js::JSCLASS_IS_GLOBAL;
 use js::context::JSContext;
 use js::glue::SetProxyReservedSlot;
 use js::jsapi::{JS_SetReservedSlot, JSAutoRealm, JSClass, JSObject};
-use js::jsval::PrivateValue;
-use js::rust::wrappers2::{JS_NewObjectWithGivenProto, JS_WrapObject, NewProxyObject};
+use js::jsval::{PrivateValue, UndefinedValue};
+use js::rust::wrappers2::{
+    JS_CopyOwnPropertiesAndPrivateFields, JS_InitializePropertiesFromCompatibleNativeObject,
+    JS_NewObjectWithGivenProto, JS_WrapObject, NewProxyObject,
+};
 use js::rust::{Handle, get_context_realm, get_object_class, get_object_realm};
 
 use crate::codegen::PrototypeList;
 use crate::conversions::DOM_OBJECT_SLOT;
+use crate::import::module::JS_GetReservedSlot;
+use crate::proxyhandler::ensure_expando_object;
 use crate::root::{DomRoot, MaybeUnreflectedDom, Root};
+use crate::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT;
 use crate::weakref::DOM_WEAK_SLOT;
 use crate::{DomObject, DomTypes, MutDomObject};
 
@@ -36,6 +42,8 @@ pub(crate) struct WrapConfig {
     pub(crate) class: Option<&'static JSClass>,
     // this function has to be more general because we do not have the correct type for globalscope.
     pub(crate) proto_object_fn: ProtoObjectFn,
+    pub(crate) is_global: bool,
+    pub(crate) has_legacy_unforgeable_members: bool,
 }
 
 /// SAFETY:
@@ -47,7 +55,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
     given_proto: Option<js::rust::Handle<*mut JSObject>>,
     object: Box<T>,
     config: WrapConfig,
-) -> (*mut JSObject, *mut JSObject, DomRoot<T>) {
+) -> DomRoot<T> {
     unsafe {
         let raw = Root::new(MaybeUnreflectedDom::from_box(object));
 
@@ -121,6 +129,34 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
         let root = raw.reflect_with(obj.get());
         root.reflector().set_proto_id(config.prototype_id as u16);
 
-        (*canonical_proto, *obj, root)
+        // CopyLegacyUnforgeablePropertiesToInstance
+        if config.has_legacy_unforgeable_members {
+            rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
+            if config.is_proxy {
+                ensure_expando_object(cx.raw_cx(), obj.handle().into(), expando.handle_mut());
+            }
+
+            let copy_fn = if config.is_global {
+                JS_CopyOwnPropertiesAndPrivateFields
+            } else {
+                JS_InitializePropertiesFromCompatibleNativeObject
+            };
+
+            let mut slot = UndefinedValue();
+            JS_GetReservedSlot(
+                canonical_proto.get(),
+                DOM_PROTO_UNFORGEABLE_HOLDER_SLOT,
+                &mut slot,
+            );
+            rooted!(&in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+            unforgeable_holder.handle_mut().set(slot.to_object());
+            if config.is_proxy {
+                assert!(copy_fn(cx, expando.handle(), unforgeable_holder.handle()));
+            } else {
+                assert!(copy_fn(cx, obj.handle(), unforgeable_holder.handle()));
+            }
+        }
+
+        DomRoot::from_ref(&*root)
     }
 }
