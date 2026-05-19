@@ -17,28 +17,31 @@
 
 <script>
 
-function testLinkRelModification(testDiv, testLink) {
+async function testLinkRelModification(t, testDiv, testLink) {
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
   testLink.setAttribute("rel", "no-stylesheet");
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
   testLink.setAttribute("rel", "stylesheet");
+  await new EventWatcher(t, testLink, [ 'load' ]).wait_for('load');
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
   testLink.removeAttribute("rel");
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
 }
 
-test (() => {
-  testLinkRelModification(document.querySelector("#light-div"),
-                          document.querySelector("#light-link"));
+promise_test(async (t) => {
+  await testLinkRelModification(t,
+                                      document.querySelector("#light-div"),
+                                      document.querySelector("#light-link"));
 }, "Removing stylesheet from link rel attribute should remove the stylesheet for light DOM");
 
-test (() => {
+promise_test(async (t) => {
   var host = document.querySelector("#host");
   var shadow = host.attachShadow({ mode: "open" });
   var tmpl = document.querySelector("template#shadow-dom");
   var clone = document.importNode(tmpl.content, true);
   shadow.appendChild(clone);
-  testLinkRelModification(shadow.querySelector("#shadow-div"),
-                          shadow.querySelector("#shadow-link"));
+  await testLinkRelModification(t,
+                                shadow.querySelector("#shadow-div"),
+                                shadow.querySelector("#shadow-link"));
 }, "Removing stylesheet from link rel attribute should remove the stylesheet for shadow DOM");
 </script>

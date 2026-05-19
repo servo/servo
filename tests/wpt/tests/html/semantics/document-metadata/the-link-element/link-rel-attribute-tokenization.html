@@ -7,25 +7,30 @@
 
 <script>
 
-function testLinkRelModification(testDiv, testLink) {
+async function testLinkRelModification(t, testDiv, testLink) {
+  const watcher = new EventWatcher(t, testLink, [ 'load' ]);
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
   testLink.setAttribute("rel", "test\u000Bstylesheet");
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
   testLink.setAttribute("rel", "test\u000Cstylesheet");
+  await watcher.wait_for('load');
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
   testLink.removeAttribute("rel");
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
   testLink.setAttribute("rel", "\u0009\u000A\u000C\u000D\u0020stylesheet");
+  await watcher.wait_for('load');
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
   testLink.removeAttribute("rel");
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
   testLink.setAttribute("rel", "\u0009\u000A\u000C\u000D\u0020stylesheet\u0009\u000A\u000C\u000D\u0020††††");
+  await watcher.wait_for('load');
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
 }
 
-test (() => {
-  testLinkRelModification(document.querySelector("#light-div"),
-                          document.querySelector("#light-link"));
+promise_test(async (t) => {
+  await testLinkRelModification(t,
+                                document.querySelector("#light-div"),
+                                document.querySelector("#light-link"));
 }, "The rel attribute needs to handle ASCII whitespace correctly");
 
 </script>
