@@ -346,6 +346,8 @@ pub struct Preferences {
     pub log_filter: String,
     /// Whether the accessibility code is enabled.
     pub accessibility_enabled: bool,
+    /// Whether to run accessibility tree integrity checks, and any other expensive checks.
+    /// This should only be true in tests.
     pub expensive_accessibility_test_assertions_enabled: bool,
 }
 
