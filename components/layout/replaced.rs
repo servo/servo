@@ -11,6 +11,7 @@ use euclid::{Scale, Size2D};
 use layout_api::{IFrameSize, LayoutElement, LayoutImageDestination, LayoutNode, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
+use net_traits::request::InternalRequest;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -289,6 +290,7 @@ impl ReplacedContents {
                     node.opaque(),
                     svg_source,
                     LayoutImageDestination::BoxTreeConstruction,
+                    InternalRequest::Yes,
                 )
                 .ok()
         });
@@ -336,6 +338,7 @@ impl ReplacedContents {
                 node.opaque(),
                 image_url.clone().into(),
                 LayoutImageDestination::BoxTreeConstruction,
+                InternalRequest::No,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {

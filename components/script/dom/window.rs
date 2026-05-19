@@ -3557,7 +3557,13 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
+                fetch_image_for_layout(
+                    url.clone(),
+                    &node,
+                    id,
+                    image.is_internal_request,
+                    self.image_cache.clone(),
+                );
             }
 
             let mut images = self.pending_layout_images.borrow_mut();

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="img-src 'none';">
+<html>
+<head>
+    <title>CSS background-image is blocked by img-src.</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <script>
+      var t_spv = async_test("Test that spv event is fired");
+      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+        assert_equals(e.violatedDirective, 'img-src');
+        assert_equals(e.target, document);
+        assert_true(e.blockedURI.endsWith('/support/fail.png'));
+      }));
+    </script>
+
+    <style>
+      #container {
+        background-image: url('../support/fail.png');
+      }
+    </style>
+
+    <div id="container">
+      <p>This text should NOT have a red background.</p>
+    </div>
+</body>
+</html>
