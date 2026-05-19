@@ -126,6 +126,11 @@ impl ViewportDescription {
         }
         description.initial_scale =
             Scale::new(description.clamp_zoom(description.initial_scale.get()));
+
+        // To prevent showing blank area around the layout viewport,
+        // do not allow scaling below the minimum of `initial_scale` and `1.0`.
+        description.minimum_scale = description.initial_scale.min(DEFAULT_PAGE_ZOOM);
+
         description
     }
 
