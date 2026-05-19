@@ -10,9 +10,9 @@ repository.workspace = true
 description.workspace = true
 
 [dependencies]
+proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true, features = ["extra-traits", "full", "parsing", "printing", "proc-macro"] }
-proc-macro2 = { workspace = true }
 
 [lib]
 path = "lib.rs"
