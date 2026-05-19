@@ -83,7 +83,7 @@ impl PerformanceMark {
             let record = structuredclone::write(cx, mark_options.detail.handle(), None)?;
 
             // Step 8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-            structuredclone::read(global, record, detail.handle_mut(), CanGc::from_cx(cx))?;
+            structuredclone::read(cx, global, record, detail.handle_mut())?;
         }
         entry.set_detail(detail.handle());
 

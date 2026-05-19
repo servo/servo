@@ -1391,7 +1391,7 @@ impl GlobalScope {
                         rooted!(&in(cx) let mut message = UndefinedValue());
 
                         // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
+                        if let Ok(ports) = structuredclone::read(cx, &global, data, message.handle_mut()) {
                             // Step 10.4, Fire an event named message at destination.
                             MessageEvent::dispatch_jsval(
                                 destination.upcast(),
@@ -1537,12 +1537,8 @@ impl GlobalScope {
                 // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
                 // if any, maintaining their relative order.
                 // Note: both done in `structuredclone::read`.
-                if let Ok(ports) = structuredclone::read(
-                    self,
-                    data,
-                    message_clone.handle_mut(),
-                    CanGc::from_cx(cx),
-                ) {
+                if let Ok(ports) = structuredclone::read(cx, self, data, message_clone.handle_mut())
+                {
                     // Note: if this port is used to transfer a stream, we handle the events in Rust.
                     if let Some(transform) = cross_realm_transform.deref().as_ref() {
                         match transform {
@@ -3347,7 +3343,7 @@ impl GlobalScope {
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 
-        structuredclone::read(self, data, retval, CanGc::from_cx(cx))?;
+        structuredclone::read(cx, self, data, retval)?;
 
         Ok(())
     }

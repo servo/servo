@@ -179,12 +179,7 @@ impl RequestListener {
                     let result = postcard::from_bytes(&serialized_data)
                         .map_err(|_| Error::Data(None))
                         .and_then(|data| {
-                            structuredclone::read(
-                                &global,
-                                data,
-                                answer.handle_mut(),
-                                CanGc::from_cx(cx),
-                            )
+                            structuredclone::read(cx, &global, data, answer.handle_mut())
                         });
                     if let Err(e) = result {
                         warn!("Error reading structuredclone data");
@@ -198,12 +193,7 @@ impl RequestListener {
                         let result = postcard::from_bytes(&serialized_data)
                             .map_err(|_| Error::Data(None))
                             .and_then(|data| {
-                                structuredclone::read(
-                                    &global,
-                                    data,
-                                    values.handle_mut_at(i),
-                                    CanGc::from_cx(cx),
-                                )
+                                structuredclone::read(cx, &global, data, values.handle_mut_at(i))
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
