@@ -498,6 +498,139 @@ fn test_viewport_meta_tag_initial_scale() {
 }
 
 #[test]
+fn test_viewport_clamp_pinch_min_by_initial_scale_1() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let initial_scale: f64 = 1.0;
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                format!(
+                    "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale={}, minimum-scale=1.0\">",
+                    initial_scale
+                )
+                .as_str(),
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.adjust_pinch_zoom(0.5, DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The pinch zoom should be clamped by the minimum scale defined in the meta tag.
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
+}
+
+#[test]
+fn test_viewport_clamp_pinch_min_by_initial_scale_2() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let initial_scale: f64 = 2.0;
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                format!(
+                    "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale={}, minimum-scale=0.5\">",
+                    initial_scale
+                )
+                .as_str(),
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.adjust_pinch_zoom(0.5, DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The pinch zoom is clamped at 1.0 i.e. the DEFAULT_PAGE_ZOOM,
+    // because the initial scale defined in the meta tag is greater than the default page zoom.
+    assert_eq!(
+        Ok(JSValue::Number(1.0)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
+}
+
+#[test]
+fn test_viewport_clamp_pinch_min_by_initial_scale_3() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let initial_scale: f64 = 0.5;
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                format!(
+                    "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale={}, minimum-scale=0.25\">",
+                    initial_scale
+                )
+                .as_str(),
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.adjust_pinch_zoom(2.0, DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // Pinch Zoom-In: The pinch-zoom value greater than initial scale.
+    let JSValue::Number(scale) =
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+            .expect("Failed to evaluate JavaScript")
+    else {
+        unreachable!("Expected visualViewport.scale to be a number");
+    };
+    assert!(initial_scale < scale);
+
+    webview.adjust_pinch_zoom(0.5, DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // Pinch Zoom-Out: The pinch zoom should be clamped by the initial scale defined in the meta tag.
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
+}
+
+#[test]
 fn test_show_and_hide_ime() {
     let servo_test = ServoTest::new();
 
