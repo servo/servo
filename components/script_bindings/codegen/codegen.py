@@ -3744,7 +3744,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 let init = CreateInterfaceObjectsOptions {{
                     t: ConstructorType::Namespace(init),
                 }};
-                CreateInterfaceObjectsRust::<D>(init, cx, global, cache);
+                CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
                 """)
 
         elif self.descriptor.interface.isCallback():
@@ -3758,7 +3758,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 let init = CreateInterfaceObjectsOptions {{
                     t: ConstructorType::Callback(init),
                 }};
-                CreateInterfaceObjectsRust::<D>(init, cx, global, cache);
+                CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
                 """)
 
 
