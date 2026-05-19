@@ -15,10 +15,10 @@ use servo_base::id::ServiceWorkerId;
 use servo_constellation_traits::ServiceWorkerMsg;
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -79,6 +79,7 @@ impl Client {
         )
     }
 
+    /// <https://w3c.github.io/ServiceWorker/#dom-client-postmessage-message-options>
     fn post_message_impl(
         &self,
         cx: &mut JSContext,
@@ -102,7 +103,7 @@ impl Client {
                 source: self.worker_id,
                 url: self.url.clone(),
                 origin: origin.immutable().clone(),
-             })
+            })
             .map_err(|_| {
                 Error::Type(c"Failed to send message to service worker manager".to_owned())
             })

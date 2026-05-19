@@ -185,8 +185,8 @@ impl ServiceWorkerContainer {
                 // Step 4.5.2: Let source be the result of getting the service worker object
                 // that represents contextObject’s relevant global object’s service worker in targetClient.
                 let global = self.global();
-                
-                // Note: spec uses a MesssageEvent, so it's unclear what to do with source. 
+
+                // Note: spec uses a MesssageEvent, so it's unclear what to do with source.
                 // Perhaps an ExtendableMessageEvent should be used instead.
                 // See https://github.com/w3c/ServiceWorker/issues/1823
                 let _source =

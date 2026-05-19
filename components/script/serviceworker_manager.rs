@@ -24,8 +24,8 @@ use servo_base::generic_channel::{
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
 use servo_constellation_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerSenders,
-    ScopeThings, ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerSenders, ScopeThings,
+    ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
     ServiceWorkerMsg, ServiceWorkerRegistrationInfo,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -321,7 +321,12 @@ impl ServiceWorkerManager {
                     }
                 }
             },
-            ServiceWorkerMsg::ForwardWorkerMessage { data, url, source, origin } => {
+            ServiceWorkerMsg::ForwardWorkerMessage {
+                data,
+                url,
+                source,
+                origin,
+            } => {
                 let Some(registration) = self.registrations.get(&url) else {
                     warn!("No registration found for scope URL when forwarding message to worker.");
                     return true;
@@ -753,13 +758,8 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         ));
 
         let swmanager_thread = move || {
-            ServiceWorkerManager::new(
-                own_sender,
-                from_constellation,
-                resource_port,
-                font_context,
-            )
-            .handle_message()
+            ServiceWorkerManager::new(own_sender, from_constellation, resource_port, font_context)
+                .handle_message()
         };
         if thread::Builder::new()
             .name("SvcWorkerManager".to_owned())
