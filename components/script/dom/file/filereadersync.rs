@@ -82,10 +82,11 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         let blob_label = label.map(String::from);
         let blob_type = String::from(blob.Type());
 
-        let output =
-            FileReaderSharedFunctionality::text_for_bytes(&blob_contents, &blob_type, &blob_label);
-
-        Ok(output)
+        Ok(FileReaderSharedFunctionality::text_for_bytes(
+            &blob_contents,
+            &blob_type,
+            &blob_label,
+        ))
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsDataURLSync-section>
@@ -95,8 +96,8 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
 
         // step 2. package data.
         // https://w3c.github.io/FileAPI/#blob-package-data
-        let blob_type = blob.Type().to_string();
-        let output = FileReaderSharedFunctionality::dataurl_for_bytes(&blob_contents, &blob_type);
+        let output =
+            FileReaderSharedFunctionality::dataurl_for_bytes(&blob_contents, &blob.Type().str());
 
         Ok(output)
     }

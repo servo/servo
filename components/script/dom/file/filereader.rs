@@ -124,7 +124,7 @@ pub(crate) struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
     /// <https://w3c.github.io/FileAPI/#blob-package-data>
-    pub(crate) fn dataurl_for_bytes(blob_contents: &[u8], blob_type: &str) -> DOMString {
+    pub(crate) fn dataurl_for_bytes(bytes: &[u8], blob_type: &str) -> DOMString {
         // If mimeType (blobType) is not available return a Data URL without a media-type. [RFC2397].
         // Spec says a Data URL without a media-type when blob_type is unavailable.
         // However, all other browsers use "application/octet-stream" in this case.
@@ -134,31 +134,26 @@ impl FileReaderSharedFunctionality {
             blob_type
         };
 
-        Self::dataurl_format(blob_contents, mime_type)
+        Self::dataurl_format(bytes, mime_type)
     }
 
     /// [RFC2397]
     /// <https://www.rfc-editor.org/rfc/rfc2397.html>
-    fn dataurl_format(blob_contents: &[u8], mime_type: &str) -> DOMString {
-        let base64 = base64::engine::general_purpose::STANDARD.encode(blob_contents);
+    fn dataurl_format(bytes: &[u8], mime_type: &str) -> DOMString {
+        let base64 = base64::engine::general_purpose::STANDARD.encode(bytes);
         let dataurl = format!("data:{};base64,{}", mime_type, base64);
 
         DOMString::from(dataurl)
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-package-data>
-    pub(crate) fn binary_string_for_bytes(blob_contents: &[u8]) -> DOMString {
-        DOMString::from(
-            blob_contents
-                .iter()
-                .map(|&byte| byte as char)
-                .collect::<String>(),
-        )
+    pub(crate) fn binary_string_for_bytes(bytes: &[u8]) -> DOMString {
+        DOMString::from(bytes.iter().map(|&byte| byte as char).collect::<String>())
     }
 
-    /// <https://encoding.spec.whatwg.org/#decode>
+    /// <https://w3c.github.io/FileAPI/#blob-package-data>
     pub(crate) fn text_for_bytes(
-        blob_contents: &[u8],
+        bytes: &[u8],
         blob_type: &str,
         encoding: &Option<String>,
     ) -> DOMString {
@@ -183,8 +178,9 @@ impl FileReaderSharedFunctionality {
         // Step 6
         let enc = encoding.unwrap_or(UTF_8);
 
-        let convert = blob_contents;
+        let convert = bytes;
         // Step 7
+        // https://encoding.spec.whatwg.org/#decode
         let (output, _, _) = enc.decode(convert);
         DOMString::from(output)
     }
@@ -350,10 +346,13 @@ impl FileReader {
         data: ReadMetaData,
         blob_bytes: &[u8],
     ) {
-        let encoding = &data.encoding;
-        let blob_type = &data.blobtype;
-        let output = FileReaderSharedFunctionality::text_for_bytes(blob_bytes, blob_type, encoding);
-        *result.borrow_mut() = Some(FileReaderResult::String(output));
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::text_for_bytes(
+                blob_bytes,
+                &data.blobtype,
+                &data.encoding,
+            ),
+        ));
     }
 
     /// <https://w3c.github.io/FileAPI/#packaging-data>
@@ -362,16 +361,18 @@ impl FileReader {
         data: ReadMetaData,
         bytes: &[u8],
     ) {
-        let output = FileReaderSharedFunctionality::dataurl_for_bytes(bytes, &data.blobtype);
-        *result.borrow_mut() = Some(FileReaderResult::String(output));
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::dataurl_for_bytes(bytes, &data.blobtype),
+        ));
     }
 
     /// <https://w3c.github.io/FileAPI/#packaging-data>
     /// > Return bytes as a binary string, in which every byte
     /// > is represented by a code unit of equal value [0..255].
     fn perform_readasbinarystring(result: &DomRefCell<Option<FileReaderResult>>, bytes: &[u8]) {
-        let output = FileReaderSharedFunctionality::binary_string_for_bytes(bytes);
-        *result.borrow_mut() = Some(FileReaderResult::String(output));
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::binary_string_for_bytes(bytes),
+        ));
     }
 
     /// <https://w3c.github.io/FileAPI/#packaging-data>
@@ -552,10 +553,11 @@ impl FileReader {
         // Let reader be the result of getting a reader from stream.
         let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
 
-        let type_ = blob.Type();
-
-        let load_data =
-            ReadMetaData::new(String::from(type_), encoding.map(String::from), function);
+        let load_data = ReadMetaData::new(
+            String::from(blob.Type()),
+            encoding.map(String::from),
+            function,
+        );
 
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
