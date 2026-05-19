@@ -14,8 +14,10 @@ name = "servo_media_audio"
 path = "lib.rs"
 
 [dependencies]
+byte-slice-cast = { workspace = true }
 euclid = { workspace = true }
 log = { workspace = true }
+num-traits = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo-media-derive = { workspace = true }
 servo-media-player = { workspace = true }
@@ -30,9 +32,3 @@ num-complex = { workspace = true }
 [dependencies.petgraph]
 version = "0.4.12"
 features = ["stable_graph"]
-
-[dependencies.byte-slice-cast]
-version = "1"
-
-[dependencies.num-traits]
-version = "0.2"
