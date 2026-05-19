@@ -40,7 +40,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(cx, &html5ever::local_name!($htmlname), value);
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value.into());
             Ok(())
         }
     );
@@ -54,7 +54,7 @@ macro_rules! make_int_setter(
             use $crate::dom::element::Element;
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(cx, &html5ever::local_name!($htmlname), value)
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value.into())
         }
     );
 );
@@ -331,7 +331,7 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value)
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value.into())
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -353,7 +353,7 @@ macro_rules! make_clamped_uint_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value)
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value.into())
         }
     );
 );
@@ -373,7 +373,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value);
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value.into());
             Ok(())
         }
     );

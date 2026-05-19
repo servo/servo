@@ -1347,7 +1347,7 @@ impl Node {
 
                 if size > 0 {
                     let new_font_element = document.create_element(cx, "font");
-                    new_font_element.set_int_attribute(cx, &local_name!("size"), size);
+                    new_font_element.set_attribute(cx, &local_name!("size"), size.into());
                     new_parent = Some(new_font_element);
                 }
             },

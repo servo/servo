@@ -81,7 +81,7 @@ impl DOMTokenList {
         }
         // step 2
         self.element
-            .set_atomic_tokenlist_attribute(cx, &self.local_name, atoms)
+            .set_attribute(cx, &self.local_name, atoms.into())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-domtokenlist-validation>

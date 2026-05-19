@@ -1936,8 +1936,7 @@ impl Element {
             value: data.value.clone(),
         });
         // Step 4: Handle attribute changes using stack-local AttrRef.
-        let new_value = DOMString::from(&**attr_ref.value());
-        self.handle_attribute_changes(cx, attr_ref, None, Some(new_value), reason);
+        self.handle_attribute_changes(cx, attr_ref, None, Some(&*attr_ref.value()), reason);
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
@@ -1946,10 +1945,9 @@ impl Element {
         cx: &mut JSContext,
         attr: AttrRef<'_>,
         old_value: Option<&AttrValue>,
-        new_value: Option<DOMString>,
+        new_value: Option<&AttrValue>,
         reason: AttributeMutationReason,
     ) {
-        let old_value_string = old_value.map(|old_value| DOMString::from(&**old_value));
         // Step 1. Queue a mutation record of "attributes" for element with attribute’s local name,
         // attribute’s namespace, oldValue, « », « », null, and null.
         let name = attr.local_name().clone();
@@ -1957,7 +1955,7 @@ impl Element {
         let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: old_value_string.clone(),
+            old_value: old_value.map(|old_value| DOMString::from(&**old_value)),
         });
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1969,7 +1967,7 @@ impl Element {
         if self.is_custom() {
             let reaction = CallbackReaction::AttributeChanged(
                 attr.local_name().clone(),
-                old_value_string,
+                old_value,
                 new_value,
                 attr.namespace().clone(),
             );
@@ -1999,12 +1997,11 @@ impl Element {
         // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
         //
         // Put on a separate line to avoid double borrow
-        let new_value = DOMString::from(&**attr.value());
         self.handle_attribute_changes(
             cx,
             AttrRef::Dom(attr),
             Some(old_value),
-            Some(new_value),
+            Some(&*attr.value()),
             AttributeMutationReason::Directly,
         );
     }
@@ -2030,8 +2027,7 @@ impl Element {
         // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
         //
         // Put on a separate line to avoid double borrow
-        let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(cx, AttrRef::Dom(attr), None, Some(new_value), reason);
+        self.handle_attribute_changes(cx, AttrRef::Dom(attr), None, Some(&*attr.value()), reason);
     }
 
     /// This is the inner logic for:
@@ -2311,7 +2307,7 @@ impl Element {
                 );
 
                 Some(match &*value {
-                    AttrValue::Declaration(_, block) => block.clone(),
+                    AttrValue::Declaration { block, .. } => block.clone(),
                     _ => {
                         let win = self.owner_window();
                         let source = &**attr.value();
@@ -2422,7 +2418,7 @@ impl Element {
                 cx,
                 AttrRef::Dom(attr),
                 Some(&old_attr.value()),
-                Some(verified_value),
+                Some(&AttrValue::String(verified_value.into())),
                 AttributeMutationReason::Directly,
             );
 
@@ -2768,6 +2764,24 @@ impl Element {
     #[inline]
     fn get_selector_flags(&self) -> ElementSelectorFlags {
         ElementSelectorFlags::from_bits_retain(self.selector_flags.load(Ordering::Relaxed))
+    }
+
+    /// Custom [`Element`]s and those with mutation observers sometimes need the old style
+    /// attribute to persist after modification, because it is sent as an argument to
+    /// script callbacks. Normally that's not the case, so this method tries to detect
+    /// when it's required so it can be avoided for performance reasons.
+    pub(crate) fn needs_preserved_style_attribute_after_change(&self) -> bool {
+        // This is a global check for whether any mutation observers are installed on this
+        // Document at all. If cloning of the property declaration block (look at the
+        // caller of this method), starts showing up in profiles, this check may need to
+        // be a bit smarter. For instance, maybe only returning true if any mutation
+        // observer is installed on an inclusive ancestor and only if it has an observer
+        // with the attribute filter set to include `style`.
+        self.owner_window().get_exists_mut_observer() ||
+            self.get_custom_element_definition()
+                .is_some_and(|custom_element_definition| {
+                    custom_element_definition.has_attribute_changed_callback()
+                })
     }
 }
 
