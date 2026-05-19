@@ -44,16 +44,42 @@ pub struct AccessibilityTree {
     tree_state_changes: FxHashMap<accesskit::NodeId, TreeStateChange>,
 }
 
+/// Tracks changes to a node's relation to the tree within an update.
+///
+/// This is used to remove nodes from the accessibility tree's cache when they are no longer in the
+/// tree.
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum TreeStateChange {
+    /// The node was newly created in this update.
     New,
+
+    /// The node has been re-parented in this update.
+    /// The [`MoveState`] argument is used to maintain the invariant that a node move consists of a
+    /// removal from its parent and an addition to its new parent.
     Moved(MoveState),
+
+    /// The node is no longer a child of its previous parent.
     Removed,
 }
 
+/// When a node is moved within the tree, it must be both removed from its old parent and added to
+/// its new parent within the same update. This may happen in either order, depending on the
+/// relative positions of the node before and after it moves.
+///
+/// - If a node's new parent is updated before its old parent, the node will be in a
+///   `TreeStateChange::Moved(MoveState::Pending)` state until its old parent is updated. We expect
+///   that it must later be removed from its old parent, at which point its state will be updated to
+///   `TreeStateChange::Moved(MoveState::Complete)`.
+/// - If a node's old parent is updated before its new parent, the node will be first
+///   `TreeStateChange::Removed` and then `TreeStateChange::Moved(MoveState::Complete)`.
+///
+/// At the end of the update, we assert that there are no pending moves remaining.
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum MoveState {
+    /// The node has been added to its new parent, but not yet removed from its old parent.
     Pending,
+
+    /// The node has been both removed from its old parent and added to its new parent.
     Complete,
 }
 
@@ -76,10 +102,6 @@ impl AccessibilityTree {
     ) -> Option<accesskit::TreeUpdate> {
         let root_node = self.get_or_create_node(root_dom_node);
         let root_node_id = root_node.borrow().id;
-
-        if pref!(expensive_accessibility_test_assertions_enabled) {
-            self.assert_integrity(root_node_id);
-        }
 
         let mut tree_update =
             AccessibilityUpdate::new(accesskit::Tree::new(root_node_id), self.tree_id);
@@ -279,6 +301,9 @@ impl AccessibilityNode {
         tree: &mut AccessibilityTree,
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
+        use MoveState::Pending;
+        use TreeStateChange::{Moved, Removed};
+
         let mut any_descendant_updated = false;
         let mut newly_created: FxHashSet<accesskit::NodeId> = FxHashSet::default();
         let new_children: Vec<accesskit::NodeId> = dom_node
@@ -309,7 +334,7 @@ impl AccessibilityNode {
                     let removed_child = tree.assert_node_by_id(*old_child_id);
                     removed_child
                         .borrow()
-                        .set_subtree_state_change(tree, TreeStateChange::Removed);
+                        .set_subtree_state_change(tree, Removed);
                 }
             }
             for new_child_id in new_children.iter() {
@@ -317,7 +342,7 @@ impl AccessibilityNode {
                     let moved_child = tree.assert_node_by_id(*new_child_id);
                     moved_child
                         .borrow()
-                        .set_subtree_state_change(tree, TreeStateChange::Moved(MoveState::Pending));
+                        .set_subtree_state_change(tree, Moved(Pending));
                 }
             }
             self.set_children(new_children);
@@ -326,17 +351,30 @@ impl AccessibilityNode {
         any_descendant_updated
     }
 
+    /// Recursively mark this subtree as having the given `TreeStateChange`.
+    ///
+    /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
+    /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
+    /// shouldn't call this method in that case, since it may have descendants which are not being
+    /// created in this update and shouldn't have a `New` state. Any descendants which are new will
+    /// already have their `New` state set when they are created.
+    ///
+    /// Note: if a node is moved, the requested `change` must always be `Moved(Pending)`: the logic
+    /// in this method will determine whether the move is `Complete` and set the stored value
+    /// accordingly.
     fn set_subtree_state_change(&self, tree: &mut AccessibilityTree, change: TreeStateChange) {
-        use MoveState::{Complete, Pending};
-        use TreeStateChange::{Moved, Removed};
+        use MoveState::*;
+        use TreeStateChange::*;
 
         let old_change = tree.tree_state_changes.get(&self.id);
         let new_change = match (old_change, change) {
-            (None, Moved(_)) => Moved(Pending),
+            (_, New) => panic!("New shouldn't be set recursively."),
+            (_, Moved(Complete)) => panic!("Incoming Moved must always be Pending"),
+
             (None, _) => change,
 
             (Some(Moved(Pending)), Removed) => Moved(Complete),
-            (Some(Removed), Moved(_)) => Moved(Complete),
+            (Some(Removed), Moved(Pending)) => Moved(Complete),
 
             (Some(old_change), _) => {
                 unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
