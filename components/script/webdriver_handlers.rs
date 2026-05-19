@@ -874,12 +874,12 @@ fn find_elements_xpath_strategy(
 
     // A snapshot is used to promote operation atomicity.
     let evaluate_result = match document.Evaluate(
+        cx,
         DOMString::from(selector),
         start_node,
         None,
         XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
         None,
-        CanGc::from_cx(cx),
     ) {
         Ok(res) => res,
         Err(_) => return Err(ErrorStatus::InvalidSelector),
