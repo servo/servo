@@ -146,6 +146,10 @@ pub enum DiagnosticsLoggingOption {
     /// Log Progressive Web Metrics
     #[strum(to_string = "progressive-web-metrics")]
     ProgressiveWebMetrics,
+
+    /// Log the accessibility tree
+    #[strum(to_string = "accessibility-tree")]
+    AccessibilityTree,
 }
 
 impl DiagnosticsLoggingOption {

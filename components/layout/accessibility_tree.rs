@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
@@ -11,6 +12,7 @@ use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
+use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use web_atoms::{LocalName, local_name};
@@ -23,7 +25,6 @@ struct AccessibilityUpdate {
     nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
 }
 
-#[derive(Debug)]
 struct AccessibilityNode {
     id: accesskit::NodeId,
     accesskit_node: accesskit::Node,
@@ -43,6 +44,7 @@ pub struct AccessibilityTree {
     epoch: Epoch,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<accesskit::NodeId, TreeChange>,
+    debug: DiagnosticsLogging,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -86,6 +88,7 @@ impl AccessibilityTree {
             tree_id,
             epoch,
             tree_changes: FxHashMap::default(),
+            debug: opts::get().debug.clone(),
         }
     }
 
@@ -471,6 +474,25 @@ impl AccessibilityNode {
         }
         self.accesskit_node.set_value(value);
         self.updated = true;
+    }
+}
+
+impl Debug for AccessibilityNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{:?}: {:?} (html_tag: {:?})",
+            self.id,
+            self.role(),
+            self.html_tag()
+        );
+        if let Some(label) = self.label() {
+            writeln!(f, "    label: {:?}", label);
+        }
+        if !self.children().is_empty() {
+            writeln!(f, "    children: {:?}", self.children());
+        }
+        Ok(())
     }
 }
 
