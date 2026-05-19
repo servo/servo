@@ -56,7 +56,6 @@ pub(crate) mod module {
     pub(crate) use js::conversions::ToJSValConvertible;
     pub(crate) use js::glue::{
         CreateProxyHandler, GetProxyReservedSlot, JS_GetReservedSlot, ProxyTraps,
-        SetProxyReservedSlot,
     };
     pub(crate) use js::jsapi::{
         __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmErrorPrototype,
@@ -76,22 +75,17 @@ pub(crate) mod module {
         JSTypedMethodJitInfo, JSValueType, MutableHandle as RawMutableHandle,
         MutableHandleIdVector as RawMutableHandleIdVector,
         MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-        ObjectOpResult, PropertyDescriptor, SymbolCode, UndefinedHandleValue, jsid,
+        ObjectOpResult, PropertyDescriptor, SymbolCode, jsid,
     };
-    pub(crate) use js::jsval::PrivateValue;
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers::{
         AppendToIdVector, Call, GetPropertyKeys, JS_CopyOwnPropertiesAndPrivateFields,
         JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty,
-        JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithGivenProto,
-        JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype,
-        JS_WrapObject, NewProxyObject, RUST_INTERNED_STRING_TO_JSID, RUST_SYMBOL_TO_JSID,
-        int_to_jsid,
+        JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithoutMetadata,
+        JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype, RUST_INTERNED_STRING_TO_JSID,
+        RUST_SYMBOL_TO_JSID, int_to_jsid,
     };
-    pub(crate) use js::rust::{
-        CustomAutoRooterGuard, GCMethods, Handle, MutableHandle, get_context_realm,
-        get_object_class, get_object_realm,
-    };
+    pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, typedarray,
@@ -106,8 +100,7 @@ pub(crate) mod module {
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::conversions::native_from_handlevalue;
     pub(crate) use crate::conversions::{
-        DOM_OBJECT_SLOT, StringificationBehavior, is_array_like, jsid_to_string,
-        native_from_object_static,
+        StringificationBehavior, is_array_like, jsid_to_string, native_from_object_static,
     };
     pub(crate) use crate::error::{Error, ErrorResult};
     pub(crate) use crate::finalize::{
@@ -143,6 +136,5 @@ pub(crate) mod module {
         get_array_index_from_id, get_property_on_prototype, has_property_on_prototype,
         may_resolve_global, may_resolve_window, resolve_global, resolve_window, trace_global,
     };
-    pub(crate) use crate::weakref::DOM_WEAK_SLOT;
     pub(crate) use crate::{JSTraceable, proxyhandler};
 }
