@@ -259,7 +259,12 @@ pub enum ServiceWorkerMsg {
     Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    ForwardWorkerMessage { data: StructuredSerializedData, url: ServoUrl, source: ServiceWorkerId, origin: ImmutableOrigin },
+    ForwardWorkerMessage {
+        data: StructuredSerializedData,
+        url: ServoUrl,
+        source: ServiceWorkerId,
+        origin: ImmutableOrigin,
+    },
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
     HandleAlgorithm(ServiceWorkerAlgorithm),
     /// Exit the service worker manager
