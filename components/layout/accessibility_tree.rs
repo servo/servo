@@ -41,7 +41,8 @@ pub struct AccessibilityTree {
     opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
-    tree_state_changes: FxHashMap<accesskit::NodeId, TreeChange>,
+    /// Nodes that changed their relation to the tree within the current update.
+    tree_changes: FxHashMap<accesskit::NodeId, TreeChange>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -54,7 +55,7 @@ enum TreeChange {
     New,
 
     /// The node has been re-parented in this update.
-    /// The [`MoveState`] argument is used to maintain the invariant that a node move consists of a
+    /// The [`Move`] argument is used to maintain the invariant that a node move consists of a
     /// removal from its parent and an addition to its new parent.
     Moved(Move),
 
@@ -67,11 +68,11 @@ enum TreeChange {
 /// relative positions of the node before and after it moves.
 ///
 /// - If a node's new parent is updated before its old parent, the node will be in a
-///   `TreeStateChange::Moved(MoveState::Pending)` state until its old parent is updated. We expect
-///   that it must later be removed from its old parent, at which point its state will be updated to
-///   `TreeStateChange::Moved(MoveState::Complete)`.
+///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
+///   must later be removed from its old parent, at which point its state will be updated to
+///   `TreeChange ::Moved(Move::Complete)`.
 /// - If a node's old parent is updated before its new parent, the node will be first
-///   `TreeStateChange::Removed` and then `TreeStateChange::Moved(MoveState::Complete)`.
+///   `TreeChange ::Removed` and then `TreeChange ::Moved(Move::Complete)`.
 ///
 /// At the end of the update, we assert that there are no pending moves remaining.
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -90,7 +91,7 @@ impl AccessibilityTree {
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
             epoch,
-            tree_state_changes: FxHashMap::default(),
+            tree_changes: FxHashMap::default(),
         }
     }
 
@@ -108,11 +109,11 @@ impl AccessibilityTree {
         let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
-            assert!(self.tree_state_changes.is_empty());
+            assert!(self.tree_changes.is_empty());
             return None;
         }
 
-        self.finalize_tree_state_changes();
+        self.finalize_tree_changes();
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
             self.assert_integrity(root_node_id);
@@ -121,9 +122,9 @@ impl AccessibilityTree {
         Some(tree_update.finalize())
     }
 
-    fn finalize_tree_state_changes(&mut self) {
+    fn finalize_tree_changes(&mut self) {
         for id in self
-            .tree_state_changes
+            .tree_changes
             .drain()
             .filter_map(|(id, change)| match change {
                 TreeChange::Moved(Move::Pending) => {
@@ -174,7 +175,7 @@ impl AccessibilityTree {
         let id = self.id_for_opaque(dom_node.opaque());
 
         let node = self.nodes.entry(id).or_insert_with(|| {
-            self.tree_state_changes.insert(id, TreeChange::New);
+            self.tree_changes.insert(id, TreeChange::New);
             ArcRefCell::new(AccessibilityNode::new(id))
         });
 
@@ -345,7 +346,7 @@ impl AccessibilityNode {
         any_descendant_updated
     }
 
-    /// Recursively mark this subtree as having the given `TreeStateChange`.
+    /// Recursively mark this subtree as having the given `TreeChange `.
     ///
     /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
     /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
@@ -360,7 +361,7 @@ impl AccessibilityNode {
         use Move::{Complete, Pending};
         use TreeChange::{Moved, New, Removed};
 
-        let old_change = tree.tree_state_changes.get(&self.id);
+        let old_change = tree.tree_changes.get(&self.id);
         let new_change = match (old_change, change) {
             (_, New) => panic!("New shouldn't be set recursively."),
             (_, Moved(Complete)) => panic!("Incoming Moved must always be Pending"),
@@ -374,7 +375,7 @@ impl AccessibilityNode {
                 unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
             },
         };
-        tree.tree_state_changes.insert(self.id, new_change);
+        tree.tree_changes.insert(self.id, new_change);
 
         for child_id in self.children().to_vec() {
             let child = tree.assert_node_for_id(child_id);
