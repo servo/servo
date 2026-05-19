@@ -6,9 +6,11 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 use std::ops::Range;
 
+use icu_properties::BidiClass;
 use icu_segmenter::WordSegmenter;
 use layout_api::{LayoutNode, SharedSelection};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
+use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
@@ -97,6 +99,11 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// Whether or not the `::first-letter` pseudo-element of this inline formatting context
     /// has been processed yet.
     has_processed_first_letter: bool,
+
+    /// Whether or not the inline formatting context under construction has any kind of
+    /// right-to-left content such as a character with an RTL character class or a `dir`
+    /// attribute specifying right-to-left content.
+    pub(crate) has_right_to_left_content: bool,
 }
 
 impl InlineFormattingContextBuilder {
@@ -117,6 +124,7 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
+        let has_right_to_left_content = info.style.get_inherited_box().direction == Direction::Rtl;
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
@@ -125,6 +133,7 @@ impl InlineFormattingContextBuilder {
                 info, context,
             )],
             shared_selection: info.node.selection(),
+            has_right_to_left_content,
             ..Default::default()
         }
     }
@@ -250,7 +259,11 @@ impl InlineFormattingContextBuilder {
             .unwrap_or_else(inline_box_creator);
 
         let borrowed_inline_box = inline_box.borrow();
-        self.push_control_character_string(borrowed_inline_box.base.style.bidi_control_chars().0);
+
+        let style = &borrowed_inline_box.base.style;
+        self.push_control_character_string(style.bidi_control_chars().0);
+        self.has_right_to_left_content =
+            self.has_right_to_left_content || style.get_inherited_box().direction == Direction::Rtl;
 
         self.shared_inline_styles_stack
             .push(borrowed_inline_box.shared_inline_styles.clone());
@@ -378,11 +391,25 @@ impl InlineFormattingContextBuilder {
             char_iterator
         };
 
+        let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
         let new_text: String = char_iterator
             .inspect(|&character| {
                 character_count += 1;
+
+                // If this character has a strong right-to-left class the new inline formatting context will
+                // need to be BiDi-aware. This match is derived from the list of strong right-to-left classes
+                // at https://www.unicode.org/reports/tr44/#Bidi_Class_Values.
+                self.has_right_to_left_content = self.has_right_to_left_content ||
+                    matches!(
+                        bidi_class_map.get(character),
+                        BidiClass::RightToLeft |
+                            BidiClass::ArabicLetter |
+                            BidiClass::RightToLeftEmbedding |
+                            BidiClass::RightToLeftIsolate |
+                            BidiClass::RightToLeftOverride
+                    );
 
                 self.is_empty = self.is_empty &&
                     match white_space_collapse {
