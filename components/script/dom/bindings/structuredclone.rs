@@ -13,15 +13,14 @@ use js::glue::{
     CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
-    CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_IsExceptionPending,
-    JS_ReadUint32Pair, JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
+    CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_ReadUint32Pair,
+    JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
 };
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_ReadStructuredClone;
-use js::rust::wrappers2::JS_WriteStructuredClone;
+use js::rust::wrappers2::{JS_IsExceptionPending, JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{
     CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
 };
@@ -62,7 +61,7 @@ use crate::dom::types::{
     DOMException, DOMMatrix, DOMMatrixReadOnly, DOMQuad, DOMRect, DOMRectReadOnly,
     QuotaExceededError, TransformStream,
 };
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
@@ -742,7 +741,7 @@ pub(crate) fn write(
             val.handle(),
         );
         if !result {
-            let error = if JS_IsExceptionPending(cx.raw_cx()) {
+            let error = if JS_IsExceptionPending(cx) {
                 Error::JSFailed
             } else {
                 sc_writer.error.unwrap_or(Error::DataClone(None))
@@ -782,13 +781,14 @@ pub(crate) fn write(
 /// Read structured serialized data, possibly containing transferred objects.
 /// Returns a vec of rooted transfer-received ports, or an error.
 pub(crate) fn read(
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     mut data: StructuredSerializedData,
     rval: MutableHandleValue,
-    _can_gc: CanGc,
 ) -> Fallible<Vec<DomRoot<MessagePort>>> {
-    let cx = GlobalScope::get_cx();
-    let _ac = enter_realm(global);
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
+
     rooted_vec!(let mut roots);
     let mut sc_reader = StructuredDataReader {
         error: None,
@@ -824,7 +824,7 @@ pub(crate) fn read(
         );
 
         let result = JS_ReadStructuredClone(
-            *cx,
+            cx,
             scdata,
             JS_STRUCTURED_CLONE_VERSION,
             StructuredCloneScope::DifferentProcess,
@@ -837,7 +837,7 @@ pub(crate) fn read(
             sc_reader_ptr as *mut raw::c_void,
         );
         if !result {
-            let error = if JS_IsExceptionPending(*cx) {
+            let error = if JS_IsExceptionPending(cx) {
                 Error::JSFailed
             } else {
                 sc_reader.error.unwrap_or(Error::DataClone(None))
@@ -848,7 +848,8 @@ pub(crate) fn read(
 
         let mut message_ports = vec![];
         for reflector in sc_reader.roots.iter() {
-            let Ok(message_port) = root_from_object::<MessagePort>(reflector.get(), *cx) else {
+            let Ok(message_port) = root_from_object::<MessagePort>(reflector.get(), cx.raw_cx())
+            else {
                 continue;
             };
             message_ports.push(message_port);

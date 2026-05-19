@@ -54,7 +54,7 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
@@ -512,14 +512,14 @@ impl ServiceWorkerGlobalScope {
             CommonWorker(WorkerScriptMsg::DOMMessage(msg)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = enter_realm(scope);
+
+                let mut realm = enter_auto_realm(cx, scope);
+                let cx = &mut realm.current_realm();
+
                 rooted!(&in(cx) let mut message = UndefinedValue());
-                if let Ok(ports) = structuredclone::read(
-                    scope.upcast(),
-                    *msg.data,
-                    message.handle_mut(),
-                    CanGc::from_cx(cx),
-                ) {
+                if let Ok(ports) =
+                    structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
+                {
                     ExtendableMessageEvent::dispatch_jsval(
                         cx,
                         target,

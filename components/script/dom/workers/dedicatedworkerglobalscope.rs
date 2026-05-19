@@ -633,12 +633,9 @@ impl DedicatedWorkerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
         rooted!(&in(cx) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(
-            scope.upcast(),
-            *msg.data,
-            message.handle_mut(),
-            CanGc::from_cx(cx),
-        ) {
+        if let Ok(ports) =
+            structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
+        {
             MessageEvent::dispatch_jsval(
                 target,
                 scope.upcast(),

@@ -192,7 +192,7 @@ impl IDBObjectStore {
             let serialized = structuredclone::write(cx, value, None)?;
 
             // Step 4. Let clone be ? StructuredDeserialize(serialized, targetRealm).
-            let _ = structuredclone::read(&self.global(), serialized, clone, CanGc::from_cx(cx))?;
+            let _ = structuredclone::read(cx, &self.global(), serialized, clone)?;
             Ok(())
         })();
 

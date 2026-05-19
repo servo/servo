@@ -773,12 +773,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             let record = structuredclone::write(cx, options.detail.handle(), None)?;
 
             // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-            structuredclone::read(
-                &self.global(),
-                record,
-                detail.handle_mut(),
-                CanGc::from_cx(cx),
-            )?;
+            structuredclone::read(cx, &self.global(), record, detail.handle_mut())?;
         }
         // Step 9.2. Otherwise, set it to null.
         //

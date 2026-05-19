@@ -116,9 +116,7 @@ impl Worker {
         let mut realm = enter_auto_realm(cx, target);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut message = UndefinedValue());
-        if let Ok(ports) =
-            structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx))
-        {
+        if let Ok(ports) = structuredclone::read(cx, &global, data, message.handle_mut()) {
             MessageEvent::dispatch_jsval(
                 target,
                 &global,

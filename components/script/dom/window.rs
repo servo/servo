@@ -3920,7 +3920,7 @@ impl Window {
             let mut realm = AutoRealm::new(cx, NonNull::new(obj.get()).unwrap());
             let cx = &mut *realm;
             rooted!(&in(cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::from_cx(cx)) {
+            if let Ok(ports) = structuredclone::read(cx, this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),

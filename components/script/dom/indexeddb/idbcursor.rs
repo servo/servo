@@ -540,12 +540,7 @@ pub(crate) fn iterate_cursor(
         postcard::from_bytes(&found_record.value)
             .map_err(|_| Error::Data(None))
             .and_then(|data| {
-                structuredclone::read(
-                    global,
-                    data,
-                    new_cursor_value.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
+                structuredclone::read(cx, global, data, new_cursor_value.handle_mut())
             })?;
         cursor.value.set(new_cursor_value.get());
     }

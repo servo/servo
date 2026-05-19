@@ -31,7 +31,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
@@ -128,12 +127,12 @@ impl History {
                     serialized: data,
                     ..Default::default()
                 };
-                rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
+                rooted!(&in(cx) let mut state = UndefinedValue());
                 if structuredclone::read(
+                    cx,
                     self.window.as_global_scope(),
                     data,
                     state.handle_mut(),
-                    CanGc::from_cx(cx),
                 )
                 .is_err()
                 {
@@ -276,10 +275,10 @@ impl History {
         // Step 11
         rooted!(&in(cx) let mut state = UndefinedValue());
         if structuredclone::read(
+            cx,
             self.window.as_global_scope(),
             serialized_data,
             state.handle_mut(),
-            CanGc::from_cx(cx),
         )
         .is_err()
         {
