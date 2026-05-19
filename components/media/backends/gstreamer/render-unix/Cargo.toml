@@ -11,8 +11,8 @@ description.workspace = true
 
 [features]
 gl-egl = ["gstreamer-gl-egl"]
-gl-x11 = ["gstreamer-gl-x11"]
 gl-wayland = ["gstreamer-gl-wayland"]
+gl-x11 = ["gstreamer-gl-x11"]
 
 [lib]
 name = "servo_media_gstreamer_render_unix"
@@ -23,8 +23,8 @@ glib = { workspace = true }
 gstreamer = { workspace = true }
 gstreamer-gl = { workspace = true }
 gstreamer-gl-egl = { workspace = true, optional = true }
-gstreamer-gl-x11 = { workspace = true, optional = true }
 gstreamer-gl-wayland = { workspace = true, optional = true }
+gstreamer-gl-x11 = { workspace = true, optional = true }
 gstreamer-video = { workspace = true }
-servo-media-player = { workspace = true }
 servo-media-gstreamer-render = { workspace = true }
+servo-media-player = { workspace = true }

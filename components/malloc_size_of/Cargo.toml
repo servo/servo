@@ -18,7 +18,7 @@ atomic_refcell = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
-encoding_rs = '0.8'
+encoding_rs = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
 icu_locid = { workspace = true }

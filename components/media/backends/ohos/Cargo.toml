@@ -14,21 +14,21 @@ name = "servo_media_ohos"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+mime = { workspace = true }
+ohos-media-sys = { version = "0.0.5", features = ["api-21"] }
+ohos-sys-opaque-types = "0.1.7"
+ohos-window-sys = { version = "0.1.3", features = ["api-13"] }
 servo-media = { workspace = true }
 servo-media-audio = { workspace = true }
 servo-media-player = { workspace = true }
 servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }
 servo-media-webrtc = { workspace = true }
-mime = { workspace = true }
-log = { workspace = true }
-ohos-media-sys = { version = "0.0.5", features = ["api-21"] }
-ohos-window-sys = { version = "0.1.3", features = ["api-13"] }
-ohos-sys-opaque-types = { version = "0.1.7" }
-ipc-channel = { workspace = true }
-crossbeam-channel = { workspace = true }
-libc = { workspace = true }
 yuv = { workspace = true }
 
 [build-dependencies]
-serde_json.workspace = true
+serde_json = { workspace = true }

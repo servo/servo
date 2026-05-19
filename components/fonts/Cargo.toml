@@ -24,7 +24,7 @@ bitflags = { workspace = true }
 content-security-policy = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
-fontsan = { version = "0.6.1" }
+fontsan = "0.6.1"
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
 icu_locid = { workspace = true }
@@ -45,11 +45,11 @@ profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_arc = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 skrifa = { workspace = true }
 smallvec = { workspace = true }
 stylo = { workspace = true }

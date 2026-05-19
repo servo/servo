@@ -24,7 +24,7 @@ rand = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth-traits = { workspace = true }
 servo-config = { workspace = true }
-tokio = { workspace = true, features = ["rt", "time", "sync"], optional = true }
+tokio = { workspace = true, features = ["rt", "sync", "time"], optional = true }
 uuid = { workspace = true }
 
 [features]
