@@ -29,6 +29,9 @@ pub(crate) struct PositioningFragment {
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
     pub cumulative_containing_block_rect: AtomicRefCell<PhysicalRect<Au>>,
+
+    /// Whether or not this [`PositioningFragment`] is a line box.
+    is_line_box: bool,
 }
 
 impl PositioningFragment {
@@ -36,8 +39,15 @@ impl PositioningFragment {
         style: ServoArc<ComputedValues>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
+        is_line_box: bool,
     ) -> Arc<Self> {
-        Self::new_with_base_fragment_info(BaseFragmentInfo::anonymous(), style, rect, children)
+        Self::new_with_base_fragment_info(
+            BaseFragmentInfo::anonymous(),
+            style,
+            rect,
+            children,
+            is_line_box,
+        )
     }
 
     pub fn new_empty(
@@ -45,7 +55,7 @@ impl PositioningFragment {
         rect: PhysicalRect<Au>,
         style: ServoArc<ComputedValues>,
     ) -> Arc<Self> {
-        Self::new_with_base_fragment_info(base_fragment_info, style, rect, Vec::new())
+        Self::new_with_base_fragment_info(base_fragment_info, style, rect, Vec::new(), false)
     }
 
     fn new_with_base_fragment_info(
@@ -53,12 +63,14 @@ impl PositioningFragment {
         style: ServoArc<ComputedValues>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
+        is_line_box: bool,
     ) -> Arc<Self> {
         Arc::new(Self {
             base: BaseFragment::new(base_fragment_info, style.into(), rect),
             children,
             scrollable_overflow: Default::default(),
             cumulative_containing_block_rect: Default::default(),
+            is_line_box,
         })
     }
 
@@ -107,6 +119,10 @@ impl PositioningFragment {
                         .translate(self.base.rect().origin.to_vector()),
                 )
             })
+    }
+
+    pub(crate) fn is_line_box(&self) -> bool {
+        self.is_line_box
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

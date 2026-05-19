@@ -1216,6 +1216,7 @@ impl InlineFormattingContextLayout<'_> {
                 self.root_nesting_level.style.clone(),
                 physical_line_rect,
                 fragments,
+                true, /* is_line_box */
             )));
     }
 

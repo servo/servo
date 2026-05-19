@@ -8,7 +8,6 @@ use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
-use layout_api::ElementsFromPointFlags;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -157,7 +156,7 @@ impl DocumentOrShadowRoot {
 
         let results = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::empty());
+            .elements_from_point_query(LayoutPoint::new(x, y));
         let Some(result) = results.first() else {
             return document_element;
         };
@@ -201,7 +200,7 @@ impl DocumentOrShadowRoot {
         // Step 1 and Step 3
         let nodes = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::FindAll);
+            .elements_from_point_query(LayoutPoint::new(x, y));
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
             .flat_map(|result| {

@@ -397,11 +397,7 @@ pub trait Layout {
         node: TrustedNodeAddress,
         point: Point2D<Au, CSSPixel>,
     ) -> Option<usize>;
-    fn query_elements_from_point(
-        &self,
-        point: LayoutPoint,
-        flags: ElementsFromPointFlags,
-    ) -> Vec<ElementsFromPointResult>;
+    fn query_elements_from_point(&self, point: LayoutPoint) -> Vec<ElementsFromPointResult>;
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
 
@@ -844,14 +840,6 @@ pub struct ElementsFromPointResult {
     /// The [`Cursor`] that's defined on the item that is hit by this
     /// hit test result.
     pub cursor: Cursor,
-}
-
-bitflags! {
-    pub struct ElementsFromPointFlags: u8 {
-        /// Whether or not to find all of the items for a hit test or stop at the
-        /// first hit.
-        const FindAll = 0b00000001;
-    }
 }
 
 #[derive(Debug, Default, MallocSizeOf)]

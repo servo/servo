@@ -25,6 +25,12 @@ impl ClipId {
     pub(crate) const INVALID: ClipId = ClipId(usize::MAX);
 }
 
+impl Default for ClipId {
+    fn default() -> Self {
+        Self::INVALID
+    }
+}
+
 /// All the information needed to create a clip on a WebRender display list. These are created at
 /// two times: during `StackingContextTree` creation and during WebRender display list construction.
 /// Only the former are stored in a [`ClipStore`].

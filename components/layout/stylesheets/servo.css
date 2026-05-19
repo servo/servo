@@ -81,7 +81,6 @@ textarea:placeholder-shown::-servo-text-control-inner-editor {
 input::placeholder,
 textarea::placeholder {
   color: grey;
-  overflow: hidden;
 }
 
 input::-servo-text-control-inner-editor {

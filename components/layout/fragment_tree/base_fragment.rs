@@ -224,11 +224,14 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
             return Self::anonymous();
         }
 
+        if node.as_element().is_some_and(|element| element.is_root()) {
+            flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
+        }
+
         if let Some(element) = node.as_html_element() {
             if element.is_body_element_of_html_element_root() {
                 flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
             }
-
             match element.local_name() {
                 &local_name!("br") => {
                     flags.insert(FragmentFlags::IS_BR_ELEMENT);
@@ -240,10 +243,6 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                     flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
                 },
                 _ => {},
-            }
-
-            if element.is_root() {
-                flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
         };
 
