@@ -6363,43 +6363,47 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     fn CreateExpression(
         &self,
+        cx: &mut js::context::JSContext,
         expression: DOMString,
         resolver: Option<Rc<XPathNSResolver>>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<crate::dom::types::XPathExpression>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
         Ok(XPathExpression::new(
+            cx,
             &self.window,
             None,
-            can_gc,
             parsed_expression,
         ))
     }
 
-    fn CreateNSResolver(&self, node_resolver: &Node, can_gc: CanGc) -> DomRoot<Node> {
+    fn CreateNSResolver(
+        &self,
+        cx: &mut js::context::JSContext,
+        node_resolver: &Node,
+    ) -> DomRoot<Node> {
         let global = self.global();
         let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
+        let evaluator = XPathEvaluator::new(cx, window, None);
         XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateNSResolver(&*evaluator, node_resolver)
     }
 
     fn Evaluate(
         &self,
+        cx: &mut js::context::JSContext,
         expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
         result: Option<&crate::dom::types::XPathResult>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<crate::dom::types::XPathResult>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
-        XPathExpression::new(&self.window, None, can_gc, parsed_expression).evaluate_internal(
+        XPathExpression::new(cx, &self.window, None, parsed_expression).evaluate_internal(
+            cx,
             context_node,
             result_type,
             result,
-            can_gc,
         )
     }
 

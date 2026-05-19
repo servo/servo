@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use xpath::{Expression, evaluate_parsed_xpath};
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
@@ -15,7 +16,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::{XPathResult, XPathResultType};
-use crate::script_runtime::CanGc;
 use crate::xpath::{Value, XPathImplementation};
 
 #[dom_struct]
@@ -36,25 +36,25 @@ impl XPathExpression {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         parsed_expression: Expression,
     ) -> DomRoot<XPathExpression> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XPathExpression::new_inherited(window, parsed_expression)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn evaluate_internal(
         &self,
+        cx: &mut JSContext,
         context_node: &Node,
         result_type_num: u16,
         result: Option<&XPathResult>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
         let is_allowed_context_node_type = matches!(
             context_node.type_id(),
@@ -111,9 +111,9 @@ impl XPathExpression {
             Ok(DomRoot::from_ref(result))
         } else {
             Ok(XPathResult::new(
+                cx,
                 window,
                 None,
-                can_gc,
                 inferred_result_type,
                 result_value.into(),
             ))
@@ -125,11 +125,11 @@ impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
     /// <https://dom.spec.whatwg.org/#dom-xpathexpression-evaluate>
     fn Evaluate(
         &self,
+        cx: &mut JSContext,
         context_node: &Node,
         result_type_num: u16,
         result: Option<&XPathResult>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
-        self.evaluate_internal(context_node, result_type_num, result, can_gc)
+        self.evaluate_internal(cx, context_node, result_type_num, result)
     }
 }

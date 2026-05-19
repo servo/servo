@@ -5,9 +5,10 @@
 use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
@@ -18,7 +19,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::xpath::{Value, XPathWrapper};
 
 #[repr(u16)]
@@ -125,17 +125,17 @@ impl XPathResult {
     /// of `value`. The exception is `XPathResultType::Any`, for which we look at the value
     /// to determine the type.
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         result_type: XPathResultType,
         value: XPathResultValue,
     ) -> DomRoot<XPathResult> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XPathResult::new_inherited(window, result_type, value)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
