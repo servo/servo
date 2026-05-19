@@ -96,7 +96,7 @@ impl Client {
         // Note: done here and passing origin along in the message.
         let origin = global.origin();
 
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
         self.swmanager_sender
             .send(ServiceWorkerMsg::ForwardWorkerMessage {
                 data,
