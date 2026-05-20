@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use accesskit::{NodeId, Role, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
-use servo::{LoadStatus, Preferences, WebViewBuilder};
+use servo::{DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, WebViewBuilder};
 use url::Url;
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -35,7 +35,10 @@ fn test_basic_accessibility_update() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -60,7 +63,10 @@ fn test_activate_accessibility_after_layout() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
@@ -85,7 +91,10 @@ fn test_navigate_creates_new_accessibility_update() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
 
     let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
@@ -141,7 +150,10 @@ fn test_accessibility_after_navigate_and_back() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
 
     let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
@@ -211,7 +223,10 @@ fn test_accessibility_basic_mapping() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
@@ -269,7 +284,10 @@ fn test_accessibility_basic_name_from_contents() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
@@ -299,7 +317,10 @@ fn test_accessibility_name_from_contents_subtree() {
         let mut preferences = Preferences::default();
         preferences.accessibility_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
     let url = "data:text/html,<!DOCTYPE html>\
                <h1>Servo aims to empower <code>developers</code> with a <em>lightweight</em>, \
@@ -344,7 +365,10 @@ fn test_accessibility_basic_mutation() {
         preferences.accessibility_enabled = true;
         preferences.dom_servo_helpers_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
     let url = "data:text/html,<!DOCTYPE html>\
                <h1 id='h1'>This is an h1</h1>\
@@ -399,7 +423,10 @@ fn test_accessibility_with_mutation_move_nodes() {
         preferences.accessibility_enabled = true;
         preferences.dom_servo_helpers_enabled = true;
         preferences.expensive_accessibility_test_assertions_enabled = true;
-        builder.preferences(preferences)
+        let mut opts = Opts::default();
+        opts.debug
+            .toggle_option(DiagnosticsLoggingOption::AccessibilityTree, true);
+        builder.preferences(preferences).opts(opts)
     });
     let url = "data:text/html,<!DOCTYPE html>\
                <div id='div1'></div>\

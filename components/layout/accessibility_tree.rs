@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
@@ -11,6 +12,8 @@ use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
+use servo_base::print_tree::PrintTree;
+use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use web_atoms::{LocalName, local_name};
@@ -23,7 +26,6 @@ struct AccessibilityUpdate {
     nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
 }
 
-#[derive(Debug)]
 struct AccessibilityNode {
     id: accesskit::NodeId,
     accesskit_node: accesskit::Node,
@@ -43,6 +45,9 @@ pub struct AccessibilityTree {
     epoch: Epoch,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<accesskit::NodeId, TreeChange>,
+    /// Debug options, copied from configuration to this `AccessibilityTree` in order
+    /// to avoid having to constantly access the thread-safe global options.
+    debug: DiagnosticsLogging,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -86,6 +91,7 @@ impl AccessibilityTree {
             tree_id,
             epoch,
             tree_changes: FxHashMap::default(),
+            debug: opts::get().debug.clone(),
         }
     }
 
@@ -108,6 +114,13 @@ impl AccessibilityTree {
         }
 
         self.finalize_tree_changes();
+
+        if self
+            .debug
+            .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
+        {
+            self.print(root_node_id);
+        }
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
             self.assert_integrity(root_node_id);
@@ -243,6 +256,13 @@ impl AccessibilityTree {
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+    }
+
+    fn print(&self, root_node_id: accesskit::NodeId) {
+        let mut print_tree = PrintTree::new("Accessibility Tree".to_string());
+        let node = self.assert_node_for_id(root_node_id);
+        node.borrow().print(self, &mut print_tree);
+        print_tree.end_level();
     }
 }
 
@@ -412,6 +432,21 @@ impl AccessibilityNode {
         Some(text.trim().to_owned())
     }
 
+    fn print(&self, tree: &AccessibilityTree, print_tree: &mut PrintTree) {
+        if self.children().is_empty() {
+            print_tree.add_item(format!("{self:?}"));
+            return;
+        }
+
+        print_tree.new_level(format!("{self:?}"));
+
+        for child_id in self.children() {
+            let child = tree.assert_node_for_id(*child_id);
+            child.borrow().print(tree, print_tree);
+        }
+        print_tree.end_level();
+    }
+
     // TODO: use macros to generate getter/setter methods.
 
     fn children(&self) -> &[accesskit::NodeId] {
@@ -435,7 +470,6 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
-    #[expect(dead_code)]
     fn label(&self) -> Option<&str> {
         self.accesskit_node.label()
     }
@@ -448,7 +482,6 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
-    #[expect(dead_code)]
     fn html_tag(&self) -> Option<&str> {
         self.accesskit_node.html_tag()
     }
@@ -471,6 +504,22 @@ impl AccessibilityNode {
         }
         self.accesskit_node.set_value(value);
         self.updated = true;
+    }
+}
+
+impl Debug for AccessibilityNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {:?}", self.id, self.role())?;
+        if let Some(html_tag) = self.html_tag() {
+            write!(f, " (html_tag: {html_tag:?})")?;
+        }
+        if let Some(label) = self.label() {
+            write!(f, "\nlabel: {label:?}")?;
+        }
+        if !self.children().is_empty() {
+            write!(f, "\nchildren: {:?}", self.children())?;
+        }
+        Ok(())
     }
 }
 
