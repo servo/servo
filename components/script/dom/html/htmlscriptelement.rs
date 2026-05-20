@@ -832,7 +832,7 @@ impl HTMLScriptElement {
         // Step 29. Fetch options.
         let mut options = ScriptFetchOptions {
             cryptographic_nonce,
-            integrity_metadata: integrity_metadata.to_owned(),
+            integrity_metadata,
             parser_metadata,
             referrer_policy,
             credentials_mode: module_credentials_mode,
