@@ -265,11 +265,11 @@ impl Actor for TimelineActor {
 
                 // TODO: move this to the cleanup method.
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
-                    registry.remove(actor_name.clone());
+                    registry.remove(actor_name);
                 }
 
                 if let Some(ref actor_name) = *self.memory_actor.borrow() {
-                    registry.remove(actor_name.clone());
+                    registry.remove(actor_name);
                 }
 
                 **self.is_recording.lock().as_mut().unwrap() = false;

@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::any::{Any, type_name};
-use std::collections::HashMap;
+use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -123,12 +125,39 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     }
 }
 
+#[derive(Clone)]
+struct RegisteredActor(Arc<dyn Actor>);
+
+impl PartialEq for RegisteredActor {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.name() == other.0.name()
+    }
+}
+
+impl Eq for RegisteredActor {}
+
+impl Hash for RegisteredActor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.name().hash(state);
+    }
+}
+
+impl Borrow<str> for RegisteredActor {
+    fn borrow(&self) -> &str {
+        self.0.name()
+    }
+}
+
 #[derive(Default)]
-struct ActorRegistryType(AtomicRefCell<HashMap<String, Arc<dyn Actor>>>);
+struct ActorRegistryType(AtomicRefCell<HashSet<RegisteredActor>>);
 
 impl MallocSizeOf for ActorRegistryType {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        self.0.borrow().iter().map(|actor| actor.size_of(ops)).sum()
+        self.0
+            .borrow()
+            .iter()
+            .map(|wrapper| wrapper.0.size_of(ops))
+            .sum()
     }
 }
 
@@ -145,7 +174,12 @@ pub(crate) struct ActorRegistry {
 
 impl ActorRegistry {
     pub(crate) fn cleanup(&self, stream_id: StreamId) {
-        for actor in self.actors.0.borrow().values() {
+        let actors: Vec<Arc<dyn Actor>> = {
+            let guard = self.actors.0.borrow();
+            guard.iter().map(|r| r.0.clone()).collect()
+        };
+
+        for actor in actors {
             actor.cleanup(stream_id);
         }
     }
@@ -179,18 +213,19 @@ impl ActorRegistry {
     /// Add an actor to the registry of known actors that can receive messages.
     pub(crate) fn register<T: Actor>(&self, actor: T) {
         let mut guard = self.actors.0.borrow_mut();
-        guard.insert(actor.name().into(), Arc::new(actor));
+        guard.insert(RegisteredActor(Arc::new(actor)));
     }
 
     /// Find an actor by registered name
     pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
-        let actor = self
-            .actors
-            .0
-            .borrow()
-            .get(name)
-            .expect("Should never look for a nonexistent actor")
-            .clone();
+        let actor = {
+            let guard = self.actors.0.borrow();
+            guard
+                .get(name)
+                .expect("Should never look for a nonexistent actor")
+                .0
+                .clone()
+        }; // Read guard is dropped here!
         DowncastableActorArc {
             actor,
             _phantom: PhantomData,
@@ -220,7 +255,7 @@ impl ActorRegistry {
 
         let actor = {
             let actors_map = self.actors.0.borrow();
-            actors_map.get(to).cloned()
+            actors_map.get(to).map(|r| r.0.clone())
         };
         match actor {
             None => {
@@ -245,8 +280,9 @@ impl ActorRegistry {
         Ok(())
     }
 
-    pub fn remove(&self, name: String) {
-        self.actors.0.borrow_mut().remove(&name);
+    pub fn remove(&self, name: &str) {
+        let mut guard = self.actors.0.borrow_mut();
+        guard.remove(name);
     }
 
     pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {
