@@ -55,33 +55,27 @@ enum TreeChange {
     New,
 
     /// The node has been re-parented in this update.
-    /// The [`Move`] argument is used to maintain the invariant that a node move consists of a
-    /// removal from its parent and an addition to its new parent.
-    Moved(Move),
+    Moved,
+
+    /// The node has been added to its new parent, but not yet removed from its old
+    /// parent.
+    ///
+    /// When a node is moved within the tree, it must be both removed from its old parent
+    /// and added to its new parent within the same update. This may happen in either
+    /// order, depending on the relative positions of the node before and after it moves.
+    ///
+    /// - If a node's new parent is updated before its old parent, the node will be in a
+    ///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
+    ///   must later be removed from its old parent, at which point its state will be updated to
+    ///   `TreeChange ::Moved(Move::Complete)`.
+    /// - If a node's old parent is updated before its new parent, the node will be first
+    ///   `TreeChange ::Removed` and then `TreeChange ::Moved(Move::Complete)`.
+    ///
+    /// At the end of the update, we assert that there are no pending moves remaining.
+    PendingMove,
 
     /// The node is no longer a child of its previous parent.
     Removed,
-}
-
-/// When a node is moved within the tree, it must be both removed from its old parent and added to
-/// its new parent within the same update. This may happen in either order, depending on the
-/// relative positions of the node before and after it moves.
-///
-/// - If a node's new parent is updated before its old parent, the node will be in a
-///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
-///   must later be removed from its old parent, at which point its state will be updated to
-///   `TreeChange ::Moved(Move::Complete)`.
-/// - If a node's old parent is updated before its new parent, the node will be first
-///   `TreeChange ::Removed` and then `TreeChange ::Moved(Move::Complete)`.
-///
-/// At the end of the update, we assert that there are no pending moves remaining.
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum Move {
-    /// The node has been added to its new parent, but not yet removed from its old parent.
-    Pending,
-
-    /// The node has been both removed from its old parent and added to its new parent.
-    Complete,
 }
 
 impl AccessibilityTree {
@@ -127,8 +121,8 @@ impl AccessibilityTree {
             .tree_changes
             .drain()
             .filter_map(|(id, change)| match change {
-                TreeChange::Moved(Move::Pending) => {
-                    panic!(
+                TreeChange::PendingMove => {
+                    unreachable!(
                         "Pending move found for node id {id:?} when draining tree state changes"
                     );
                 },
@@ -337,7 +331,7 @@ impl AccessibilityNode {
                     let moved_child = tree.assert_node_for_id(*new_child_id);
                     moved_child
                         .borrow()
-                        .set_subtree_state_change(tree, TreeChange::Moved(Move::Pending));
+                        .set_subtree_state_change(tree, TreeChange::PendingMove);
                 }
             }
             self.set_children(new_children);
@@ -358,23 +352,27 @@ impl AccessibilityNode {
     /// in this method will determine whether the move is `Complete` and set the stored value
     /// accordingly.
     fn set_subtree_state_change(&self, tree: &mut AccessibilityTree, change: TreeChange) {
-        use Move::{Complete, Pending};
-        use TreeChange::{Moved, New, Removed};
-
         let old_change = tree.tree_changes.get(&self.id);
-        let new_change = match (old_change, change) {
-            (_, New) => panic!("New shouldn't be set recursively."),
-            (_, Moved(Complete)) => panic!("Incoming Moved must always be Pending"),
 
-            (None, _) => change,
+        assert!(
+            change != TreeChange::New,
+            "New shouldn't be set recursively"
+        );
+        assert!(
+            change != TreeChange::Moved,
+            "Incoming change must never be Moved"
+        );
 
-            (Some(Moved(Pending)), Removed) => Moved(Complete),
-            (Some(Removed), Moved(Pending)) => Moved(Complete),
+        let new_change = old_change
+            .map(|old_change| match (old_change, change) {
+                (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
+                (TreeChange::Removed, TreeChange::PendingMove) => TreeChange::Moved,
+                _ => {
+                    unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
+                },
+            })
+            .unwrap_or(change);
 
-            (Some(old_change), _) => {
-                unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
-            },
-        };
         tree.tree_changes.insert(self.id, new_change);
 
         for child_id in self.children().to_vec() {
