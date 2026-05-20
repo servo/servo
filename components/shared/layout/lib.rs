@@ -21,7 +21,6 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
-use std::vec::Drain;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -425,13 +424,15 @@ pub trait Layout {
     /// See [Self::needs_accessibility_update()].
     fn set_needs_accessibility_update(&self);
 
-    /// Drain the list of nodes which newly have corresponding accessibility nodes,
+    /// Take the list of nodes which newly have corresponding accessibility nodes,
     /// so they can be rooted.
-    fn drain_new_nodes_for_accessibility(&mut self) -> Drain<'_, OpaqueNode>;
+    #[must_use]
+    fn take_new_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode>;
 
-    /// Drain the list of nodes which no longer have corresponding accessibility nodes,
+    /// Take the list of nodes which no longer have corresponding accessibility nodes,
     /// so they can be unrooted.
-    fn drain_stale_nodes_for_accessibility(&mut self) -> Drain<'_, OpaqueNode>;
+    #[must_use]
+    fn take_removed_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode>;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`

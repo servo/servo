@@ -3406,10 +3406,7 @@ impl Document {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn root_nodes_for_accessibility(
-        &self,
-        opaque_nodes: impl Iterator<Item = OpaqueNode>,
-    ) {
+    pub(crate) fn root_nodes_for_accessibility(&self, opaque_nodes: Vec<OpaqueNode>) {
         assert!(pref!(accessibility_enabled));
 
         let accessibility_data = self.accessibility_data();
@@ -3427,10 +3424,7 @@ impl Document {
         }
     }
 
-    pub(crate) fn unroot_nodes_for_accessibility(
-        &self,
-        opaque_nodes: impl Iterator<Item = OpaqueNode>,
-    ) {
+    pub(crate) fn unroot_nodes_for_accessibility(&self, opaque_nodes: Vec<OpaqueNode>) {
         assert!(pref!(accessibility_enabled));
 
         let accessibility_data = self.accessibility_data();

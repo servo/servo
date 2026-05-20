@@ -2721,12 +2721,12 @@ impl Window {
 
         if pref!(accessibility_enabled) {
             document.root_nodes_for_accessibility(
-                self.layout.borrow_mut().drain_new_nodes_for_accessibility(),
+                self.layout.borrow_mut().take_new_nodes_for_accessibility(),
             );
             document.unroot_nodes_for_accessibility(
                 self.layout
                     .borrow_mut()
-                    .drain_stale_nodes_for_accessibility(),
+                    .take_removed_nodes_for_accessibility(),
             );
         }
 

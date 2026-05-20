@@ -7,6 +7,7 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
@@ -236,7 +237,7 @@ pub struct LayoutThread {
     /// Nodes which no longer have a corresponding node in the accessibility.
     /// These should be drained and unrooted at some point.
     /// See [Layout::drain_stale_nodes_for_accessibility]
-    stale_nodes_for_accessibility: Vec<OpaqueNode>,
+    removed_nodes_for_accessibility: Vec<OpaqueNode>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -752,13 +753,12 @@ impl Layout for LayoutThread {
         self.needs_accessibility_update.set(true);
     }
 
-    fn drain_new_nodes_for_accessibility(&mut self) -> std::vec::Drain<'_, OpaqueNode> {
-        // TODO: can we ensure at compile time that this _must_ be called before the end of layout?
-        self.new_nodes_for_accessibility.drain(..)
+    fn take_new_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode> {
+        mem::take(&mut self.new_nodes_for_accessibility)
     }
 
-    fn drain_stale_nodes_for_accessibility(&mut self) -> std::vec::Drain<'_, OpaqueNode> {
-        self.stale_nodes_for_accessibility.drain(..)
+    fn take_removed_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode> {
+        mem::take(&mut self.removed_nodes_for_accessibility)
     }
 }
 
@@ -820,7 +820,7 @@ impl LayoutThread {
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
             new_nodes_for_accessibility: vec![],
-            stale_nodes_for_accessibility: vec![],
+            removed_nodes_for_accessibility: vec![],
         }
     }
 
@@ -956,12 +956,15 @@ impl LayoutThread {
             return false;
         };
 
+        // These fields should either never have been populated, or been taken at the end of the
+        // previous reflow.
+        assert!(self.new_nodes_for_accessibility.is_empty());
+        assert!(self.removed_nodes_for_accessibility.is_empty());
+
         let accessibility_tree = &mut *accessibility_tree;
-        if let Some((tree_update, new_opaque_nodes, stale_opaque_nodes)) =
-            accessibility_tree.update_tree(root_element)
-        {
-            self.new_nodes_for_accessibility = new_opaque_nodes;
-            self.stale_nodes_for_accessibility = stale_opaque_nodes;
+        if let Some(update_result) = accessibility_tree.update_tree(root_element) {
+            self.new_nodes_for_accessibility = update_result.new_opaque_nodes;
+            self.removed_nodes_for_accessibility = update_result.removed_opaque_nodes;
 
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
@@ -970,7 +973,7 @@ impl LayoutThread {
                 .embedder_chan
                 .send(EmbedderMsg::AccessibilityTreeUpdate(
                     self.webview_id,
-                    tree_update,
+                    update_result.tree_update,
                     accessibility_tree.epoch(),
                 ));
         }
