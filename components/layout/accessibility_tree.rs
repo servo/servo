@@ -67,9 +67,9 @@ enum TreeChange {
     /// - If a node's new parent is updated before its old parent, the node will be in a
     ///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
     ///   must later be removed from its old parent, at which point its state will be updated to
-    ///   `TreeChange ::Moved(Move::Complete)`.
+    ///   `TreeChange::Moved(Move::Complete)`.
     /// - If a node's old parent is updated before its new parent, the node will be first
-    ///   `TreeChange ::Removed` and then `TreeChange ::Moved(Move::Complete)`.
+    ///   `TreeChange::Removed` and then `TreeChange ::Moved(Move::Complete)`.
     ///
     /// At the end of the update, we assert that there are no pending moves remaining.
     PendingMove,
@@ -223,10 +223,9 @@ impl AccessibilityTree {
 
     /// Assert that the tree is a tree without any dangling references or orphaned nodes.
     ///
-    /// For accessibility tests only, because it’s expensive and calls [`eprintln`].
+    /// For accessibility tests only, because it’s expensive.
     fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
         assert!(pref!(expensive_accessibility_test_assertions_enabled));
-        eprintln!("Start of assert_integrity()");
         // Traverse the tree from the given root.
         let mut node_ids = vec![root_node_id];
         let mut seen_node_ids = FxHashSet::default();
@@ -239,24 +238,11 @@ impl AccessibilityTree {
             // If this fails, then the tree has dangling references.
             let node = self.assert_node_for_id(node_id);
             let node = node.borrow();
-            eprintln!(
-                "{node_id:?}: {:?} (html_tag: {:?})",
-                node.role(),
-                node.html_tag()
-            );
-            if let Some(label) = node.label() {
-                eprintln!("    label: {:?}", label);
-            }
-            if !node.children().is_empty() {
-                eprintln!("    children: {:?}", node.children());
-            }
             node_ids.extend(node.children().iter().rev());
         }
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
-
-        eprintln!("End of assert_integrity()");
     }
 }
 
