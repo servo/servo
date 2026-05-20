@@ -190,7 +190,7 @@ serde_test = "1.0"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "d2b3101e39c57a179c573e8f4c2fa4abb46f8482" }
 sha1 = "0.10"
 sha2 = "0.10"
-sha3 = "0.10"
+sha3 = "0.12"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
