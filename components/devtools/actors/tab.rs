@@ -15,7 +15,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
@@ -167,7 +167,7 @@ impl Actor for TabDescriptorActor {
 
 impl TabDescriptorActor {
     pub(crate) fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let root_actor = registry.find::<RootActor>("root");
         root_actor.tabs.borrow_mut().push(name.clone());
         let actor = Self {

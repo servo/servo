@@ -16,7 +16,7 @@ use serde_json::{self, Map, Value};
 use servo_base::generic_channel::{self};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::actors::inspector::walker::{WalkerActor, find_child};
@@ -130,7 +130,7 @@ impl Actor for PageStyleActor {
 
 impl PageStyleActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self { name: name.clone() };
         registry.register::<Self>(actor);
         name

@@ -6,7 +6,7 @@ use devtools_traits::{BlackboxCoverage, DevtoolScriptControlMsg};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::{ActorMsg, EmptyReplyMsg};
@@ -96,7 +96,7 @@ impl Actor for BlackboxingActor {
 
 impl BlackboxingActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             browsing_context_name,

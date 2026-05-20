@@ -40,7 +40,7 @@ use servo_base::generic_channel::{self, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_config::pref;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
 use crate::actors::environment::EnvironmentActor;
@@ -507,7 +507,7 @@ impl DevtoolsInstance {
         let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
         let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
 
-        let console_name = self.registry.new_name::<ConsoleActor>();
+        let console_name = new_actor_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
             let thread_name = ThreadActor::register(&self.registry, script_sender.clone(), None);

@@ -14,7 +14,7 @@ use servo_base::id::TEST_PIPELINE_ID;
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
@@ -54,7 +54,7 @@ impl WorkerTargetActor {
         worker_type: WorkerType,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             console_name,

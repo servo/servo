@@ -23,7 +23,7 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::long_string::LongStringActor;
 use crate::network_handler::Cause;
@@ -540,7 +540,7 @@ impl NetworkEventActor {
         resource_id: u64,
         browsing_context_name: String,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = NetworkEventActor {
             name: name.clone(),
             resource_id,

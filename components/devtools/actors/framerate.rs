@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry, new_actor_name};
 use crate::actors::timeline::HighResolutionStamp;
 
 #[derive(MallocSizeOf)]
@@ -35,7 +35,7 @@ impl FramerateActor {
         pipeline_id: PipelineId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let actor_name = registry.new_name::<Self>();
+        let actor_name = new_actor_name::<Self>();
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline_id,

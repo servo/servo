@@ -13,7 +13,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::protocol::ClientRequest;
@@ -106,7 +106,7 @@ impl Actor for TargetConfigurationActor {
 
 impl TargetConfigurationActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             configuration: HashMap::new(),

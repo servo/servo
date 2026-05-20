@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::channel;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::actors::object::{ObjectActor, ObjectActorMsg};
 use crate::actors::source::SourceActor;
@@ -115,7 +115,7 @@ impl FrameActor {
         // TODO: Get the real frame object from the debugger.
         let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None, None);
 
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             object_actor: object_name,

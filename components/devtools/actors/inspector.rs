@@ -8,7 +8,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::highlighter::HighlighterActor;
 use crate::actors::inspector::page_style::{PageStyleActor, PageStyleMsg};
 use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
@@ -120,7 +120,7 @@ impl InspectorActor {
         let walker_name = WalkerActor::register(registry, browsing_context_name);
 
         let inspector_actor = Self {
-            name: registry.new_name::<InspectorActor>(),
+            name: new_actor_name::<InspectorActor>(),
             highlighter_name,
             page_style_name,
             walker_name,

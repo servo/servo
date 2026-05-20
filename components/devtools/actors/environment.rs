@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::actor::{Actor, ActorEncode, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorRegistry, new_actor_name};
 use crate::actors::object::{ObjectActorMsg, ObjectPropertyDescriptor};
 
 #[derive(Serialize)]
@@ -73,7 +73,7 @@ impl EnvironmentActor {
             return actor_name;
         }
 
-        let environment_name = registry.new_name::<Self>();
+        let environment_name = new_actor_name::<Self>();
         let environment_actor = Self {
             name: environment_name.clone(),
             parent_name,

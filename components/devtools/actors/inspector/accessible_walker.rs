@@ -4,7 +4,7 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry, new_actor_name};
 
 #[derive(MallocSizeOf)]
 pub(crate) struct AccessibleWalkerActor {
@@ -13,7 +13,7 @@ pub(crate) struct AccessibleWalkerActor {
 
 impl AccessibleWalkerActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self { name: name.clone() };
         registry.register::<Self>(actor);
         name

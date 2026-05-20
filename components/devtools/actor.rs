@@ -47,6 +47,27 @@ impl ActorError {
     }
 }
 
+/// Create a name prefix for each actor type, without any counter suffix.
+pub(crate) fn base_name<T: ?Sized>() -> &'static str {
+    let prefix = type_name::<T>();
+    prefix.split("::").last().unwrap_or(prefix)
+}
+
+/// Create a unique actor name based on the type and a monotonically increasing suffix.
+pub(crate) fn new_actor_name<T: ?Sized>() -> String {
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    let suffix = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let base = base_name::<T>();
+
+    // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
+    // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
+    if base.contains("WorkerTarget") {
+        format!("/workerTarget{}", suffix)
+    } else {
+        format!("{}{}", base, suffix)
+    }
+}
+
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
@@ -120,7 +141,6 @@ pub(crate) struct ActorRegistry {
     source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
     /// Lookup table for inline source content associated with a given PipelineId.
     inline_source_content: AtomicRefCell<HashMap<PipelineId, String>>,
-    next: AtomicU32,
 }
 
 impl ActorRegistry {
@@ -154,30 +174,6 @@ impl ActorRegistry {
             }
         }
         panic!("couldn't find actor named {}", actor)
-    }
-
-    /// Create a name prefix for each actor type.
-    /// While not needed for unique ids as each actor already has a different
-    /// suffix, it can be used to visually identify actors in the logs.
-    pub fn base_name<T: Actor>() -> &'static str {
-        let prefix = type_name::<T>();
-        prefix.split("::").last().unwrap_or(prefix)
-    }
-
-    /// Create a unique name based on a monotonically increasing suffix
-    /// TODO: Merge this with `register` and don't allow to
-    /// create new names without registering an actor.
-    pub fn new_name<T: Actor>(&self) -> String {
-        let suffix = self.next.fetch_add(1, Ordering::Relaxed);
-        let base = Self::base_name::<T>();
-
-        // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
-        // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
-        if base.contains("WorkerTarget") {
-            format!("/workerTarget{}", suffix)
-        } else {
-            format!("{}{}", base, suffix)
-        }
     }
 
     /// Add an actor to the registry of known actors that can receive messages.

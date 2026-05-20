@@ -7,7 +7,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 use serde_json::Map;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::protocol::ClientRequest;
@@ -127,7 +127,7 @@ impl Actor for BreakpointListActor {
 
 impl BreakpointListActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             browsing_context_name,

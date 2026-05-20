@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, base_name, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
@@ -58,7 +58,7 @@ impl Actor for HighlighterActor {
                     return Err(ActorError::BadParameterType);
                 };
 
-                if node_actor_name.starts_with(ActorRegistry::base_name::<InspectorActor>()) {
+                if node_actor_name.starts_with(base_name::<InspectorActor>()) {
                     // TODO: For some reason, the client initially asks us to highlight
                     // the inspector? Investigate what this is supposed to mean.
                     let msg = ShowReply {
@@ -98,7 +98,7 @@ impl Actor for HighlighterActor {
 
 impl HighlighterActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             browsing_context_name,

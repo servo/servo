@@ -5,7 +5,7 @@
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry, new_actor_name};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,7 +36,7 @@ impl Actor for MemoryActor {
 impl MemoryActor {
     /// return name of actor
     pub fn create(registry: &ActorRegistry) -> String {
-        let actor_name = registry.new_name::<Self>();
+        let actor_name = new_actor_name::<Self>();
         let actor = MemoryActor {
             name: actor_name.clone(),
         };

@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::object::ObjectPropertyDescriptor;
 use crate::protocol::ClientRequest;
 
@@ -29,7 +29,7 @@ pub(crate) struct PropertyIteratorActor {
 
 impl PropertyIteratorActor {
     pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             properties,

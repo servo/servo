@@ -24,7 +24,7 @@ use self::network_parent::NetworkParentActor;
 use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
 use super::worker::WorkerTargetActorMsg;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::blackboxing::BlackboxingActor;
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::console::ConsoleActor;
@@ -479,7 +479,7 @@ impl WatcherActor {
             BreakpointListActor::register(registry, browsing_context_name.clone());
         let blackboxing_name = BlackboxingActor::register(registry, browsing_context_name.clone());
 
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             browsing_context_name,

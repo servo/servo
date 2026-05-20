@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::root::DescriptorTraits;
 use crate::protocol::ClientRequest;
 
@@ -69,7 +69,7 @@ impl Actor for ProcessActor {
 
 impl ProcessActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self { name: name.clone() };
         registry.register::<Self>(actor);
         name

@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::{ActorDescription, ClientRequest, Method};
 
 #[derive(Serialize)]
@@ -75,7 +75,7 @@ impl Actor for DeviceActor {
 
 impl DeviceActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = DeviceActor { name: name.clone() };
         registry.register::<Self>(actor);
         name

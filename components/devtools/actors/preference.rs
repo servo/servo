@@ -8,7 +8,7 @@ use serde_json::{Map, Value};
 use servo_config::pref;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 
 #[derive(MallocSizeOf)]
@@ -18,7 +18,7 @@ pub(crate) struct PreferenceActor {
 
 impl PreferenceActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self { name: name.clone() };
         registry.register::<Self>(actor);
         name

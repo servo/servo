@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::accessible_walker::AccessibleWalkerActor;
 use crate::actors::inspector::simulator::SimulatorActor;
 use crate::protocol::ClientRequest;
@@ -126,7 +126,7 @@ impl Actor for AccessibilityActor {
 
 impl AccessibilityActor {
     pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self { name: name.clone() };
         registry.register::<Self>(actor);
         name

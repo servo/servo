@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::GenericSender;
 
 use super::source::{SourceManager, SourcesReply};
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
@@ -122,7 +122,7 @@ impl ThreadActor {
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: Option<String>,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = ThreadActor {
             name: name.clone(),
             source_manager: SourceManager::new(),

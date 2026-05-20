@@ -12,7 +12,9 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 use servo_base::generic_channel;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc};
+use crate::actor::{
+    Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc, new_actor_name,
+};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActor, NodeActorMsg};
@@ -268,7 +270,7 @@ impl Actor for WalkerActor {
 
 impl WalkerActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<WalkerActor>();
+        let name = new_actor_name::<WalkerActor>();
         let actor = WalkerActor {
             name: name.clone(),
             mutations: AtomicRefCell::new(vec![]),

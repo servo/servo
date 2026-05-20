@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 
 const INITIAL_LENGTH: usize = 500;
@@ -74,7 +74,7 @@ impl Actor for LongStringActor {
 
 impl LongStringActor {
     pub fn register(registry: &ActorRegistry, full_string: String) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             full_string,

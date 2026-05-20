@@ -18,7 +18,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
@@ -148,7 +148,7 @@ impl StyleRuleActor {
         node: String,
         selector: Option<MatchedRule>,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             node_name: node,

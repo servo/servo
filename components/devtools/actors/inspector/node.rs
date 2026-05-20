@@ -17,7 +17,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 use servo_base::generic_channel;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
@@ -264,7 +264,7 @@ impl NodeActor {
         let unique_id = &node_info.unique_id;
 
         if !registry.script_actor_registered(unique_id) {
-            let name = registry.new_name::<Self>();
+            let name = new_actor_name::<Self>();
             registry.register_script_actor(unique_id.clone(), name.clone());
 
             let actor = Self {

@@ -10,7 +10,7 @@ use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSender;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::long_string::{LongStringActor, LongStringObj};
 use crate::protocol::ClientRequest;
@@ -140,7 +140,7 @@ impl StyleSheetsActor {
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: String,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = StyleSheetsActor {
             name: name.clone(),
             script_sender,

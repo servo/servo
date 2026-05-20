@@ -13,7 +13,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 
 #[derive(MallocSizeOf)]
@@ -61,7 +61,7 @@ impl CssPropertiesActor {
         registry: &ActorRegistry,
         properties: HashMap<String, CssDatabaseProperty>,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             properties,

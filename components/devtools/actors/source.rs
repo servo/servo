@@ -15,7 +15,7 @@ use servo_base::id::PipelineId;
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry, DowncastableActorArc};
+use crate::actor::{Actor, ActorError, ActorRegistry, DowncastableActorArc, new_actor_name};
 use crate::actors::breakpoint::BreakpointRequestLocation;
 use crate::protocol::ClientRequest;
 
@@ -154,7 +154,7 @@ impl SourceActor {
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             url,

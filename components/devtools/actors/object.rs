@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::property_iterator::PropertyIteratorActor;
 use crate::actors::symbol_iterator::SymbolIteratorActor;
 use crate::protocol::ClientRequest;
@@ -233,7 +233,7 @@ impl ObjectActor {
         preview: Option<devtools_traits::ObjectPreview>,
     ) -> String {
         let Some(uuid) = uuid else {
-            let name = registry.new_name::<Self>();
+            let name = new_actor_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: None,
@@ -245,7 +245,7 @@ impl ObjectActor {
             return name;
         };
         if !registry.script_actor_registered(&uuid) {
-            let name = registry.new_name::<Self>();
+            let name = new_actor_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),

@@ -17,7 +17,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::{self, GenericSender, SendError};
 use servo_base::id::PipelineId;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
@@ -192,7 +192,7 @@ impl BrowsingContextActor {
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let name = registry.new_name::<BrowsingContextActor>();
+        let name = new_actor_name::<BrowsingContextActor>();
 
         let accessibility_name = AccessibilityActor::register(registry);
 
