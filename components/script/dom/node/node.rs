@@ -1922,13 +1922,12 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#language>
-    pub(crate) fn get_lang(&self, cx: &mut JSContext) -> Option<String> {
+    pub(crate) fn get_lang(&self) -> Option<String> {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
-                    el.get_attribute_with_namespace(cx, &ns!(xml), &local_name!("lang"))
-                        .or_else(|| el.get_attribute(&local_name!("lang")))
-                        .map(|attr| String::from(attr.Value()))
+                    el.get_attribute_string_value_with_namespace(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute_string_value(&local_name!("lang")))
                 })
                 // TODO: Check meta tags for a pragma-set default language
                 // TODO: Check HTTP Content-Language header
