@@ -89,9 +89,15 @@ impl<'dom> DangerousStyleElement<'dom> for ServoDangerousStyleElement<'dom> {
 
 impl<'dom> style::dom::AttributeProvider for ServoDangerousStyleElement<'dom> {
     fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
-        self.element
-            .get_attr_val_for_layout(namespace, attr)
-            .map(Into::into)
+        // All attribute names on HTML elements in HTML docs match ASCII-case-insensitively.
+        // See note in https://html.spec.whatwg.org/multipage/#custom-data-attribute
+        if self.is_html_element_in_html_document() {
+            let attr = &style::LocalName::new(attr.to_ascii_lowercase());
+            self.element.get_attr_val_for_layout(namespace, attr)
+        } else {
+            self.element.get_attr_val_for_layout(namespace, attr)
+        }
+        .map(Into::into)
     }
 }
 
