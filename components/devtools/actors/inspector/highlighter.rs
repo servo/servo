@@ -5,6 +5,8 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -99,14 +101,13 @@ impl Actor for HighlighterActor {
 }
 
 impl HighlighterActor {
-    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     fn instruct_script_thread_to_highlight_node(

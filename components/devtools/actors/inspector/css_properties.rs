@@ -6,6 +6,7 @@
 //! alternative names
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::CssDatabaseProperty;
 use malloc_size_of_derive::MallocSizeOf;
@@ -60,13 +61,9 @@ impl CssPropertiesActor {
     pub fn register(
         registry: &ActorRegistry,
         properties: HashMap<String, CssDatabaseProperty>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            properties,
-        };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name, properties };
+        registry.register::<Self>(actor)
     }
 }

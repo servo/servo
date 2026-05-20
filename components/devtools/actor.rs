@@ -114,6 +114,15 @@ pub(crate) struct DowncastableActorArc<T> {
     _phantom: PhantomData<T>,
 }
 
+impl<T: Actor> From<Arc<T>> for DowncastableActorArc<T> {
+    fn from(actor: Arc<T>) -> Self {
+        Self {
+            actor,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {

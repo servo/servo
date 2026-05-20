@@ -6,6 +6,8 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -68,11 +70,10 @@ impl Actor for ProcessActor {
 }
 
 impl ProcessActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }
 

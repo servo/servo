@@ -6,6 +6,7 @@
 //! This actor manages the configuration flags that the devtools host can apply to the targets.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use embedder_traits::Theme;
 use log::warn;
@@ -107,10 +108,10 @@ impl Actor for TargetConfigurationActor {
 }
 
 impl TargetConfigurationActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
@@ -132,8 +133,7 @@ impl TargetConfigurationActor {
                 ("useSimpleHighlightersForReducedMotion", false),
             ]),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 

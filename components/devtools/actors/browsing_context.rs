@@ -6,6 +6,8 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::DevtoolsPageInfo;
@@ -193,10 +195,10 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<BrowsingContextActor>();
 
-        let accessibility_name = AccessibilityActor::register(registry);
+        let accessibility_actor = AccessibilityActor::register(registry);
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -204,21 +206,22 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties_name = CssPropertiesActor::register(registry, properties);
 
-        let inspector_name = InspectorActor::register(registry, name.clone());
+        let css_properties_actor = CssPropertiesActor::register(registry, properties);
 
-        let reflow_name = ReflowActor::register(registry);
+        let inspector_actor = InspectorActor::register(registry, name.clone());
 
-        let style_sheets_name =
+        let reflow_actor = ReflowActor::register(registry);
+
+        let style_sheets_actor =
             StyleSheetsActor::register(registry, script_sender.clone(), name.clone());
 
         let _ = TabDescriptorActor::register(registry, name.clone());
 
-        let thread_name =
+        let thread_actor =
             ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
-        let watcher_name = WatcherActor::register(
+        let watcher_actor = WatcherActor::register(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -228,26 +231,24 @@ impl BrowsingContextActor {
         script_chans.insert(pipeline_id, script_sender);
 
         let actor = BrowsingContextActor {
-            name: name.clone(),
+            name,
             script_chans: script_chans.into(),
             active_pipeline_id: pipeline_id.into(),
             active_outer_window_id: outer_window_id.into(),
             browser_id,
             browsing_context_id,
-            accessibility_name,
+            accessibility_name: accessibility_actor.name().into(),
             console_name,
-            css_properties_name,
-            inspector_name,
+            css_properties_name: css_properties_actor.name().into(),
+            inspector_name: inspector_actor.name().into(),
             page_info: page_info.into(),
-            reflow_name,
-            style_sheets_name,
-            thread_name,
-            watcher_name,
+            reflow_name: reflow_actor.name().into(),
+            style_sheets_name: style_sheets_actor.name().into(),
+            thread_name: thread_actor.name().into(),
+            watcher_name: watcher_actor.name().into(),
         };
 
-        registry.register::<Self>(actor);
-
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn handle_new_global(

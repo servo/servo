@@ -9,6 +9,8 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -174,7 +176,7 @@ impl Actor for TabDescriptorActor {
 }
 
 impl TabDescriptorActor {
-    pub(crate) fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+    pub(crate) fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let root_actor = registry.find::<RootActor>("root");
         root_actor.tabs.borrow_mut().push(name.clone());
@@ -182,8 +184,7 @@ impl TabDescriptorActor {
             name: name.clone(),
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn is_top_level_global(&self, registry: &ActorRegistry) -> bool {

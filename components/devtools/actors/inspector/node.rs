@@ -17,7 +17,9 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 use servo_base::generic_channel;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
+use crate::actor::{
+    Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc, new_actor_name,
+};
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
@@ -262,7 +264,7 @@ impl NodeActor {
         registry: &ActorRegistry,
         walker_name: &str,
         node_info: NodeInfo,
-    ) -> String {
+    ) -> DowncastableActorArc<Self> {
         let unique_id = &node_info.unique_id;
 
         if !registry.script_actor_registered(unique_id) {
@@ -276,13 +278,12 @@ impl NodeActor {
                 node_info: AtomicRefCell::new(node_info),
             };
 
-            registry.register(actor);
-            name
+            registry.register(actor).into()
         } else {
             let name = registry.script_to_actor(unique_id);
             let actor = registry.find::<NodeActor>(&name);
             actor.update(node_info);
-            name
+            actor
         }
     }
 
@@ -330,8 +331,8 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
             let mut children = rx.recv().ok()??;
 
             let child = children.pop()?;
-            let node_name = NodeActor::register_or_update(registry, &self.walker_name, child);
-            let msg = registry.encode::<NodeActor, _>(&node_name);
+            let node_actor = NodeActor::register_or_update(registry, &self.walker_name, child);
+            let msg = node_actor.encode(registry);
 
             // If the node child is not a text node, do not represent it inline.
             if msg.node_type != TEXT_NODE {

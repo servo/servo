@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
@@ -114,20 +116,17 @@ impl FrameActor {
         registry: &ActorRegistry,
         source_name: String,
         frame_result: FrameInfo,
-    ) -> String {
-        // TODO: Get the real frame object from the debugger.
+    ) -> Arc<Self> {
         let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None, None);
-
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             object_actor: object_name,
             source_name,
             frame_result,
             current_offset: Default::default(),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn set_offset(&self, column: u32, line: u32) {

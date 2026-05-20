@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -120,8 +122,7 @@ impl Actor for StyleSheetsActor {
                         warn!("Stylesheet fetched without text content");
                         "Error fetching CSS text".to_string()
                     });
-                let long_string_name = LongStringActor::register(registry, css_text);
-                let long_string_actor = registry.find::<LongStringActor>(&long_string_name);
+                let long_string_actor = LongStringActor::register(registry, css_text);
                 let msg = GetTextReply {
                     from: self.name().into(),
                     text: long_string_actor.long_string_obj(),
@@ -139,15 +140,14 @@ impl StyleSheetsActor {
         registry: &ActorRegistry,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: String,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = StyleSheetsActor {
-            name: name.clone(),
+            name,
             script_sender,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn get_stylesheets_data(

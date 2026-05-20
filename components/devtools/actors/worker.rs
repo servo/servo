@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
@@ -53,10 +55,10 @@ impl WorkerTargetActor {
         url: ServoUrl,
         worker_type: WorkerType,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             console_name,
             thread_name,
             worker_id,
@@ -65,8 +67,7 @@ impl WorkerTargetActor {
             script_sender,
             streams: Default::default(),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 

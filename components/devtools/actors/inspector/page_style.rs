@@ -7,6 +7,7 @@
 
 use std::collections::HashMap;
 use std::iter::once;
+use std::sync::Arc;
 
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{AutoMargins, ComputedNodeLayout, MatchedRule};
@@ -129,11 +130,10 @@ impl Actor for PageStyleActor {
 }
 
 impl PageStyleActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 
     fn get_applied(
@@ -202,6 +202,8 @@ impl PageStyleActor {
                                 (matched_rule.stylesheet_index != usize::MAX)
                                     .then_some(matched_rule.clone()),
                             )
+                            .name()
+                            .into()
                         })
                         .clone();
 
@@ -252,7 +254,11 @@ impl PageStyleActor {
             .style_rules
             .borrow_mut()
             .entry(style_attribute_rule)
-            .or_insert_with(|| StyleRuleActor::register(registry, node_name.into(), None))
+            .or_insert_with(|| {
+                StyleRuleActor::register(registry, node_name.into(), None)
+                    .name()
+                    .into()
+            })
             .clone();
         let computed = registry
             .find::<StyleRuleActor>(&style_rule_name)

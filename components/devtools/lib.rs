@@ -510,17 +510,17 @@ impl DevtoolsInstance {
         let console_name = new_actor_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
-            let thread_name = ThreadActor::register(&self.registry, script_sender.clone(), None);
+            let thread_actor = ThreadActor::register(&self.registry, script_sender.clone(), None);
 
             let worker_type = if page_info.is_service_worker {
                 WorkerType::Service
             } else {
                 WorkerType::Dedicated
             };
-            let worker_name = WorkerTargetActor::register(
+            let worker_actor = WorkerTargetActor::register(
                 &self.registry,
                 console_name.clone(),
-                thread_name,
+                thread_actor.name().into(),
                 id,
                 page_info.url,
                 worker_type,
@@ -531,14 +531,17 @@ impl DevtoolsInstance {
                 root_actor
                     .service_workers
                     .borrow_mut()
-                    .push(worker_name.clone());
+                    .push(worker_actor.name().into());
             } else {
-                root_actor.workers.borrow_mut().push(worker_name.clone());
+                root_actor
+                    .workers
+                    .borrow_mut()
+                    .push(worker_actor.name().into());
             }
 
-            self.actor_workers.insert(id, worker_name.clone());
+            self.actor_workers.insert(id, worker_actor.name().into());
 
-            Root::DedicatedWorker(worker_name)
+            Root::DedicatedWorker(worker_actor.name().into())
         } else {
             self.pipelines.insert(pipeline_id, browsing_context_id);
             let browsing_context_name = self
@@ -555,6 +558,8 @@ impl DevtoolsInstance {
                         devtools_outer_window_id,
                         script_sender.clone(),
                     )
+                    .name()
+                    .into()
                 });
             let browsing_context_actor = self
                 .registry
@@ -710,13 +715,13 @@ impl DevtoolsInstance {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
-        let network_event_name =
+        let network_event_actor =
             NetworkEventActor::register(&self.registry, resource_id, browsing_context_name);
 
         self.actor_requests
-            .insert(request_id, network_event_name.clone());
+            .insert(request_id, network_event_actor.name().into());
 
-        network_event_name
+        network_event_actor.name().into()
     }
 
     fn handle_create_source_actor(
@@ -740,7 +745,7 @@ impl DevtoolsInstance {
         );
         let source_form = self
             .registry
-            .find::<SourceActor>(&source_actor)
+            .find::<SourceActor>(source_actor.name())
             .source_form();
 
         if let Some(worker_id) = source_info.worker_id {
@@ -755,7 +760,7 @@ impl DevtoolsInstance {
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
-            thread_actor.source_manager.add_source(&source_actor);
+            thread_actor.source_manager.add_source(source_actor.name());
 
             let worker_actor = self.registry.find::<WorkerTargetActor>(worker_name);
 
@@ -783,7 +788,7 @@ impl DevtoolsInstance {
 
             let thread_actor_name = browsing_context_actor.thread_name.clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(&source_actor);
+            thread_actor.source_manager.add_source(source_actor.name());
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 browsing_context_actor.resource_array(
@@ -832,7 +837,7 @@ impl DevtoolsInstance {
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let pause_name = PauseActor::register(&self.registry);
+        let pause_name = PauseActor::register(&self.registry).name().into();
 
         let frame_actor = self.registry.find::<FrameActor>(&frame_offset.actor);
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
@@ -880,9 +885,9 @@ impl DevtoolsInstance {
             },
         };
 
-        let frame_name = FrameActor::register(&self.registry, source_name, frame);
+        let frame_actor = FrameActor::register(&self.registry, source_name, frame);
 
-        let _ = result_sender.send(frame_name);
+        let _ = result_sender.send(frame_actor.name().into());
     }
 
     fn handle_create_environment_actor(

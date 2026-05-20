@@ -11,6 +11,7 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/watcher.js
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::get_time_stamp;
 use log::warn;
@@ -475,29 +476,27 @@ impl WatcherActor {
         registry: &ActorRegistry,
         browsing_context_name: String,
         session_context: SessionContext,
-    ) -> String {
-        let network_parent_name = NetworkParentActor::register(registry);
-        let target_configuration_name = TargetConfigurationActor::register(registry);
-        let thread_configuration_name = ThreadConfigurationActor::register(registry);
-        let breakpoint_list_name =
+    ) -> Arc<Self> {
+        let network_parent_actor = NetworkParentActor::register(registry);
+        let target_configuration_actor = TargetConfigurationActor::register(registry);
+        let thread_configuration_actor = ThreadConfigurationActor::register(registry);
+        let breakpoint_list_actor =
             BreakpointListActor::register(registry, browsing_context_name.clone());
-        let blackboxing_name = BlackboxingActor::register(registry, browsing_context_name.clone());
+        let blackboxing_actor = BlackboxingActor::register(registry, browsing_context_name.clone());
 
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
-            network_parent_name,
-            target_configuration_name,
-            thread_configuration_name,
-            breakpoint_list_name,
-            blackboxing_name,
+            network_parent_name: network_parent_actor.name().into(),
+            target_configuration_name: target_configuration_actor.name().into(),
+            thread_configuration_name: thread_configuration_actor.name().into(),
+            breakpoint_list_name: breakpoint_list_actor.name().into(),
+            blackboxing_name: blackboxing_actor.name().into(),
             session_context,
         };
 
-        registry.register::<Self>(actor);
-
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn emit_will_navigate<'a>(

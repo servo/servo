@@ -7,6 +7,7 @@
 //! A group is either the html style attribute or one selector from one stylesheet.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
@@ -147,15 +148,14 @@ impl StyleRuleActor {
         registry: &ActorRegistry,
         node: String,
         selector: Option<MatchedRule>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             node_name: node,
             selector,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {

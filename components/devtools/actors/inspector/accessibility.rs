@@ -5,6 +5,8 @@
 //! The Accessibility actor is responsible for the Accessibility tab in the DevTools page. Right
 //! now it is a placeholder for future functionality.
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -92,10 +94,11 @@ impl Actor for AccessibilityActor {
                 request.reply_final(&msg)?
             },
             "getSimulator" => {
+                let simulator_actor = SimulatorActor::register(registry);
                 let msg = GetSimulatorReply {
                     from: self.name().into(),
                     simulator: ActorMsg {
-                        actor: SimulatorActor::register(registry),
+                        actor: simulator_actor.name().into(),
                     },
                 };
                 request.reply_final(&msg)?
@@ -110,10 +113,11 @@ impl Actor for AccessibilityActor {
                 request.reply_final(&msg)?
             },
             "getWalker" => {
+                let accessible_walker_actor = AccessibleWalkerActor::register(registry);
                 let msg = GetWalkerReply {
                     from: self.name().into(),
                     walker: ActorMsg {
-                        actor: AccessibleWalkerActor::register(registry),
+                        actor: accessible_walker_actor.name().into(),
                     },
                 };
                 request.reply_final(&msg)?
@@ -125,10 +129,9 @@ impl Actor for AccessibilityActor {
 }
 
 impl AccessibilityActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }

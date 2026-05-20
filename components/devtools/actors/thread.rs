@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
@@ -121,17 +122,16 @@ impl ThreadActor {
         registry: &ActorRegistry,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: Option<String>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = ThreadActor {
-            name: name.clone(),
+            name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
@@ -150,11 +150,11 @@ impl Actor for ThreadActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "attach" => {
-                let pause_name = PauseActor::register(registry);
+                let pause_actor = PauseActor::register(registry);
                 let msg = ThreadAttached {
                     from: self.name().into(),
                     type_: "paused".to_owned(),
-                    actor: pause_name,
+                    actor: pause_actor.name().into(),
                     frame: 0,
                     error: 0,
                     recording_endpoint: 0,

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use devtools_traits::{BlackboxCoverage, DevtoolScriptControlMsg};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
@@ -97,14 +99,13 @@ impl Actor for BlackboxingActor {
 }
 
 impl BlackboxingActor {
-    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 

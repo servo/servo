@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::PropertyDescriptor;
 use malloc_size_of_derive::MallocSizeOf;
@@ -28,14 +29,10 @@ pub(crate) struct PropertyIteratorActor {
 }
 
 impl PropertyIteratorActor {
-    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> String {
+    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            properties,
-        };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name, properties };
+        registry.register::<Self>(actor)
     }
 
     pub fn count(&self) -> u32 {

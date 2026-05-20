@@ -7,6 +7,7 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
@@ -194,15 +195,14 @@ pub(crate) struct ConsoleActor {
 }
 
 impl ConsoleActor {
-    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> String {
+    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> Arc<Self> {
         let actor = Self {
-            name: name.clone(),
+            name,
             root,
             cached_events: Default::default(),
             client_ready_to_receive_messages: false.into(),
         };
-        registry.register(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {

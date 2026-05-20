@@ -5,6 +5,8 @@
 //! The layout actor informs the DevTools client of the layout properties of the document, such as
 //! grids or flexboxes. It acts as a placeholder for now.
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -74,11 +76,10 @@ impl Actor for LayoutInspectorActor {
 }
 
 impl LayoutInspectorActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }
 

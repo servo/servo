@@ -181,14 +181,12 @@ impl Actor for ObjectActor {
                         preview.own_properties.clone().unwrap_or_default()
                     }
                 });
-                let property_iterator_name = PropertyIteratorActor::register(registry, properties);
-                let property_iterator_actor =
-                    registry.find::<PropertyIteratorActor>(&property_iterator_name);
+                let property_iterator_actor = PropertyIteratorActor::register(registry, properties);
                 let count = property_iterator_actor.count();
                 let msg = EnumReply {
                     from: self.name().into(),
                     iterator: EnumIterator {
-                        actor: property_iterator_name,
+                        actor: property_iterator_actor.name().into(),
                         type_: EnumIteratorType::PropertyIterator,
                         count,
                     },
@@ -198,11 +196,11 @@ impl Actor for ObjectActor {
             },
 
             "enumSymbols" => {
-                let symbol_iterator_name = SymbolIteratorActor::register(registry);
+                let symbol_iterator_actor = SymbolIteratorActor::register(registry);
                 let msg = EnumReply {
                     from: self.name().into(),
                     iterator: EnumIterator {
-                        actor: symbol_iterator_name,
+                        actor: symbol_iterator_actor.name().into(),
                         type_: EnumIteratorType::SymbolIterator,
                         count: 0,
                     },

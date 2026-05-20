@@ -6,6 +6,7 @@
 //! This actor manages the configuration flags that the devtools host can apply to threads.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde_json::{Map, Value};
@@ -51,14 +52,13 @@ impl Actor for ThreadConfigurationActor {
 }
 
 impl ThreadConfigurationActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             _configuration: HashMap::new(),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 

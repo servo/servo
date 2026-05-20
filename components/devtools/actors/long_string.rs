@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -73,14 +75,10 @@ impl Actor for LongStringActor {
 }
 
 impl LongStringActor {
-    pub fn register(registry: &ActorRegistry, full_string: String) -> String {
+    pub fn register(registry: &ActorRegistry, full_string: String) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            full_string,
-        };
-        registry.register::<Self>(actor);
-        name
+        let actor = Self { name, full_string };
+        registry.register::<Self>(actor)
     }
 
     pub fn long_string_obj(&self) -> LongStringObj {

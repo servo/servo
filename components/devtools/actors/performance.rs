@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -98,11 +100,10 @@ impl Actor for PerformanceActor {
 }
 
 impl PerformanceActor {
-    pub fn register(registry: &ActorRegistry) -> String {
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = PerformanceActor { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+        let actor = PerformanceActor { name };
+        registry.register::<Self>(actor)
     }
 
     pub fn description() -> ActorDescription {

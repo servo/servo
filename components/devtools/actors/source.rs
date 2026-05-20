@@ -4,6 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg;
@@ -153,7 +154,7 @@ impl SourceActor {
         spidermonkey_id: u32,
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
+    ) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
             name: name.clone(),
@@ -165,9 +166,8 @@ impl SourceActor {
             introduction_type,
             script_sender,
         };
-        registry.register::<Self>(actor);
         registry.register_source_actor(pipeline_id, &name);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn source_form(&self) -> SourceForm {
