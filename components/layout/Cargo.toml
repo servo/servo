@@ -71,4 +71,4 @@ web_atoms = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-quickcheck = "1"
+quickcheck = { workspace = true }

@@ -52,7 +52,7 @@ base64 = { workspace = true }
 base64ct = { workspace = true }
 bitflags = { workspace = true }
 brotli = { workspace = true }
-buf-read-ext = "0.4"
+buf-read-ext = { workspace = true }
 cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chardetng = { workspace = true }
@@ -82,7 +82,7 @@ headers = { workspace = true }
 hkdf = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
-httparse = "1.9"
+httparse = { workspace = true }
 hyper_serde = { workspace = true }
 icu_locid = { workspace = true }
 indexmap = { workspace = true }
@@ -115,7 +115,7 @@ p521 = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.13"
+phf = { workspace = true }
 pixels = { workspace = true }
 pkcs8 = { workspace = true }
 postcard = { workspace = true }
@@ -152,8 +152,8 @@ stylo_atoms = { workspace = true }
 stylo_dom = { workspace = true }
 stylo_malloc_size_of = { workspace = true }
 stylo_traits = { workspace = true }
-swapper = "0.1"
-tempfile = "3"
+swapper = { workspace = true }
+tempfile = { workspace = true }
 tendril = { workspace = true }
 time = { workspace = true }
 timers = { workspace = true }
