@@ -185,14 +185,12 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 2. Let url be this's url.
         USVString(match *self.get_url().borrow() {
             None => {
-                match self.upcast::<Element>().get_attribute(&local_name!("href")) {
-                    // Step 3. If url is null and this has no href content attribute, return the
-                    // empty string.
-                    None => String::new(),
-
-                    // Step 4. Otherwise, if url is null, return this's href content attribute's value.
-                    Some(attribute) => (**attribute.value()).to_owned(),
-                }
+                // Step 3. If url is null and this has no href content attribute, return the
+                // empty string.
+                // Step 4. Otherwise, if url is null, return this's href content attribute's value.
+                self.upcast::<Element>()
+                    .get_attribute_string_value(&local_name!("href"))
+                    .unwrap_or_default()
             },
             // Step 5. Return url, serialized.
             Some(ref url) => url.as_str().to_owned(),
@@ -422,7 +420,9 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 1. Set this element's url to null.
         *self.get_url().borrow_mut() = None;
 
-        let attribute = self.upcast::<Element>().get_attribute(&local_name!("href"));
+        let attribute = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("href"));
 
         // Step 2. If this element's href content attribute is absent, then return.
         let Some(attribute) = attribute else {
@@ -433,7 +433,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
 
         // Step 3. Let url be the result of encoding-parsing a URL given this element's href content
         // attribute's value, relative to this element's node document.
-        let url = document.encoding_parse_a_url(&attribute.value());
+        let url = document.encoding_parse_a_url(&attribute);
 
         // Step 4. If url is not failure, then set this element's url to url.
         if let Ok(url) = url {

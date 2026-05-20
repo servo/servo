@@ -29,7 +29,6 @@ use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
 use crate::body::Extractable;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -1066,10 +1065,8 @@ impl HTMLFormElement {
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
         let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute(&local_name!("rel")) {
-            Some(ref link_types) if link_types.Value().contains("noreferrer") => {
-                Referrer::NoReferrer
-            },
+        let referrer = match elem.get_attribute_string_value(&local_name!("rel")) {
+            Some(link_types) if link_types.contains("noreferrer") => Referrer::NoReferrer,
             _ => target.as_global_scope().get_referrer(),
         };
 
