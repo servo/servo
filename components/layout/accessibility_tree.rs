@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
-use accesskit::Role;
+use accesskit::{NodeId, Role};
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -23,11 +23,11 @@ use crate::ArcRefCell;
 /// An in-progress [`accesskit::TreeUpdate`] that automatically avoids storing any node twice.
 struct AccessibilityUpdate {
     accesskit_update: accesskit::TreeUpdate,
-    nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
+    nodes: FxHashMap<NodeId, accesskit::Node>,
 }
 
 struct AccessibilityNode {
-    id: accesskit::NodeId,
+    id: NodeId,
     accesskit_node: accesskit::Node,
     opaque_node: Option<OpaqueNode>,
     updated: bool,
@@ -39,12 +39,12 @@ struct AccessibilityNode {
 /// to define our own representation for incremental tree building.
 #[derive(Debug)]
 pub struct AccessibilityTree {
-    nodes: FxHashMap<accesskit::NodeId, ArcRefCell<AccessibilityNode>>,
-    opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
+    nodes: FxHashMap<NodeId, ArcRefCell<AccessibilityNode>>,
+    opaque_node_to_id: FxHashMap<OpaqueNode, NodeId>,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
     /// Nodes that changed their relation to the tree within the current update.
-    tree_changes: FxHashMap<accesskit::NodeId, TreeChange>,
+    tree_changes: FxHashMap<NodeId, TreeChange>,
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
@@ -215,14 +215,14 @@ impl AccessibilityTree {
         node
     }
 
-    fn assert_node_for_id(&self, id: accesskit::NodeId) -> ArcRefCell<AccessibilityNode> {
+    fn assert_node_for_id(&self, id: NodeId) -> ArcRefCell<AccessibilityNode> {
         let Some(node) = self.nodes.get(&id) else {
             panic!("{id:?} does not exist in tree");
         };
         node.clone()
     }
 
-    fn id_for_opaque(&mut self, opaque: OpaqueNode) -> accesskit::NodeId {
+    fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
         let id = self.opaque_node_to_id.entry(opaque).or_insert_with(|| {
             static LAST_ID: AtomicU64 = AtomicU64::new(0);
             LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into()
@@ -237,7 +237,7 @@ impl AccessibilityTree {
     /// Assert that the tree is a tree without any dangling references or orphaned nodes.
     ///
     /// For accessibility tests only, because it’s expensive.
-    fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
+    fn assert_integrity(&self, root_node_id: NodeId) {
         assert!(pref!(expensive_accessibility_test_assertions_enabled));
         // Traverse the tree from the given root.
         let mut node_ids = vec![root_node_id];
@@ -280,11 +280,11 @@ fn role_from_dom_node(dom_node: &ServoLayoutNode<'_>) -> Role {
 }
 
 impl AccessibilityNode {
-    fn new(id: accesskit::NodeId) -> Self {
+    fn new(id: NodeId) -> Self {
         Self::new_with_role(id, Role::Unknown)
     }
 
-    fn new_with_role(id: accesskit::NodeId, role: accesskit::Role) -> Self {
+    fn new_with_role(id: NodeId, role: Role) -> Self {
         Self {
             id,
             accesskit_node: accesskit::Node::new(role),
@@ -449,20 +449,20 @@ impl AccessibilityNode {
 
     // TODO: use macros to generate getter/setter methods.
 
-    fn children(&self) -> &[accesskit::NodeId] {
+    fn children(&self) -> &[NodeId] {
         self.accesskit_node.children()
     }
 
-    fn set_children(&mut self, children: Vec<accesskit::NodeId>) {
+    fn set_children(&mut self, children: Vec<NodeId>) {
         self.accesskit_node.set_children(children);
         self.updated = true;
     }
 
-    fn role(&self) -> accesskit::Role {
+    fn role(&self) -> Role {
         self.accesskit_node.role()
     }
 
-    fn set_role(&mut self, role: accesskit::Role) {
+    fn set_role(&mut self, role: Role) {
         if role == self.accesskit_node.role() {
             return;
         }
@@ -529,7 +529,7 @@ impl AccessibilityUpdate {
             accesskit_update: accesskit::TreeUpdate {
                 nodes: vec![],
                 tree: Some(tree),
-                focus: accesskit::NodeId(1),
+                focus: NodeId(1),
                 tree_id,
             },
             nodes: FxHashMap::default(),
@@ -552,30 +552,30 @@ impl AccessibilityUpdate {
 fn test_accessibility_update_add_some_nodes_twice() {
     let mut update = AccessibilityUpdate::new(
         accesskit::Tree {
-            root: accesskit::NodeId(2),
+            root: NodeId(2),
             toolkit_name: None,
             toolkit_version: None,
         },
         accesskit::TreeId::ROOT,
     );
     update.add(&mut AccessibilityNode::new_with_role(
-        accesskit::NodeId(5),
+        NodeId(5),
         Role::Paragraph,
     ));
     update.add(&mut AccessibilityNode::new_with_role(
-        accesskit::NodeId(3),
+        NodeId(3),
         Role::GenericContainer,
     ));
     update.add(&mut AccessibilityNode::new_with_role(
-        accesskit::NodeId(4),
+        NodeId(4),
         Role::Heading,
     ));
     update.add(&mut AccessibilityNode::new_with_role(
-        accesskit::NodeId(4),
+        NodeId(4),
         Role::Heading,
     ));
     update.add(&mut AccessibilityNode::new_with_role(
-        accesskit::NodeId(3),
+        NodeId(3),
         Role::ScrollView,
     ));
     let mut tree_update = update.finalize();
@@ -584,17 +584,17 @@ fn test_accessibility_update_add_some_nodes_twice() {
         tree_update,
         accesskit::TreeUpdate {
             nodes: vec![
-                (accesskit::NodeId(3), accesskit::Node::new(Role::ScrollView)),
-                (accesskit::NodeId(4), accesskit::Node::new(Role::Heading)),
-                (accesskit::NodeId(5), accesskit::Node::new(Role::Paragraph)),
+                (NodeId(3), accesskit::Node::new(Role::ScrollView)),
+                (NodeId(4), accesskit::Node::new(Role::Heading)),
+                (NodeId(5), accesskit::Node::new(Role::Paragraph)),
             ],
             tree: Some(accesskit::Tree {
-                root: accesskit::NodeId(2),
+                root: NodeId(2),
                 toolkit_name: None,
                 toolkit_version: None
             }),
             tree_id: accesskit::TreeId::ROOT,
-            focus: accesskit::NodeId(1),
+            focus: NodeId(1),
         }
     );
 }
