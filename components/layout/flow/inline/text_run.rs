@@ -23,7 +23,9 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::{FontVariantLigatures, FontVariantNumeric, OverflowWrap};
+use style::values::computed::{
+    FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, OverflowWrap,
+};
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 
@@ -76,6 +78,8 @@ pub(crate) struct FontAndScriptInfo {
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property from the original style.
     pub numeric: FontVariantNumeric,
+    /// The value of the `font-variant-east-asian` property from the original style.
+    pub east_asian: FontVariantEastAsian,
 }
 
 impl FontAndScriptInfo {
@@ -94,6 +98,7 @@ impl FontAndScriptInfo {
             kerning: FontKerning::Auto,
             ligatures: FontVariantLigatures::NORMAL,
             numeric: FontVariantNumeric::NORMAL,
+            east_asian: FontVariantEastAsian::NORMAL,
         }
     }
 }
@@ -132,6 +137,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             language: info.language,
             ligatures,
             numeric: info.numeric,
+            east_asian: info.east_asian,
             flags,
         }
     }
@@ -498,6 +504,7 @@ impl TextRun {
         let kerning = font_style.font_kerning;
         let ligatures = font_style.font_variant_ligatures;
         let numeric = font_style.font_variant_numeric;
+        let east_asian = font_style.font_variant_east_asian;
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -585,6 +592,7 @@ impl TextRun {
                 kerning,
                 ligatures,
                 numeric,
+                east_asian,
             };
 
             finish_current_segment(&mut current, &mut results);
