@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
+use std::ffi::CStr;
 use std::ptr;
 
 use js::jsapi::{CallArgs, JSFunctionSpec, JSObject};
@@ -54,13 +54,13 @@ pub(crate) struct NamespaceInit {
     pub(crate) namespace_object_class: &'static NamespaceObjectClass,
     pub(crate) constructor_name: PrototypeList::Constructor,
     pub(crate) constants: &'static [Guard<&'static [ConstantSpec]>],
-    pub(crate) name: &'static str,
+    pub(crate) name: &'static CStr,
 }
 
 pub(crate) struct CallbackInit {
     pub(crate) constants: &'static [Guard<&'static [ConstantSpec]>],
     pub(crate) p_name: PrototypeList::Constructor,
-    pub(crate) name: &'static str,
+    pub(crate) name: &'static CStr,
 }
 
 pub(crate) enum ConstructorType {
@@ -98,7 +98,7 @@ pub(crate) unsafe fn CreateInterfaceObjectsRust<D: DomTypes>(
                 namespace_init.namespace_object_class,
                 namespace_init.static_methods,
                 namespace_init.constants,
-                &CString::new(namespace_init.name).unwrap(),
+                namespace_init.name,
                 namespace.handle_mut(),
             );
             assert!(!namespace.is_null());
@@ -118,7 +118,7 @@ pub(crate) unsafe fn CreateInterfaceObjectsRust<D: DomTypes>(
                 cx.into(),
                 global,
                 cb_init.constants,
-                &CString::new(cb_init.name).unwrap(),
+                cb_init.name,
                 interface.handle_mut(),
             );
             assert!(!interface.is_null());

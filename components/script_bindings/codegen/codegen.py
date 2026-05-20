@@ -3739,7 +3739,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     constructor_name: PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)},
                     namespace_object_class: &NAMESPACE_OBJECT_CLASS,
                     constants: {constants},
-                    name: "{self.descriptor.interface.identifier.name}",
+                    name: c"{self.descriptor.interface.identifier.name}",
                 }};
                 let init = CreateInterfaceObjectsOptions {{
                     constructor_type: ConstructorType::Namespace(init),
@@ -3752,7 +3752,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 use crate::constructor::{{CreateInterfaceObjectsOptions, CreateInterfaceObjectsRust, ConstructorType, NamespaceInit, CallbackInit }};
                 let init = CallbackInit {{
                     constants: {constants},
-                    name: "{self.descriptor.interface.identifier.name}",
+                    name: c"{self.descriptor.interface.identifier.name}",
                     p_name: PrototypeList::Constructor::{self.descriptor.interface.identifier.name},
                 }};
                 let init = CreateInterfaceObjectsOptions {{
