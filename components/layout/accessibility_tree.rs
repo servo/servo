@@ -434,11 +434,11 @@ impl AccessibilityNode {
 
     fn print(&self, tree: &AccessibilityTree, print_tree: &mut PrintTree) {
         if self.children().is_empty() {
-            print_tree.add_item(format!("{:?}", self));
+            print_tree.add_item(format!("{self:?}"));
             return;
         }
 
-        print_tree.new_level(format!("{:?}", self));
+        print_tree.new_level(format!("{self:?}"));
 
         for child_id in self.children() {
             let child = tree.assert_node_for_id(*child_id);
@@ -509,12 +509,12 @@ impl AccessibilityNode {
 
 impl Debug for AccessibilityNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}: {:?}", self.id, self.role(),)?;
+        write!(f, "{:?}: {:?}", self.id, self.role())?;
         if let Some(html_tag) = self.html_tag() {
-            write!(f, " (html_tag: {:?})", html_tag)?;
+            write!(f, " (html_tag: {html_tag:?})")?;
         }
         if let Some(label) = self.label() {
-            write!(f, "\nlabel: {:?}", label)?;
+            write!(f, "\nlabel: {label:?}")?;
         }
         if !self.children().is_empty() {
             write!(f, "\nchildren: {:?}", self.children())?;
