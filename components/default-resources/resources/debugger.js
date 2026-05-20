@@ -10,6 +10,7 @@ const frameActorsToFrames = new Map;
 const environmentsToEnvironmentActors = new Map;
 let suspendedFrame = null;
 let lastPauseLocation = null;
+let debuggerPaused = false;
 
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
 // Possible values for the `why.type` attribute in "paused" event
@@ -335,6 +336,13 @@ function createFrameActor(frame, pipelineId) {
 }
 
 function handlePauseAndRespond(frame, pauseReason) {
+    // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1706
+    // We don't handle nested pauses correctly.  Don't try - if we're
+    // paused, just continue running whatever code triggered the pause.
+    if (debuggerPaused) {
+        return undefined;
+    }
+
     dbg.onEnterFrame = undefined;
     clearSteppingHooks(frame);
 
@@ -358,11 +366,16 @@ function handlePauseAndRespond(frame, pauseReason) {
     lastPauseLocation = { line: offsetMetadata.lineNumber, column: offsetMetadata.columnNumber };
 
     // Notify devtools and enter pause loop. This blocks until Resume.
-    pauseAndRespond(
-        pipelineId,
-        frameOffset,
-        pauseReason
-    );
+    debuggerPaused = true;
+    try {
+        pauseAndRespond(
+            pipelineId,
+            frameOffset,
+            pauseReason
+        );
+    } finally {
+        debuggerPaused = false;
+    }
 
     // <https://web.archive.org/web/20251212212538/https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
