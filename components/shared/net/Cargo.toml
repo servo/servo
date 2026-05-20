@@ -44,7 +44,7 @@ servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 servo_arc = { workspace = true }
-sys-locale = "0.3"
+sys-locale = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }

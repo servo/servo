@@ -20,7 +20,7 @@ backtrace = { workspace = true }
 crossbeam-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-rustc-demangle = { version = "0.1", optional = true }
+rustc-demangle = { workspace = true, optional = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 servo-background-hang-monitor-api = { workspace = true }
