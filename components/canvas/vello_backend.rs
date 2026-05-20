@@ -589,12 +589,9 @@ impl GenericDrawTarget for VelloDrawTarget {
                 flags: ImageDescriptorFlags::empty(),
             };
             let data = SerializableImageData::Raw(if let Some(data) = data {
-                let mut data = GenericSharedMemory::from_bytes(data);
-                #[expect(unsafe_code)]
-                unsafe {
-                    pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
-                };
-                data
+                let mut data = data.to_vec();
+                pixels::generic_transform_inplace::<1, false, false>(&mut data);
+                GenericSharedMemory::from_bytes(&data)
             } else {
                 GenericSharedMemory::from_byte(0, size.area() as usize * 4)
             });
@@ -628,17 +625,11 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 
     fn surface(&mut self) -> Vec<u8> {
-        self.snapshot().to_vec(None, None).0
+        self.snapshot().as_raw_bytes().to_vec()
     }
 
     fn create_source_surface_from_data(&self, data: Snapshot) -> Option<Vec<u8>> {
-        let (data, _, _) = data.to_vec(
-            Some(SnapshotAlphaMode::Transparent {
-                premultiplied: false,
-            }),
-            Some(SnapshotPixelFormat::RGBA),
-        );
-        Some(data)
+        Some(data.as_raw_bytes().to_vec())
     }
 }
 
