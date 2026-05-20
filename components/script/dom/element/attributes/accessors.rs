@@ -8,7 +8,6 @@ use servo_arc::Arc as ServoArc;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScriptURLOrUSVString};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::attributes::storage::AttrRef;
@@ -90,8 +89,8 @@ impl Element {
     }
 
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
-        self.get_attribute(local_name)
-            .map(|attribute| attribute.Value())
+        self.get_attribute_string_value(local_name)
+            .map(|value| value.into())
             .unwrap_or_default()
     }
 

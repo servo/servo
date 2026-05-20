@@ -11,7 +11,6 @@ use net_traits::request::Referrer;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::str::HTML_SPACE_CHARACTERS;
 
-use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
@@ -183,10 +182,7 @@ impl LinkRelations {
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
     pub(crate) fn for_element(element: &Element) -> Self {
-        let rel = element.get_attribute(&local_name!("rel")).map(|e| {
-            let value = e.value();
-            (**value).to_owned()
-        });
+        let rel = element.get_attribute_string_value(&local_name!("rel"));
 
         let mut relations = rel
             .map(|attribute| {
@@ -199,8 +195,8 @@ impl LinkRelations {
 
         // For historical reasons, "rev=made" is treated as if the "author" relation was specified
         let has_legacy_author_relation = element
-            .get_attribute(&local_name!("rev"))
-            .is_some_and(|rev| &**rev.value() == "made");
+            .get_attribute_string_value(&local_name!("rev"))
+            .is_some_and(|rev| rev == "made");
         if has_legacy_author_relation {
             relations |= Self::AUTHOR;
         }
@@ -459,14 +455,15 @@ pub(crate) fn follow_hyperlink(
         // Step 9: Let urlString be the result of applying the URL serializer to urlRecord.
         // TODO: Implement this.
 
-        let attribute = subject.get_attribute(&local_name!("href")).unwrap();
-        let mut href = attribute.Value();
+        let mut href = subject
+            .get_attribute_string_value(&local_name!("href"))
+            .unwrap();
 
         // Step 10: If hyperlinkSuffix is non-null, then append it to urlString.
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let Ok(url) = document.encoding_parse_a_url(&href.str()) else {
+        let Ok(url) = document.encoding_parse_a_url(&href) else {
             return;
         };
 

@@ -2030,6 +2030,30 @@ impl Element {
         self.handle_attribute_changes(cx, AttrRef::Dom(attr), None, Some(&*attr.value()), reason);
     }
 
+    pub(crate) fn get_attribute_string_value(&self, local_name: &LocalName) -> Option<String> {
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+
+        self.get_attribute_string_value_with_namespace(&ns!(), local_name)
+    }
+
+    pub(crate) fn get_attribute_string_value_with_namespace(
+        &self,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> Option<String> {
+        self.attrs
+            .borrow()
+            .iter()
+            .find(|attribute| {
+                attribute.local_name() == local_name && attribute.namespace() == namespace
+            })
+            .map(|attribute| String::from(&**attribute.value()))
+    }
+
     /// This is the inner logic for:
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-namespace>
     ///
@@ -5104,9 +5128,9 @@ impl TagName {
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attribute| {
-            let value = attribute.value().to_ascii_lowercase();
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
             if value == "anonymous" || value == "use-credentials" {
                 DOMString::from(value)
             } else {
@@ -5131,9 +5155,9 @@ pub(crate) fn set_cross_origin_attribute(
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     element
-        .get_attribute(&local_name!("referrerpolicy"))
-        .map(|attribute| {
-            let value = attribute.value().to_ascii_lowercase();
+        .get_attribute_string_value(&local_name!("referrerpolicy"))
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
             if value == "no-referrer" ||
                 value == "no-referrer-when-downgrade" ||
                 value == "same-origin" ||
@@ -5153,23 +5177,23 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute(&local_name!("referrerpolicy"))
-        .map(|attribute| ReferrerPolicy::from(&**attribute.value()))
+        .get_attribute_string_value(&local_name!("referrerpolicy"))
+        .map(|value| ReferrerPolicy::from(value.as_ref()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| CorsSettings::from_enumerated_attribute(value.as_ref()))
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute-credentials-mode>
 pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> CredentialsMode {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attr| {
-            if attr.value().eq_ignore_ascii_case("use-credentials") {
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| {
+            if value.eq_ignore_ascii_case("use-credentials") {
                 CredentialsMode::Include
             } else {
                 // The attribute's invalid value default and empty value default are both the Anonymous state.

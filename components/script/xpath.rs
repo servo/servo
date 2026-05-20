@@ -65,12 +65,8 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
         self.0.GetTextContent().unwrap_or_default().into()
     }
 
-    #[expect(unsafe_code)]
     fn language(&self) -> Option<String> {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
-        self.0.get_lang(cx)
+        self.0.get_lang()
     }
 
     fn parent(&self) -> Option<Self> {
