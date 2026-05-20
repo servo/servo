@@ -55,7 +55,7 @@ use style::context::{
 };
 use style::device::Device;
 use style::device::servo::FontMetricsProvider;
-use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
+use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -107,6 +107,9 @@ static STYLE_THREAD_POOL: Mutex<&LazyLock<style::global_style_data::StyleThreadP
 
 /// A CSS file to style the user agent stylesheet.
 static USER_AGENT_CSS: &[u8] = include_bytes!("./stylesheets/user-agent.css");
+
+/// A CSS file to style the user agent stylesheet in HTML documents.
+static HTML_MODE_CSS: &[u8] = include_bytes!("./stylesheets/html-mode.css");
 
 /// A CSS file to style the Servo browser.
 static SERVO_CSS: &[u8] = include_bytes!("./stylesheets/servo.css");
@@ -1050,6 +1053,18 @@ impl LayoutThread {
                 );
             }
 
+            if document.is_html_document() {
+                self.stylist.append_stylesheet(
+                    ua_stylesheets.html_mode_stylesheet.clone(),
+                    guards.ua_or_user,
+                );
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    &ua_stylesheets.html_mode_stylesheet,
+                    guards.ua_or_user,
+                    &reflow_request.document_context,
+                );
+            }
+
             for user_stylesheet in self.user_stylesheets.iter() {
                 self.stylist
                     .append_stylesheet(user_stylesheet.clone(), guards.ua_or_user);
@@ -1571,11 +1586,15 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
                     ),
                 ];
 
+                let html_mode_stylesheet =
+                    parse_ua_stylesheet(shared_lock, "html-mode.css", HTML_MODE_CSS);
+
                 let quirks_mode_stylesheet =
                     parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS);
 
                 Rc::new(UserAgentStylesheets {
                     user_agent_stylesheets,
+                    html_mode_stylesheet,
                     quirks_mode_stylesheet,
                 })
             })
@@ -1587,6 +1606,8 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
 pub struct UserAgentStylesheets {
     /// The user agent stylesheets.
     pub user_agent_stylesheets: Vec<DocumentStyleSheet>,
+    /// The user agent stylesheet for HTML documents.
+    pub html_mode_stylesheet: DocumentStyleSheet,
     /// The quirks mode stylesheet.
     pub quirks_mode_stylesheet: DocumentStyleSheet,
 }
