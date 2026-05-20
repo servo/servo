@@ -36,7 +36,6 @@ pub(crate) const MAX_CHANNEL_COUNT: u32 = 32;
 #[dom_struct]
 pub(crate) struct AudioNode {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     node_id: Option<NodeId>,
     context: Dom<BaseAudioContext>,
