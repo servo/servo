@@ -1999,9 +1999,9 @@ pub(crate) fn encode_multipart_form_data(
         let mut output = Vec::with_capacity(input.len());
         for &b in input {
             match b {
-                b'\n' => output.extend_from_slice(b"%0A"),
-                b'\r' => output.extend_from_slice(b"%0D"),
-                b'"' => output.extend_from_slice(b"%22"),
+                b'\n' => output.extend(b"%0A"),
+                b'\r' => output.extend(b"%0D"),
+                b'"' => output.extend(b"%22"),
                 _ => output.push(b),
             }
         }
@@ -2039,11 +2039,11 @@ pub(crate) fn encode_multipart_form_data(
                 let encoded_value = encode_with_html_fallback(value_str, encoding);
 
                 // Step 2.5: Non-file fields must not have `Content-Type` header specified
-                result.extend_from_slice(b"Content-Disposition: form-data; name=\"");
-                result.extend_from_slice(&escaped_name);
-                result.extend_from_slice(b"\"\r\n\r\n");
+                result.extend(b"Content-Disposition: form-data; name=\"");
+                result.extend(&escaped_name);
+                result.extend(b"\"\r\n\r\n");
                 result.extend_from_slice(&encoded_value);
-                result.extend_from_slice(b"\r\n");
+                result.extend(b"\r\n");
             },
             FormDatumValue::File(ref f) => {
                 // Step 2.3: Encode filename with the form's encoding
@@ -2052,26 +2052,26 @@ pub(crate) fn encode_multipart_form_data(
                 // Step 2.4: Escape filename for header
                 let escaped_filename = escape_header_bytes(&encoded_filename);
 
-                result.extend_from_slice(b"Content-Disposition: form-data; name=\"");
-                result.extend_from_slice(&escaped_name);
-                result.extend_from_slice(b"\"; filename=\"");
-                result.extend_from_slice(&escaped_filename);
+                result.extend(b"Content-Disposition: form-data; name=\"");
+                result.extend(&escaped_name);
+                result.extend(b"\"; filename=\"");
+                result.extend(&escaped_filename);
 
                 // https://tools.ietf.org/html/rfc7578#section-4.4
-                result.extend_from_slice(b"\"\r\nContent-Type: ");
+                result.extend(b"\"\r\nContent-Type: ");
 
                 let content_type: Mime = f
                     .upcast::<Blob>()
                     .Type()
                     .parse()
                     .unwrap_or(mime::TEXT_PLAIN);
-                result.extend_from_slice(content_type.as_ref().as_bytes());
-                result.extend_from_slice(b"\r\n\r\n");
+                result.extend(content_type.as_ref().as_bytes());
+                result.extend(b"\r\n\r\n");
 
                 let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or_else(|_| vec![]);
 
                 result.append(&mut bytes);
-                result.extend_from_slice(b"\r\n");
+                result.extend(b"\r\n");
             },
         }
     }
