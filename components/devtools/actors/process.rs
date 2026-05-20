@@ -37,8 +37,8 @@ pub(crate) struct ProcessActor {
 }
 
 impl Actor for ProcessActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The process actor can handle the following messages:
@@ -55,7 +55,7 @@ impl Actor for ProcessActor {
         match msg_type {
             "listWorkers" => {
                 let reply = ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     workers: vec![],
                 };
                 request.reply_final(&reply)?
@@ -79,7 +79,7 @@ impl ProcessActor {
 impl ActorEncode<ProcessActorMsg> for ProcessActor {
     fn encode(&self, _: &ActorRegistry) -> ProcessActorMsg {
         ProcessActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             id: 0,
             is_parent: true,
             is_windowless_parent: false,

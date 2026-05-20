@@ -28,8 +28,8 @@ pub(crate) struct MemoryActor {
 }
 
 impl Actor for MemoryActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 

@@ -53,8 +53,8 @@ struct SuccessMsg {
 enum Error {}
 
 impl Actor for PerformanceActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -68,7 +68,7 @@ impl Actor for PerformanceActor {
         match msg_type {
             "connect" => {
                 let msg = ConnectReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     traits: PerformanceTraits {
                         features: PerformanceFeatures {
                             with_markers: true,
@@ -83,7 +83,7 @@ impl Actor for PerformanceActor {
             },
             "canCurrentlyRecord" => {
                 let msg = CanCurrentlyRecordReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: SuccessMsg {
                         success: true,
                         errors: vec![],

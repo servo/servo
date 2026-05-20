@@ -29,8 +29,8 @@ struct GetCssDatabaseReply<'a> {
 }
 
 impl Actor for CssPropertiesActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The css properties actor can handle the following messages:
@@ -47,7 +47,7 @@ impl Actor for CssPropertiesActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getCSSDatabase" => request.reply_final(&GetCssDatabaseReply {
-                from: self.name(),
+                from: self.name().into(),
                 properties: &self.properties,
             })?,
             _ => return Err(ActorError::UnrecognizedPacketType),

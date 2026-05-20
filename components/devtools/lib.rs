@@ -838,7 +838,7 @@ impl DevtoolsInstance {
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
 
         let msg = ThreadInterruptedReply {
-            from: thread_actor.name(),
+            from: thread_actor.name().into(),
             type_: "paused".to_owned(),
             actor: pause_name,
             frame: frame_actor.encode(&self.registry),
@@ -873,7 +873,7 @@ impl DevtoolsInstance {
             .source_manager
             .find_source(&self.registry, &frame.url)
         {
-            Some(source_actor) => source_actor.name(),
+            Some(source_actor) => source_actor.name().into(),
             None => {
                 warn!("No source actor found for URL: {}", frame.url);
                 return;

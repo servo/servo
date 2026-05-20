@@ -15,8 +15,8 @@ pub(crate) struct NetworkParentActor {
 }
 
 impl Actor for NetworkParentActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The network parent actor can handle the following messages:
@@ -32,11 +32,15 @@ impl Actor for NetworkParentActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "setSaveRequestAndResponseBodies" => {
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "setPersist" => {
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -56,6 +60,8 @@ impl NetworkParentActor {
 
 impl ActorEncode<ActorMsg> for NetworkParentActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

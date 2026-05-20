@@ -44,8 +44,8 @@ impl PropertyIteratorActor {
 }
 
 impl Actor for PropertyIteratorActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -73,7 +73,7 @@ impl Actor for PropertyIteratorActor {
                 }
 
                 let reply = SliceReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     own_properties,
                 };
                 request.reply_final(&reply)?

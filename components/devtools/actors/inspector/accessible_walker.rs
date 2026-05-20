@@ -21,7 +21,7 @@ impl AccessibleWalkerActor {
 }
 
 impl Actor for AccessibleWalkerActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }

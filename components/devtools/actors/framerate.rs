@@ -23,8 +23,8 @@ pub(crate) struct FramerateActor {
 }
 
 impl Actor for FramerateActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -55,7 +55,10 @@ impl FramerateActor {
             .push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
-            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
+            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(
+                self.pipeline_id,
+                self.name().into(),
+            );
             self.script_sender.send(msg).unwrap();
         }
     }
@@ -71,7 +74,8 @@ impl FramerateActor {
 
         self.is_recording = true;
 
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
+        let msg =
+            DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name().into());
         self.script_sender.send(msg).unwrap();
     }
 

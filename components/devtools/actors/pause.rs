@@ -14,8 +14,8 @@ pub(crate) struct PauseActor {
 }
 
 impl Actor for PauseActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 

@@ -351,8 +351,8 @@ struct HeaderWrapper {
 }
 
 impl Actor for NetworkEventActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -372,7 +372,7 @@ impl Actor for NetworkEventActor {
                 let raw_headers = get_raw_headers(&headers);
 
                 let msg = GetRequestHeadersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     headers,
                     header_size: raw_headers.len(),
                     raw_headers,
@@ -385,7 +385,7 @@ impl Actor for NetworkEventActor {
                 let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     cookies: get_cookies_from_headers(
                         &request.request.headers,
                         &request.request.url,
@@ -400,7 +400,7 @@ impl Actor for NetworkEventActor {
                 let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetRequestPostDataReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     post_data: request.request.body.as_ref().map(|b| b.0.clone()),
                     post_data_discarded: request.request.body.is_none(),
                 };
@@ -420,7 +420,7 @@ impl Actor for NetworkEventActor {
                 let raw_headers = get_raw_headers(&list);
 
                 let msg = GetResponseHeadersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     headers: list,
                     header_size: raw_headers.len(),
                     raw_headers,
@@ -435,7 +435,7 @@ impl Actor for NetworkEventActor {
                 let response = response.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     cookies: get_cookies_from_headers(
                         response
                             .response
@@ -493,7 +493,7 @@ impl Actor for NetworkEventActor {
                 });
 
                 let msg = GetResponseContentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     content,
                     content_discarded: response.response.body.is_none(),
                 };
@@ -509,7 +509,7 @@ impl Actor for NetworkEventActor {
                 let total_time = timings.total();
 
                 let msg = GetEventTimingsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     offsets,
                     server_timings: vec![],
                     timings,
@@ -522,7 +522,7 @@ impl Actor for NetworkEventActor {
                 let security_info = &*self.security_info.borrow();
 
                 let msg = GetSecurityInfoReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     security_info: security_info.into(),
                 };
                 client_request.reply_final(&msg)?
@@ -712,7 +712,7 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
 
         NetworkEventMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             cause: Cause {
                 type_: request.destination.as_str().to_string(),

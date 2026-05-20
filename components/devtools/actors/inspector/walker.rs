@@ -113,8 +113,8 @@ struct NewMutationsNotification {
 }
 
 impl Actor for WalkerActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The walker actor can handle the following messages:
@@ -176,12 +176,14 @@ impl Actor for WalkerActor {
                             registry.encode::<NodeActor, _>(&node_name)
                         })
                         .collect(),
-                    from: self.name(),
+                    from: self.name().into(),
                 };
                 request.reply_final(&msg)?
             },
             "clearPseudoClassLocks" => {
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "documentElement" => {
@@ -201,7 +203,7 @@ impl Actor for WalkerActor {
                 let node = registry.encode::<NodeActor, _>(&node_name);
 
                 let msg = DocumentElementReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     node,
                 };
                 request.reply_final(&msg)?
@@ -213,7 +215,7 @@ impl Actor for WalkerActor {
                     registry.find::<LayoutInspectorActor>(&layout_inspector_name);
 
                 let msg = GetLayoutInspectorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     actor: layout_inspector_actor.encode(registry),
                 };
                 request.reply_final(&msg)?
@@ -221,7 +223,7 @@ impl Actor for WalkerActor {
             "getMutations" => self.handle_get_mutations(request, registry)?,
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     node: None,
                 };
                 request.reply_final(&msg)?
@@ -245,7 +247,7 @@ impl Actor for WalkerActor {
                 let node = hierarchy.pop().ok_or(ActorError::Internal)?;
 
                 let msg = QuerySelectorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     node,
                     new_parents: hierarchy,
                 };
@@ -254,12 +256,14 @@ impl Actor for WalkerActor {
             "watchRootNode" => {
                 let msg = WatchRootNodeNotification {
                     type_: "root-available".into(),
-                    from: self.name(),
+                    from: self.name().into(),
                     node: self.root(registry)?,
                 };
                 let _ = request.write_json_packet(&msg);
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -329,7 +333,7 @@ impl WalkerActor {
         pending_mutations.push(dom_mutation);
 
         stream.write_json_packet(&NewMutationsNotification {
-            from: self.name(),
+            from: self.name().into(),
             type_: "newMutations".into(),
         })
     }
@@ -341,7 +345,7 @@ impl WalkerActor {
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
         let msg = GetMutationsReply {
-            from: self.name(),
+            from: self.name().into(),
             mutations: self
                 .mutations
                 .borrow_mut()
@@ -427,7 +431,7 @@ pub fn find_child(
 impl ActorEncode<WalkerMsg> for WalkerActor {
     fn encode(&self, registry: &ActorRegistry) -> WalkerMsg {
         WalkerMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             root: self.root(registry).unwrap(),
         }
     }

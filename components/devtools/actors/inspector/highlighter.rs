@@ -29,8 +29,8 @@ struct ShowReply {
 }
 
 impl Actor for HighlighterActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The highligher actor can handle the following messages:
@@ -62,7 +62,7 @@ impl Actor for HighlighterActor {
                     // TODO: For some reason, the client initially asks us to highlight
                     // the inspector? Investigate what this is supposed to mean.
                     let msg = ShowReply {
-                        from: self.name(),
+                        from: self.name().into(),
                         value: false,
                     };
                     return request.reply_final(&msg);
@@ -73,7 +73,7 @@ impl Actor for HighlighterActor {
                     registry,
                 );
                 let msg = ShowReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: true,
                 };
                 request.reply_final(&msg)?
@@ -82,7 +82,9 @@ impl Actor for HighlighterActor {
             "hide" => {
                 self.instruct_script_thread_to_highlight_node(None, registry);
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
 
@@ -127,6 +129,8 @@ impl HighlighterActor {
 
 impl ActorEncode<ActorMsg> for HighlighterActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

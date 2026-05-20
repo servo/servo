@@ -55,8 +55,8 @@ pub(crate) struct EnvironmentActor {
 }
 
 impl Actor for EnvironmentActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -94,7 +94,7 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
         let environment = self.environment.borrow();
         // TODO: Change hardcoded values.
         EnvironmentActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: environment.type_.clone(),
             scope_kind: environment.scope_kind.clone(),
             parent,

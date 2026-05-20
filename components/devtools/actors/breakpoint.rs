@@ -34,8 +34,8 @@ pub(crate) struct BreakpointListActor {
 }
 
 impl Actor for BreakpointListActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -80,11 +80,15 @@ impl Actor for BreakpointListActor {
                         .map_err(|_| ActorError::Internal)?;
                 }
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "setActiveEventBreakpoints" => {
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "removeBreakpoint" => {
@@ -116,7 +120,9 @@ impl Actor for BreakpointListActor {
                         .map_err(|_| ActorError::Internal)?;
                 }
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -139,6 +145,8 @@ impl BreakpointListActor {
 
 impl ActorEncode<ActorMsg> for BreakpointListActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

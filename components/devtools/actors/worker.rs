@@ -71,8 +71,8 @@ impl WorkerTargetActor {
 }
 
 impl Actor for WorkerTargetActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
     fn handle_message(
         &self,
@@ -85,7 +85,7 @@ impl Actor for WorkerTargetActor {
         match msg_type {
             "attach" => {
                 let msg = AttachedReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
@@ -100,7 +100,7 @@ impl Actor for WorkerTargetActor {
 
             "connect" => {
                 let msg = ConnectReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "connected".to_owned(),
                     thread_actor: self.thread_name.clone(),
                     console_actor: self.console_name.clone(),
@@ -111,7 +111,7 @@ impl Actor for WorkerTargetActor {
 
             "detach" => {
                 let msg = DetachedReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "detached".to_string(),
                 };
                 self.cleanup(stream_id);
@@ -121,7 +121,7 @@ impl Actor for WorkerTargetActor {
 
             "getPushSubscription" => {
                 let msg = GetPushSubscriptionReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     subscription: None,
                 };
                 request.reply_final(&msg)?
@@ -198,7 +198,7 @@ pub(crate) struct WorkerTargetActorMsg {
 impl ActorEncode<WorkerTargetActorMsg> for WorkerTargetActor {
     fn encode(&self, _: &ActorRegistry) -> WorkerTargetActorMsg {
         WorkerTargetActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             console_actor: self.console_name.clone(),
             thread_actor: self.thread_name.clone(),
             id: self.worker_id.0.to_string(),

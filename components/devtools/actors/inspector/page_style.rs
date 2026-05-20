@@ -95,8 +95,8 @@ pub(crate) struct PageStyleActor {
 }
 
 impl Actor for PageStyleActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The page style actor can handle the following messages:
@@ -198,7 +198,7 @@ impl PageStyleActor {
                         .or_insert_with(|| {
                             StyleRuleActor::register(
                                 registry,
-                                node_actor.name(),
+                                node_actor.name().into(),
                                 (matched_rule.stylesheet_index != usize::MAX)
                                     .then_some(matched_rule.clone()),
                             )
@@ -224,7 +224,7 @@ impl PageStyleActor {
         .collect();
         let msg = GetAppliedReply {
             entries,
-            from: self.name(),
+            from: self.name().into(),
         };
         request.reply_final(&msg)
     }
@@ -261,7 +261,7 @@ impl PageStyleActor {
 
         let msg = GetComputedReply {
             computed,
-            from: self.name(),
+            from: self.name().into(),
         };
         request.reply_final(&msg)
     }
@@ -294,7 +294,7 @@ impl PageStyleActor {
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
         request.reply_final(&GetLayoutReply {
-            from: self.name(),
+            from: self.name().into(),
             layout,
             auto_margins: auto_margins.into(),
         })
@@ -302,7 +302,7 @@ impl PageStyleActor {
 
     fn is_position_editable(&self, request: ClientRequest) -> Result<(), ActorError> {
         let msg = IsPositionEditableReply {
-            from: self.name(),
+            from: self.name().into(),
             value: false,
         };
         request.reply_final(&msg)
@@ -312,7 +312,7 @@ impl PageStyleActor {
 impl ActorEncode<PageStyleMsg> for PageStyleActor {
     fn encode(&self, _: &ActorRegistry) -> PageStyleMsg {
         PageStyleMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: HashMap::from([
                 ("fontStretchLevel4".into(), true),
                 ("fontStyleLevel4".into(), true),

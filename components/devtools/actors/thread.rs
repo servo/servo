@@ -136,8 +136,8 @@ impl ThreadActor {
 }
 
 impl Actor for ThreadActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -152,7 +152,7 @@ impl Actor for ThreadActor {
             "attach" => {
                 let pause_name = PauseActor::register(registry);
                 let msg = ThreadAttached {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "paused".to_owned(),
                     actor: pause_name,
                     frame: 0,
@@ -166,7 +166,9 @@ impl Actor for ThreadActor {
                     },
                 };
                 request.write_json_packet(&msg)?;
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             "resume" => {
@@ -179,11 +181,13 @@ impl Actor for ThreadActor {
                 ));
 
                 let msg = ThreadResumedReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "resumed".to_owned(),
                 };
                 request.write_json_packet(&msg)?;
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             "interrupt" => {
@@ -191,15 +195,19 @@ impl Actor for ThreadActor {
                     .send(DevtoolScriptControlMsg::Interrupt)
                     .map_err(|_| ActorError::Internal)?;
 
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
-            "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,
+            "reconfigure" => request.reply_final(&EmptyReplyMsg {
+                from: self.name().into(),
+            })?,
 
             "getAvailableEventBreakpoints" => {
                 // TODO: Send list of available event breakpoints (animation, clipboard, load...)
                 let msg = GetAvailableEventBreakpointsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: vec![],
                 };
                 request.reply_final(&msg)?
@@ -209,7 +217,7 @@ impl Actor for ThreadActor {
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     sources: self.source_manager.source_forms(registry),
                 };
                 request.reply_final(&msg)?
@@ -241,7 +249,7 @@ impl Actor for ThreadActor {
                 // Frame actors should be registered here
                 // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     frames: result
                         .iter()
                         .map(|frame_name| registry.encode::<FrameActor, _>(frame_name))

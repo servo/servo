@@ -214,8 +214,8 @@ pub(crate) struct WillNavigateMessage {
 }
 
 impl Actor for WatcherActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The watcher actor can handle the following messages:
@@ -261,7 +261,7 @@ impl Actor for WatcherActor {
 
                 if target_type == "frame" {
                     let msg = WatchTargetsReply {
-                        from: self.name(),
+                        from: self.name().into(),
                         type_: "target-available-form".into(),
                         target: TargetActorMsg::BrowsingContext(
                             browsing_context_actor.encode(registry),
@@ -273,7 +273,7 @@ impl Actor for WatcherActor {
                 } else if target_type == "worker" {
                     for worker_name in &*root_actor.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
-                            from: self.name(),
+                            from: self.name().into(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
                                 registry.encode::<WorkerTargetActor, _>(worker_name),
@@ -284,7 +284,7 @@ impl Actor for WatcherActor {
                 } else if target_type == "service_worker" {
                     for worker_name in &*root_actor.service_workers.borrow() {
                         let worker_msg = WatchTargetsReply {
-                            from: self.name(),
+                            from: self.name().into(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
                                 registry.encode::<WorkerTargetActor, _>(worker_name),
@@ -300,7 +300,9 @@ impl Actor for WatcherActor {
                 // don't count as a reply. Since every message needs to be responded, we send an
                 // extra empty packet to the devtools host to inform that we successfully received
                 // and processed the message so that it can continue
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "unwatchTargets" => {
@@ -402,7 +404,9 @@ impl Actor for WatcherActor {
                         _ => warn!("resource {} not handled yet", resource),
                     }
                 }
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "unwatchResources" => {
@@ -411,21 +415,21 @@ impl Actor for WatcherActor {
             },
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     browsing_context_id: browsing_context_actor.browsing_context_id.value(),
                 };
                 request.reply_final(&msg)?
             },
             "getNetworkParentActor" => {
                 let msg = GetNetworkParentActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     network: registry.encode::<NetworkParentActor, _>(&self.network_parent_name),
                 };
                 request.reply_final(&msg)?
             },
             "getTargetConfigurationActor" => {
                 let msg = GetTargetConfigurationActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     configuration: registry
                         .encode::<TargetConfigurationActor, _>(&self.target_configuration_name),
                 };
@@ -433,7 +437,7 @@ impl Actor for WatcherActor {
             },
             "getThreadConfigurationActor" => {
                 let msg = GetThreadConfigurationActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     configuration: registry
                         .encode::<ThreadConfigurationActor, _>(&self.thread_configuration_name),
                 };
@@ -441,7 +445,7 @@ impl Actor for WatcherActor {
             },
             "getBreakpointListActor" => {
                 let msg = GetBreakpointListActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     breakpoint_list: registry
                         .encode::<BreakpointListActor, _>(&self.breakpoint_list_name),
                 };
@@ -449,7 +453,7 @@ impl Actor for WatcherActor {
             },
             "getBlackboxingActor" => {
                 let msg = GetBlackboxingActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     blackboxing: registry.encode::<BlackboxingActor, _>(&self.blackboxing_name),
                 };
                 request.reply_final(&msg)?
@@ -530,7 +534,7 @@ impl WatcherActor {
         available: bool,
     ) {
         let msg = WatchTargetsReply {
-            from: self.name(),
+            from: self.name().into(),
             type_: (if available {
                 "target-available-form"
             } else {
@@ -549,7 +553,7 @@ impl WatcherActor {
 impl ActorEncode<WatcherActorMsg> for WatcherActor {
     fn encode(&self, _: &ActorRegistry) -> WatcherActorMsg {
         WatcherActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: WatcherTraits {
                 resources: self.session_context.supported_resources.clone(),
                 targets: self.session_context.supported_targets.clone(),

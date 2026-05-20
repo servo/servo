@@ -66,8 +66,8 @@ pub(crate) struct FrameActor {
 }
 
 impl Actor for FrameActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/frame.js
@@ -87,12 +87,15 @@ impl Actor for FrameActor {
                 let source_actor = registry.find::<SourceActor>(&self.source_name);
                 source_actor
                     .script_sender
-                    .send(DevtoolScriptControlMsg::GetEnvironment(self.name(), tx))
+                    .send(DevtoolScriptControlMsg::GetEnvironment(
+                        self.name().into(),
+                        tx,
+                    ))
                     .map_err(|_| ActorError::Internal)?;
                 let environment_name = rx.recv().map_err(|_| ActorError::Internal)?;
 
                 let msg = FrameEnvironmentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     environment: registry.encode::<EnvironmentActor, _>(&environment_name),
                 };
                 // This reply has a `type` field but it doesn't need a followup,
@@ -149,7 +152,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
         let (column, line) = *self.current_offset.borrow();
         // <https://searchfox.org/firefox-main/source/devtools/docs/user/debugger-api/debugger.frame/index.rst>
         FrameActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: self.frame_result.type_.clone(),
             arguments: vec![],
             async_cause,

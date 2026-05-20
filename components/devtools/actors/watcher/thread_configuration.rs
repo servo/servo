@@ -21,8 +21,8 @@ pub(crate) struct ThreadConfigurationActor {
 }
 
 impl Actor for ThreadConfigurationActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The thread configuration actor can handle the following messages:
@@ -39,7 +39,9 @@ impl Actor for ThreadConfigurationActor {
         match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -62,6 +64,8 @@ impl ThreadConfigurationActor {
 
 impl ActorEncode<ActorMsg> for ThreadConfigurationActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

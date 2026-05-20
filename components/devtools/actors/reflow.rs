@@ -17,8 +17,8 @@ pub(crate) struct ReflowActor {
 }
 
 impl Actor for ReflowActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The reflow actor can handle the following messages:
@@ -35,7 +35,9 @@ impl Actor for ReflowActor {
         match msg_type {
             "start" => {
                 // TODO: Create an observer on "reflows" events
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),

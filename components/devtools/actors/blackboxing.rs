@@ -37,8 +37,8 @@ pub(crate) struct BlackboxingActor {
 }
 
 impl Actor for BlackboxingActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -89,7 +89,9 @@ impl Actor for BlackboxingActor {
             .send(control_msg)
             .map_err(|_| ActorError::Internal)?;
 
-        request.reply_final(&EmptyReplyMsg { from: self.name() })?;
+        request.reply_final(&EmptyReplyMsg {
+            from: self.name().into(),
+        })?;
         Ok(())
     }
 }
@@ -108,6 +110,8 @@ impl BlackboxingActor {
 
 impl ActorEncode<ActorMsg> for BlackboxingActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

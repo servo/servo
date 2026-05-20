@@ -136,8 +136,8 @@ pub(crate) struct NodeActor {
 }
 
 impl Actor for NodeActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The node actor can handle the following messages:
@@ -177,12 +177,14 @@ impl Actor for NodeActor {
                 script_chan
                     .send(DevtoolScriptControlMsg::ModifyAttribute(
                         browsing_context_actor.pipeline_id(),
-                        registry.actor_to_script(self.name()),
+                        registry.actor_to_script(self.name().into()),
                         modifications,
                     ))
                     .map_err(|_| ActorError::Internal)?;
 
-                let reply = EmptyReplyMsg { from: self.name() };
+                let reply = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&reply)?
             },
             "getEventListenerInfo" => {
@@ -203,7 +205,7 @@ impl Actor for NodeActor {
                 let event_listeners = rx.recv().map_err(|_| ActorError::Internal)?;
 
                 let msg = GetEventListenerInfoReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     events: event_listeners.into_iter().map(From::from).collect(),
                 };
                 request.reply_final(&msg)?
@@ -220,7 +222,7 @@ impl Actor for NodeActor {
 
                 self.update(node_info);
                 let msg = GetUniqueSelectorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: self.node_info.borrow().node_name.to_lowercase(),
                 };
                 request.reply_final(&msg)?
@@ -243,7 +245,7 @@ impl Actor for NodeActor {
 
                 let xpath_selector = rx.recv().map_err(|_| ActorError::Internal)?;
                 let msg = GetXPathReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: xpath_selector,
                 };
                 request.reply_final(&msg)?
@@ -307,7 +309,7 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
             .browsing_context_actor(registry);
         let script_chan = browsing_context.script_chan();
         let pipeline = browsing_context.pipeline_id();
-        let script_id = registry.actor_to_script(actor.clone());
+        let script_id = registry.actor_to_script(actor.into());
 
         // If a node only has a single text node as a child with a small enough text,
         // return it with this node as an `inlineTextChild`.
@@ -345,7 +347,7 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
         })();
 
         NodeActorMsg {
-            actor,
+            actor: actor.into(),
             host,
             base_uri: node_info.base_uri.clone(),
             display_name: node_info.node_name.to_lowercase(),

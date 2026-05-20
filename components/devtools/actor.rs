@@ -82,7 +82,7 @@ pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
         let _ = (request, registry, msg_type, msg, stream_id);
         Err(ActorError::UnrecognizedPacketType)
     }
-    fn name(&self) -> String;
+    fn name(&self) -> &str;
     fn cleanup(&self, _id: StreamId) {}
 }
 
@@ -178,10 +178,8 @@ impl ActorRegistry {
 
     /// Add an actor to the registry of known actors that can receive messages.
     pub(crate) fn register<T: Actor>(&self, actor: T) {
-        self.actors
-            .0
-            .borrow_mut()
-            .insert(actor.name(), Arc::new(actor));
+        let mut guard = self.actors.0.borrow_mut();
+        guard.insert(actor.name().into(), Arc::new(actor));
     }
 
     /// Find an actor by registered name

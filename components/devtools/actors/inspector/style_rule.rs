@@ -88,8 +88,8 @@ pub(crate) struct StyleRuleActor {
 }
 
 impl Actor for StyleRuleActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The style rule configuration actor can handle the following messages:
@@ -193,7 +193,7 @@ impl StyleRuleActor {
         let style = style_receiver.recv().ok()??;
 
         Some(AppliedRule {
-            actor: self.name(),
+            actor: self.name().into(),
             ancestor_data: self
                 .selector
                 .as_ref()
@@ -266,7 +266,7 @@ impl StyleRuleActor {
 impl ActorEncode<StyleRuleActorMsg> for StyleRuleActor {
     fn encode(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
         StyleRuleActorMsg {
-            from: self.name(),
+            from: self.name().into(),
             rule: self.applied(registry),
         }
     }

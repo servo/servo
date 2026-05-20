@@ -60,8 +60,8 @@ pub(crate) struct InspectorActor {
 }
 
 impl Actor for InspectorActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -75,7 +75,7 @@ impl Actor for InspectorActor {
         match msg_type {
             "getPageStyle" => {
                 let msg = GetPageStyleReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     page_style: registry.encode::<PageStyleActor, _>(&self.page_style_name),
                 };
                 request.reply_final(&msg)?
@@ -83,7 +83,7 @@ impl Actor for InspectorActor {
 
             "getHighlighterByType" => {
                 let msg = GetHighlighterReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter_name),
                 };
                 request.reply_final(&msg)?
@@ -91,7 +91,7 @@ impl Actor for InspectorActor {
 
             "getWalker" => {
                 let msg = GetWalkerReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     walker: registry.encode::<WalkerActor, _>(&self.walker_name),
                 };
                 request.reply_final(&msg)?
@@ -99,7 +99,7 @@ impl Actor for InspectorActor {
 
             "supportsHighlighters" => {
                 let msg = SupportsHighlightersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: true,
                 };
                 request.reply_final(&msg)?
@@ -125,7 +125,7 @@ impl InspectorActor {
             page_style_name,
             walker_name,
         };
-        let inspector_name = inspector_actor.name();
+        let inspector_name: String = inspector_actor.name().into();
 
         registry.register(inspector_actor);
 

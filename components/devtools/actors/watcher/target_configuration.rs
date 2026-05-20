@@ -47,8 +47,8 @@ struct JavascriptEnabledReply {
 }
 
 impl Actor for TargetConfigurationActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The target configuration actor can handle the following messages:
@@ -88,12 +88,14 @@ impl Actor for TargetConfigurationActor {
                         warn!("No active tab for updateConfiguration");
                     }
                 }
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "isJavascriptEnabled" => {
                 let msg = JavascriptEnabledReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     javascript_enabled: true,
                 };
                 request.reply_final(&msg)?
@@ -138,7 +140,7 @@ impl TargetConfigurationActor {
 impl ActorEncode<TargetConfigurationActorMsg> for TargetConfigurationActor {
     fn encode(&self, _: &ActorRegistry) -> TargetConfigurationActorMsg {
         TargetConfigurationActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             configuration: self.configuration.clone(),
             traits: TargetConfigurationTraits {
                 supported_options: self.supported_options.clone(),

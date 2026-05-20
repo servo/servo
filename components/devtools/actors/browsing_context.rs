@@ -149,8 +149,8 @@ impl ResourceAvailable for BrowsingContextActor {
 }
 
 impl Actor for BrowsingContextActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -164,12 +164,14 @@ impl Actor for BrowsingContextActor {
         match msg_type {
             "listFrames" => {
                 // TODO: Find out what needs to be listed here
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "listWorkers" => {
                 request.reply_final(&ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     // TODO: Find out what needs to be listed here
                     workers: vec![],
                 })?
@@ -267,7 +269,7 @@ impl BrowsingContextActor {
 
     pub(crate) fn frame_update(&self, request: &mut ClientRequest) {
         let _ = request.write_json_packet(&FrameUpdateReply {
-            from: self.name(),
+            from: self.name().into(),
             type_: "frameUpdate".into(),
             frames: vec![FrameUpdateMsg {
                 id: self.browsing_context_id.value(),
@@ -337,7 +339,7 @@ impl BrowsingContextActor {
 impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
     fn encode(&self, _: &ActorRegistry) -> BrowsingContextActorMsg {
         BrowsingContextActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
                 frames: true,

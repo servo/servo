@@ -74,8 +74,8 @@ pub(crate) struct StyleSheetsActor {
 }
 
 impl Actor for StyleSheetsActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
     fn handle_message(
         &self,
@@ -91,7 +91,7 @@ impl Actor for StyleSheetsActor {
             "getStyleSheets" => {
                 let style_sheets = self.get_stylesheets_data(&browsing_context_actor);
                 let msg = GetStyleSheetsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     style_sheets,
                 };
                 request.reply_final(&msg)?
@@ -123,7 +123,7 @@ impl Actor for StyleSheetsActor {
                 let long_string_name = LongStringActor::register(registry, css_text);
                 let long_string_actor = registry.find::<LongStringActor>(&long_string_name);
                 let msg = GetTextReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     text: long_string_actor.long_string_obj(),
                 };
                 request.reply_final(&msg)?

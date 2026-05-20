@@ -41,8 +41,8 @@ pub(crate) struct DeviceActor {
 }
 
 impl Actor for DeviceActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
     fn handle_message(
         &self,
@@ -55,7 +55,7 @@ impl Actor for DeviceActor {
         match msg_type {
             "getDescription" => {
                 let msg = GetDescriptionReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
                         version: env!("CARGO_PKG_VERSION").to_string(),

@@ -35,8 +35,8 @@ struct SubstringReply {
 }
 
 impl Actor for LongStringActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -61,7 +61,7 @@ impl Actor for LongStringActor {
                     .take(end - start)
                     .collect();
                 let reply = SubstringReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     substring,
                 };
                 request.reply_final(&reply)?

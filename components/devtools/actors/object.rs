@@ -127,8 +127,8 @@ pub(crate) struct ObjectActor {
 }
 
 impl Actor for ObjectActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/object.js
@@ -186,7 +186,7 @@ impl Actor for ObjectActor {
                     registry.find::<PropertyIteratorActor>(&property_iterator_name);
                 let count = property_iterator_actor.count();
                 let msg = EnumReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     iterator: EnumIterator {
                         actor: property_iterator_name,
                         type_: EnumIteratorType::PropertyIterator,
@@ -200,7 +200,7 @@ impl Actor for ObjectActor {
             "enumSymbols" => {
                 let symbol_iterator_name = SymbolIteratorActor::register(registry);
                 let msg = EnumReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     iterator: EnumIterator {
                         actor: symbol_iterator_name,
                         type_: EnumIteratorType::SymbolIterator,
@@ -212,7 +212,7 @@ impl Actor for ObjectActor {
 
             "prototype" => {
                 let msg = PrototypeReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     prototype: self.encode(registry),
                 };
                 request.reply_final(&msg)?
@@ -267,7 +267,7 @@ impl ObjectActor {
 impl ActorEncode<ObjectActorMsg> for ObjectActor {
     fn encode(&self, registry: &ActorRegistry) -> ObjectActorMsg {
         let mut msg = ObjectActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: "object".into(),
             class: self.class.clone(),
             extensible: true,

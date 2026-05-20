@@ -61,8 +61,8 @@ pub(crate) struct AccessibilityActor {
 }
 
 impl Actor for AccessibilityActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The accesibility actor can handle the following messages:
@@ -86,14 +86,14 @@ impl Actor for AccessibilityActor {
         match msg_type {
             "bootstrap" => {
                 let msg = BootstrapReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     state: BootstrapState { enabled: false },
                 };
                 request.reply_final(&msg)?
             },
             "getSimulator" => {
                 let msg = GetSimulatorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     simulator: ActorMsg {
                         actor: SimulatorActor::register(registry),
                     },
@@ -102,7 +102,7 @@ impl Actor for AccessibilityActor {
             },
             "getTraits" => {
                 let msg = GetTraitsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     traits: AccessibilityTraits {
                         tabbing_order: true,
                     },
@@ -111,7 +111,7 @@ impl Actor for AccessibilityActor {
             },
             "getWalker" => {
                 let msg = GetWalkerReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     walker: ActorMsg {
                         actor: AccessibleWalkerActor::register(registry),
                     },

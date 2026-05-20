@@ -181,8 +181,8 @@ impl SourceActor {
 }
 
 impl Actor for SourceActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -197,7 +197,7 @@ impl Actor for SourceActor {
             // Client has requested contents of the source.
             "source" => {
                 let reply = SourceContentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     content_type: self.content_type.clone(),
                     // TODO: if needed, fetch the page again, in the same way as in the original request.
                     // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
@@ -232,7 +232,7 @@ impl Actor for SourceActor {
                     .map(|location| location.line_number)
                     .collect::<BTreeSet<_>>();
                 let reply = GetBreakableLinesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     lines,
                 };
                 request.reply_final(&reply)?
@@ -270,7 +270,7 @@ impl Actor for SourceActor {
                         .insert(location.column_number - 1);
                 }
                 let reply = GetBreakpointPositionsCompressedReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     positions,
                 };
                 request.reply_final(&reply)?
