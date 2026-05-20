@@ -622,6 +622,18 @@ impl ResourceThreads {
                 source,
             ));
     }
+
+    pub fn clear_cookies_async(&self, id: CookieOperationId) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderClearCookies(id));
+    }
+
+    pub fn clear_session_cookies_async(&self, id: CookieOperationId) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -719,6 +731,10 @@ pub enum CoreResourceMsg {
         Serde<Cookie<'static>>,
         CookieSource,
     ),
+    /// Clear all cookies on behalf of the embedder. The response is sent via NetToEmbedderMsg.
+    EmbedderClearCookies(CookieOperationId),
+    /// Clear session cookies on behalf of the embedder. The response is sent via NetToEmbedderMsg.
+    EmbedderClearSessionCookies(CookieOperationId),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),

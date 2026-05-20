@@ -426,13 +426,13 @@ impl ServoInner {
                         .request_authentication(webview, authentication_request);
                 }
             },
-            NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(operation_id, cookies) => {
+            NetToEmbedderMsg::EmbedderCookieOperationResponseWithCookies(operation_id, cookies) => {
                 self.site_data_manager.handle_cookie_response(
                     operation_id,
                     CookieOperationResponse::Cookies(cookies),
                 );
             },
-            NetToEmbedderMsg::EmbedderSetCookieForUrlResponse(operation_id) => {
+            NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id) => {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
