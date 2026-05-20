@@ -1694,8 +1694,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         // `border-image` replaces an element's border entirely.
-        let common = builder.common_properties(self.border_rect, &style);
-        if self.build_border_image(builder, &common, border, border_widths) {
+        if self.build_border_image(builder, border, border_widths) {
             return;
         }
 
@@ -1709,6 +1708,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             radius: self.border_radius,
             do_aa: true,
         });
+        let common = builder.common_properties(self.border_rect, &style);
         builder
             .wr()
             .push_border(&common, self.border_rect, border_widths, details)
@@ -1718,7 +1718,6 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_border_image(
         &self,
         builder: &mut DisplayListBuilder,
-        common: &CommonItemProperties,
         border: &Border,
         border_widths: SideOffsets2D<f32, LayoutPixel>,
     ) -> bool {
@@ -1736,6 +1735,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let border_image_repeat = &border_style_struct.border_image_repeat;
         let border_image_fill = border_style_struct.border_image_slice.fill;
         let border_image_slice = &border_style_struct.border_image_slice.offsets;
+        let common = builder.common_properties(border_image_area.to_box2d(), &style);
 
         let stops = Vec::new();
         let mut width = border_image_size.width;
@@ -1818,7 +1818,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             repeat_vertical: border_image_repeat.1.to_webrender(),
         });
         builder.wr().push_border(
-            common,
+            &common,
             border_image_area.to_box2d(),
             border_image_widths,
             details,
