@@ -3742,7 +3742,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     name: "{self.descriptor.interface.identifier.name}",
                 }};
                 let init = CreateInterfaceObjectsOptions {{
-                    t: ConstructorType::Namespace(init),
+                    constructor_type: ConstructorType::Namespace(init),
                 }};
                 CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
                 """)
@@ -3756,7 +3756,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     p_name: PrototypeList::Constructor::{self.descriptor.interface.identifier.name},
                 }};
                 let init = CreateInterfaceObjectsOptions {{
-                    t: ConstructorType::Callback(init),
+                    constructor_type: ConstructorType::Callback(init),
                 }};
                 CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
                 """)
