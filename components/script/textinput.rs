@@ -1141,7 +1141,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         let global = target.global();
         let target = Trusted::new(target);
         global.task_manager().user_interaction_task_source().queue(
-            task!(fire_input_event: move || {
+            task!(fire_input_event: move |cx| {
                 let target = target.root();
                 let global = target.global();
                 let window = global.as_window();
@@ -1156,11 +1156,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     data.map(DOMString::from),
                     is_composing.into(),
                     input_type.as_str().into(),
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
                 event.set_composed(true);
-                event.fire(&target, CanGc::deprecated_note());
+                event.fire(cx, &target);
             }),
         );
     }

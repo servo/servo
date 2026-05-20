@@ -1041,7 +1041,7 @@ impl XMLHttpRequest {
                 EventCancelable::Cancelable,
                 CanGc::from_cx(cx),
             );
-            event.fire(self.upcast(), CanGc::from_cx(cx));
+            event.fire(cx, self.upcast());
         }
     }
 
@@ -1201,7 +1201,7 @@ impl XMLHttpRequest {
                         EventCancelable::Cancelable,
                         CanGc::from_cx(cx),
                     );
-                    event.fire(self.upcast(), CanGc::from_cx(cx));
+                    event.fire(cx, self.upcast());
                     return_if_fetch_was_terminated!();
                     self.dispatch_response_progress_event(cx, atom!("progress"));
                 }
@@ -1303,9 +1303,7 @@ impl XMLHttpRequest {
         } else {
             self.upcast()
         };
-        progressevent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        progressevent.upcast::<Event>().fire(cx, target);
     }
 
     fn dispatch_upload_progress_event(

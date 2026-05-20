@@ -564,7 +564,7 @@ impl Activatable for HTMLButtonElement {
                 CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            if !event.fire(target.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
+            if !event.fire(cx, target.upcast::<EventTarget>()) {
                 return;
             }
             // Step 5.5 If target is not connected, then return.

@@ -585,9 +585,7 @@ impl TaskOnce for CloseTask {
             reason,
             CanGc::from_cx(cx),
         );
-        close_event
-            .upcast::<Event>()
-            .fire(ws.upcast(), CanGc::from_cx(cx));
+        close_event.upcast::<Event>().fire(cx, ws.upcast());
     }
 }
 
@@ -655,13 +653,13 @@ impl TaskOnce for MessageReceivedTask {
             },
         }
         MessageEvent::dispatch_jsval(
+            cx,
             ws.upcast(),
             &global,
             message.handle(),
             Some(&ws.origin().ascii_serialization()),
             None,
             vec![],
-            CanGc::from_cx(cx),
         );
     }
 }

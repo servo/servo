@@ -1537,9 +1537,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
-        self.as_global_scope()
-            .report_an_exception(cx, error, can_gc);
+    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+        self.as_global_scope().report_an_exception(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
@@ -3410,9 +3409,7 @@ impl Window {
                 0u32,
                 CanGc::from_cx(cx),
             );
-            uievent
-                .upcast::<Event>()
-                .fire(self.upcast(), CanGc::from_cx(cx));
+            uievent.upcast::<Event>().fire(cx, self.upcast());
         }
 
         true
@@ -3438,9 +3435,7 @@ impl Window {
                 0u32,
                 CanGc::from_cx(cx),
             );
-            uievent
-                .upcast::<Event>()
-                .fire(visual_viewport.upcast(), CanGc::from_cx(cx));
+            uievent.upcast::<Event>().fire(cx, visual_viewport.upcast());
 
             self.has_changed_visual_viewport_dimension.set(false);
         }
@@ -3477,7 +3472,7 @@ impl Window {
             );
             event
                 .upcast::<Event>()
-                .fire(mql.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                .fire(cx, mql.upcast::<EventTarget>());
         }
     }
 
@@ -3923,13 +3918,13 @@ impl Window {
             if let Ok(ports) = structuredclone::read(cx, this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
+                    cx,
                     this.upcast(),
                     this.upcast(),
                     message_clone.handle(),
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
-                    CanGc::from_cx(cx),
                 );
             } else {
                 // Step 4, fire messageerror.

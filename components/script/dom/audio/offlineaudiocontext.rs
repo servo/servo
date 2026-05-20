@@ -210,7 +210,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                                                                  EventBubbles::DoesNotBubble,
                                                                  EventCancelable::NotCancelable,
                                                                  &buffer, CanGc::from_cx(cx));
-                    event.upcast::<Event>().fire(this.upcast(), CanGc::from_cx(cx));
+                    event.upcast::<Event>().fire(cx, this.upcast());
                 }));
             })
             .unwrap();

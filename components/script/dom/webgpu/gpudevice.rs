@@ -216,9 +216,9 @@ impl GPUDevice {
         // Queue a global task, using the webgpu task source, to fire an event named
         // uncapturederror at a GPUDevice using GPUUncapturedErrorEvent.
         self.global().task_manager().webgpu_task_source().queue(
-            task!(fire_uncaptured_error: move || {
+            task!(fire_uncaptured_error: move |cx| {
                 let this = this.root();
-                let error = GPUError::from_error(&this.global(), error, CanGc::deprecated_note());
+                let error = GPUError::from_error(&this.global(), error, CanGc::from_cx(cx));
 
                 let event = GPUUncapturedErrorEvent::new(
                     &this.global(),
@@ -227,10 +227,10 @@ impl GPUDevice {
                         error,
                         parent: EventInit::empty(),
                     },
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
 
-                event.upcast::<Event>().fire(this.upcast(), CanGc::deprecated_note());
+                event.upcast::<Event>().fire(cx, this.upcast());
             }),
         );
     }

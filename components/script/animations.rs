@@ -544,7 +544,7 @@ impl Animations {
                 };
                 TransitionEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, node.upcast());
             } else {
                 let event_init = AnimationEventInit {
                     parent,
@@ -554,7 +554,7 @@ impl Animations {
                 };
                 AnimationEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, node.upcast());
             }
         }
 

@@ -441,7 +441,7 @@ impl IDBFactory {
             EventCancelable::Cancelable,
             CanGc::from_cx(cx),
         );
-        event.fire(request.upcast(), CanGc::from_cx(cx));
+        event.fire(cx, request.upcast());
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>

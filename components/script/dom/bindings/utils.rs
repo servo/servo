@@ -196,7 +196,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
-        report_pending_exception(cx, realm, can_gc)
+    fn report_pending_exception(cx: &mut js::context::JSContext, realm: InRealm) {
+        report_pending_exception(cx, realm)
     }
 }

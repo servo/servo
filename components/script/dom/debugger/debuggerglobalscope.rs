@@ -176,7 +176,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
         );
     }
@@ -211,7 +211,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerEvalEvent::new"
         );
     }
@@ -234,7 +234,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
@@ -254,7 +254,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
@@ -265,7 +265,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerInterruptEvent::new"
         );
     }
@@ -294,7 +294,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerFrameEvent::new"
         );
     }
@@ -317,7 +317,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerGetEnvironmentEvent::new"
         );
     }
@@ -335,7 +335,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerResumeEvent::new"
         );
     }
@@ -355,7 +355,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerClearBreakpointEvent::new"
         );
     }

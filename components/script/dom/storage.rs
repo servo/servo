@@ -260,7 +260,7 @@ impl Storage {
                     Some(&this),
                     CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(global.upcast(), CanGc::from_cx(cx));
+                event.upcast::<Event>().fire(cx, global.upcast());
             }),
         );
     }

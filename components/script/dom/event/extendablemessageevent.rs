@@ -139,9 +139,7 @@ impl ExtendableMessageEvent {
             ports,
             CanGc::from_cx(cx),
         );
-        Extendablemessageevent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        Extendablemessageevent.upcast::<Event>().fire(cx, target);
     }
 
     pub(crate) fn dispatch_error(
@@ -161,9 +159,7 @@ impl ExtendableMessageEvent {
             init.ports.clone(),
             CanGc::from_cx(cx),
         );
-        ExtendableMsgEvent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        ExtendableMsgEvent.upcast::<Event>().fire(cx, target);
     }
 }
 

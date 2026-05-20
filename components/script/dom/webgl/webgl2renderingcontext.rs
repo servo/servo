@@ -18,7 +18,7 @@ use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, U
 use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -132,14 +132,14 @@ struct ReadPixelsSizes {
 
 impl WebGL2RenderingContext {
     fn new_inherited(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<WebGL2RenderingContext> {
         let base =
-            WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs, can_gc)?;
+            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
 
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
@@ -180,14 +180,14 @@ impl WebGL2RenderingContext {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(window, canvas, size, attrs, can_gc)
-            .map(|ctx| reflect_dom_object(Box::new(ctx), window, can_gc))
+        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
+            .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {

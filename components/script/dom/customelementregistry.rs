@@ -946,7 +946,7 @@ pub(crate) fn upgrade_element(
         let in_realm = InRealm::Already(&in_realm_proof);
 
         throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
-        report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+        report_pending_exception(cx, in_realm);
 
         return;
     }

@@ -476,7 +476,7 @@ impl VirtualMethods for HTMLDetailsElement {
                             CanGc::from_cx(cx),
                         );
                         let event = event.upcast::<Event>();
-                        event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                        event.fire(cx, this.upcast::<EventTarget>());
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);

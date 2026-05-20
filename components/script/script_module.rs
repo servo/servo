@@ -476,7 +476,7 @@ impl ModuleTree {
             unsafe {
                 JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
             }
-            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx, in_realm);
         }
     }
 
@@ -1706,7 +1706,7 @@ pub(crate) fn register_import_map(
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
             throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
-            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx, in_realm);
         },
     }
 }

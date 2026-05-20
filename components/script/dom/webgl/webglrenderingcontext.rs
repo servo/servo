@@ -23,7 +23,7 @@ use js::typedarray::{
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
@@ -305,12 +305,12 @@ impl WebGLRenderingContext {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(
             window,
@@ -319,7 +319,7 @@ impl WebGLRenderingContext {
             size,
             attrs,
         ) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
+            Ok(ctx) => Some(reflect_dom_object_with_cx(Box::new(ctx), window, cx)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
@@ -328,14 +328,14 @@ impl WebGLRenderingContext {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 match canvas {
                     RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                     RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                 }
                 None

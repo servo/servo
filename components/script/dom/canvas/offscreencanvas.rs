@@ -228,14 +228,7 @@ impl OffscreenCanvas {
         self.global()
             .downcast::<Window>()
             .and_then(|window| {
-                WebGLRenderingContext::new(
-                    window,
-                    &canvas,
-                    WebGLVersion::WebGL1,
-                    size,
-                    attrs,
-                    CanGc::from_cx(cx),
-                )
+                WebGLRenderingContext::new(cx, window, &canvas, WebGLVersion::WebGL1, size, attrs)
             })
             .map(|context| {
                 // Step 2. If context is null, then return null;
@@ -275,9 +268,7 @@ impl OffscreenCanvas {
         let attrs = Self::get_gl_attributes(cx, options)?;
         self.global()
             .downcast::<Window>()
-            .and_then(|window| {
-                WebGL2RenderingContext::new(window, &canvas, size, attrs, CanGc::from_cx(cx))
-            })
+            .and_then(|window| WebGL2RenderingContext::new(cx, window, &canvas, size, attrs))
             .map(|context| {
                 // Step 2. If context is null, then return null;
                 // otherwise set this's context mode to webgl or webgl2.

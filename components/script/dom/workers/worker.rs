@@ -117,15 +117,7 @@ impl Worker {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(cx, &global, data, message.handle_mut()) {
-            MessageEvent::dispatch_jsval(
-                target,
-                &global,
-                message.handle(),
-                None,
-                None,
-                ports,
-                CanGc::from_cx(cx),
-            );
+            MessageEvent::dispatch_jsval(cx, target, &global, message.handle(), None, None, ports);
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
             MessageEvent::dispatch_error(cx, target, &global);

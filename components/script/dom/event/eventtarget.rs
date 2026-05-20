@@ -711,7 +711,7 @@ impl EventTarget {
         if handler.get().is_null() {
             // Step 3.7
             let ar = enter_realm(self);
-            report_pending_exception(cx.into(), InRealm::Entered(&ar), CanGc::from_cx(cx));
+            report_pending_exception(cx, InRealm::Entered(&ar));
             return None;
         }
 
@@ -870,7 +870,7 @@ impl EventTarget {
             CanGc::from_cx(cx),
         );
         event.set_composed(composed.into());
-        event.fire(self, CanGc::from_cx(cx))
+        event.fire(cx, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
