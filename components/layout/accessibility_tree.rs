@@ -11,6 +11,7 @@ use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
+use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use web_atoms::{LocalName, local_name};
 
@@ -40,6 +41,41 @@ pub struct AccessibilityTree {
     opaque_node_to_id: FxHashMap<OpaqueNode, accesskit::NodeId>,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
+    /// Nodes that changed their relation to the tree within the current update.
+    tree_changes: FxHashMap<accesskit::NodeId, TreeChange>,
+}
+
+/// Tracks changes to a node's relation to the tree within an update.
+///
+/// This is used to remove nodes from the accessibility tree's cache when they are no longer in the
+/// tree.
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum TreeChange {
+    /// The node was newly created in this update.
+    New,
+
+    /// The node has been re-parented in this update.
+    Moved,
+
+    /// The node has been added to its new parent, but not yet removed from its old
+    /// parent.
+    ///
+    /// When a node is moved within the tree, it must be both removed from its old parent
+    /// and added to its new parent within the same update. This may happen in either
+    /// order, depending on the relative positions of the node before and after it moves.
+    ///
+    /// - If a node's new parent is updated before its old parent, the node will be in a
+    ///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
+    ///   must later be removed from its old parent, at which point its state will be updated to
+    ///   `TreeChange::Moved(Move::Complete)`.
+    /// - If a node's old parent is updated before its new parent, the node will be first
+    ///   `TreeChange::Removed` and then `TreeChange ::Moved(Move::Complete)`.
+    ///
+    /// At the end of the update, we assert that there are no pending moves remaining.
+    PendingMove,
+
+    /// The node is no longer a child of its previous parent.
+    Removed,
 }
 
 impl AccessibilityTree {
@@ -49,6 +85,7 @@ impl AccessibilityTree {
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
             epoch,
+            tree_changes: FxHashMap::default(),
         }
     }
 
@@ -59,15 +96,47 @@ impl AccessibilityTree {
         root_dom_node: &ServoLayoutNode<'_>,
     ) -> Option<accesskit::TreeUpdate> {
         let root_node = self.get_or_create_node(root_dom_node);
+        let root_node_id = root_node.borrow().id;
+
         let mut tree_update =
-            AccessibilityUpdate::new(accesskit::Tree::new(root_node.borrow().id), self.tree_id);
+            AccessibilityUpdate::new(accesskit::Tree::new(root_node_id), self.tree_id);
         let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut tree_update);
 
         if !any_node_updated {
+            assert!(self.tree_changes.is_empty());
             return None;
         }
 
+        self.finalize_tree_changes();
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            self.assert_integrity(root_node_id);
+        }
+
         Some(tree_update.finalize())
+    }
+
+    fn finalize_tree_changes(&mut self) {
+        for id in self
+            .tree_changes
+            .drain()
+            .filter_map(|(id, change)| match change {
+                TreeChange::PendingMove => {
+                    unreachable!(
+                        "Pending move found for node id {id:?} when draining tree state changes"
+                    );
+                },
+                TreeChange::Removed => Some(id),
+                _ => None,
+            })
+        {
+            let Some(node) = self.nodes.remove(&id) else {
+                continue;
+            };
+            if let Some(opaque_node) = node.borrow().opaque_node {
+                self.opaque_node_to_id.remove(&opaque_node);
+            }
+        }
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -77,7 +146,7 @@ impl AccessibilityTree {
         dom_node: &ServoLayoutNode<'_>,
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
-        let node = self.assert_node_by_dom_node(dom_node);
+        let node = self.assert_node_for_dom_node(dom_node);
         let mut node = node.borrow_mut();
 
         // TODO: read accessibility damage (right now, assume damage is complete)
@@ -99,36 +168,43 @@ impl AccessibilityTree {
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
 
-        let node = self
-            .nodes
-            .entry(id)
-            .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
-        {
-            let mut new_node = node.borrow_mut();
+        let node = self.nodes.entry(id).or_insert_with(|| {
+            self.tree_changes.insert(id, TreeChange::New);
+            ArcRefCell::new(AccessibilityNode::new(id))
+        });
 
-            new_node.opaque_node = Some(dom_node.opaque());
-            if let Some(dom_element) = dom_node.as_element() {
-                let local_name = dom_element.local_name().to_ascii_lowercase();
-                new_node.set_html_tag(&local_name);
-            }
+        let mut new_node = node.borrow_mut();
+
+        new_node.opaque_node = Some(dom_node.opaque());
+        if let Some(dom_element) = dom_node.as_element() {
+            let local_name = dom_element.local_name().to_ascii_lowercase();
+            new_node.set_html_tag(&local_name);
         }
 
         node.clone()
     }
 
-    fn assert_node_by_dom_node(
+    fn node_for_dom_node(
+        &mut self,
+        dom_node: &ServoLayoutNode<'_>,
+    ) -> Option<ArcRefCell<AccessibilityNode>> {
+        let id = self.id_for_opaque(dom_node.opaque());
+        self.nodes.get(&id).cloned()
+    }
+
+    fn assert_node_for_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
-        let node = self.assert_node_by_id(id);
+        let node = self.assert_node_for_id(id);
         assert!(node.borrow().opaque_node == Some(dom_node.opaque()));
         node
     }
 
-    fn assert_node_by_id(&self, id: accesskit::NodeId) -> ArcRefCell<AccessibilityNode> {
+    fn assert_node_for_id(&self, id: accesskit::NodeId) -> ArcRefCell<AccessibilityNode> {
         let Some(node) = self.nodes.get(&id) else {
-            panic!("Stale node ID found: {id:?}");
+            panic!("{id:?} does not exist in tree");
         };
         node.clone()
     }
@@ -143,6 +219,30 @@ impl AccessibilityTree {
 
     pub(crate) fn epoch(&self) -> Epoch {
         self.epoch
+    }
+
+    /// Assert that the tree is a tree without any dangling references or orphaned nodes.
+    ///
+    /// For accessibility tests only, because it’s expensive.
+    fn assert_integrity(&self, root_node_id: accesskit::NodeId) {
+        assert!(pref!(expensive_accessibility_test_assertions_enabled));
+        // Traverse the tree from the given root.
+        let mut node_ids = vec![root_node_id];
+        let mut seen_node_ids = FxHashSet::default();
+        while let Some(node_id) = node_ids.pop() {
+            // If this fails, then the tree is not a tree at all.
+            assert!(
+                seen_node_ids.insert(node_id),
+                "Tree contains {node_id:?} in multiple places"
+            );
+            // If this fails, then the tree has dangling references.
+            let node = self.assert_node_for_id(node_id);
+            let node = node.borrow();
+            node_ids.extend(node.children().iter().rev());
+        }
+        // If this fails, then the tree has orphaned nodes (a leak).
+        // Dangling references are already caught in the loop above.
+        assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
     }
 }
 
@@ -180,11 +280,19 @@ impl AccessibilityNode {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         let mut any_descendant_updated = false;
-        let new_children = dom_node
+        let mut newly_created = FxHashSet::default();
+        let new_children: Vec<_> = dom_node
             .flat_tree_children()
             .map(|dom_child| {
-                let child_node = tree.get_or_create_node(&dom_child);
-                let child_node_id = child_node.borrow().id;
+                let child_node_id = match tree.node_for_dom_node(&dom_child) {
+                    Some(child_node) => child_node.borrow().id,
+                    None => {
+                        let new_child = tree.get_or_create_node(&dom_child);
+                        let child_node_id = new_child.borrow().id;
+                        newly_created.insert(child_node_id);
+                        child_node_id
+                    },
+                };
 
                 // TODO: We actually need to propagate damage within the accessibility tree, rather than
                 // assuming it matches the DOM tree, but this will do for now.
@@ -193,10 +301,71 @@ impl AccessibilityNode {
                 child_node_id
             })
             .collect();
+
         if new_children != self.children() {
+            let old_children = self.children();
+            for old_child_id in old_children {
+                if !new_children.contains(old_child_id) {
+                    let removed_child = tree.assert_node_for_id(*old_child_id);
+                    removed_child
+                        .borrow()
+                        .set_subtree_state_change(tree, TreeChange::Removed);
+                }
+            }
+            for new_child_id in new_children.iter() {
+                if !newly_created.contains(new_child_id) && !old_children.contains(new_child_id) {
+                    let moved_child = tree.assert_node_for_id(*new_child_id);
+                    moved_child
+                        .borrow()
+                        .set_subtree_state_change(tree, TreeChange::PendingMove);
+                }
+            }
             self.set_children(new_children);
         }
+
         any_descendant_updated
+    }
+
+    /// Recursively mark this subtree as having the given `TreeChange `.
+    ///
+    /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
+    /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
+    /// shouldn't call this method in that case, since it may have descendants which are not being
+    /// created in this update and shouldn't have a `New` state. Any descendants which are new will
+    /// already have their `New` state set when they are created.
+    ///
+    /// Note: if a node is moved, the requested `change` must always be `Moved(Pending)`: the logic
+    /// in this method will determine whether the move is `Complete` and set the stored value
+    /// accordingly.
+    fn set_subtree_state_change(&self, tree: &mut AccessibilityTree, change: TreeChange) {
+        let old_change = tree.tree_changes.get(&self.id);
+
+        assert!(
+            change != TreeChange::New,
+            "New shouldn't be set recursively"
+        );
+        assert!(
+            change != TreeChange::Moved,
+            "Incoming change must never be Moved"
+        );
+
+        let new_change = old_change
+            .map(|old_change| match (old_change, change) {
+                (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
+                (TreeChange::Removed, TreeChange::PendingMove) => TreeChange::Moved,
+                _ => {
+                    unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
+                },
+            })
+            .unwrap_or(change);
+
+        tree.tree_changes.insert(self.id, new_change);
+
+        for child_id in self.children().to_vec() {
+            let child = tree.assert_node_for_id(child_id);
+            // `new_change` might be different per node, if only some nodes were moved elsewhere.
+            child.borrow().set_subtree_state_change(tree, change);
+        }
     }
 
     fn update_node(
@@ -225,7 +394,7 @@ impl AccessibilityNode {
         let mut children = VecDeque::from_iter(self.children().iter().copied());
         let mut text = String::new();
         while let Some(child_id) = children.pop_front() {
-            let child = tree.assert_node_by_id(child_id);
+            let child = tree.assert_node_for_id(child_id);
             let child = child.borrow();
             match child.role() {
                 Role::TextRun => {
