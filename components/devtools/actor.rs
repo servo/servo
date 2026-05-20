@@ -4,6 +4,7 @@
 
 use std::any::{Any, type_name};
 use std::borrow::Borrow;
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -20,6 +21,10 @@ use servo_base::id::PipelineId;
 
 use crate::StreamId;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
+
+std::thread_local! {
+    static ALREADY_REGISTERING: Cell<bool> = const { Cell::new(false) };
+}
 
 /// Error replies.
 ///
@@ -211,9 +216,33 @@ impl ActorRegistry {
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
-    pub(crate) fn register<T: Actor>(&self, actor: T) {
-        let mut guard = self.actors.0.borrow_mut();
-        guard.insert(RegisteredActor(Arc::new(actor)));
+    pub(crate) fn register<T: Actor>(&self, actor: T) -> Arc<T> {
+        #[cfg(debug_assertions)]
+        let _guard = {
+            struct RegisterGuard;
+            impl Drop for RegisterGuard {
+                fn drop(&mut self) {
+                    ALREADY_REGISTERING.with(|in_reg| in_reg.set(false));
+                }
+            }
+            ALREADY_REGISTERING.with(|already| {
+                assert!(
+                    !already.replace(true),
+                    "ActorRegistry::register() called reentrantly on the same thread"
+                );
+            });
+            RegisterGuard
+        };
+
+        let actor = Arc::new(actor);
+        self.actors
+            .0
+            .borrow_mut()
+            .insert(RegisteredActor(actor.clone()));
+
+        #[cfg(debug_assertions)]
+        ALREADY_REGISTERING.with(|already| already.set(false));
+        actor
     }
 
     /// Find an actor by registered name
