@@ -133,15 +133,14 @@ macro_rules! make_form_action_getter(
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let doc = $crate::dom::node::NodeTraits::owner_document(self);
-            let attr = element.get_attribute(&html5ever::local_name!($htmlname));
-            let value = attr.as_ref().map(|attr| attr.value());
+            let value = element.get_attribute_string_value(&html5ever::local_name!($htmlname));
             let value = match value {
-                Some(ref value) if !value.is_empty() => &***value,
+                Some(value) if !value.is_empty() => value,
                 _ => return doc.url().into_string().into(),
             };
-            match doc.encoding_parse_a_url(value) {
+            match doc.encoding_parse_a_url(&value) {
                 Ok(parsed) => parsed.into_string().into(),
-                Err(_) => value.to_owned().into(),
+                Err(_) => value.into(),
             }
         }
     );
@@ -176,11 +175,10 @@ macro_rules! make_enumerated_getter(
         fn $attr(&self) -> DOMString {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 
-            let attr_or_none = self.upcast::<Element>()
-                .get_attribute(&html5ever::local_name!($htmlname));
-            match attr_or_none  {
+            let value_or_none = self.upcast::<Element>()
+                .get_attribute_string_value(&html5ever::local_name!($htmlname));
+            match value_or_none  {
                 // Step 1. If the attribute is not specified:
                 None => {
                     // Step 1.1. If the attribute has a missing value default state defined, then return that
@@ -188,10 +186,11 @@ macro_rules! make_enumerated_getter(
                     // Step 1.2 Otherwise, return no state.
                     return DOMString::from($missing);
                 },
-                Some(attr) => {
+                Some(value) => {
                     // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
                     // defined for the attribute, then return the state represented by that keyword.
-                    let value: DOMString = attr.Value().to_ascii_lowercase().into();
+                    let value = value.to_ascii_lowercase();
+                    let value: DOMString = value.into();
                     $(
                         if value.str() == $choices {
                             return value;
@@ -452,8 +451,8 @@ macro_rules! make_dimension_uint_getter(
             use $crate::dom::values::UNSIGNED_LONG_MAX;
             let element = self.upcast::<Element>();
             element
-                .get_attribute(&html5ever::local_name!($htmlname))
-                .map_or($default, |attribute| parse_unsigned_integer(attribute.value().chars())
+                .get_attribute_string_value(&html5ever::local_name!($htmlname))
+                .map_or($default, |value| parse_unsigned_integer(value.chars())
                     .map_or($default, |value| {
                         if value > UNSIGNED_LONG_MAX {
                             $default

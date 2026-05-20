@@ -123,9 +123,8 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
         let url = element
-            .get_attribute(&local_name!("src"))
-            .and_then(|src| {
-                let url = src.value();
+            .get_attribute_string_value(&local_name!("src"))
+            .and_then(|url| {
                 if url.is_empty() {
                     None
                 } else {

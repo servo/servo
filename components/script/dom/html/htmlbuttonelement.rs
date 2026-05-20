@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
@@ -288,8 +287,8 @@ impl HTMLButtonElement {
     fn command_for_element(&self) -> Option<DomRoot<Element>> {
         let command_for_value = self
             .upcast::<Element>()
-            .get_attribute(&local_name!("commandfor"))?
-            .Value();
+            .get_attribute_string_value(&local_name!("commandfor"))?
+            .into();
 
         let root_node = self
             .upcast::<Node>()
@@ -353,8 +352,8 @@ impl HTMLButtonElement {
         // The element's optional value is the value of the element's value attribute,
         // if there is one; otherwise null.
         self.upcast::<Element>()
-            .get_attribute(&local_name!("value"))
-            .map(|attribute| attribute.Value())
+            .get_attribute_string_value(&local_name!("value"))
+            .map(|value| value.into())
     }
 }
 
