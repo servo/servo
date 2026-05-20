@@ -435,6 +435,7 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
+    #[expect(dead_code)]
     fn label(&self) -> Option<&str> {
         self.accesskit_node.label()
     }
@@ -447,6 +448,7 @@ impl AccessibilityNode {
         self.updated = true;
     }
 
+    #[expect(dead_code)]
     fn html_tag(&self) -> Option<&str> {
         self.accesskit_node.html_tag()
     }
