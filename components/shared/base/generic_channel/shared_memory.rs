@@ -78,6 +78,24 @@ impl GenericSharedMemory {
             GenericSharedMemoryVariant::InProcess(arc) => arc,
         }
     }
+
+    pub fn from_bytes_with_mutator(bytes: &[u8], mutator: impl FnOnce(&mut [u8])) -> Self {
+        let mut shared_memory = Self::from_bytes(bytes);
+        match &mut shared_memory.0 {
+            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
+                #[expect(unsafe_code)]
+                unsafe {
+                    mutator(ipc_shared_memory.deref_mut())
+                }
+            },
+            GenericSharedMemoryVariant::InProcess(arc) => mutator(
+                Arc::get_mut(arc)
+                    .expect("Arc just created from bytes")
+                    .as_mut_slice(),
+            ),
+        }
+        shared_memory
+    }
 }
 
 impl fmt::Debug for GenericSharedMemory {
