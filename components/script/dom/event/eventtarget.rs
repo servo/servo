@@ -72,7 +72,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{enter_realm, enter_auto_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>

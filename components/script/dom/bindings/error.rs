@@ -352,11 +352,7 @@ pub(crate) fn report_pending_exception(cx: &mut CurrentRealm) {
     if let Some(error_info) =
         error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))
     {
-        GlobalScope::from_current_realm(cx).report_an_error(
-            cx,
-            error_info,
-            value.handle(),
-        );
+        GlobalScope::from_current_realm(cx).report_an_error(cx, error_info, value.handle());
     }
 }
 
