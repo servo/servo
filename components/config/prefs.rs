@@ -199,6 +199,8 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
+    /// <https://w3c.github.io/touch-events/#conditionally-exposing-legacy-touch-event-apis>
+    pub dom_touch_events_legacy_apis_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#transient-activation-duration>
     pub dom_transient_activation_duration_ms: i64,
     /// Enable WebGL2 APIs.
@@ -411,6 +413,7 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
+            dom_touch_events_legacy_apis_enabled: false,
             dom_transient_activation_duration_ms: 5000,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
@@ -543,6 +546,9 @@ impl Default for Preferences {
             preferences.network_http_no_proxy = no_proxy
         }
 
+        // Following Firefox, we are enabling the touch events legacy APIs whenever we are dealing with mobile devices.
+        preferences.dom_touch_events_legacy_apis_enabled = UserAgentPlatform::default().is_mobile();
+
         preferences
     }
 }
@@ -571,6 +577,10 @@ impl UserAgentPlatform {
 }
 
 impl UserAgentPlatform {
+    pub fn is_mobile(&self) -> bool {
+        matches!(self, Self::Android | Self::OpenHarmony)
+    }
+
     /// Convert this [`UserAgentPlatform`] into its corresponding `String` value, ie the
     /// default user-agent to use for this platform.
     pub fn to_user_agent_string(&self) -> String {
