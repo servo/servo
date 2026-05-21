@@ -112,7 +112,8 @@ impl FrameActor {
         source_name: String,
         frame_result: FrameInfo,
     ) -> String {
-        let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None);
+        // TODO: Get the real frame object from the debugger.
+        let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None, None);
 
         let name = registry.new_name::<Self>();
         let actor = Self {

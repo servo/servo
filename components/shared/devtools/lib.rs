@@ -186,6 +186,7 @@ pub enum DebuggerValue {
     ObjectValue {
         uuid: String,
         class: String,
+        own_property_length: Option<u32>,
         preview: Option<ObjectPreview>,
     },
 }

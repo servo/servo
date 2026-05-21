@@ -696,6 +696,7 @@ fn parse_debugger_value(
             ObjectValue {
                 uuid: uuid::Uuid::new_v4().to_string(),
                 class,
+                own_property_length: value.ownPropertyLength,
                 preview: preview.map(parse_object_preview),
             }
         },
