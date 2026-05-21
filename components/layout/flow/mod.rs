@@ -1025,7 +1025,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
     allows_caching = allows_caching && positioning_context_length == positioning_context.len();
 
     if !allows_caching {
-        base.clear_fragments_and_fragment_cache();
+        base.clear_fragments_and_dirty_fragment_cache();
     } else {
         base.cache_same_formatting_context_block_layout(
             containing_block,

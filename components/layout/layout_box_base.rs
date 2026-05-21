@@ -45,7 +45,17 @@ pub(crate) struct LayoutBoxBase {
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
-    pub cached_layout_result: AtomicRefCell<Option<LayoutResultAndInputs>>,
+
+    /// The cached layout results for this [`LayoutBoxBase`]. These are either cached
+    /// independent formatting context results or a cached block layout for use within
+    /// a block flow.
+    cached_layout_result: AtomicRefCell<Option<LayoutResultAndInputs>>,
+
+    /// Whether or not the cached layout result for this [`LayoutBoxBase`] is dirty.
+    /// This flag is used to preserve the cache when it can be used to do a faster
+    /// layout, but cannot be reused directly.
+    cached_layout_result_dirty: AtomicBool,
+
     pub fragments: AtomicRefCell<Vec<Fragment>>,
     pub parent_box: Option<WeakLayoutBox>,
     only_descendants_changed: AtomicBool,
@@ -62,6 +72,7 @@ impl LayoutBoxBase {
             cached_inline_content_size: AtomicRefCell::default(),
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
             cached_layout_result: AtomicRefCell::default(),
+            cached_layout_result_dirty: AtomicBool::default(),
             fragments: AtomicRefCell::default(),
             parent_box: None,
             only_descendants_changed: AtomicBool::default(),
@@ -119,9 +130,12 @@ impl LayoutBoxBase {
         self.fragments.borrow_mut().clear();
     }
 
-    pub(crate) fn clear_fragments_and_fragment_cache(&self) {
+    /// Clear all resulting fragments and dirty and fragment caches. Resulting fragments are
+    /// used for layout queries and fragment caches are used for incremental layout.
+    pub(crate) fn clear_fragments_and_dirty_fragment_cache(&self) {
         self.fragments.borrow_mut().clear();
-        *self.cached_layout_result.borrow_mut() = None;
+        self.cached_layout_result_dirty
+            .store(true, Ordering::Relaxed);
     }
 
     pub(crate) fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
@@ -155,7 +169,7 @@ impl LayoutBoxBase {
             });
         self.only_descendants_changed
             .store(only_descendants_changed, Ordering::Relaxed);
-        self.clear_fragments_and_fragment_cache();
+        self.clear_fragments_and_dirty_fragment_cache();
 
         if !element_damage.is_empty() ||
             damage_from_children.contains(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES)
@@ -186,6 +200,55 @@ impl LayoutBoxBase {
         damage_for_parent
     }
 
+    pub(crate) fn cached_independent_formatting_context_layout_if_applicable(
+        &self,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock<'_>,
+    ) -> Option<IndependentFormattingContextLayoutResult> {
+        if self.cached_layout_result_dirty.load(Ordering::Relaxed) {
+            return None;
+        }
+
+        let cache = self.cached_layout_result.borrow();
+        let Some(LayoutResultAndInputs::IndependentFormattingContext(cache)) = &*cache else {
+            return None;
+        };
+
+        let cache = &**cache;
+        if cache.containing_block_for_children_size.inline !=
+            containing_block_for_children.size.inline
+        {
+            return None;
+        }
+        if cache.containing_block_for_children_size.block !=
+            containing_block_for_children.size.block &&
+            cache.result.depends_on_block_constraints
+        {
+            return None;
+        }
+
+        positioning_context.append(cache.positioning_context.clone());
+        Some(cache.result.clone())
+    }
+
+    pub(crate) fn cache_independent_formatting_context_layout(
+        &self,
+        containing_block_for_children: &ContainingBlock<'_>,
+        child_positioning_context: &PositioningContext,
+        result: &IndependentFormattingContextLayoutResult,
+    ) {
+        self.cached_layout_result_dirty
+            .store(false, Ordering::Relaxed);
+        *self.cached_layout_result.borrow_mut() =
+            Some(LayoutResultAndInputs::IndependentFormattingContext(
+                Box::new(IndependentFormattingContextLayoutResultAndInputs {
+                    result: result.clone(),
+                    positioning_context: child_positioning_context.clone(),
+                    containing_block_for_children_size: containing_block_for_children.size.clone(),
+                }),
+            ));
+    }
+
     pub(crate) fn cached_same_formatting_context_block_if_applicable(
         &self,
         containing_block: &ContainingBlock,
@@ -193,6 +256,10 @@ impl LayoutBoxBase {
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
     ) -> Option<Arc<BoxFragment>> {
+        if self.cached_layout_result_dirty.load(Ordering::Relaxed) {
+            return None;
+        }
+
         let mut cached_layout_result = self.cached_layout_result.borrow_mut();
         let Some(LayoutResultAndInputs::SameFormattingContextBlock(result)) =
             &mut *cached_layout_result
@@ -241,6 +308,8 @@ impl LayoutBoxBase {
             }
         }
 
+        self.cached_layout_result_dirty
+            .store(false, Ordering::Relaxed);
         *self.cached_layout_result.borrow_mut() =
             Some(LayoutResultAndInputs::SameFormattingContextBlock(Box::new(
                 SameFormattingContextBlockLayoutResultAndInputs {
