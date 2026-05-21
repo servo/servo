@@ -42,6 +42,7 @@ pub struct AccessibilityTree {
     nodes: FxHashMap<NodeId, ArcRefCell<AccessibilityNode>>,
     opaque_node_to_id: FxHashMap<OpaqueNode, NodeId>,
     tree_id: accesskit::TreeId,
+    root_node_id: Option<accesskit::NodeId>,
     epoch: Epoch,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<NodeId, TreeChange>,
@@ -89,6 +90,7 @@ impl AccessibilityTree {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
+            root_node_id: None,
             epoch,
             tree_changes: FxHashMap::default(),
             debug: opts::get().debug.clone(),
@@ -103,6 +105,7 @@ impl AccessibilityTree {
     ) -> Option<accesskit::TreeUpdate> {
         let root_node = self.get_or_create_node(root_dom_node);
         let root_node_id = root_node.borrow().id;
+        self.root_node_id = Some(root_node_id);
 
         let mut tree_update =
             AccessibilityUpdate::new(accesskit::Tree::new(root_node_id), self.tree_id);
@@ -119,11 +122,11 @@ impl AccessibilityTree {
             .debug
             .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
         {
-            self.print(root_node_id);
+            self.print();
         }
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
-            self.assert_integrity(root_node_id);
+            self.assert_integrity();
         }
 
         Some(tree_update.finalize())
@@ -237,7 +240,11 @@ impl AccessibilityTree {
     /// Assert that the tree is a tree without any dangling references or orphaned nodes.
     ///
     /// For accessibility tests only, because it’s expensive.
-    fn assert_integrity(&self, root_node_id: NodeId) {
+    fn assert_integrity(&self) {
+        let Some(root_node_id) = self.root_node_id else {
+            return;
+        };
+
         assert!(pref!(expensive_accessibility_test_assertions_enabled));
         // Traverse the tree from the given root.
         let mut node_ids = vec![root_node_id];
@@ -258,7 +265,11 @@ impl AccessibilityTree {
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
     }
 
-    fn print(&self, root_node_id: accesskit::NodeId) {
+    fn print(&self) {
+        let Some(root_node_id) = self.root_node_id else {
+            return;
+        };
+
         let mut print_tree = PrintTree::new("Accessibility Tree".to_string());
         let node = self.assert_node_for_id(root_node_id);
         node.borrow().print(self, &mut print_tree);
