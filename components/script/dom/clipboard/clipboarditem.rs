@@ -45,7 +45,6 @@ struct RepresentationDataPromiseFulfillmentHandler {
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// Substeps of 8.1.2.1 If representationDataPromise was fulfilled with value v, then:
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         // 1. If v is a DOMString, then follow the below steps:
         if v.get().is_string() {
             // 1.1 Let dataAsBytes be the result of UTF-8 encoding v.
@@ -53,7 +52,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
                 cx.into(),
                 v,
                 StringificationBehavior::Default,
-                can_gc,
+                CanGc::from_cx(cx),
             ) {
                 Ok(ConversionResult::Success(s)) => s.as_bytes().to_owned(),
                 _ => return,
@@ -61,20 +60,20 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
 
             // 1.2 Let blobData be a Blob created using dataAsBytes with its type set to mimeType, serialized.
             let blob_data = Blob::new(
+                cx,
                 &self.promise.global(),
                 BlobImpl::new_from_bytes(data_as_bytes, self.type_.clone()),
-                can_gc,
             );
 
             // 1.3 Resolve p with blobData.
-            self.promise.resolve_native(&blob_data, can_gc);
+            self.promise.resolve_native(&blob_data, CanGc::from_cx(cx));
         }
         // 2. If v is a Blob, then follow the below steps:
-        else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), can_gc)
+        else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), CanGc::from_cx(cx))
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve(cx.into(), v, can_gc);
+            self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
         }
     }
 }

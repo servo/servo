@@ -215,9 +215,9 @@ impl RTCDataChannel {
                 match_domstring_ascii!(binary_type,
                     "blob" => {
                         let blob = Blob::new(
+                            cx,
                             &global,
                             BlobImpl::new_from_bytes(data, "".to_owned()),
-                            CanGc::from_cx(cx),
                         );
                         blob.safe_to_jsval(cx, message.handle_mut());
                     },
@@ -234,8 +234,9 @@ impl RTCDataChannel {
                             )
                         };
                         (*array_buffer).safe_to_jsval(cx, message.handle_mut());
-                },
-            _ => unreachable!(),)
+                    },
+                    _ => unreachable!(),
+                )
             },
         }
 

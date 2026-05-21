@@ -14,9 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_proto, reflect_dom_object_with_proto_and_cx,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
@@ -45,31 +43,19 @@ pub(crate) struct Blob {
 }
 
 impl Blob {
-    pub(crate) fn new(global: &GlobalScope, blob_impl: BlobImpl, can_gc: CanGc) -> DomRoot<Blob> {
-        Self::new_with_proto(global, None, blob_impl, can_gc)
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        blob_impl: BlobImpl,
+    ) -> DomRoot<Blob> {
+        Self::new_with_proto(cx, global, None, blob_impl)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
-        can_gc: CanGc,
-    ) -> DomRoot<Blob> {
-        let dom_blob = reflect_dom_object_with_proto(
-            Box::new(Blob::new_inherited(&blob_impl)),
-            global,
-            proto,
-            can_gc,
-        );
-        global.track_blob(&dom_blob, blob_impl);
-        dom_blob
-    }
-
-    fn new_with_proto_and_cx(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        blob_impl: BlobImpl,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Blob> {
         let dom_blob = reflect_dom_object_with_proto_and_cx(
             Box::new(Blob::new_inherited(&blob_impl)),
@@ -105,10 +91,7 @@ impl Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub(crate) fn get_stream(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<DomRoot<ReadableStream>> {
+    pub(crate) fn get_stream(&self, cx: &mut JSContext) -> Fallible<DomRoot<ReadableStream>> {
         self.global().get_blob_stream(cx, &self.blob_id)
     }
 }
@@ -136,8 +119,7 @@ impl Serializable for Blob {
         owner: &GlobalScope,
         serialized: BlobImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let deserialized_blob = Blob::new(owner, serialized, CanGc::from_cx(cx));
-        Ok(deserialized_blob)
+        Ok(Blob::new(cx, owner, serialized))
     }
 
     fn serialized_storage<'a>(
@@ -267,7 +249,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#constructorBlob
     #[expect(non_snake_case)]
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
@@ -284,7 +266,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let type_string = normalize_type_string(&blobPropertyBag.type_.str());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
-        Ok(Blob::new_with_proto_and_cx(global, proto, blob_impl, cx))
+        Ok(Blob::new_with_proto(cx, global, proto, blob_impl))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-size>
@@ -298,14 +280,14 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
-    fn Stream(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<ReadableStream>> {
+    fn Stream(&self, cx: &mut JSContext) -> Fallible<DomRoot<ReadableStream>> {
         self.get_stream(cx)
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>
     fn Slice(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         start: Option<i64>,
         end: Option<i64>,
         content_type: Option<DOMString>,
@@ -327,7 +309,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         };
 
         let blob_impl = BlobImpl::new_sliced(range, parent, type_string);
-        Blob::new(&global, blob_impl, CanGc::from_cx(cx))
+        Blob::new(cx, &global, blob_impl)
     }
 
     /// <https://w3c.github.io/FileAPI/#text-method-algo>
