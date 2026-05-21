@@ -1,6 +1,6 @@
 # The Servo Parallel Browser Engine Project
 
-# Below is a preview of the servo application interface.
+ Below is a preview of the servo application interface.
 
 ![servo Screenshot](images/servo.png)
 
