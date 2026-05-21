@@ -13,6 +13,7 @@ use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use net_traits::CustomResponseMediator;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
@@ -457,8 +458,7 @@ impl ServiceWorkerGlobalScope {
                         true,
                     );
                     _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
-                    let in_realm_proof = (&mut realm).into();
-                    global.dispatch_activate(&mut realm, InRealm::Already(&in_realm_proof));
+                    global.dispatch_activate(&mut realm);
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -549,10 +549,10 @@ impl ServiceWorkerGlobalScope {
         ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
-    fn dispatch_activate(&self, cx: &mut js::context::JSContext, _realm: InRealm) {
+    fn dispatch_activate(&self, cx: &mut CurrentRealm) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false, CanGc::from_cx(cx));
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(cx, event);
+        event.dispatch(cx, self.upcast(), false);
     }
 }
 

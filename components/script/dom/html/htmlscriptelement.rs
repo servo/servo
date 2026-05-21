@@ -50,7 +50,7 @@ use crate::dom::element::{
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -66,7 +66,7 @@ use crate::script_module::{
     ImportMap, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
@@ -1056,7 +1056,7 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_event(cx, atom!("error"));
+                self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 return;
             },
 
@@ -1120,7 +1120,7 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_event(cx, atom!("load"));
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
         }
     }
 
@@ -1197,18 +1197,6 @@ impl HTMLScriptElement {
 
     pub(crate) fn get_non_blocking(&self) -> bool {
         self.non_blocking.get()
-    }
-
-    fn dispatch_event(&self, cx: &mut JSContext, type_: Atom) -> bool {
-        let window = self.owner_window();
-        let event = Event::new(
-            window.upcast(),
-            type_,
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
-        );
-        event.fire_with_cx(cx, self.upcast())
     }
 
     fn text(&self) -> DOMString {
