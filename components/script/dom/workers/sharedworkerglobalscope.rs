@@ -566,7 +566,7 @@ impl SharedWorkerGlobalScope {
 
                 event
                     .upcast::<Event>()
-                    .fire(worker_global.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                    .fire(cx, worker_global.upcast::<EventTarget>());
             }));
     }
 

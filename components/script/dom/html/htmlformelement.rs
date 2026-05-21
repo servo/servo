@@ -798,7 +798,7 @@ impl HTMLFormElement {
                 CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
+            event.fire(cx, self.upcast::<EventTarget>());
 
             // Step 6.6
             self.firing_submission_events.set(false);
@@ -816,11 +816,10 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 8
-        let mut form_data =
-            match self.get_form_dataset(Some(submitter), Some(encoding), CanGc::from_cx(cx)) {
-                Some(form_data) => form_data,
-                None => return,
-            };
+        let mut form_data = match self.get_form_dataset(cx, Some(submitter), Some(encoding)) {
+            Some(form_data) => form_data,
+            None => return,
+        };
 
         // Step 9. If form cannot navigate, then return.
         if self.upcast::<Element>().cannot_navigate() {
@@ -1324,9 +1323,9 @@ impl HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub(crate) fn get_form_dataset(
         &self,
+        cx: &mut JSContext,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> Option<Vec<FormDatum>> {
         // Step 1
         if self.constructing_entry_list.get() {
@@ -1337,12 +1336,12 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding, can_gc);
+        let ret = self.get_unclean_dataset(submitter, encoding, CanGc::from_cx(cx));
 
         let window = self.owner_window();
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window.global(), can_gc);
+        let form_data = FormData::new(Some(ret), &window.global(), CanGc::from_cx(cx));
 
         // Step 7
         let event = FormDataEvent::new(
@@ -1351,12 +1350,12 @@ impl HTMLFormElement {
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         event
             .upcast::<Event>()
-            .fire(self.upcast::<EventTarget>(), can_gc);
+            .fire(cx, self.upcast::<EventTarget>());
 
         // Step 8
         self.constructing_entry_list.set(false);

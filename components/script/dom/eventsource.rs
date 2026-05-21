@@ -304,7 +304,7 @@ impl EventSourceContext {
             task!(dispatch_the_event_source_event: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::from_cx(cx));
+                    event.root().upcast::<Event>().fire(cx, event_source.upcast());
                 }
             }),
         );

@@ -149,10 +149,10 @@ impl History {
         // Step 16.1
         if state_changed {
             PopStateEvent::dispatch_jsval(
+                cx,
                 self.window.upcast::<EventTarget>(),
                 &self.window,
                 self.state.as_handle_value(),
-                CanGc::from_cx(cx),
             );
         }
 
@@ -169,7 +169,7 @@ impl History {
             );
             event
                 .upcast::<Event>()
-                .fire(self.window.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                .fire(cx, self.window.upcast::<EventTarget>());
         }
     }
 

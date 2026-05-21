@@ -265,7 +265,7 @@ impl DocumentExecCommandSupport for Document {
             );
             let event = event.upcast::<Event>();
             // Step 4.3. If the value returned by the previous step is false, return false.
-            if !event.fire(affected_editing_host.upcast(), CanGc::from_cx(cx)) {
+            if !event.fire(cx, affected_editing_host.upcast()) {
                 return false;
             }
 
@@ -312,7 +312,7 @@ impl DocumentExecCommandSupport for Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            event.fire(affected_editing_host.upcast(), CanGc::from_cx(cx));
+            event.fire(cx, affected_editing_host.upcast());
         }
 
         // Step 8. Return true.

@@ -239,7 +239,7 @@ impl Gamepad {
         ]
     }
 
-    pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
+    pub(crate) fn update_connected(&self, cx: &mut JSContext, connected: bool, has_gesture: bool) {
         if self.connected.get() == connected {
             return;
         }
@@ -252,7 +252,7 @@ impl Gamepad {
         };
 
         if has_gesture {
-            self.notify_event(event_type, can_gc);
+            self.notify_event(cx, event_type);
         }
     }
 
@@ -268,12 +268,20 @@ impl Gamepad {
         self.timestamp.set(timestamp);
     }
 
-    pub(crate) fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
-        let event =
-            GamepadEvent::new_with_type(self.global().as_window(), event_type, self, can_gc);
+    pub(crate) fn notify_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        event_type: GamepadEventType,
+    ) {
+        let event = GamepadEvent::new_with_type(
+            self.global().as_window(),
+            event_type,
+            self,
+            CanGc::from_cx(cx),
+        );
         event
             .upcast::<Event>()
-            .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);
+            .fire(cx, self.global().as_window().upcast::<EventTarget>());
     }
 
     /// Initialize the number of axes in the "standard" gamepad mapping.

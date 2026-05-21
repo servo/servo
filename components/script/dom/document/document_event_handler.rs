@@ -453,11 +453,11 @@ impl DocumentEventHandler {
                 mouse_out_event
                     .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(current_hover_target.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, current_hover_target.upcast());
 
                 mouse_out_event
                     .upcast::<Event>()
-                    .fire(current_hover_target.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, current_hover_target.upcast());
 
                 self.handle_mouse_enter_leave_event(
                     cx,
@@ -550,12 +550,10 @@ impl DocumentEventHandler {
             mouse_event
                 .to_pointer_hover_event(pointer_event_name, CanGc::from_cx(cx))
                 .upcast::<Event>()
-                .fire(target.upcast(), CanGc::from_cx(cx));
+                .fire(cx, target.upcast());
 
             // Fire mouse event
-            mouse_event
-                .upcast::<Event>()
-                .fire(target.upcast(), CanGc::from_cx(cx));
+            mouse_event.upcast::<Event>().fire(cx, target.upcast());
         }
     }
 
@@ -629,11 +627,11 @@ impl DocumentEventHandler {
                 mouse_out_event
                     .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(old_target.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, old_target.upcast());
 
                 mouse_out_event
                     .upcast::<Event>()
-                    .fire(old_target.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, old_target.upcast());
 
                 if !old_target_is_ancestor_of_new_target {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
@@ -708,13 +706,11 @@ impl DocumentEventHandler {
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event
             .upcast::<Event>()
-            .fire(new_target.upcast(), CanGc::from_cx(cx));
+            .fire(cx, new_target.upcast());
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
         // `Paint` should have also sent an event to the inner document.
-        mouse_event
-            .upcast::<Event>()
-            .fire(new_target.upcast(), CanGc::from_cx(cx));
+        mouse_event.upcast::<Event>().fire(cx, new_target.upcast());
 
         self.update_current_hover_target_and_status(Some(new_target));
     }
@@ -929,7 +925,7 @@ impl DocumentEventHandler {
                 mouse_event
                     .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, node.upcast());
 
                 self.mouse_buttons_down.set(mouse_buttons_down + 1);
 
@@ -976,7 +972,7 @@ impl DocumentEventHandler {
                 mouse_event
                     .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), CanGc::from_cx(cx));
+                    .fire(cx, node.upcast());
                 self.mouse_buttons_down
                     .set(mouse_buttons_down.saturating_sub(1));
 
@@ -1125,9 +1121,7 @@ impl DocumentEventHandler {
         menu_event.upcast::<Event>().set_composed(true);
 
         // Step 3. Let result = dispatch menuevent at target.
-        let result = menu_event
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        let result = menu_event.upcast::<Event>().fire(cx, target);
 
         // Step 4. If result is true, then show the UA context menu
         if result {
@@ -1211,9 +1205,7 @@ impl DocumentEventHandler {
                 Some(hit_test_result.point_in_node),
                 CanGc::from_cx(cx),
             );
-            pointer_over
-                .upcast::<Event>()
-                .fire(&current_target, CanGc::from_cx(cx));
+            pointer_over.upcast::<Event>().fire(cx, &current_target);
 
             // Fire pointerenter hierarchically (from topmost ancestor to target)
             self.fire_pointer_event_for_touch(
@@ -1238,9 +1230,7 @@ impl DocumentEventHandler {
             Some(hit_test_result.point_in_node),
             CanGc::from_cx(cx),
         );
-        pointer_event
-            .upcast::<Event>()
-            .fire(&current_target, CanGc::from_cx(cx));
+        pointer_event.upcast::<Event>().fire(cx, &current_target);
 
         // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
         // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
@@ -1259,9 +1249,7 @@ impl DocumentEventHandler {
                 Some(hit_test_result.point_in_node),
                 CanGc::from_cx(cx),
             );
-            pointer_out
-                .upcast::<Event>()
-                .fire(&current_target, CanGc::from_cx(cx));
+            pointer_out.upcast::<Event>().fire(cx, &current_target);
 
             // Fire pointerleave hierarchically (from target to topmost ancestor)
             self.fire_pointer_event_for_touch(
@@ -1370,7 +1358,7 @@ impl DocumentEventHandler {
             CanGc::from_cx(cx),
         );
         let event = touch_event.upcast::<Event>();
-        event.fire(&touch_dispatch_target, CanGc::from_cx(cx));
+        event.fire(cx, &touch_dispatch_target);
         event.flags().into()
     }
 
@@ -1421,7 +1409,7 @@ impl DocumentEventHandler {
 
         event.set_composed(true);
 
-        event.fire(target, CanGc::from_cx(cx));
+        event.fire(cx, target);
 
         let mut flags = event.flags();
         if flags.contains(EventFlags::Canceled) {
@@ -1450,7 +1438,7 @@ impl DocumentEventHandler {
             );
             keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
-            event.fire(target, CanGc::from_cx(cx));
+            event.fire(cx, target);
             flags = event.flags();
         }
 
@@ -1490,7 +1478,7 @@ impl DocumentEventHandler {
         );
 
         let event = event.upcast::<Event>();
-        event.fire(focused_element.upcast(), CanGc::from_cx(cx));
+        event.fire(cx, focused_element.upcast());
         event.flags().into()
     }
 
@@ -1552,7 +1540,7 @@ impl DocumentEventHandler {
         let dom_event = dom_event.upcast::<Event>();
         dom_event.set_trusted(true);
         dom_event.set_composed(true);
-        dom_event.fire(node.upcast(), CanGc::from_cx(cx));
+        dom_event.fire(cx, node.upcast());
 
         dom_event.flags().into()
     }
@@ -1614,7 +1602,7 @@ impl DocumentEventHandler {
                     false,
                     CanGc::from_cx(cx),
                 );
-                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::from_cx(cx));
+                navigator.set_gamepad(cx, selected_index as usize, &gamepad);
             }));
     }
 
@@ -1631,7 +1619,7 @@ impl DocumentEventHandler {
                 let navigator = window.Navigator();
                 if let Some(gamepad) = navigator.get_gamepad(index)
                     && window.Document().is_fully_active() {
-                        gamepad.update_connected(false, gamepad.exposed(), CanGc::from_cx(cx));
+                        gamepad.update_connected(cx, false, gamepad.exposed());
                         navigator.remove_gamepad(index);
                     }
             }));
@@ -1674,7 +1662,7 @@ impl DocumentEventHandler {
                                         window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
                                             task!(update_gamepad_connect: move |cx| {
                                                 let gamepad = new_gamepad.root();
-                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::from_cx(cx));
+                                                gamepad.notify_event(cx, GamepadEventType::Connected);
                                             })
                                         );
                                     }
@@ -2177,9 +2165,7 @@ impl DocumentEventHandler {
                 Some(hit_test_result.point_in_node),
                 CanGc::from_cx(cx),
             );
-            pointer_event
-                .upcast::<Event>()
-                .fire(target.upcast(), CanGc::from_cx(cx));
+            pointer_event.upcast::<Event>().fire(cx, target.upcast());
         }
     }
 

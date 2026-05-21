@@ -2386,8 +2386,8 @@ impl HTMLMediaElement {
 
     fn playback_metadata_updated(
         &self,
+        cx: &mut JSContext,
         metadata: &servo_media::player::metadata::Metadata,
-        can_gc: CanGc,
     ) {
         // The following steps should be run once on the initial `metadata` signal from the media
         // engine.
@@ -2398,7 +2398,7 @@ impl HTMLMediaElement {
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "If the media resource is found to have an audio track"
         for (i, _track) in metadata.audio_tracks.iter().enumerate() {
-            let audio_track_list = self.AudioTracks(can_gc);
+            let audio_track_list = self.AudioTracks(CanGc::from_cx(cx));
 
             // Step 1. Create an AudioTrack object to represent the audio track.
             let kind = match i {
@@ -2413,7 +2413,7 @@ impl HTMLMediaElement {
                 DOMString::new(),
                 DOMString::new(),
                 Some(&*audio_track_list),
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             // Steps 2. Update the media element's audioTracks attribute's AudioTrackList object
@@ -2455,17 +2455,17 @@ impl HTMLMediaElement {
                 false,
                 false,
                 &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(audio_track)),
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             event
                 .upcast::<Event>()
-                .fire(audio_track_list.upcast::<EventTarget>(), can_gc);
+                .fire(cx, audio_track_list.upcast::<EventTarget>());
         }
 
         // => "If the media resource is found to have a video track"
         for (i, _track) in metadata.video_tracks.iter().enumerate() {
-            let video_track_list = self.VideoTracks(can_gc);
+            let video_track_list = self.VideoTracks(CanGc::from_cx(cx));
 
             // Step 1. Create a VideoTrack object to represent the video track.
             let kind = match i {
@@ -2480,7 +2480,7 @@ impl HTMLMediaElement {
                 DOMString::new(),
                 DOMString::new(),
                 Some(&*video_track_list),
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             // Steps 2. Update the media element's videoTracks attribute's VideoTrackList object
@@ -2523,12 +2523,12 @@ impl HTMLMediaElement {
                 false,
                 false,
                 &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(video_track)),
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             event
                 .upcast::<Event>()
-                .fire(video_track_list.upcast::<EventTarget>(), can_gc);
+                .fire(cx, video_track_list.upcast::<EventTarget>());
         }
 
         // => "Once enough of the media data has been fetched to determine the duration..."
@@ -4039,7 +4039,7 @@ impl HTMLMediaElementEventHandler {
             PlayerEvent::EnoughData => element.playback_enough_data(),
             PlayerEvent::Error(ref error) => element.playback_error(error, cx),
             PlayerEvent::MetadataUpdated(ref metadata) => {
-                element.playback_metadata_updated(metadata, CanGc::from_cx(cx))
+                element.playback_metadata_updated(cx, metadata)
             },
             PlayerEvent::NeedData => element.playback_need_data(),
             PlayerEvent::PositionChanged(position) => element.playback_position_changed(position),

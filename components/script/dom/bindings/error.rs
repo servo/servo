@@ -347,14 +347,12 @@ impl ErrorInfo {
 }
 
 /// Report a pending exception, thereby clearing it.
-pub(crate) fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
-    rooted!(in(*cx) let mut value = UndefinedValue());
-    if let Some(error_info) = error_info_from_pending_exception(cx, value.handle_mut(), can_gc) {
-        GlobalScope::from_safe_context(cx, realm).report_an_error(
-            error_info,
-            value.handle(),
-            can_gc,
-        );
+pub(crate) fn report_pending_exception(cx: &mut CurrentRealm) {
+    rooted!(&in(cx) let mut value = UndefinedValue());
+    if let Some(error_info) =
+        error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))
+    {
+        GlobalScope::from_current_realm(cx).report_an_error(cx, error_info, value.handle());
     }
 }
 
@@ -429,9 +427,9 @@ pub(crate) fn take_and_report_pending_exception_for_api(
 
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
     GlobalScope::from_safe_context(cx.into(), in_realm).report_an_error(
+        cx,
         error_info,
         value.handle(),
-        CanGc::from_cx(cx),
     );
 
     Some(return_value)

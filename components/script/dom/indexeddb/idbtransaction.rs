@@ -529,7 +529,7 @@ impl IDBTransaction {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(send_abort_notification: move || {
+            .queue(task!(send_abort_notification: move |cx| {
                 let this = this.root();
                 this.active.set(false);
                 if this.mode == IDBTransactionMode::Versionchange {
@@ -548,9 +548,9 @@ impl IDBTransaction {
                     Atom::from("abort"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
-                event.fire(this.upcast(), CanGc::deprecated_note());
+                event.fire(cx, this.upcast());
                 if this.mode == IDBTransactionMode::Versionchange {
                     this.global()
                         .get_indexeddb()
@@ -590,7 +590,7 @@ impl IDBTransaction {
         let global = self.global();
         let this = Trusted::new(self);
         global.task_manager().database_access_task_source().queue(
-            task!(send_complete_notification: move || {
+            task!(send_complete_notification: move |cx| {
                 let this = this.root();
                 this.committing.set(false);
                 this.commit_started.set(false);
@@ -613,11 +613,11 @@ impl IDBTransaction {
                     Atom::from("complete"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::deprecated_note()
+                    CanGc::from_cx(cx)
                 );
                 // https://w3c.github.io/IndexedDB/#commit-transaction
                 // Step 5.3: Fire an event named complete at transaction.
-                event.fire(this.upcast(), CanGc::deprecated_note());
+                event.fire(cx, this.upcast());
                 if this.mode == IDBTransactionMode::Versionchange {
                     // https://w3c.github.io/IndexedDB/#commit-transaction
                     //  Step 5.1: If transaction is an upgrade transaction, then let request be the request

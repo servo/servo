@@ -18,6 +18,7 @@ use js::jsapi::{
     JS_ValueToFunction, PropertyDescriptor,
 };
 use js::jsval::{Int32Value, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById,
     JS_GetPropertyById, JS_IdToValue, JS_Stringify, JS_ValueToSource,
@@ -34,8 +35,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 /// The maximum object depth logged by console methods.
 const MAX_LOG_DEPTH: usize = 10;
@@ -82,19 +82,19 @@ impl Console {
         Self::send_to_devtools(global, console_message);
     }
 
+    #[expect(unsafe_code)]
     fn method(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         level: ConsoleLogLevel,
         messages: Vec<HandleValue>,
         include_stacktrace: IncludeStackTrace,
     ) {
-        let cx = GlobalScope::get_cx();
-
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
         let (arguments, embedder_msg) = if !messages.is_empty() && messages[0].is_string() {
-            let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
+            let (formatted, consumed) = apply_sprintf_substitutions(cx.into(), &messages);
             let remaining = &messages[consumed..];
 
             let mut arguments: Vec<DebuggerValue> =
@@ -123,7 +123,7 @@ impl Console {
         };
 
         let stacktrace = (include_stacktrace == IncludeStackTrace::Yes)
-            .then_some(get_js_stack(*GlobalScope::get_cx()));
+            .then_some(get_js_stack(unsafe { cx.raw_cx() }));
         let console_message = Self::build_message(level.clone(), arguments, stacktrace);
 
         Console::send_to_devtools(global, console_message);
@@ -172,19 +172,19 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
 }
 
 fn console_argument_from_handle_value(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
 ) -> DebuggerValue {
     #[expect(unsafe_code)]
     fn inner(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         handle_value: HandleValue,
         seen: &mut Vec<u64>,
     ) -> Result<DebuggerValue, ()> {
         if handle_value.is_string() {
             let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
-            let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
+            let dom_string = unsafe { jsstr_to_string(cx.raw_cx(), js_string) };
             return Ok(DebuggerValue::StringValue(dom_string));
         }
 
@@ -230,12 +230,7 @@ fn console_argument_from_handle_value(
     match inner(cx, handle_value, seen) {
         Ok(arg) => arg,
         Err(()) => {
-            let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-            report_pending_exception(
-                cx,
-                InRealm::Already(&in_realm_proof),
-                CanGc::deprecated_note(),
-            );
+            report_pending_exception(&mut CurrentRealm::assert(cx));
             DebuggerValue::StringValue("<error>".into())
         },
     }
@@ -243,13 +238,13 @@ fn console_argument_from_handle_value(
 
 #[expect(unsafe_code)]
 fn console_object_from_handle_value(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
 ) -> Option<(String, ObjectPreview)> {
-    rooted!(in(*cx) let object = handle_value.to_object());
+    rooted!(&in(cx) let object = handle_value.to_object());
     let mut object_class = ESClass::Other;
-    if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
+    if !unsafe { GetBuiltinClass(cx.raw_cx(), object.handle(), &mut object_class as *mut _) } {
         return None;
     }
     if object_class != ESClass::Object &&
@@ -261,10 +256,10 @@ fn console_object_from_handle_value(
 
     let mut own_properties = Vec::new();
     let mut items: Vec<(i32, DebuggerValue)> = Vec::new();
-    let mut ids = unsafe { IdVector::new(*cx) };
+    let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
     if !unsafe {
         GetPropertyKeys(
-            *cx,
+            cx.raw_cx(),
             object.handle(),
             jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
             ids.handle_mut(),
@@ -274,13 +269,13 @@ fn console_object_from_handle_value(
     }
 
     for id in ids.iter() {
-        rooted!(in(*cx) let id = *id);
-        rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+        rooted!(&in(cx) let id = *id);
+        rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
 
         let mut is_none = false;
         if !unsafe {
             JS_GetOwnPropertyDescriptorById(
-                *cx,
+                cx.raw_cx(),
                 object.handle(),
                 id.handle(),
                 descriptor.handle_mut(),
@@ -290,9 +285,15 @@ fn console_object_from_handle_value(
             return None;
         }
 
-        rooted!(in(*cx) let mut property = UndefinedValue());
-        if !unsafe { JS_GetPropertyById(*cx, object.handle(), id.handle(), property.handle_mut()) }
-        {
+        rooted!(&in(cx) let mut property = UndefinedValue());
+        if !unsafe {
+            JS_GetPropertyById(
+                cx.raw_cx(),
+                object.handle(),
+                id.handle(),
+                property.handle_mut(),
+            )
+        } {
             return None;
         }
 
@@ -304,16 +305,16 @@ fn console_object_from_handle_value(
         }
 
         let key = if id.is_string() {
-            rooted!(in(*cx) let mut key_value = UndefinedValue());
+            rooted!(&in(cx) let mut key_value = UndefinedValue());
             let raw_id: jsapi::HandleId = id.handle().into();
-            if !unsafe { JS_IdToValue(*cx, *raw_id.ptr, key_value.handle_mut()) } {
+            if !unsafe { JS_IdToValue(cx.raw_cx(), *raw_id.ptr, key_value.handle_mut()) } {
                 continue;
             }
-            rooted!(in(*cx) let js_string = key_value.to_string());
+            rooted!(&in(cx) let js_string = key_value.to_string());
             let Some(js_string) = NonNull::new(js_string.get()) else {
                 continue;
             };
-            unsafe { jsstr_to_string(*cx, js_string) }
+            unsafe { jsstr_to_string(cx.raw_cx(), js_string) }
         } else {
             continue;
         };
@@ -331,7 +332,7 @@ fn console_object_from_handle_value(
     let (class, kind, function, array_length, items) = match object_class {
         ESClass::Array => {
             let mut len = 0u32;
-            if !unsafe { GetArrayLength(*cx, object.handle(), &mut len) } {
+            if !unsafe { GetArrayLength(cx.raw_cx(), object.handle(), &mut len) } {
                 return None;
             }
             items.sort_by_key(|(index, _)| *index);
@@ -345,18 +346,23 @@ fn console_object_from_handle_value(
             )
         },
         ESClass::Function => {
-            rooted!(in(*cx) let fun = unsafe { JS_ValueToFunction(*cx, handle_value.into()) });
-            rooted!(in(*cx) let mut name = std::ptr::null_mut::<jsapi::JSString>());
-            rooted!(in(*cx) let mut display_name = std::ptr::null_mut::<jsapi::JSString>());
+            rooted!(&in(cx) let fun = unsafe { JS_ValueToFunction(cx.raw_cx(), handle_value.into()) });
+            rooted!(&in(cx) let mut name = std::ptr::null_mut::<jsapi::JSString>());
+            rooted!(&in(cx) let mut display_name = std::ptr::null_mut::<jsapi::JSString>());
             let arity;
             unsafe {
-                JS_GetFunctionId(*cx, fun.handle().into(), name.handle_mut().into());
-                JS_GetFunctionDisplayId(*cx, fun.handle().into(), display_name.handle_mut().into());
+                JS_GetFunctionId(cx.raw_cx(), fun.handle().into(), name.handle_mut().into());
+                JS_GetFunctionDisplayId(
+                    cx.raw_cx(),
+                    fun.handle().into(),
+                    display_name.handle_mut().into(),
+                );
                 arity = JS_GetFunctionArity(fun.get());
             }
-            let name = ptr::NonNull::new(*name).map(|name| unsafe { jsstr_to_string(*cx, name) });
+            let name =
+                ptr::NonNull::new(*name).map(|name| unsafe { jsstr_to_string(cx.raw_cx(), name) });
             let display_name = ptr::NonNull::new(*display_name)
-                .map(|display_name| unsafe { jsstr_to_string(*cx, display_name) });
+                .map(|display_name| unsafe { jsstr_to_string(cx.raw_cx(), display_name) });
 
             // TODO: We should get the actual argument names from the function
             // It's not trivial since we can't access the debugger API here
@@ -703,8 +709,9 @@ enum IncludeStackTrace {
 
 impl consoleMethods<crate::DomTypeHolder> for Console {
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/log>
-    fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Log(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Log,
             messages,
@@ -727,8 +734,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
-    fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Debug(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Debug,
             messages,
@@ -737,8 +745,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/info>
-    fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Info(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Info,
             messages,
@@ -747,8 +756,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/warn>
-    fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Warn(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Warn,
             messages,
@@ -757,8 +767,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/error>
-    fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Error(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Error,
             messages,
@@ -767,8 +778,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#trace>
-    fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Trace(cx: &mut js::context::JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(
+            cx,
             global,
             ConsoleLogLevel::Trace,
             messages,

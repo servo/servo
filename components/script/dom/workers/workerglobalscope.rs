@@ -842,9 +842,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: JSContext, error: HandleValue, can_gc: CanGc) {
-        self.upcast::<GlobalScope>()
-            .report_an_exception(cx, error, can_gc);
+    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+        self.upcast::<GlobalScope>().report_an_exception(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>

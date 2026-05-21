@@ -29,7 +29,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -196,7 +195,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
-        report_pending_exception(cx, realm, can_gc)
+    fn report_pending_exception(cx: &mut CurrentRealm) {
+        report_pending_exception(cx)
     }
 }

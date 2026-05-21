@@ -52,7 +52,7 @@ impl CSPViolationReportTask {
         }
     }
 
-    fn fire_violation_event(&self, can_gc: CanGc) {
+    fn fire_violation_event(&self, cx: &mut js::context::JSContext) {
         let event = SecurityPolicyViolationEvent::new(
             &self.global.root(),
             Atom::from("securitypolicyviolation"),
@@ -60,12 +60,10 @@ impl CSPViolationReportTask {
             EventCancelable::NotCancelable,
             EventComposed::Composed,
             &self.violation_report.clone().convert(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        event
-            .upcast::<Event>()
-            .fire(&self.event_target.root(), can_gc);
+        event.upcast::<Event>().fire(cx, &self.event_target.root());
     }
 
     /// <https://www.w3.org/TR/CSP/#deprecated-serialize-violation>
@@ -142,7 +140,7 @@ impl TaskOnce for CSPViolationReportTask {
         // > If target implements EventTarget, fire an event named securitypolicyviolation
         // > that uses the SecurityPolicyViolationEvent interface
         // > at target with its attributes initialized as follows:
-        self.fire_violation_event(CanGc::from_cx(cx));
+        self.fire_violation_event(cx);
         // Step 3.4. If violation’s policy’s directive set contains a directive named "report-uri" directive:
         if let Some(report_uri_directive) = self
             .violation_policy

@@ -72,7 +72,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
@@ -710,8 +710,8 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            let ar = enter_realm(self);
-            report_pending_exception(cx.into(), InRealm::Entered(&ar), CanGc::from_cx(cx));
+            let mut realm = enter_auto_realm(cx, self);
+            report_pending_exception(&mut realm.current_realm());
             return None;
         }
 
@@ -870,7 +870,7 @@ impl EventTarget {
             CanGc::from_cx(cx),
         );
         event.set_composed(composed.into());
-        event.fire(self, CanGc::from_cx(cx))
+        event.fire(cx, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>

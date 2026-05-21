@@ -1277,7 +1277,7 @@ impl ScriptThread {
             }
 
             if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(CanGc::from_cx(cx));
+                document.deliver_resize_loop_error_notification(cx);
                 // Ensure that another turn of the event loop occurs to process
                 // the skipped observations.
                 document.add_rendering_update_reason(

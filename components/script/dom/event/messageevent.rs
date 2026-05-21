@@ -194,13 +194,13 @@ impl MessageEvent {
     }
 
     pub(crate) fn dispatch_jsval(
+        cx: &mut js::context::JSContext,
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
         origin: Option<&str>,
         source: Option<&WindowProxy>,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) {
         let messageevent = MessageEvent::new(
             scope,
@@ -216,9 +216,9 @@ impl MessageEvent {
                 .as_ref(),
             DOMString::new(),
             ports,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        messageevent.upcast::<Event>().fire(target, can_gc);
+        messageevent.upcast::<Event>().fire(cx, target);
     }
 
     pub(crate) fn dispatch_error(
@@ -239,9 +239,7 @@ impl MessageEvent {
             init.ports.clone(),
             CanGc::from_cx(cx),
         );
-        messageevent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        messageevent.upcast::<Event>().fire(cx, target);
     }
 }
 

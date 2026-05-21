@@ -90,7 +90,7 @@ use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -376,11 +376,8 @@ pub(crate) fn jsval_to_webdriver(
         let mut seen = HashSet::new();
         let result = jsval_to_webdriver_inner(cx.into(), global_scope, val, &mut seen);
 
-        let in_realm_proof = cx.into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-
         if result.is_err() {
-            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx);
         }
         result
     })

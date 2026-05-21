@@ -184,14 +184,19 @@ impl Navigator {
     }
 
     #[cfg(feature = "gamepad")]
-    pub(crate) fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
+    pub(crate) fn set_gamepad(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: usize,
+        gamepad: &Gamepad,
+    ) {
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
         }
         if self.has_gamepad_gesture.get() {
             gamepad.set_exposed(true);
             if self.global().as_window().Document().is_fully_active() {
-                gamepad.notify_event(GamepadEventType::Connected, can_gc);
+                gamepad.notify_event(cx, GamepadEventType::Connected);
             }
         }
     }
