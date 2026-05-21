@@ -18,7 +18,7 @@ partial interface DebuggerGlobalScope {
 
 dictionary EvalResult {
     required DebuggerValue value;
-    ObjectPreview preview;
+    sequence<ObjectPreview> previews;
     required DOMString completionType;
     boolean hasException;
 };
@@ -39,6 +39,7 @@ dictionary DebuggerValue {
     DOMString stringValue;
     DOMString objectClass;
     unsigned long ownPropertyLength;
+    unsigned long previewId;
 };
 
 dictionary ObjectPreview {
