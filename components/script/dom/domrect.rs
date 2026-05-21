@@ -143,9 +143,9 @@ impl Serializable for DOMRect {
     }
 
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -156,7 +156,7 @@ impl Serializable for DOMRect {
             serialized.y,
             serialized.width,
             serialized.height,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

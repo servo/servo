@@ -1004,9 +1004,9 @@ impl Serializable for DOMMatrixReadOnly {
     }
 
     fn deserialize(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -1033,10 +1033,15 @@ impl Serializable for DOMMatrixReadOnly {
                     0.0,
                     1.0,
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ))
         } else {
-            Ok(Self::new(owner, false, serialized.matrix, can_gc))
+            Ok(Self::new(
+                owner,
+                false,
+                serialized.matrix,
+                CanGc::from_cx(cx),
+            ))
         }
     }
 

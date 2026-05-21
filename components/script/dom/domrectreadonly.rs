@@ -22,7 +22,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMRectReadOnly {
@@ -216,19 +215,16 @@ impl Serializable for DOMRectReadOnly {
         Ok((DomRectId::new(), serialized))
     }
 
-    #[expect(unsafe_code)]
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
     {
-        // TODO: https://github.com/servo/servo/issues/44588
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Ok(Self::new(
-            &mut cx,
+            cx,
             owner,
             None,
             serialized.x,

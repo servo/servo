@@ -7,6 +7,7 @@ use std::vec::Vec;
 
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -242,9 +243,9 @@ impl Serializable for ImageData {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagedata-interface:deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1 Initialize value's data attribute to the sub-deserialization of serialized.[[Data]].
         // Step 2 Initialize value's width attribute to serialized.[[Width]].
@@ -256,7 +257,7 @@ impl Serializable for ImageData {
             serialized.width,
             serialized.height,
             Some(serialized.data),
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .map_err(|_| ())
     }

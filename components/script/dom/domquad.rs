@@ -225,19 +225,16 @@ impl Serializable for DOMQuad {
         Ok((DomQuadId::new(), serialized))
     }
 
-    #[expect(unsafe_code)]
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
     {
-        // TODO: https://github.com/servo/servo/issues/44588
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let p1 = DOMPoint::new(
-            &mut cx,
+            cx,
             owner,
             serialized.p1.x,
             serialized.p1.y,
@@ -245,7 +242,7 @@ impl Serializable for DOMQuad {
             serialized.p1.w,
         );
         let p2 = DOMPoint::new(
-            &mut cx,
+            cx,
             owner,
             serialized.p2.x,
             serialized.p2.y,
@@ -253,7 +250,7 @@ impl Serializable for DOMQuad {
             serialized.p2.w,
         );
         let p3 = DOMPoint::new(
-            &mut cx,
+            cx,
             owner,
             serialized.p3.x,
             serialized.p3.y,
@@ -261,14 +258,14 @@ impl Serializable for DOMQuad {
             serialized.p3.w,
         );
         let p4 = DOMPoint::new(
-            &mut cx,
+            cx,
             owner,
             serialized.p4.x,
             serialized.p4.y,
             serialized.p4.z,
             serialized.p4.w,
         );
-        Ok(Self::new(&mut cx, owner, &p1, &p2, &p3, &p4))
+        Ok(Self::new(cx, owner, &p1, &p2, &p3, &p4))
     }
 
     fn serialized_storage<'a>(

@@ -23,7 +23,6 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dommatrixreadonly::dommatrixinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMPoint;
-use crate::script_runtime::CanGc;
 
 /// <http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly>
 #[dom_struct]
@@ -193,16 +192,13 @@ impl Serializable for DOMPointReadOnly {
         Ok((DomPointId::new(), serialized))
     }
 
-    #[expect(unsafe_code)]
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
-        // TODO: https://github.com/servo/servo/issues/44588
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Ok(Self::new(
-            &mut cx,
+            cx,
             owner,
             serialized.x,
             serialized.y,

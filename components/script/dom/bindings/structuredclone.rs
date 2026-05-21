@@ -132,10 +132,10 @@ impl From<TransferrableInterface> for StructuredCloneTags {
 fn reader_for_type(
     val: SerializableInterface,
 ) -> unsafe fn(
+    cx: &mut js::context::JSContext,
     &GlobalScope,
     *mut JSStructuredCloneReader,
     &mut StructuredDataReader<'_>,
-    CanGc,
 ) -> *mut JSObject {
     match val {
         SerializableInterface::File => read_object::<File>,
@@ -156,10 +156,10 @@ fn reader_for_type(
 }
 
 unsafe fn read_object<T: Serializable>(
+    cx: &mut js::context::JSContext,
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
     sc_reader: &mut StructuredDataReader<'_>,
-    can_gc: CanGc,
 ) -> *mut JSObject {
     let mut name_space: u32 = 0;
     let mut index: u32 = 0;
@@ -188,7 +188,7 @@ unsafe fn read_object<T: Serializable>(
         *objects = None;
     }
 
-    if let Ok(obj) = T::deserialize(owner, serialized, can_gc) {
+    if let Ok(obj) = T::deserialize(cx, owner, serialized) {
         let reflector = obj.reflector().get_jsobject().get();
         sc_reader.roots.push(Heap::boxed(reflector));
         return reflector;
@@ -245,15 +245,19 @@ unsafe extern "C" fn read_callback(
         "tag should be higher than StructuredCloneTags::Min"
     );
 
-    unsafe {
-        let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-        for serializable in SerializableInterface::iter() {
-            if tag == StructuredCloneTags::from(serializable) as u32 {
-                let reader = reader_for_type(serializable);
-                return reader(&global, r, sc_reader, CanGc::deprecated_note());
-            }
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+
+    let sc_reader = unsafe { &mut *(closure as *mut StructuredDataReader<'_>) };
+
+    let realm = CurrentRealm::assert(cx);
+    let global = GlobalScope::from_current_realm(&realm);
+
+    for serializable in SerializableInterface::iter() {
+        if tag == StructuredCloneTags::from(serializable) as u32 {
+            let reader = reader_for_type(serializable);
+            return unsafe { reader(cx, &global, r, sc_reader) };
         }
     }
 
