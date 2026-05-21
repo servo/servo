@@ -329,6 +329,29 @@ bitflags! {
     }
 }
 
+/// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming>
+#[derive(Clone, Debug, Default, MallocSizeOf)]
+pub(crate) struct NavigationTiming {
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart>
+    pub(crate) unload_event_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend>
+    pub(crate) unload_event_end: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive>
+    pub(crate) dom_interactive: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
+    pub(crate) dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventend>
+    pub(crate) dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete>
+    pub(crate) dom_complete: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart>
+    pub(crate) load_event_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend>
+    pub(crate) load_event_end: Cell<Option<CrossProcessInstant>>,
+    /// Servo-only timing for when top-level content (not iframes) is complete
+    pub(crate) top_level_dom_complete: Cell<Option<CrossProcessInstant>>,
+}
+
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub(crate) struct Document {
@@ -432,29 +455,6 @@ pub(crate) struct Document {
     /// be restyled.
     #[no_trace]
     needs_restyle: Cell<RestyleReason>,
-    /// Navigation Timing properties:
-    /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
-    #[no_trace]
-    dom_interactive: Cell<Option<CrossProcessInstant>>,
-    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-start-time>
-    #[no_trace]
-    dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-end-time>
-    #[no_trace]
-    dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    dom_complete: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    top_level_dom_complete: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    load_event_start: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    load_event_end: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    unload_event_start: Cell<Option<CrossProcessInstant>>,
-    #[no_trace]
-    unload_event_end: Cell<Option<CrossProcessInstant>>,
-
     /// The document's origin.
     #[no_trace]
     origin: DomRefCell<MutableOrigin>,
@@ -505,6 +505,10 @@ pub(crate) struct Document {
     fired_unload: Cell<bool>,
     /// List of responsive images
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
+
+    /// [`NavigationTiming`] information for this [`Document`].
+    #[no_trace]
+    navigation_timing: NavigationTiming,
 
     /// A [`ResourceFetchTiming`] that holds timing information for this [`Document`].
     #[no_trace]
@@ -1308,9 +1312,11 @@ impl Document {
                         LoadStatus::Complete,
                     ));
                 }
-                update_with_current_instant(&self.dom_complete);
+                update_with_current_instant(&self.navigation_timing.dom_complete);
             },
-            DocumentReadyState::Interactive => update_with_current_instant(&self.dom_interactive),
+            DocumentReadyState::Interactive => {
+                update_with_current_instant(&self.navigation_timing.dom_interactive)
+            },
         };
 
         self.ready_state.set(state);
@@ -2006,8 +2012,14 @@ impl Document {
         let loader = self.loader.borrow();
 
         // Servo measures when the top-level content (not iframes) is loaded.
-        if self.top_level_dom_complete.get().is_none() && loader.is_only_blocked_by_iframes() {
-            update_with_current_instant(&self.top_level_dom_complete);
+        if self
+            .navigation_timing
+            .top_level_dom_complete
+            .get()
+            .is_none() &&
+            loader.is_only_blocked_by_iframes()
+        {
+            update_with_current_instant(&self.navigation_timing.top_level_dom_complete);
         }
 
         if loader.is_blocked() || loader.events_inhibited() {
@@ -2249,7 +2261,7 @@ impl Document {
                 }
 
                 // Step 9.4. Set the Document's load timing info's load event start time to the current high resolution time given window.
-                update_with_current_instant(&document.load_event_start);
+                update_with_current_instant(&document.navigation_timing.load_event_start);
 
                 // Step 9.5. Fire an event named load at window, with legacy target override flag set.
                 let load_event = Event::new(
@@ -2272,7 +2284,7 @@ impl Document {
                 // TODO
 
                 // Step 9.8. Set the Document's load timing info's load event end time to the current high resolution time given window.
-                update_with_current_instant(&document.load_event_end);
+                update_with_current_instant(&document.navigation_timing.load_event_end);
 
                 // Step 9.9. Assert: Document's page showing is false.
                 // TODO: Adding this assert fails a lot of tests
@@ -2488,15 +2500,14 @@ impl Document {
 
             // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
             // to the current high resolution time given the Document's relevant global object.
-            update_with_current_instant(&document.dom_content_loaded_event_start);
-
+            update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_start);
             // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
             // attribute initialized to true.
             document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
 
             // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
             // high resolution time given the Document's relevant global object.
-            update_with_current_instant(&document.dom_content_loaded_event_end);
+            update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_end);
 
             // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
             // service worker client is the Document object's relevant settings object.
@@ -2731,10 +2742,6 @@ impl Document {
         self.iframes.borrow_mut()
     }
 
-    pub(crate) fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
-        self.dom_interactive.get()
-    }
-
     pub(crate) fn set_navigation_start(&self, navigation_start: CrossProcessInstant) {
         self.interactive_time
             .borrow_mut()
@@ -2747,38 +2754,6 @@ impl Document {
 
     pub(crate) fn has_recorded_tti_metric(&self) -> bool {
         self.get_interactive_metrics().get_tti().is_some()
-    }
-
-    pub(crate) fn get_dom_content_loaded_event_start(&self) -> Option<CrossProcessInstant> {
-        self.dom_content_loaded_event_start.get()
-    }
-
-    pub(crate) fn get_dom_content_loaded_event_end(&self) -> Option<CrossProcessInstant> {
-        self.dom_content_loaded_event_end.get()
-    }
-
-    pub(crate) fn get_dom_complete(&self) -> Option<CrossProcessInstant> {
-        self.dom_complete.get()
-    }
-
-    pub(crate) fn get_top_level_dom_complete(&self) -> Option<CrossProcessInstant> {
-        self.top_level_dom_complete.get()
-    }
-
-    pub(crate) fn get_load_event_start(&self) -> Option<CrossProcessInstant> {
-        self.load_event_start.get()
-    }
-
-    pub(crate) fn get_load_event_end(&self) -> Option<CrossProcessInstant> {
-        self.load_event_end.get()
-    }
-
-    pub(crate) fn get_unload_event_start(&self) -> Option<CrossProcessInstant> {
-        self.unload_event_start.get()
-    }
-
-    pub(crate) fn get_unload_event_end(&self) -> Option<CrossProcessInstant> {
-        self.unload_event_end.get()
     }
 
     pub(crate) fn start_tti(&self) {
@@ -3646,15 +3621,6 @@ impl Document {
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FxHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),
-            dom_interactive: Cell::new(Default::default()),
-            dom_content_loaded_event_start: Cell::new(Default::default()),
-            dom_content_loaded_event_end: Cell::new(Default::default()),
-            dom_complete: Cell::new(Default::default()),
-            top_level_dom_complete: Cell::new(Default::default()),
-            load_event_start: Cell::new(Default::default()),
-            load_event_end: Cell::new(Default::default()),
-            unload_event_start: Cell::new(Default::default()),
-            unload_event_end: Cell::new(Default::default()),
             origin: DomRefCell::new(origin),
             referrer,
             target_element: MutNullableDom::new(None),
@@ -3674,6 +3640,7 @@ impl Document {
             active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
+            navigation_timing: Default::default(),
             resource_fetch_timing: RefCell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
@@ -3940,19 +3907,28 @@ impl Document {
         self.resource_fetch_timing.borrow()
     }
 
+    pub(crate) fn navigation_timing(&self) -> &NavigationTiming {
+        &self.navigation_timing
+    }
+
     pub(crate) fn performance_timing_attribute(
         &self,
         name: &str,
     ) -> Fallible<Option<CrossProcessInstant>> {
         Ok(match name {
-            "unloadEventStart" => self.get_unload_event_start(),
-            "unloadEventEnd" => self.get_unload_event_end(),
-            "domInteractive" => self.get_dom_interactive(),
-            "domContentLoadedEventStart" => self.get_dom_content_loaded_event_start(),
-            "domContentLoadedEventEnd" => self.get_dom_content_loaded_event_end(),
-            "domComplete" => self.get_dom_complete(),
-            "loadEventStart" => self.get_load_event_start(),
-            "loadEventEnd" => self.get_load_event_end(),
+            "unloadEventStart" => self.navigation_timing().unload_event_start.get(),
+            "unloadEventEnd" => self.navigation_timing().unload_event_end.get(),
+            "domInteractive" => self.navigation_timing().dom_interactive.get(),
+            "domContentLoadedEventStart" => self
+                .navigation_timing()
+                .dom_content_loaded_event_start
+                .get(),
+            "domContentLoadedEventEnd" => {
+                self.navigation_timing().dom_content_loaded_event_end.get()
+            },
+            "domComplete" => self.navigation_timing().dom_complete.get(),
+            "loadEventStart" => self.navigation_timing().load_event_start.get(),
+            "loadEventEnd" => self.navigation_timing().load_event_end.get(),
             "redirectStart" | "redirectEnd" | "secureConnectionStart" | "responseEnd" => self
                 .resource_fetch_timing()
                 .as_ref()
