@@ -14,7 +14,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
-use std::ops::DerefMut;
 use std::rc::Rc;
 
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -591,7 +590,10 @@ impl GenericDrawTarget for VelloDrawTarget {
             };
             let data = SerializableImageData::Raw(if let Some(data) = data {
                 let mut data = GenericSharedMemory::from_bytes(data);
-                pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
+                #[expect(unsafe_code, reason = "comply with Safety contract of deref_mut")]
+                unsafe {
+                    pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
+                }
                 data
             } else {
                 GenericSharedMemory::from_byte(0, size.area() as usize * 4)

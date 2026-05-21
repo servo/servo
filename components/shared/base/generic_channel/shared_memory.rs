@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::sync::Arc;
 
 use ipc_channel::ipc::IpcSharedMemory;
@@ -29,19 +29,6 @@ impl Deref for GenericSharedMemory {
         match &self.0 {
             GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => ipc_shared_memory,
             GenericSharedMemoryVariant::InProcess(items) => items.as_slice(),
-        }
-    }
-}
-
-impl DerefMut for GenericSharedMemory {
-    fn deref_mut(&mut self) -> &mut [u8] {
-        match &mut self.0 {
-            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
-                #[expect(unsafe_code)]
-                unsafe { ipc_shared_memory.deref_mut() }
-            },
-            GenericSharedMemoryVariant::InProcess(arc) =>
-                Arc::get_mut(arc).expect("User should uphold safety contract: no other reference to the same data should exist").as_mut_slice(),
         }
     }
 }
@@ -89,6 +76,20 @@ impl GenericSharedMemory {
                 Arc::new(ipc_shared_memory.to_vec())
             },
             GenericSharedMemoryVariant::InProcess(arc) => arc,
+        }
+    }
+
+    #[expect(unsafe_code)]
+    /// # Safety
+    /// The caller must ensure that no other process or thread is reading
+    /// or writing the same data simultaneously.
+    pub unsafe fn deref_mut(&mut self) -> &mut [u8] {
+        match &mut self.0 {
+            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
+                unsafe { ipc_shared_memory.deref_mut() }
+            },
+            GenericSharedMemoryVariant::InProcess(arc) =>
+                Arc::get_mut(arc).expect("User should uphold safety contract: no other reference to the same data should exist").as_mut_slice(),
         }
     }
 }
