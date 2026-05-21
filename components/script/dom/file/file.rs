@@ -6,6 +6,7 @@ use std::time::SystemTime;
 
 use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::id::{FileId, FileIndex};
@@ -135,9 +136,9 @@ impl Serializable for File {
 
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: SerializableFile,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         let modified = OffsetDateTime::UNIX_EPOCH + Duration::milliseconds(serialized.modified);
         Ok(File::new(
@@ -145,7 +146,7 @@ impl Serializable for File {
             serialized.blob_impl,
             serialized.name.into(),
             Some(modified.into()),
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

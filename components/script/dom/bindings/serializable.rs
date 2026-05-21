@@ -5,6 +5,7 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
+use js::context::JSContext;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::DomObject;
 use script_bindings::structuredclone::MarkedAsSerializableInIdl;
@@ -13,7 +14,6 @@ use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// The key corresponding to the storage location
 /// of a serialized platform object stored in a StructuredDataHolder.
@@ -56,9 +56,9 @@ where
     fn serialize(&self) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized;

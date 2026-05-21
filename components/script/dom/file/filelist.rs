@@ -5,6 +5,7 @@
 use std::slice::Iter;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
@@ -83,16 +84,16 @@ impl Serializable for FileList {
 
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: SerializableFileList,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         let files = serialized
             .files
             .into_iter()
-            .map(|file| File::deserialize(owner, file, can_gc))
+            .map(|file| File::deserialize(cx, owner, file))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(FileList::new_in_global(owner, files, can_gc))
+        Ok(FileList::new_in_global(owner, files, CanGc::from_cx(cx)))
     }
 
     fn serialized_storage<'a>(

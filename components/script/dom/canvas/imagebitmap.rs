@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
@@ -637,15 +638,15 @@ impl Serializable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
             owner,
             serialized.bitmap_data.to_owned(),
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 
@@ -664,10 +665,7 @@ impl Transferable for ImageBitmap {
     type Data = SerializableImageBitmap;
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-steps>
-    fn transfer(
-        &self,
-        _cx: &mut js::context::JSContext,
-    ) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
+    fn transfer(&self, _cx: &mut JSContext) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
         // transferable.[[Detached]] is true, then throw a "DataCloneError"
@@ -697,7 +695,7 @@ impl Transferable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-receiving-steps>
     fn transfer_receive(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         owner: &GlobalScope,
         _: ImageBitmapId,
         transferred: SerializableImageBitmap,

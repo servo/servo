@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
@@ -136,9 +137,9 @@ impl Serializable for QuotaExceededError {
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -154,7 +155,7 @@ impl Serializable for QuotaExceededError {
                 .requested
                 .map(|val| Finite::new(val).ok_or(()))
                 .transpose()?,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

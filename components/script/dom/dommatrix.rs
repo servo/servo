@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
+use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
@@ -535,9 +536,9 @@ impl Serializable for DOMMatrix {
     }
 
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -564,10 +565,15 @@ impl Serializable for DOMMatrix {
                     0.0,
                     1.0,
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ))
         } else {
-            Ok(Self::new(owner, false, serialized.matrix, can_gc))
+            Ok(Self::new(
+                owner,
+                false,
+                serialized.matrix,
+                CanGc::from_cx(cx),
+            ))
         }
     }
 

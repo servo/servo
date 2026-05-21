@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
+use js::context::JSContext;
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
@@ -131,11 +132,11 @@ impl Serializable for Blob {
 
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: BlobImpl,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
-        let deserialized_blob = Blob::new(owner, serialized, can_gc);
+        let deserialized_blob = Blob::new(owner, serialized, CanGc::from_cx(cx));
         Ok(deserialized_blob)
     }
 
