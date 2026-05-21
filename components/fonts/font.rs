@@ -28,6 +28,7 @@ use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
+use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
@@ -73,6 +74,8 @@ pub(crate) const PWID: Tag = Tag::new(b"pwid");
 pub(crate) const RUBY: Tag = Tag::new(b"ruby");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
 pub(crate) const SMPL: Tag = Tag::new(b"smpl");
+pub(crate) const SUBS: Tag = Tag::new(b"subs");
+pub(crate) const SUPS: Tag = Tag::new(b"sups");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
 pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
@@ -419,6 +422,8 @@ pub struct ShapingOptions {
     pub east_asian: FontVariantEastAsian,
     /// The value of the `font-feature-settings` property.
     pub feature_settings: FontFeatureSettings,
+    /// The value of the `font-variant-position` property.
+    pub position: FontVariantPosition,
     /// Various flags.
     pub flags: ShapingFlags,
 }

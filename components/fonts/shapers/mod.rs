@@ -9,11 +9,12 @@ use euclid::default::Point2D;
 pub(crate) use harfbuzz::Shaper;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
+use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 
 use crate::{
     AFRC, CALT, CLIG, DLIG, FRAC, FWID, GlyphId, HLIG, JP04, JP78, JP83, JP90, KERN, LIGA, LNUM,
-    ONUM, ORDN, PNUM, PWID, RUBY, SMPL, ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
+    ONUM, ORDN, PNUM, PWID, RUBY, SMPL, SUBS, SUPS, ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
 };
 
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
@@ -189,6 +190,12 @@ fn compute_used_font_features(options: &ShapingOptions) -> impl Iterator<Item = 
         if options.east_asian.contains(FontVariantEastAsian::RUBY) {
             add_feature(RUBY, 1);
         }
+    }
+
+    match options.position {
+        FontVariantPosition::Normal => {},
+        FontVariantPosition::Sub => add_feature(SUBS, 1),
+        FontVariantPosition::Super => add_feature(SUPS, 1),
     }
 
     if options

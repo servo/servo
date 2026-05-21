@@ -446,14 +446,14 @@ codegen-units = 1
 # Or for Stylo:
 #
 [patch."https://github.com/servo/stylo"]
-selectors = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position"}
-servo_arc = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position" }
-stylo = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position"}
-stylo_atoms = {git="https://github.com/simonwuelker/stylo", branch="font-variant-position" }
-stylo_dom = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position"}
-stylo_malloc_size_of = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position" }
-stylo_static_prefs = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position" }
-stylo_traits = { git="https://github.com/simonwuelker/stylo", branch="font-variant-position" }
+selectors = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+servo_arc = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo_atoms = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo_dom = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo_malloc_size_of = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo_static_prefs = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
+stylo_traits = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-position" }
 #
 # Or for another Git dependency:
 #

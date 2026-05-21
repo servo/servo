@@ -18,6 +18,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
+use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -83,6 +84,8 @@ pub(crate) struct FontAndScriptInfo {
     pub east_asian: FontVariantEastAsian,
     /// The value of the `font-feature-settings` property from the original style.
     pub feature_settings: FontFeatureSettings,
+    /// The value of the `font-variant-position` property from the original style.
+    pub position: FontVariantPosition,
 }
 
 impl FontAndScriptInfo {
@@ -103,6 +106,7 @@ impl FontAndScriptInfo {
             numeric: FontVariantNumeric::NORMAL,
             east_asian: FontVariantEastAsian::NORMAL,
             feature_settings: FontFeatureSettings::normal(),
+            position: FontVariantPosition::Normal,
         }
     }
 }
@@ -143,6 +147,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             numeric: info.numeric,
             east_asian: info.east_asian,
             feature_settings: info.feature_settings.clone(),
+            position: info.position,
             flags,
         }
     }
@@ -511,6 +516,7 @@ impl TextRun {
         let numeric = font_style.font_variant_numeric;
         let east_asian = font_style.font_variant_east_asian;
         let feature_settings = font_style.font_feature_settings.clone();
+        let position = font_style.font_variant_position;
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -600,6 +606,7 @@ impl TextRun {
                 numeric,
                 east_asian,
                 feature_settings: feature_settings.clone(),
+                position,
             };
 
             finish_current_segment(&mut current, &mut results);
