@@ -313,9 +313,9 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
-    /// The loop count for the image animation.
-    /// For non-looptable images, this would be `None`.
-    /// For animated images, there would be a default value of `Repeat::Infinite`.
+    /// The loop count for this image's animation. For animated images, this
+    /// has a default value of `Repeat::Infinite` (if no loop count is specified in
+    /// the image).  For images that do not animate, this will be `None`.
     pub loop_count: Option<Repeat>,
 }
 

@@ -772,7 +772,7 @@ pub struct ImageAnimationState {
 impl ImageAnimationState {
     pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
         let current_loop_count = match &image.loop_count {
-            None => unreachable!("Loop_count of Animated Image should not be None"),
+            None => unreachable!("Loop count of an animated Image should never be None"),
             Some(repeat) if Repeat::Infinite == *repeat => None,
             _ => Some(0),
         };
