@@ -203,7 +203,7 @@ impl Sanitizer {
 
         // Step 3. Let newChildren be the result of the HTML fragment parsing algorithm given
         // contextElement, html, and true.
-        let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
+        let new_children = ServoParser::parse_html_fragment(cx, context_element, html, true);
 
         // Step 4. Let fragment be a new DocumentFragment whose node document is contextElement’s
         // node document.

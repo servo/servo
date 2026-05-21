@@ -2347,7 +2347,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result, cx);
+                .resume_with_pending_parsing_blocking_script(cx, &element, result);
         }
     }
 
@@ -3368,7 +3368,7 @@ impl Document {
         };
 
         // Steps 10-11.
-        parser.write(string.into(), cx);
+        parser.write(cx, string.into());
 
         Ok(())
     }
@@ -4819,7 +4819,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
+        ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
         // Step 5. Return document.
         document.set_ready_state(cx, DocumentReadyState::Complete);
         Ok(document)
@@ -4865,7 +4865,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         );
 
         // Step 3. Parse HTML from a string given document and html.
-        ServoParser::parse_html_document(&document, Some(html), url, None, None, cx);
+        ServoParser::parse_html_document(cx, &document, Some(html), url, None, None);
 
         // Step 4. Let sanitizer be the result of calling get a sanitizer instance from options with
         // options and true.
