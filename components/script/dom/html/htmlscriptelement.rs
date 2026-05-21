@@ -66,7 +66,7 @@ use crate::script_module::{
     ImportMap, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
@@ -1056,8 +1056,7 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.upcast::<EventTarget>()
-                    .fire_event(atom!("error"), CanGc::from_cx(cx));
+                self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 return;
             },
 
@@ -1121,8 +1120,7 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), CanGc::from_cx(cx));
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
         }
     }
 

@@ -774,12 +774,7 @@ impl Event {
         legacy_output_did_listeners_throw: &Cell<bool>,
     ) -> bool {
         self.set_trusted(true);
-        self.dispatch_inner(
-            cx,
-            target,
-            false,
-            Some(legacy_output_did_listeners_throw),
-        )
+        self.dispatch_inner(cx, target, false, Some(legacy_output_did_listeners_throw))
     }
 
     /// <https://dom.spec.whatwg.org/#inner-event-creation-steps>
