@@ -115,12 +115,12 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
                 ServoParser::parse_html_document(
+                    cx,
                     &document,
                     Some(compliant_string),
                     url,
                     None,
                     None,
-                    cx,
                 );
                 document
             },
@@ -152,7 +152,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.
-                ServoParser::parse_xml_document(&document, Some(compliant_string), url, None, cx);
+                ServoParser::parse_xml_document(cx, &document, Some(compliant_string), url, None);
                 document
             },
         };

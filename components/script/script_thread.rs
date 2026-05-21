@@ -3638,20 +3638,20 @@ impl ScriptThread {
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
-                cx,
             );
         } else {
             ServoParser::parse_html_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
                 incomplete.load_data.container_document_encoding,
-                cx,
             );
         }
 

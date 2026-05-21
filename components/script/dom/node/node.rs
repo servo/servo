@@ -336,7 +336,7 @@ impl Node {
         cx: &mut JSContext,
     ) {
         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
-        let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
+        let new_children = ServoParser::parse_html_fragment(cx, context_element, html, true);
 
         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
 

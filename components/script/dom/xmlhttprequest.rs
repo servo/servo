@@ -1538,12 +1538,12 @@ impl XMLHttpRequest {
         let document = self.new_doc(IsHTMLDocument::HTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_html_document(
+            cx,
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
             None,
             None,
-            cx,
         );
         document
     }
@@ -1556,11 +1556,11 @@ impl XMLHttpRequest {
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_xml_document(
+            cx,
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
             None,
-            cx,
         );
         document
     }
