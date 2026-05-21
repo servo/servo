@@ -154,6 +154,13 @@ partial interface Element {
   Promise<undefined> requestFullscreen();
 };
 
+// https://w3c.github.io/pointerevents/#extensions-to-the-element-interface
+partial interface Element {
+  [Throws] undefined setPointerCapture(long pointerId);
+  [Throws] undefined releasePointerCapture(long pointerId);
+  boolean hasPointerCapture(long pointerId);
+};
+
 Element includes ChildNode;
 Element includes NonDocumentTypeChildNode;
 Element includes ParentNode;

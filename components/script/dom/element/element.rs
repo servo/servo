@@ -3943,6 +3943,80 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         doc.enter_fullscreen(self, can_gc)
     }
 
+    /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
+    fn SetPointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers, then throw a DOMException with the name "NotFoundError".
+        //
+        // Note: "active pointers" is global across documents. We can only cheaply check
+        // active pointers in this element's document. If the pointer is active in another
+        // document (e.g., parent/child frame), step 5 below will silently terminate.
+        // We intentionally do not throw here in that case to avoid being stricter than
+        // the spec.
+
+        // Step 2. If the element is not connected, throw a "InvalidStateError" DOMException.
+        if !self.upcast::<Node>().is_connected() {
+            return Err(Error::InvalidState(Some(
+                "Can't capture pointer on an unconnected element".into(),
+            )));
+        }
+
+        // Step 3. If this method is invoked while the document has a locked element
+        // (pointerLockElement), throw an "InvalidStateError" DOMException.
+        // TODO: Implement when pointer lock is supported.
+
+        // Step 4/5. If the pointer is not in the active buttons state or the element's
+        // node document is not the active document of the pointer, then terminate these
+        // steps. `is_active_pointer` on this document covers both conditions: it returns
+        // true only when the pointer is in the active buttons state in *this* document,
+        // which implies this document is the pointer's active document.
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Ok(());
+        }
+
+        // Step 6. For the specified pointerId, set the pending pointer capture target
+        // override to the Element on which this method was invoked.
+        event_handler.set_pending_pointer_capture(pointer_id, self);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-releasepointercapture>
+    fn ReleasePointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers and these steps are not being invoked as a result of the
+        // implicit release of pointer capture, then throw a DOMException with the name "NotFoundError".
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Err(Error::NotFound(Some(
+                "Can't release a pointer that is not active".into(),
+            )));
+        }
+
+        // Step 2. If hasPointerCapture is false for the Element with the specified pointerId,
+        // then terminate these steps.
+        if !event_handler.has_pointer_capture(pointer_id, self) {
+            return Ok(());
+        }
+
+        // Step 3. For the specified pointerId, clear the pending pointer capture target override.
+        event_handler.clear_pending_pointer_capture(pointer_id);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-haspointercapture>
+    fn HasPointerCapture(&self, pointer_id: i32) -> bool {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+        event_handler.has_pointer_capture(pointer_id, self)
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     fn AttachShadow(
         &self,
