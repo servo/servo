@@ -18,6 +18,7 @@ use servo_constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
     ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerRegistrationInfo,
 };
+use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
@@ -94,33 +95,40 @@ impl ServiceWorkerContainer {
             },
             // <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
             JobResult::ResolvePromise(value) => {
-                let JobResultValue::Register(ServiceWorkerRegistrationInfo {
-                    id,
-                    installing_worker,
-                    waiting_worker,
-                    active_worker,
-                    storage_key: _,
-                    scope_url,
-                    script_url,
-                }) = value;
+                match value {
+                    JobResultValue::Unregister(success) => {
+                        promise.resolve_native(&success, CanGc::from_cx(cx));
+                        return;
+                    },
+                    JobResultValue::Register(value) => {
+                        let ServiceWorkerRegistrationInfo {
+                            id,
+                            installing_worker,
+                            waiting_worker,
+                            active_worker,
+                            storage_key: _,
+                            scope_url,
+                            script_url,
+                        } = value;
+                        // Step 2.2: If equivalentJob’s job type is either register or update,
+                        // set convertedValue to the result of getting the service worker registration object
+                        // that represents value in equivalentJob’s client.
+                        let registration = global.get_serviceworker_registration(
+                            &script_url,
+                            &scope_url,
+                            id,
+                            installing_worker,
+                            waiting_worker,
+                            active_worker,
+                            CanGc::from_cx(cx),
+                        );
 
-                // Step 2.2: If equivalentJob’s job type is either register or update,
-                // set convertedValue to the result of getting the service worker registration object
-                // that represents value in equivalentJob’s client.
-                let registration = global.get_serviceworker_registration(
-                    &script_url,
-                    &scope_url,
-                    id,
-                    installing_worker,
-                    waiting_worker,
-                    active_worker,
-                    CanGc::from_cx(cx),
-                );
+                        // TODO Step 2.3: Else, set convertedValue to value, in equivalentJob’s client’s Realm.
 
-                // TODO Step 2.3: Else, set convertedValue to value, in equivalentJob’s client’s Realm.
-
-                // Step 2.4: Resolve equivalentJob’s job promise with convertedValue.
-                promise.resolve_native(&*registration, CanGc::from_cx(cx));
+                        // Step 2.4: Resolve equivalentJob’s job promise with convertedValue.
+                        promise.resolve_native(&*registration, CanGc::from_cx(cx));
+                    },
+                }
             },
         }
     }
@@ -133,6 +141,7 @@ impl ServiceWorkerContainer {
         registration_info: Option<ServiceWorkerRegistrationInfo>,
         promise: Rc<Promise>,
     ) {
+        println!("ServiceWorkerContainer handle_match_registration_result called with registration_info: {:?}", registration_info);
         // Step 8.1 Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
         // Note: the `registration_info` argument is the result from the parallel algorithm run.
 
@@ -261,6 +270,51 @@ impl ServiceWorkerContainer {
         *self.callback.borrow_mut() = Some(callback.clone());
 
         callback
+    }
+
+    /// Continuation for
+    /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkerregistration-unregister>
+    pub(crate) fn create_and_schedule_unregister_job(
+        &self,
+        cx: &mut JSContext,
+        storage_key: ImmutableOrigin,
+        scope: ServoUrl,
+        script_url: ServoUrl,
+        promise: Rc<Promise>,
+    ) {
+        let global = self.global();
+        let result_handler = self.get_or_setup_callback(promise);
+
+        // Step 3: Let job be the result of running Create Job with unregister,
+        // registration’s storage key, registration’s scope url, null, promise,
+        // and this’s relevant settings object.
+        let job = Job::create_job(
+            JobType::Unregister,
+            scope,
+            script_url.clone(),
+            result_handler,
+            global.creation_url(),
+            None,
+            storage_key,
+        );
+
+        // Step 4: Invoke Schedule Job with job.
+        if global
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::ServiceWorkerAlgorithm(
+                ServiceWorkerAlgorithm::Unregister(job),
+            ))
+            .is_err()
+        {
+            debug_assert!(
+                false,
+                "Failed to send Unregister algorithm message to the constellation."
+            );
+            self.handle_algorithm_result(
+                cx,
+                ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(JobError::TypeError)),
+            );
+        }
     }
 }
 

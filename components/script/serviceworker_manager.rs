@@ -359,6 +359,9 @@ impl ServiceWorkerManager {
                 ServiceWorkerAlgorithm::StartRegister(job) => {
                     self.handle_register_job(job);
                 },
+                ServiceWorkerAlgorithm::Unregister(job) => {
+                    self.handle_unregister_job(job);
+                },
                 ServiceWorkerAlgorithm::MatchServiceWorkerRegistration {
                     storage_key,
                     client_url,
@@ -370,6 +373,47 @@ impl ServiceWorkerManager {
             ServiceWorkerMsg::Exit => return false,
         }
         true
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#unregister>
+    fn handle_unregister_job(&mut self, job: Job) {
+        // Step 1: Let registration be the result of running Get Registration given job’s storage key and job’s scope url.
+        if self.registrations.remove(&job.scope_url).is_none() {
+            // Step 2: If registration is null, then:
+            // Step 2.1: Invoke Resolve Job Promise with job and false.
+            if job
+                .client
+                .send(ServiceWorkerAlgorithmResult::Job(
+                    JobResult::ResolvePromise(JobResultValue::Unregister(false)),
+                ))
+                .is_err()
+            {
+                warn!("Failed to send unregister result to script.");
+            }
+            // Step 2.2: Invoke Finish Job with job and abort these steps.
+            // TODO: Finish Job.
+            return;
+        };
+
+        // Step 3: Remove registration map[(registration’s storage key, job’s scope url)].
+        // Note: done by removing the registration from the map above.
+
+        // Step 4: Invoke Resolve Job Promise with job and true.
+        if job
+            .client
+            .send(ServiceWorkerAlgorithmResult::Job(
+                JobResult::ResolvePromise(JobResultValue::Unregister(true)),
+            ))
+            .is_err()
+        {
+            warn!("Failed to send unregister result to script.");
+        }
+
+        // Step 5: Invoke Try Clear Registration with registration.
+        // TODO: Try Clear Registration.
+
+        // Step 6: Invoke Finish Job with job.
+        // TODO: Finish Job.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
