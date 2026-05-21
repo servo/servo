@@ -81,8 +81,8 @@ impl ProcessDataURL for &HTMLObjectElement {
 
         // TODO: support other values
         if let (None, Some(_uri)) = (
-            element.get_attribute(&local_name!("type")),
-            element.get_attribute(&local_name!("data")),
+            element.get_attribute_string_value(&local_name!("type")),
+            element.get_attribute_string_value(&local_name!("data")),
         ) {
             // TODO(gw): Prefetch the image here.
         }

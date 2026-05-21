@@ -2250,11 +2250,11 @@ impl Node {
                         node.downcast::<HTMLAnchorElement>().and_then(|anchor| {
                             anchor
                                 .upcast::<Element>()
-                                .get_attribute(&local_name!("href"))
+                                .get_attribute_string_value(&local_name!("href"))
                         })
                     {
                         // Step 3.3. Return the value of node's href attribute.
-                        return Some(DOMString::from(&**anchor_value.value()));
+                        return Some(anchor_value.into());
                     }
                     current_node = node.GetParentNode();
                 }

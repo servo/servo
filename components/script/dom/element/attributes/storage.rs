@@ -137,7 +137,7 @@ impl<'a> AttrRef<'a> {
         DOMString::from(&**self.value())
     }
 
-    /// Returns a summary for devtools, equivalent to `Attr::summarize()`.
+    /// Returns a summary for devtools.
     pub(crate) fn summarize(&self) -> AttrInfo {
         AttrInfo {
             namespace: (**self.namespace()).to_owned(),

@@ -1931,10 +1931,10 @@ impl TreeSink for Sink {
     /// Specifically, the `<annotation-xml>` cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
-        elem.get_attribute(&local_name!("encoding"))
-            .is_some_and(|attr| {
-                attr.value().eq_ignore_ascii_case("text/html") ||
-                    attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+        elem.get_attribute_string_value(&local_name!("encoding"))
+            .is_some_and(|value| {
+                value.eq_ignore_ascii_case("text/html") ||
+                    value.eq_ignore_ascii_case("application/xhtml+xml")
             })
     }
 

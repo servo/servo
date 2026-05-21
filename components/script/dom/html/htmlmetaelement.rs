@@ -115,8 +115,8 @@ impl HTMLMetaElement {
         // empty string, then return.
         if let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&local_name!("content"))
-            .filter(|attr| !attr.value().is_empty())
+            .get_attribute_string_value(&local_name!("content"))
+            .filter(|value| !value.is_empty())
         {
             // Step 4. Let value be the value of element's content attribute, converted to ASCII
             // lowercase.
@@ -124,7 +124,7 @@ impl HTMLMetaElement {
             // table, then set value to the value given in the second column:
             // Step 6. If value is a referrer policy, then set element's node document's policy
             // container's referrer policy to policy.
-            doc.set_referrer_policy(ReferrerPolicy::from_with_legacy(&content.value()));
+            doc.set_referrer_policy(ReferrerPolicy::from_with_legacy(&content));
         }
     }
 
@@ -139,11 +139,11 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        let Some(content) = element.get_attribute(&local_name!("content")) else {
+        let Some(content) = element.get_attribute_string_value(&local_name!("content")) else {
             return;
         };
 
-        if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+        if let Ok(viewport) = ViewportDescription::from_str(&content) {
             let initial_scale = viewport.initial_scale.get();
             let window = self.owner_window();
             window.paint_api().viewport(window.webview_id(), viewport);
@@ -166,11 +166,10 @@ impl HTMLMetaElement {
         // Step 2. If the meta element has no content attribute, or if that attribute's value is the empty string, then return.
         let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&local_name!("content"))
+            .get_attribute_string_value(&local_name!("content"))
         else {
             return;
         };
-        let content = content.value();
         if content.is_empty() {
             return;
         }

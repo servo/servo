@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
 use std::mem;
 use std::sync::LazyLock;
 
-use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
 use js::context::JSContext;
@@ -214,14 +212,6 @@ impl Attr {
 
     pub(crate) fn owner(&self) -> Option<DomRoot<Element>> {
         self.owner.get()
-    }
-
-    pub(crate) fn summarize(&self) -> AttrInfo {
-        AttrInfo {
-            namespace: (**self.namespace()).to_owned(),
-            name: (**self.name()).to_owned(),
-            value: (**self.value()).to_owned(),
-        }
     }
 
     pub(crate) fn qualified_name(&self) -> DOMString {
