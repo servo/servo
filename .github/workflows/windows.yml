@@ -145,13 +145,17 @@ jobs:
           cat C:\init\incremental_build_debug.txt
           echo "`$env:LIBCLANG_PATH now = $env:LIBCLANG_PATH"
           echo "`$env:PATH now = $env:PATH"
-
       - name: Build (${{ inputs.profile }})
         env:
           RUSTFLAGS: "-D warnings"
         run: |
           .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           mv C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows
+      - name: Build with vello backend (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: "-D warnings"
+        run: |
+          .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }} --feature vello
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
         if: ${{ runner.environment != 'self-hosted' && startsWith(github.workspace, 'D:\') }}
