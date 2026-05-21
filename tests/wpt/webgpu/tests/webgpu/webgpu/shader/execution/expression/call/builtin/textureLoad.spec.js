@@ -369,7 +369,10 @@ fn(async (t) => {
   const descriptor = {
     format,
     size: [8, 8],
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    usage:
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);

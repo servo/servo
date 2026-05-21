@@ -18,6 +18,7 @@ API operations tests for occlusion queries.
 - test resolving twice in same pass keeps values
 - test resolving twice across pass keeps values
 - test resolveQuerySet destinationOffset
+- test using the same query multiple times in different passes without resolving in between
 `;import { kUnitCaseParamsBuilder } from '../../../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import {
@@ -436,38 +437,49 @@ class OcclusionQueryTest extends AllFeaturesMaxLimitsGPUTest {
       renderMode
     };
   }
-  async runQueryTest(
+
+  encodeQueries(
   resources,
+  encoder,
   renderPassDescriptor,
-  encodePassFn,
-  checkQueryIndexResultFn)
+  encodePassFn)
   {
     const { device } = this;
+    const { occlusionQuerySet, querySetOffset, renderMode = 'direct' } = resources;
+    const numQueries = occlusionQuerySet.count - querySetOffset;
+    const queryIndices = range(numQueries, (i) => i + querySetOffset);
+
+    const pass = encoder.beginRenderPass(renderPassDescriptor);
+    const helper = new RenderPassHelper(
+      pass,
+      renderMode === 'direct' ?
+      new QueryStarterDirect(pass) :
+      new QueryStarterRenderBundle(device, pass, renderPassDescriptor)
+    );
+
+    for (const queryIndex of queryIndices) {
+      encodePassFn(helper, queryIndex);
+    }
+    pass.end();
+  }
+
+  encodeAndResolveQueries(
+  resources,
+  encoder,
+  renderPassDescriptor,
+  encodePassFn)
+  {
     const {
       readBuffer,
       queryResolveBuffer,
       queryResolveBufferOffset,
       occlusionQuerySet,
-      querySetOffset,
-      renderMode = 'direct'
+      querySetOffset
     } = resources;
     const numQueries = occlusionQuerySet.count - querySetOffset;
-    const queryIndices = range(numQueries, (i) => i + querySetOffset);
 
-    const encoder = device.createCommandEncoder();
     if (renderPassDescriptor) {
-      const pass = encoder.beginRenderPass(renderPassDescriptor);
-      const helper = new RenderPassHelper(
-        pass,
-        renderMode === 'direct' ?
-        new QueryStarterDirect(pass) :
-        new QueryStarterRenderBundle(device, pass, renderPassDescriptor)
-      );
-
-      for (const queryIndex of queryIndices) {
-        encodePassFn(helper, queryIndex);
-      }
-      pass.end();
+      this.encodeQueries(resources, encoder, renderPassDescriptor, encodePassFn);
     }
 
     encoder.resolveQuerySet(
@@ -484,7 +496,15 @@ class OcclusionQueryTest extends AllFeaturesMaxLimitsGPUTest {
       0,
       readBuffer.size
     );
-    device.queue.submit([encoder.finish()]);
+  }
+
+  async checkQueryResults(
+  resources,
+  checkQueryIndexResultFn)
+  {
+    const { readBuffer, occlusionQuerySet, querySetOffset } = resources;
+    const numQueries = occlusionQuerySet.count - querySetOffset;
+    const queryIndices = range(numQueries, (i) => i + querySetOffset);
 
     const result = await this.readBufferAsBigUint64(readBuffer);
     for (const queryIndex of queryIndices) {
@@ -494,6 +514,21 @@ class OcclusionQueryTest extends AllFeaturesMaxLimitsGPUTest {
     }
 
     return result;
+  }
+
+  async runQueryTest(
+  resources,
+  renderPassDescriptor,
+  encodePassFn,
+  checkQueryIndexResultFn)
+  {
+    const { device } = this;
+
+    const encoder = device.createCommandEncoder();
+    this.encodeAndResolveQueries(resources, encoder, renderPassDescriptor, encodePassFn);
+    device.queue.submit([encoder.finish()]);
+
+    return this.checkQueryResults(resources, checkQueryIndexResultFn);
   }
 }
 
@@ -510,6 +545,49 @@ desc(`Test getting contents of QuerySet without any queries.`).
 fn(async (t) => {
   const kNumQueries = kMaxQueryCount;
   const resources = t.setup({ numQueries: kNumQueries });
+  await t.runQueryTest(
+    resources,
+    null,
+    () => {},
+    (passed) => {
+      t.expect(!passed);
+    }
+  );
+});
+
+g.test('occlusion_query,unsubmitted_render_pass').
+desc(
+  `
+Test getting contents of QuerySet without any queries with an unsubmitted render pass that uses them.
+This is a regression test for a bug in Dawn where encoding the pass marked the slots as ok to read
+when they should not have been marked as okay to read until the command buffer was submitted.
+`
+).
+fn(async (t) => {
+  const kNumQueries = kMaxQueryCount;
+  const resources = t.setup({ numQueries: kNumQueries });
+
+  // Encode a render pass that uses the QuerySet but don't submit it.
+  {
+    const encoder = t.device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: resources.renderTargetTexture.createView(),
+        loadOp: 'clear',
+        storeOp: 'store'
+      }],
+
+      occlusionQuerySet: resources.occlusionQuerySet
+    });
+    for (let i = 0; i < resources.occlusionQuerySet.count; i += 2) {
+      pass.beginOcclusionQuery(i);
+      pass.endOcclusionQuery();
+    }
+    pass.end();
+    encoder.finish();
+  }
+
   await t.runQueryTest(
     resources,
     null,
@@ -553,6 +631,59 @@ fn(async (t) => {
       );
     }
   );
+});
+
+g.test('occlusion_query,reuse').
+desc(
+  `
+Test queries can be reused.
+
+This tests that if you write to a query twice in the same command buffer (different passes)
+and resolve after, that you get the 2nd result.
+  `
+).
+params(kQueryTestBaseParams.combine('noop', ['before', 'after'])).
+fn(async (t) => {
+  const { writeMask, renderMode, bufferOffset, querySetOffset, noop } = t.params;
+  const kNumQueries = 30;
+  const resources = t.setup({
+    writeMask,
+    renderMode,
+    bufferOffset,
+    querySetOffset,
+    numQueries: kNumQueries
+  });
+  const { renderPassDescriptor, vertexBuffer, pipeline } = resources;
+
+  const opEncodePassFn = (helper, queryIndex) => {
+    const queryHelper = helper.beginOcclusionQuery(queryIndex);
+    queryHelper.setPipeline(pipeline);
+    queryHelper.setVertexBuffer(vertexBuffer);
+    queryHelper.draw(3);
+    queryHelper.end();
+  };
+
+  const noopEncodePassFn = (helper, queryIndex) => {
+    const queryHelper = helper.beginOcclusionQuery(queryIndex);
+    queryHelper.end();
+  };
+
+  const [firstOp, secondOp] =
+  noop === 'before' ? [noopEncodePassFn, opEncodePassFn] : [opEncodePassFn, noopEncodePassFn];
+
+  const { device } = t;
+  const encoder = device.createCommandEncoder();
+  t.encodeQueries(resources, encoder, renderPassDescriptor, firstOp);
+  t.encodeAndResolveQueries(resources, encoder, renderPassDescriptor, secondOp);
+  device.queue.submit([encoder.finish()]);
+
+  await t.checkQueryResults(resources, (passed, queryIndex) => {
+    const expectPassed = noop === 'before';
+    t.expect(
+      !!passed === expectPassed,
+      `queryIndex: ${queryIndex}, was: ${!!passed}, expected: ${expectPassed}`
+    );
+  });
 });
 
 g.test('occlusion_query,empty').

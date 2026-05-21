@@ -29,6 +29,7 @@ import {
 
   Type } from
 '../../../../../util/conversion.js';
+import { runFlowControlTest } from '../../../flow_control/harness.js';
 
 import { run, allInputSources } from '../../expression.js';
 
@@ -265,4 +266,38 @@ fn(async (t) => {
     t.params,
     tests.cases
   );
+});
+
+g.test('short_circuit').
+desc('Test that select does not short-circuit and evaluates arguments left-to-right').
+params((u) =>
+u.
+combine('cond', [true, false]).
+combine('preventValueOptimizations', [true, false]).
+combine('overload', ['scalar', 'vec'])
+).
+fn((t) => {
+  runFlowControlTest(t, (f) => {
+    const type = t.params.overload === 'scalar' ? 'i32' : 'vec3<i32>';
+    const cond =
+    t.params.overload === 'scalar' ?
+    `${f.value(t.params.cond)}` :
+    `vec3<bool>(${f.value(t.params.cond)})`;
+    return {
+      entrypoint: `
+          let res = select(f(), g(), ${cond});
+        `,
+      extra: `
+          fn f() -> ${type} {
+            ${f.expect_order(0)}
+            return ${type}();
+          }
+
+          fn g() -> ${type} {
+            ${f.expect_order(1)}
+            return ${type}();
+          }
+        `
+    };
+  });
 });

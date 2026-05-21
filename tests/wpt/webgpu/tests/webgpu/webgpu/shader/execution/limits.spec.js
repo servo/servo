@@ -412,11 +412,22 @@ fn((t) => {
 
 g.test('const_array_elements').
 desc(`Test that constant array expressions with the maximum number of elements are supported.`).
+params(
+  (u) =>
+  // Some backend shader compilers take too long to compile the maximum
+  // size. In that case the browser GPU process can time out.  The WGSL
+  // spec allows this as an 'uncategorized error'.
+  // To get some useful signal from this test, also check a const array
+  // with a significant size even though it may not be the maximum supported
+  // size listed in the spec.
+  u.combine('sizeDivisor', [64, 8, 1]) // Must include 1, to test largest size.
+).
 fn((t) => {
-  const type = `array<u32, ${kMaxConstArrayElements}>`;
+  const elementCount = Math.ceil(kMaxConstArrayElements / t.params.sizeDivisor);
+  const type = `array<u32, ${elementCount}>`;
 
   let expr = `${type}(`;
-  for (let i = 0; i < kMaxConstArrayElements; i++) {
+  for (let i = 0; i < elementCount; i++) {
     expr += `${i}, `;
   }
   expr += `)`;
@@ -430,10 +441,5 @@ fn((t) => {
     }
     `;
 
-  runShaderTest(
-    t,
-    code,
-    new Uint32Array([...iterRange(kMaxConstArrayElements, (_i) => 0xdeadbeef)]),
-    (i) => i
-  );
+  runShaderTest(t, code, new Uint32Array([...iterRange(elementCount, (_i) => 0xdeadbeef)]), (i) => i);
 });

@@ -98,6 +98,7 @@ const kRenderPassEncoderCommandInfo =
   setScissorRect: {},
   setBlendConstant: {},
   setStencilReference: {},
+  setImmediates: {},
   beginOcclusionQuery: {},
   endOcclusionQuery: {},
   executeBundles: {},
@@ -122,6 +123,7 @@ const kRenderBundleEncoderCommandInfo =
   setBindGroup: {},
   setIndexBuffer: {},
   setVertexBuffer: {},
+  setImmediates: {},
   pushDebugGroup: {},
   popDebugGroup: {},
   insertDebugMarker: {}
@@ -139,6 +141,7 @@ const kComputePassEncoderCommandInfo =
 {
   setBindGroup: {},
   setPipeline: {},
+  setImmediates: {},
   dispatchWorkgroups: {},
   dispatchWorkgroupsIndirect: {},
   pushDebugGroup: {},
@@ -286,6 +289,13 @@ combine('command', kRenderPassEncoderCommands).
 beginSubcases().
 combine('finishBeforeCommand', ['no', 'pass', 'encoder'])
 ).
+beforeAllSubcases((t) => {
+  // MAINTENANCE_TODO: Remove when setImmediates is added to spec.
+  t.skipIf(
+    t.params.command === 'setImmediates' && !('setImmediates' in GPURenderPassEncoder.prototype),
+    'setImmediates not supported'
+  );
+}).
 fn((t) => {
   const { command, finishBeforeCommand } = t.params;
   if (command === 'multiDrawIndirect' || command === 'multiDrawIndexedIndirect') {
@@ -440,6 +450,14 @@ combine('command', kRenderBundleEncoderCommands).
 beginSubcases().
 combine('finishBeforeCommand', [false, true])
 ).
+beforeAllSubcases((t) => {
+  // MAINTENANCE_TODO: Remove when setImmediates is added to spec.
+  t.skipIf(
+    t.params.command === 'setImmediates' &&
+    !('setImmediates' in GPURenderBundleEncoder.prototype),
+    'setImmediates not supported'
+  );
+}).
 fn((t) => {
   const { command, finishBeforeCommand } = t.params;
 
@@ -455,6 +473,11 @@ fn((t) => {
   const bundleEncoder = t.device.createRenderBundleEncoder({
     colorFormats: ['rgba8unorm']
   });
+
+  t.skipIf(
+    command === 'setImmediates' && !('setImmediates' in bundleEncoder),
+    'setImmediates not supported'
+  );
 
   if (finishBeforeCommand) {
     bundleEncoder.finish();
@@ -540,6 +563,13 @@ combine('command', kComputePassEncoderCommands).
 beginSubcases().
 combine('finishBeforeCommand', ['no', 'pass', 'encoder'])
 ).
+beforeAllSubcases((t) => {
+  // MAINTENANCE_TODO: Remove when setImmediates is added to spec.
+  t.skipIf(
+    t.params.command === 'setImmediates' && !('setImmediates' in GPUComputePassEncoder.prototype),
+    'setImmediates not supported'
+  );
+}).
 fn((t) => {
   const { command, finishBeforeCommand } = t.params;
 

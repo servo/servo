@@ -767,6 +767,8 @@ class MachCommands(CommandBase):
             return res
         # https://github.com/gpuweb/cts/pull/2770
         delete(path.join(clone_dir, "out-wpt", "cts-chunked2sec.https.html"))
+        # we have incomplete workers implementation and webgpu does not work there
+        delete(path.join(clone_dir, "out-wpt", "cts-withsomeworkers.https.html"))
         cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
         # patch
         with open(cts_html, "r") as file:

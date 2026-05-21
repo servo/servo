@@ -33,8 +33,23 @@ import { DataArrayGenerator } from '../../../util/texture/data_generation.js';
 import { kBytesPerRowAlignment, dataBytesForCopyOrFail } from '../../../util/texture/layout.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 import { findFailedPixels } from '../../../util/texture/texture_ok.js';
+import { reifyExtent3D } from '../../../util/unions.js';
 
 const dataGenerator = new DataArrayGenerator();
+
+// If a texture could be textureBindingViewDimension: 'cube' then set it to 'cube'
+function applyTextureBindingViewDimensionForTest(descriptor) {
+  const size = reifyExtent3D(descriptor.size);
+  if (
+  descriptor.textureBindingViewDimension === undefined &&
+  descriptor.dimension === '2d' &&
+  size.width === size.height &&
+  size.depthOrArrayLayers === 6)
+  {
+    descriptor.textureBindingViewDimension = 'cube';
+  }
+  return descriptor;
+}
 
 class F extends AllFeaturesMaxLimitsGPUTest {
   getInitialDataPerMipLevel(
@@ -95,21 +110,21 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     const mipLevelCount = dimension === '1d' ? 1 : 4;
 
     // Create srcTexture and dstTexture
-    const srcTextureDesc = {
+    const srcTextureDesc = applyTextureBindingViewDimensionForTest({
       dimension,
       size: srcTextureSize,
       format: srcFormat,
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
       mipLevelCount
-    };
+    });
     const srcTexture = this.createTextureTracked(srcTextureDesc);
-    const dstTextureDesc = {
+    const dstTextureDesc = applyTextureBindingViewDimensionForTest({
       dimension,
       size: dstTextureSize,
       format: dstFormat,
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | extraTextureUsageFlags,
       mipLevelCount
-    };
+    });
     const dstTexture = this.createTextureTracked(dstTextureDesc);
 
     // Fill the whole subresource of srcTexture at srcCopyLevel with initialSrcData.
@@ -210,7 +225,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     align(dstBlocksPerRow * bytesPerBlock, 4);
 
     if (isCompressedTextureFormat(dstTexture.format) && this.isCompatibility) {
-      assert(textureFormatsAreViewCompatible(this.device, srcFormat, dstFormat));
+      assert(textureFormatsAreViewCompatible(this.device.features, srcFormat, dstFormat));
       // compare by rendering. We need the expected texture to match
       // the dstTexture so we'll create a texture where we supply
       // all of the data in JavaScript.
@@ -998,9 +1013,13 @@ combine('textureSize', [
 {
   srcTextureSize: { width: 31, height: 32, depthOrArrayLayers: 33 },
   dstTextureSize: { width: 31, height: 32, depthOrArrayLayers: 33 }
+},
+// Maybe used with textureBindingViewDimension: 'cube'
+{
+  srcTextureSize: { width: 32, height: 32, depthOrArrayLayers: 6 },
+  dstTextureSize: { width: 32, height: 32, depthOrArrayLayers: 6 }
 }]
 ).
-
 combine('copyBoxOffsets', kCopyBoxOffsetsFor2DArrayTextures).
 combine('srcCopyLevel', [0, 3]).
 combine('dstCopyLevel', [0, 3])

@@ -371,6 +371,10 @@ u //
 .combine('copyType', ['CopyB2T', 'CopyT2B']).
 beginSubcases().
 combine('textureUsage', kTextureUsages).
+unless(({ textureUsage }) => {
+  // TRANSIENT_ATTACHMENT is only valid when combined with RENDER_ATTACHMENT.
+  return textureUsage === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT;
+}).
 expand('_textureUsageValid', (p) => [p.textureUsage === kRequiredTextureUsage[p.copyType]]).
 combine('bufferUsage', kBufferUsages).
 expand('_bufferUsageValid', (p) => [p.bufferUsage === kRequiredBufferUsage[p.copyType]]).

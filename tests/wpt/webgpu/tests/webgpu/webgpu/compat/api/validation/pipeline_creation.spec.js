@@ -5,6 +5,7 @@ Tests that createComputePipeline(async), and createRenderPipeline(async)
 reject pipelines that are invalid in compat mode
 
 - test that depth textures can not be used with non-comparison samplers
+- test that dpdxFine, dpdyFine, fwidthFine are disallowed
 
 TODO:
 - test that a shader that has more than min(maxSamplersPerShaderStage, maxSampledTexturesPerShaderStage)
@@ -415,4 +416,52 @@ fn usage1() -> vec4f {
       fragment: { module, targets: [{ format: 'rgba8unorm' }] }
     });
   }
+});
+
+g.test('fine_derivatives').
+desc(
+  `
+Test that dpdxFine, dpdyFine, fwidthFine are disallowed in compatibility mode.
+`
+).
+params((u) =>
+u.
+combine('builtin', [
+'dpdxCoarse', // to check the test itself, should pass always
+'dpdxFine',
+'dpdyFine',
+'fwidthFine']
+).
+combine('async', [false, true]).
+beginSubcases().
+combine('type', ['f32', 'vec2f', 'vec3f', 'vec4f'])
+).
+fn((t) => {
+  const { builtin, async, type } = t.params;
+
+  const code = `
+    struct VOut {
+      @builtin(position) pos: vec4f,
+      @location(0) v: ${type},
+    };
+
+    @vertex fn vs(@builtin(vertex_index) vNdx: u32) -> VOut {
+      let pos = array(vec2f(-1, 3), vec2f(3, -1), vec2f(-1, -1));
+      return VOut(vec4f(pos[vNdx], 0, 1), ${type}(pos[vNdx].x));
+    }
+
+    @fragment fn fs(v: VOut) -> @location(0) vec4f {
+      _ = ${builtin}(v.v);
+      return vec4f(0);
+    }
+    `;
+
+  const module = t.device.createShaderModule({ code });
+
+  const success = !t.isCompatibility || builtin === 'dpdxCoarse';
+  vtu.doCreateRenderPipelineTest(t, async, success, {
+    layout: 'auto',
+    vertex: { module },
+    fragment: { module, targets: [{ format: 'rgba8unorm' }] }
+  });
 });

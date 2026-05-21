@@ -6,7 +6,8 @@ import {
   assert,
   raceWithRejectOnTimeout,
   assertReject,
-  unreachable } from
+  unreachable,
+  hasFeature } from
 '../../common/util/util.js';
 import { getDefaultLimits, kPossibleLimits } from '../capability_info.js';
 
@@ -129,6 +130,8 @@ export class DevicePool {
           await attemptGarbageCollection();
         }
       }
+
+      throw ex;
     } finally {
       const deviceDueForReplacement =
       holder.testCaseUseCounter >= globalTestConfig.casesBetweenReplacingDevice;
@@ -317,7 +320,7 @@ descriptor)
   }
 
   for (const feature of descriptor.requiredFeatures) {
-    if (!adapter.features.has(feature)) {
+    if (!hasFeature(adapter.features, feature)) {
       return false;
     }
   }

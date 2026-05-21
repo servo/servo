@@ -47,7 +47,7 @@ g.test('matrix_compound').
 specURL('https://www.w3.org/TR/WGSL/#floating-point-evaluation').
 desc(
   `
-Expression: x =+ y, where x and y are matrices
+Expression: x += y, where x and y are matrices
 Accuracy: Correctly rounded
 `
 ).
