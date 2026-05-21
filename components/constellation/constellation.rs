@@ -2563,6 +2563,7 @@ where
     ) {
         let origin = match &algorithm {
             ServiceWorkerAlgorithm::StartRegister(job) => job.storage_key.clone(),
+            ServiceWorkerAlgorithm::Unregister(job) => job.storage_key.clone(),
             ServiceWorkerAlgorithm::MatchServiceWorkerRegistration { storage_key, .. } => {
                 storage_key.clone()
             },

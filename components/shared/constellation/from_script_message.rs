@@ -305,6 +305,7 @@ pub enum JobResult {
 /// Jobs are resolved with the help of various values.
 pub enum JobResultValue {
     Register(ServiceWorkerRegistrationInfo),
+    Unregister(bool),
 }
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-service-worker-registration>
@@ -332,6 +333,8 @@ pub struct ServiceWorkerRegistrationInfo {
 pub enum ServiceWorkerAlgorithm {
     /// <https://w3c.github.io/ServiceWorker/#start-register>
     StartRegister(Job),
+    /// <https://w3c.github.io/ServiceWorker/#unregister>
+    Unregister(Job),
     /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
     MatchServiceWorkerRegistration {
         storage_key: ImmutableOrigin,
