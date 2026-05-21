@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+    .square {
+        width: 20px;
+        height: 20px;
+        background: black;
+    }
+    .fake-iframe {
+        width: 100px;
+        height: 100px;
+    }
+    .svg-filter {
+        filter: url(#svg-filter);
+    }
+</style>
+</head>
+<body>
+    <svg width="0" height="0" display="none">
+        <filter id="svg-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+        </filter>
+    </svg>
+    <div>
+        SVG filter security test: this test passes if there is a filter effect on the srcdoc frame.
+    </div>
+    <br />
+    <div>
+        <div class="svg-filter fake-iframe">
+            <div class="square"></div>
+        </div>
+    </div>
+</body>
+</html>

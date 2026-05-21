@@ -258,24 +258,23 @@ impl DocumentEmbedderControls {
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
         {
-            if anchor_element.is_none() {
-                if let Some(candidate_anchor_element) = node.downcast::<HTMLAnchorElement>() {
-                    if candidate_anchor_element.is_instance_activatable() {
-                        anchor_element = Some(DomRoot::from_ref(candidate_anchor_element));
-                    }
-                }
+            if anchor_element.is_none() &&
+                let Some(candidate_anchor_element) = node.downcast::<HTMLAnchorElement>() &&
+                candidate_anchor_element.is_instance_activatable()
+            {
+                anchor_element = Some(DomRoot::from_ref(candidate_anchor_element));
             }
 
-            if image_element.is_none() {
-                if let Some(candidate_image_element) = node.downcast::<HTMLImageElement>() {
-                    image_element = Some(DomRoot::from_ref(candidate_image_element))
-                }
+            if image_element.is_none() &&
+                let Some(candidate_image_element) = node.downcast::<HTMLImageElement>()
+            {
+                image_element = Some(DomRoot::from_ref(candidate_image_element))
             }
 
-            if text_input_element.is_none() {
-                if let Some(candidate_text_input_element) = node.as_text_input() {
-                    text_input_element = Some(candidate_text_input_element);
-                }
+            if text_input_element.is_none() &&
+                let Some(candidate_text_input_element) = node.as_text_input()
+            {
+                text_input_element = Some(candidate_text_input_element);
             }
         }
 
@@ -421,12 +420,15 @@ impl ContextMenuNodes {
             window.send_to_embedder(EmbedderMsg::SetClipboardText(window.webview_id(), string));
         };
 
-        let open_url_in_new_webview = |url: ServoUrl| {
+        let open_url_in_new_webview = |cx: &mut JSContext, url: ServoUrl| {
             let Some(browsing_context) = document.browsing_context() else {
                 return;
             };
-            let (browsing_context, new) = browsing_context
-                .choose_browsing_context("_blank".into(), true /* nooopener */);
+            let (browsing_context, new) = browsing_context.choose_browsing_context(
+                cx,
+                "_blank".into(),
+                true, /* nooopener */
+            );
             let Some(browsing_context) = browsing_context else {
                 return;
             };
@@ -475,7 +477,7 @@ impl ContextMenuNodes {
                     return;
                 };
                 if let Some(url) = anchor_element.full_href_url_for_user_interface() {
-                    open_url_in_new_webview(url);
+                    open_url_in_new_webview(cx, url);
                 };
             },
             ContextMenuAction::CopyImageLink => {
@@ -494,7 +496,7 @@ impl ContextMenuNodes {
                     return;
                 };
                 if let Some(url) = image_element.full_image_url_for_user_interface() {
-                    open_url_in_new_webview(url);
+                    open_url_in_new_webview(cx, url);
                 }
             },
             ContextMenuAction::Cut => {

@@ -29,6 +29,7 @@ use crate::dom::execcommand::commands::fontsize::{
 };
 use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
 use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
+use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::removeformat::execute_removeformat_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
@@ -50,12 +51,85 @@ pub(crate) enum DefaultSingleLineContainerName {
     Paragraph,
 }
 
+impl DefaultSingleLineContainerName {
+    pub(crate) fn str(&self) -> &str {
+        match self {
+            DefaultSingleLineContainerName::Div => "div",
+            DefaultSingleLineContainerName::Paragraph => "p",
+        }
+    }
+}
+
 impl From<DefaultSingleLineContainerName> for DOMString {
     fn from(default_single_line_container_name: DefaultSingleLineContainerName) -> Self {
         match default_single_line_container_name {
             DefaultSingleLineContainerName::Div => DOMString::from("div"),
             DefaultSingleLineContainerName::Paragraph => DOMString::from("p"),
         }
+    }
+}
+
+pub(crate) enum BoolOrOptionalString {
+    Bool(bool),
+    OptionalString(Option<DOMString>),
+}
+
+impl From<Option<DOMString>> for BoolOrOptionalString {
+    fn from(optional_string: Option<DOMString>) -> Self {
+        Self::OptionalString(optional_string)
+    }
+}
+
+impl From<bool> for BoolOrOptionalString {
+    fn from(bool_: bool) -> Self {
+        Self::Bool(bool_)
+    }
+}
+
+pub(crate) struct RecordedStateOfCommand {
+    pub(crate) command: CommandName,
+    pub(crate) value: BoolOrOptionalString,
+}
+
+impl RecordedStateOfCommand {
+    pub(crate) fn for_command_node(command: CommandName, node: &Node) -> Self {
+        let value = node.effective_command_value(&command).into();
+        Self { command, value }
+    }
+
+    pub(crate) fn for_command_node_with_inline_activated_values(
+        command: CommandName,
+        node: &Node,
+    ) -> Self {
+        let effective_command_value = node.effective_command_value(&command);
+        let value = effective_command_value
+            .is_some_and(|effective_command_value| {
+                command
+                    .inline_command_activated_values()
+                    .contains(&effective_command_value.str().as_ref())
+            })
+            .into();
+        Self { command, value }
+    }
+
+    pub(crate) fn for_command_node_with_value(
+        cx: &mut JSContext,
+        command: CommandName,
+        document: &Document,
+    ) -> Self {
+        let value = command.current_value(cx, document).into();
+        Self { command, value }
+    }
+
+    fn for_command_state_override(command: CommandName, document: &Document) -> Option<Self> {
+        let value = document.state_override(&command)?.into();
+        Some(Self { command, value })
+    }
+
+    fn for_command_value_override(command: CommandName, document: &Document) -> Option<Self> {
+        let value_override = document.value_override(&command)?;
+        let value = Some(value_override).into();
+        Some(Self { command, value })
     }
 }
 
@@ -176,7 +250,7 @@ impl CssPropertyName {
         let style_attribute = element.style_attribute().borrow();
         let declarations = style_attribute.as_ref()?;
         let document = element.owner_document();
-        let shared_lock = document.style_shared_lock();
+        let shared_lock = document.style_shared_author_lock();
         let read_lock = shared_lock.read();
         let style = declarations.read_with(&read_lock);
 
@@ -256,6 +330,7 @@ pub(crate) enum CommandName {
     Indent,
     InsertHorizontalRule,
     InsertHtml,
+    InsertImage,
     InsertLineBreak,
     InsertOrderedList,
     InsertParagraph,
@@ -475,6 +550,53 @@ impl CommandName {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#record-current-overrides>
+    fn record_current_overrides(document: &Document) -> Vec<RecordedStateOfCommand> {
+        // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
+        let mut overrides = vec![];
+        // Step 2. If there is a value override for "createLink",
+        // add ("createLink", value override for "createLink") to overrides.
+        if let Some(value_override) =
+            RecordedStateOfCommand::for_command_value_override(CommandName::CreateLink, document)
+        {
+            overrides.push(value_override);
+        }
+        // Step 3. For each command in the list "bold", "italic", "strikethrough",
+        // "subscript", "superscript", "underline", in order:
+        // if there is a state override for command, add (command, command's state override) to overrides.
+        for command in [
+            CommandName::Bold,
+            CommandName::Italic,
+            CommandName::Strikethrough,
+            CommandName::Subscript,
+            CommandName::Superscript,
+            CommandName::Underline,
+        ] {
+            if let Some(state_override) =
+                RecordedStateOfCommand::for_command_state_override(command, document)
+            {
+                overrides.push(state_override);
+            }
+        }
+        // Step 4. For each command in the list "fontName", "fontSize", "foreColor", "hiliteColor",
+        // in order: if there is a value override for command,
+        // add (command, command's value override) to overrides.
+        for command in [
+            CommandName::FontName,
+            CommandName::FontSize,
+            CommandName::ForeColor,
+            CommandName::HiliteColor,
+        ] {
+            if let Some(value_override) =
+                RecordedStateOfCommand::for_command_value_override(command, document)
+            {
+                overrides.push(value_override);
+            }
+        }
+        // Step 5. Return overrides.
+        overrides
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
     pub(crate) fn relevant_css_property(&self) -> Option<CssPropertyName> {
         // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
@@ -529,6 +651,29 @@ impl CommandName {
         )
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#preserves-overrides>
+    fn preserves_overrides(&self) -> bool {
+        matches!(
+            self,
+            CommandName::Delete |
+                CommandName::FormatBlock |
+                CommandName::ForwardDelete |
+                CommandName::Indent |
+                CommandName::InsertHorizontalRule |
+                CommandName::InsertHtml |
+                CommandName::InsertImage |
+                CommandName::InsertLineBreak |
+                CommandName::InsertOrderedList |
+                CommandName::InsertParagraph |
+                CommandName::InsertUnorderedList |
+                CommandName::JustifyCenter |
+                CommandName::JustifyFull |
+                CommandName::JustifyLeft |
+                CommandName::JustifyRight |
+                CommandName::Outdent
+        )
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#action>
     pub(crate) fn execute(
         &self,
@@ -537,7 +682,15 @@ impl CommandName {
         selection: &Selection,
         value: DOMString,
     ) -> bool {
-        match self {
+        // https://w3c.github.io/editing/docs/execCommand/#preserves-overrides
+        // > If a command preserves overrides, then before taking its action,
+        // > the user agent must record current overrides.
+        let overrides = if self.preserves_overrides() {
+            Self::record_current_overrides(document)
+        } else {
+            vec![]
+        };
+        let result = match self {
             CommandName::BackColor => execute_backcolor_command(cx, document, selection, value),
             CommandName::Bold => execute_bold_command(cx, document, selection),
             CommandName::CreateLink => execute_createlink_command(cx, document, selection, value),
@@ -549,6 +702,9 @@ impl CommandName {
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
             CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
+            CommandName::InsertParagraph => {
+                execute_insert_paragraph_command(cx, document, selection)
+            },
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::RemoveFormat => execute_removeformat_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
@@ -558,7 +714,19 @@ impl CommandName {
             CommandName::Underline => execute_underline_command(cx, document, selection),
             CommandName::Unlink => execute_unlink_command(cx, selection),
             _ => false,
+        };
+
+        // https://w3c.github.io/editing/docs/execCommand/#preserves-overrides
+        // > After taking the action, if the active range is collapsed,
+        // > it must restore states and values from the recorded list.
+        if let Some(active_range) = selection
+            .active_range()
+            .filter(|active_range| active_range.collapsed())
+        {
+            active_range.restore_states_and_values(cx, selection, document, overrides);
         }
+
+        result
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#inline-command-activated-values>

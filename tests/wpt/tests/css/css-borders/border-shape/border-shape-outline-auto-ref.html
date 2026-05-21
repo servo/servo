@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Borders Reference: outline auto follows border-shape</title>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 20px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  border-radius: 50px;
+  outline: auto 4px blue;
+}
+</style>
+<div class="container">
+  <div class="target" tabindex="0" id="target"></div>
+</div>
+<script>
+document.getElementById('target').focus();
+</script>

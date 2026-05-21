@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="text-emphasis-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.common {
+  font: 20px/1 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  margin: 20px;
+  text-emphasis: 'e' blue;
+}
+
+.grow-consistent {
+  text-fit: grow consistent;
+}
+
+.grow-line {
+  text-fit: grow per-line-all;
+}
+
+.shrink-consistent {
+  text-fit: shrink consistent;
+  width: 80px;
+}
+
+.shrink-line {
+  text-fit: shrink per-line-all;
+  width: 80px;
+}
+</style>
+
+<div class="common grow-consistent">ÉpÉ
+pÉpÉ</div>
+<div class="common grow-line">ÉpÉp
+pÉpÉpÉpÉ</div>
+
+<div class="common shrink-consistent">ÉpÉ
+pÉpÉpÉpÉ</div>
+<div class="common shrink-line">ÉpÉp
+pÉpÉpÉpÉ</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

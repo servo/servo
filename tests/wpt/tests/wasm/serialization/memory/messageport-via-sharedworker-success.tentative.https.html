@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shared WebAssembly.Memory through a MessagePort that traveled via a SharedWorker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const sw = new SharedWorker("resources/sharedworker-port-bouncer.js");
+    const { port1, port2 } = new MessageChannel();
+
+    // Hand port2 to the SharedWorker; it will transfer it straight back to us.
+    sw.port.postMessage(port2, [port2]);
+
+    sw.port.onmessage = t.step_func(e => {
+      assert_equals(e.data, "bounced");
+      assert_equals(e.ports.length, 1, "SharedWorker bounced exactly one port back");
+      const bounced = e.ports[0];
+
+      const memory = new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 });
+      new Int32Array(memory.buffer)[0] = 100;
+
+      bounced.onmessage = t.step_func(({ data }) => {
+        assert_true(data instanceof WebAssembly.Memory, "Echoed object is a WebAssembly.Memory");
+        assert_not_equals(data, memory, "Cloning produces a fresh WebAssembly.Memory");
+        assert_true(data.buffer instanceof SharedArrayBuffer);
+        assert_equals(data.buffer.byteLength, memory.buffer.byteLength);
+        assert_equals(new Int32Array(data.buffer)[0], 100,
+                      "Bounced port still observes the same shared backing store");
+        resolve();
+      });
+      bounced.onmessageerror = t.unreached_func(
+        "messageerror after the bounced port returned to the window");
+
+      port1.postMessage(memory);
+    });
+
+    sw.port.onmessageerror = t.unreached_func("messageerror on SharedWorker port");
+  });
+}, "Shared WebAssembly.Memory cloned through a MessagePort that round-tripped via a SharedWorker");
+</script>

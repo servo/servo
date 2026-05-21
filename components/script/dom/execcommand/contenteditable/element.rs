@@ -101,12 +101,11 @@ impl Element {
         }
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
         // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
-        if self.is::<HTMLFontElement>() {
-            if let Some(font_size) = self.get_attribute(&local_name!("size")) {
-                if let AttrValue::UInt(_, value) = *font_size.value() {
-                    return Some(font_size_to_css_font(&value).into());
-                }
-            }
+        if self.is::<HTMLFontElement>() &&
+            let Some(font_size) = self.get_attribute(&local_name!("size")) &&
+            let AttrValue::UInt(_, value) = *font_size.value()
+        {
+            return Some(font_size_to_css_font(&value).into());
         }
 
         // Step 12. If element is in the following list, and property is equal to the CSS property name listed for it,
@@ -196,12 +195,33 @@ impl Element {
         let style_attribute = self.style_attribute().borrow();
         style_attribute.as_ref().is_some_and(|declarations| {
             let document = self.owner_document();
-            let shared_lock = document.style_shared_lock();
+            let shared_lock = document.style_shared_author_lock();
             let read_lock = shared_lock.read();
             let style = declarations.read_with(&read_lock);
 
             style.is_empty()
         })
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#non-list-single-line-container>
+    pub(crate) fn is_non_list_single_line_container(&self) -> bool {
+        // > A non-list single-line container is an HTML element with local name
+        // > "address", "div", "h1", "h2", "h3", "h4", "h5", "h6", "listing", "p", "pre", or "xmp".
+        matches!(
+            *self.local_name(),
+            local_name!("address") |
+                local_name!("div") |
+                local_name!("h1") |
+                local_name!("h2") |
+                local_name!("h3") |
+                local_name!("h4") |
+                local_name!("h5") |
+                local_name!("h6") |
+                local_name!("listing") |
+                local_name!("p") |
+                local_name!("pre") |
+                local_name!("xmp")
+        )
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
@@ -284,7 +304,7 @@ impl Element {
             return false;
         };
         let document = self.owner_document();
-        let shared_lock = document.style_shared_lock();
+        let shared_lock = document.style_shared_author_lock();
         let read_lock = shared_lock.read();
         let style = declarations.read_with(&read_lock);
 
@@ -355,15 +375,15 @@ impl Element {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#set-the-tag-name>
-    pub(crate) fn set_the_tag_name(&self, cx: &mut JSContext, new_name: &str) -> DomRoot<Element> {
+    pub(crate) fn set_the_tag_name(&self, cx: &mut JSContext, new_name: &str) -> DomRoot<Node> {
         // Step 1. If element is an HTML element with local name equal to new name, return element.
         if self.local_name() == &LocalName::from(new_name) {
-            return DomRoot::from_ref(self);
+            return DomRoot::upcast(DomRoot::from_ref(self));
         }
         // Step 2. If element's parent is null, return element.
         let node = self.upcast::<Node>();
         let Some(parent) = node.GetParentNode() else {
-            return DomRoot::from_ref(self);
+            return DomRoot::upcast(DomRoot::from_ref(self));
         };
         // Step 3. Let replacement element be the result of calling createElement(new name) on the ownerDocument of element.
         let document = node.owner_document();
@@ -385,6 +405,6 @@ impl Element {
         // Step 7. Remove element from its parent.
         node.remove_self(cx);
         // Step 8. Return replacement element.
-        replacement
+        DomRoot::upcast(replacement)
     }
 }

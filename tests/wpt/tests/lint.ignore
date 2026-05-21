@@ -52,6 +52,7 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wbn
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.avif
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.annexb
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.crx
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.tlb
 
 ## .gitignore
 W3C-TEST.ORG: .gitignore
@@ -90,11 +91,13 @@ CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 CR AT EOL: css/css-text/ellisize-rtl-text-crash.html
 CR AT EOL: html/syntax/charset/after-head-after-1kb-crlf.html
 CR AT EOL: html/syntax/charset/after-head-in-1kb-crlf.html
+CR AT EOL: fetch/h1-parsing/resources/parsing_*.asis
 
 # Intentional use of tabs
 INDENT TABS: html/canvas/element/canvas-host/2d.canvas.host.size.attributes.parse.whitespace.html
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/header-tab.vtt
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/whitespace-chars.vtt
+INDENT TABS: fetch/h1-parsing/resources/parsing_*.asis
 
 ## Intentional use of trailing whitespace
 TRAILING WHITESPACE: server-timing/resources/parsing/*
@@ -103,6 +106,7 @@ TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
 TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
 TRAILING WHITESPACE: content-security-policy/support/manifest.json
 TRAILING WHITESPACE: xml/xslt/resources/testu1LINE.xml
+TRAILING WHITESPACE: fetch/h1-parsing/resources/parsing_*.asis
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -443,6 +447,7 @@ SET TIMEOUT: speculation-rules/prerender/resources/media-autoplay-attribute.html
 SET TIMEOUT: speculation-rules/prerender/resources/media-play.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/timers.html
 SET TIMEOUT: dom/abort/crashtests/timeout-close.html
+SET TIMEOUT: xml/xslt/xslt-mutation-crash.xhtml
 SET TIMEOUT: storage-access-api/storage-access-beyond-cookies.locks.sub.https.window.js
 SET TIMEOUT: pointerevents/crashtests/longpress-crash.html
 

@@ -75,50 +75,53 @@ impl CSSStyleOwner {
             CSSStyleOwner::Null => unreachable!(
                 "CSSStyleDeclaration should always be read-only when CSSStyleOwner is Null"
             ),
-            CSSStyleOwner::Element(ref el) => {
-                let document = el.owner_document();
-                let shared_lock = document.style_shared_lock();
-                let mut attr = el.style_attribute().borrow_mut().take();
-                let result = if let Some(lock) = attr.as_ref() {
-                    let mut guard = shared_lock.write();
-                    let pdb = lock.write_with(&mut guard);
-                    f(pdb, &mut changed)
-                } else {
-                    let mut pdb = PropertyDeclarationBlock::new();
-                    let result = f(&mut pdb, &mut changed);
+            CSSStyleOwner::Element(ref element) => {
+                let document = element.owner_document();
+                let shared_lock = document.style_shared_author_lock();
+                let mut attribute_pdb = element.style_attribute().borrow_mut().take();
 
-                    // Here `changed` is somewhat silly, because we know the
-                    // exact conditions under it changes.
-                    changed = !pdb.declarations().is_empty();
-                    if changed {
-                        attr = Some(Arc::new(shared_lock.wrap(pdb)));
-                    }
-
-                    result
-                };
-
-                if changed {
-                    // Note that there's no need to remove the attribute here if
-                    // the declaration block is empty[1], and if `attr` is
-                    // `None` it means that it necessarily didn't change, so no
-                    // need to go through all the set_attribute machinery.
-                    //
-                    // [1]: https://github.com/whatwg/html/issues/2306
-                    if let Some(pdb) = attr {
-                        let guard = shared_lock.read();
-                        let mut serialization = String::new();
-                        pdb.read_with(&guard).to_css(&mut serialization).unwrap();
-                        el.set_attribute(
-                            cx,
-                            &local_name!("style"),
-                            AttrValue::Declaration(serialization, pdb),
-                        );
-                    }
-                } else {
-                    // Remember to put it back.
-                    *el.style_attribute().borrow_mut() = attr;
+                // When there are mutation observers, the old PDB and the new PDB need to
+                // co-exist so that both attribute values can be serialized and sent to
+                // the observer. In that case, first clone the block and mutate that instead
+                // of mutating the existing one.
+                if element.needs_preserved_style_attribute_after_change() {
+                    attribute_pdb = attribute_pdb.map(|attribute_pdb| {
+                        let new_pdb = attribute_pdb.read_with(&shared_lock.read()).clone();
+                        Arc::new(shared_lock.wrap(new_pdb))
+                    });
                 }
 
+                let (attribute_pdb, result) = if let Some(attribute_pdb) = attribute_pdb {
+                    let mut guard = shared_lock.write();
+                    let writable_pdb = attribute_pdb.write_with(&mut guard);
+                    let result = f(writable_pdb, &mut changed);
+                    (attribute_pdb, result)
+                } else {
+                    let mut new_pdb = PropertyDeclarationBlock::new();
+                    let result = f(&mut new_pdb, &mut changed);
+
+                    changed = !new_pdb.declarations().is_empty();
+                    if !changed {
+                        return result;
+                    }
+
+                    (Arc::new(shared_lock.wrap(new_pdb)), result)
+                };
+
+                // If nothing changed, replace the unchanged PDB in the attribute and just
+                // return. Note that there's no need to remove the attribute here if the
+                // declaration block is empty (see
+                // https://github.com/whatwg/html/issues/2306).
+                if !changed {
+                    *element.style_attribute().borrow_mut() = Some(attribute_pdb);
+                    return result;
+                }
+
+                element.set_attribute(
+                    cx,
+                    &local_name!("style"),
+                    AttrValue::from_declaration(attribute_pdb, shared_lock.clone()),
+                );
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
@@ -146,7 +149,7 @@ impl CSSStyleOwner {
             CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
                 Some(ref pdb) => {
                     let document = el.owner_document();
-                    let guard = document.style_shared_lock().read();
+                    let guard = document.style_shared_author_lock().read();
                     f(pdb.read_with(&guard))
                 },
                 None => {

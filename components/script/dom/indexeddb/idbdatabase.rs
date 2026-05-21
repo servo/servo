@@ -275,10 +275,10 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5. If keyPath is not null and is not a valid key path, throw a
         // "SyntaxError" DOMException.
-        if let Some(path) = key_path {
-            if !is_valid_key_path(cx, path)? {
-                return Err(Error::Syntax(None));
-            }
+        if let Some(path) = key_path &&
+            !is_valid_key_path(cx, path)?
+        {
+            return Err(Error::Syntax(None));
         }
 
         // Step 6. If an object store named name already exists in database throw

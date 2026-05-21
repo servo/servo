@@ -13,7 +13,7 @@ from .base import (get_free_port,
 from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
                                             MarionetteRefTestExecutorAndroid,  # noqa: F401
                                             MarionetteCrashtestExecutor,  # noqa: F401
-                                            MarionetteWdspecExecutor)  # noqa: F401
+                                            MarionettePytestExecutor)  # noqa: F401
 from .base import (Browser,
                    ExecutorBrowser)
 from .firefox import (get_timeout_multiplier,  # noqa: F401
@@ -21,7 +21,7 @@ from .firefox import (get_timeout_multiplier,  # noqa: F401
                       run_info_extras as fx_run_info_extras,
                       update_properties,  # noqa: F401
                       executor_kwargs as fx_executor_kwargs,  # noqa: F401
-                      FirefoxWdSpecBrowser,
+                      FirefoxPytestBrowser,
                       ProfileCreator as FirefoxProfileCreator)
 
 
@@ -32,7 +32,7 @@ __wptrunner__ = {"product": "firefox_android",
                  "executor": {"testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutorAndroid",
                               "crashtest": "MarionetteCrashtestExecutor",
-                              "wdspec": "MarionetteWdspecExecutor",
+                              "wdspec": "MarionettePytestExecutor",
                               "test262": "MarionetteTestharnessExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
@@ -398,7 +398,7 @@ class FirefoxAndroidBrowser(Browser):
             return False
 
 
-class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
+class FirefoxAndroidWdSpecBrowser(FirefoxPytestBrowser):
     def __init__(self, logger, config=None, device_serial=None, adb_binary=None, **kwargs):
 
         if "profile_creator_cls" not in kwargs:

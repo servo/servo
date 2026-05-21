@@ -176,7 +176,6 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
         if let Err(e) = self.droppable.channel.0.send(WebGPURequest::EndRenderPass {
             render_pass_id: self.id().0,
             device_id: self.command_encoder.device_id().0,
-            command_encoder_id: self.command_encoder.id().0,
         }) {
             warn!("Failed to send WebGPURequest::EndRenderPass: {e:?}");
         }

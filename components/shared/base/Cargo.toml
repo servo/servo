@@ -19,18 +19,18 @@ doctest = false
 accesskit = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo-config = { workspace = true }
 time = { workspace = true }
-webrender_api = { workspace = true }
-log = { workspace = true }
-regex = { workspace = true }
 unicode-segmentation = { workspace = true }
+webrender_api = { workspace = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 mach2 = { workspace = true }

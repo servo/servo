@@ -43,12 +43,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags,
-    ElementsFromPointResult, FragmentType, Layout, LayoutImageDestination, PendingImage,
-    PendingImageState, PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointFlags, ElementsFromPointResult,
+    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -57,7 +56,6 @@ use net_traits::image_cache::{
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::request::Referrer;
-use net_traits::response::HttpsState;
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
@@ -852,7 +850,7 @@ impl Window {
         self.set_ongoing_navigation();
 
         // 3. Abort a document and its descendants given document.
-        doc.abort(cx);
+        doc.abort_a_document_and_its_descendants(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
@@ -1985,7 +1983,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    fn Scroll(&self, options: &ScrollToOptions) {
+    fn Scroll(&self, cx: &mut JSContext, options: &ScrollToOptions) {
         // Step 1: If invoked with one argument, follow these substeps:
         // Step 1.1: Let options be the argument.
         // Step 1.2: Let x be the value of the left dictionary member of options, if
@@ -1997,35 +1995,35 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let y = options.top.unwrap_or(0.0) as f32;
 
         // The rest of the specification continues from `Self::scroll`.
-        self.scroll(x, y, options.parent.behavior);
+        self.scroll(cx, x, y, options.parent.behavior);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    fn Scroll_(&self, x: f64, y: f64) {
+    fn Scroll_(&self, cx: &mut JSContext, x: f64, y: f64) {
         // Step 2: If invoked with two arguments, follow these substeps:
         // Step 2.1 Let options be null converted to a ScrollToOptions dictionary. [WEBIDL]
         // Step 2.2: Let x and y be the arguments, respectively.
-        self.scroll(x as f32, y as f32, ScrollBehavior::Auto);
+        self.scroll(cx, x as f32, y as f32, ScrollBehavior::Auto);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollto>
     ///
     /// > When the scrollTo() method is invoked, the user agent must act as if the
     /// > scroll() method was invoked with the same arguments.
-    fn ScrollTo(&self, options: &ScrollToOptions) {
-        self.Scroll(options);
+    fn ScrollTo(&self, cx: &mut JSContext, options: &ScrollToOptions) {
+        self.Scroll(cx, options);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollto>:
     ///
     /// > When the scrollTo() method is invoked, the user agent must act as if the
     /// > scroll() method was invoked with the same arguments.
-    fn ScrollTo_(&self, x: f64, y: f64) {
-        self.Scroll_(x, y)
+    fn ScrollTo_(&self, cx: &mut JSContext, x: f64, y: f64) {
+        self.Scroll_(cx, x, y)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollby>
-    fn ScrollBy(&self, options: &ScrollToOptions) {
+    fn ScrollBy(&self, cx: &mut JSContext, options: &ScrollToOptions) {
         // When the scrollBy() method is invoked, the user agent must run these steps:
         // Step 1: If invoked with two arguments, follow these substeps:
         //   This doesn't apply here.
@@ -2044,11 +2042,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options.top.replace(y + self.ScrollY() as f64);
 
         // Step 5: Act as if the scroll() method was invoked with options as the only argument.
-        self.Scroll(&options)
+        self.Scroll(cx, &options)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollby>
-    fn ScrollBy_(&self, x: f64, y: f64) {
+    fn ScrollBy_(&self, cx: &mut JSContext, x: f64, y: f64) {
         // When the scrollBy() method is invoked, the user agent must run these steps:
         // Step 1: If invoked with two arguments, follow these substeps:
         // Step 1.1: Let options be null converted to a ScrollToOptions dictionary.
@@ -2062,7 +2060,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options.top.replace(y);
 
         // Now follow the specification for the one argument option.
-        self.ScrollBy(&options);
+        self.ScrollBy(cx, &options);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-resizeto>
@@ -2433,7 +2431,7 @@ impl Window {
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 1-2, 6-8.
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
 
         // Step 3-5.
         let target_origin = match target_origin.0[..].as_ref() {
@@ -2476,10 +2474,10 @@ impl Window {
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
             let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() {
-                if currently_active == pipeline_id {
-                    self.window_proxy.set(None);
-                }
+            if let Some(currently_active) = proxy.currently_active() &&
+                currently_active == pipeline_id
+            {
+                self.window_proxy.set(None);
             }
         }
 
@@ -2492,7 +2490,7 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    pub(crate) fn scroll(&self, x: f32, y: f32, behavior: ScrollBehavior) {
+    pub(crate) fn scroll(&self, cx: &mut JSContext, x: f32, y: f32, behavior: ScrollBehavior) {
         // Step 3: Normalize non-finite values for x and y.
         let xfinite = if x.is_finite() { x } else { 0.0 };
         let yfinite = if y.is_finite() { y } else { 0.0 };
@@ -2541,12 +2539,20 @@ impl Window {
         // Step 12: Perform a scroll of the viewport to position, document’s root element
         // as the associated element, if there is one, or null otherwise, and the scroll
         // behavior being the value of the behavior dictionary member of options.
-        self.perform_a_scroll(x, y, self.pipeline_id().root_scroll_id(), behavior, None);
+        self.perform_a_scroll(
+            cx,
+            x,
+            y,
+            self.pipeline_id().root_scroll_id(),
+            behavior,
+            None,
+        );
     }
 
     /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
     pub(crate) fn perform_a_scroll(
         &self,
+        cx: &mut JSContext,
         x: f32,
         y: f32,
         scroll_id: ExternalScrollId,
@@ -2556,8 +2562,10 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        let (reflow_phases_run, _) =
-            self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
+        let (reflow_phases_run, _) = self.reflow(
+            cx,
+            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
+        );
         if reflow_phases_run.needs_frame() {
             self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
@@ -2602,7 +2610,11 @@ impl Window {
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> (ReflowPhasesRun, ReflowStatistics) {
+    pub(crate) fn reflow(
+        &self,
+        cx: &mut JSContext,
+        reflow_goal: ReflowGoal,
+    ) -> (ReflowPhasesRun, ReflowStatistics) {
         let document = self.Document();
 
         // Never reflow inactive Documents.
@@ -2684,6 +2696,7 @@ impl Window {
         }
 
         self.handle_pending_images_post_reflow(
+            cx,
             reflow_result.pending_images,
             reflow_result.pending_rasterization_images,
             reflow_result.pending_svg_elements_for_serialization,
@@ -2771,7 +2784,7 @@ impl Window {
 
     /// If parsing has taken a long time and reflows are still waiting for the `load` event,
     /// start allowing them. See <https://github.com/servo/servo/pull/6028>.
-    pub(crate) fn reflow_if_reflow_timer_expired(&self) {
+    pub(crate) fn reflow_if_reflow_timer_expired(&self, cx: &mut JSContext) {
         // Only trigger a long parsing time reflow if we are in the first parse of `<body>`
         // and it started more than `INITIAL_REFLOW_DELAY` ago.
         if !matches!(
@@ -2780,7 +2793,7 @@ impl Window {
         ) {
             return;
         }
-        self.allow_layout_if_necessary();
+        self.allow_layout_if_necessary(cx);
     }
 
     /// Block layout for this `Window` until parsing is done. If parsing takes a long time,
@@ -2799,7 +2812,7 @@ impl Window {
 
     /// Inform the [`Window`] that layout is allowed either because `load` has happened
     /// or because parsing the `<body>` took so long that we cannot wait any longer.
-    pub(crate) fn allow_layout_if_necessary(&self) {
+    pub(crate) fn allow_layout_if_necessary(&self, cx: &mut JSContext) {
         if matches!(
             self.layout_blocker.get(),
             LayoutBlocker::FiredLoadEventOrParsingTimerExpired
@@ -2822,7 +2835,7 @@ impl Window {
         //
         // See <https://github.com/servo/servo/issues/14719>
         let document = self.Document();
-        if !document.is_render_blocked() && document.update_the_rendering().0.needs_frame() {
+        if !document.is_render_blocked() && document.update_the_rendering(cx).0.needs_frame() {
             self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }
@@ -2833,8 +2846,12 @@ impl Window {
     }
 
     /// Trigger a reflow that is required by a certain queries.
+    #[expect(unsafe_code)]
     pub(crate) fn layout_reflow(&self, query_msg: QueryMsg) {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg));
+        // TODO https://github.com/servo/servo/issues/44499
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+
+        self.reflow(&mut cx, ReflowGoal::LayoutQuery(query_msg));
     }
 
     pub(crate) fn resolved_font_style_query(
@@ -2905,7 +2922,7 @@ impl Window {
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
-    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectIterator {
+    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectVec {
         self.layout_reflow(QueryMsg::BoxAreas);
         self.layout
             .borrow()
@@ -2965,6 +2982,7 @@ impl Window {
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
     pub(crate) fn scroll_an_element(
         &self,
+        cx: &mut JSContext,
         element: &Element,
         x: f32,
         y: f32,
@@ -2981,7 +2999,7 @@ impl Window {
         // Step 6.
         // > Perform a scroll of box to position, element as the associated element and behavior as
         // > the scroll behavior.
-        self.perform_a_scroll(x, y, scroll_id, behavior, Some(element));
+        self.perform_a_scroll(cx, x, y, scroll_id, behavior, Some(element));
     }
 
     pub(crate) fn resolved_style_query(
@@ -3528,6 +3546,7 @@ impl Window {
     #[expect(unsafe_code)]
     fn handle_pending_images_post_reflow(
         &self,
+        cx: &mut JSContext,
         pending_images: Vec<PendingImage>,
         pending_rasterization_images: Vec<PendingRasterizationImage>,
         pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
@@ -3538,7 +3557,13 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
+                fetch_image_for_layout(
+                    url.clone(),
+                    &node,
+                    id,
+                    image.is_internal_request,
+                    self.image_cache.clone(),
+                );
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -3589,7 +3614,7 @@ impl Window {
         for node in pending_svg_element_for_serialization.into_iter() {
             let node = unsafe { from_untrusted_node_address(node) };
             let svg = node.downcast::<SVGSVGElement>().unwrap();
-            svg.serialize_and_cache_subtree();
+            svg.serialize_and_cache_subtree(cx);
             node.dirty(NodeDamage::Other);
         }
     }
@@ -3686,7 +3711,6 @@ impl Window {
         inherited_secure_context: Option<bool>,
         theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
-        initial_https_state: HttpsState,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3712,7 +3736,6 @@ impl Window {
                 inherited_secure_context,
                 unminify_js,
                 Some(font_context),
-                initial_https_state,
             ),
             ongoing_navigation: Default::default(),
             script_chan,
@@ -3887,18 +3910,17 @@ impl Window {
             let document = this.Document();
 
             // Step 7.1.
-            if let Some(ref target_origin) = target_origin {
-                if !target_origin.same_origin(&*document.origin()) {
+            if let Some(ref target_origin) = target_origin
+                && !target_origin.same_origin(&*document.origin()) {
                     return;
                 }
-            }
 
             // Steps 7.2.-7.5.
             let obj = this.reflector().get_jsobject();
             let mut realm = AutoRealm::new(cx, NonNull::new(obj.get()).unwrap());
             let cx = &mut *realm;
             rooted!(&in(cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::from_cx(cx)) {
+            if let Ok(ports) = structuredclone::read(cx, this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),

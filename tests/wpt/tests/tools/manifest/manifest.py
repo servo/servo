@@ -8,7 +8,8 @@ from typing import (Any, Callable, Container, Dict, IO, Iterator, Iterable, List
 
 from . import jsonlib
 from . import vcs
-from .item import (ConformanceCheckerTest,
+from .item import (AccessibilityAPIMappingTest,
+                   ConformanceCheckerTest,
                    CrashTest,
                    ManifestItem,
                    ManualTest,
@@ -47,6 +48,7 @@ item_classes: Dict[Text, Type[ManifestItem]] = {"testharness": TestharnessTest,
                                                 "crashtest": CrashTest,
                                                 "manual": ManualTest,
                                                 "wdspec": WebDriverSpecTest,
+                                                "aamtest": AccessibilityAPIMappingTest,
                                                 "conformancechecker": ConformanceCheckerTest,
                                                 "visual": VisualTest,
                                                 "spec": SpecItem,

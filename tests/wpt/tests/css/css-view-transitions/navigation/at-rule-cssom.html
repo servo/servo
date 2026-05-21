@@ -28,33 +28,22 @@ test(function () {
   });
 }, "CSSViewTransitionRule is correctly parsed and accessible via CSSOM.");
 
-test(function () {
-  resetStateAndTest(() => {
-    document.styleSheets[0].insertRule(`
-      @view-transition {
-        navigation: auto;
-      }
-    `);
-    let rule = document.styleSheets[0].cssRules[0];
-    assert_equals(rule.cssText,
-        "@view-transition { navigation: auto; }");
-    assert_equals(rule.navigation, 'auto');
-
-  });
-}, "`navigation: auto` is correctly parsed.");
-
-test(function () {
-  resetStateAndTest(() => {
-    document.styleSheets[0].insertRule(`
-      @view-transition {
-        navigation: none;
-      }
-    `);
-    let rule = document.styleSheets[0].cssRules[0];
-    assert_equals(rule.cssText, "@view-transition { navigation: none; }");
-    assert_equals(rule.navigation, 'none');
-  });
-}, "`navigation: none` is correctly parsed.");
+const validNavigation = ["auto", "none"];
+for (const nav of validNavigation) {
+  test(function () {
+    resetStateAndTest(() => {
+      document.styleSheets[0].insertRule(`
+        @view-transition {
+          navigation: ${nav};
+        }
+      `);
+      let rule = document.styleSheets[0].cssRules[0];
+      assert_equals(rule.cssText,
+          `@view-transition { navigation: ${nav}; }`);
+    assert_equals(rule.navigation, nav);
+    });
+  }, `'navigation: ${nav}' is correctly parsed.`);
+}
 
 test(function () {
   resetStateAndTest(() => {
@@ -66,29 +55,23 @@ test(function () {
   });
 }, "@view-transition fails parsing with a preamble");
 
-test(function () {
-  resetStateAndTest(() => {
-    document.styleSheets[0].insertRule(`
-      @view-transition {
-        navigation: foo;
-      }
-    `);
-    let rule = document.styleSheets[0].cssRules[0];
-    assert_equals(rule.cssText, "@view-transition { }");
-  });
-}, "Invalid `navigation` value fails to parse.");
-
-test(function () {
-  resetStateAndTest(() => {
-    document.styleSheets[0].insertRule(`
-      @view-transition {
-        navigation: none !important;
-      }
-    `);
-    let rule = document.styleSheets[0].cssRules[0];
-    assert_equals(rule.cssText, "@view-transition { }");
-  });
-}, "`navigation` with !important flag should fail to parse.");
+const invalidNavigation = [
+  "foo", "auto gunk", "none !important"
+];
+for (const nav of invalidNavigation) {
+  test(function () {
+    resetStateAndTest(() => {
+      document.styleSheets[0].insertRule(`
+        @view-transition {
+          navigation: ${nav};
+        }
+      `);
+      let rule = document.styleSheets[0].cssRules[0];
+      assert_equals(rule.cssText,
+          "@view-transition { }");
+    });
+  }, `'navigation: ${nav}' fails to parse.`);
+}
 
 test(function () {
   resetStateAndTest(() => {
@@ -101,6 +84,19 @@ test(function () {
     rule.navigation = "auto";
     assert_equals(rule.navigation, "none");
   });
-}, "`navigation` descriptor cannot be set.");
+}, "`navigation` descriptor is readonly.");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        types: foo;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    rule.types = ["bar"];
+    assert_equals(rule.types[0], "foo");
+  });
+}, "`types` descriptor is readonly.");
 
 </script>

@@ -56,4 +56,30 @@ test(function() {
     container.style.shapeOutside = 'circle(400px at 50% 50%)';
     assert_equals(getComputedStyle(element).shapeOutside, 'circle(300px at 50% 50%)');
 }, 'shapeOutside responsive to inherited shapeOutside changes');
+
+test(() => {
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    target.style.shapeOutside = 'path("M 10 10 L 20 20 Z") border-box';
+
+    const animation = target.animate([
+        {},
+        {shapeOutside: 'path("M 50 50 L 60 60 Z") border-box'},
+    ], {
+        duration: 1000,
+        fill: 'both',
+    });
+    animation.pause();
+    animation.currentTime = 500;
+
+    assert_equals(getComputedStyle(target).shapeOutside,
+                  'path("M 30 30 L 40 40 Z") border-box');
+
+    target.style.shapeOutside = 'path("M 10 10 L 20 20 Z") padding-box';
+    assert_equals(getComputedStyle(target).shapeOutside,
+                  'path("M 50 50 L 60 60 Z") border-box');
+
+    animation.cancel();
+    target.remove();
+}, 'Neutral path() keyframes invalidate when the underlying <shape-box> changes');
 </script>

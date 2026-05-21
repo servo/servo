@@ -49,6 +49,12 @@
                                     COVER_START_OFFSET + TRIGGER_END_PX,
                                     scroller);
       const ANIMATION_DURATION_MS = 1;
+
+      const enter = () => {
+        return runAndWaitForFrameUpdate(() => {
+          rangeBoundaries.enterTriggerRange();
+        })
+      }
       const view_timeline = new ViewTimeline({ subject: subject });
       function setupAnimation() {
         const animation = new Animation(
@@ -112,7 +118,7 @@
         assert_times_equal(animation.currentTime, 0, "currentTime is 0");
 
         // Entering the trigger range should play the animation.
-        rangeBoundaries.enterTriggerRange();
+        await enter();
         await animation.finished;
 
         assert_equals(animation.playState, "finished",

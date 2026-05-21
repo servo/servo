@@ -7,12 +7,12 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use script_bindings::cformat;
-use script_bindings::like::Maplike;
+use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
-use wgpu_types::{self, AdapterInfo, MemoryHints};
+use wgpu_types::{self, AdapterInfo, ExperimentalFeatures, MemoryHints};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -101,7 +101,7 @@ impl GPUAdapter {
     ) -> DomRoot<Self> {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let limits = GPUSupportedLimits::new(global, limits, can_gc);
-        let info = GPUAdapter::create_adapter_info(global, info, &features, &limits, can_gc);
+        let info = GPUAdapter::create_adapter_info(global, info, &features, can_gc);
         let dom_root = reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, &features, &limits, &info, adapter,
@@ -118,7 +118,6 @@ impl GPUAdapter {
         global: &GlobalScope,
         info: AdapterInfo,
         features: &GPUSupportedFeatures,
-        limits: &GPUSupportedLimits,
         can_gc: CanGc,
     ) -> DomRoot<GPUAdapterInfo> {
         // Step 2. If the vendor is known, set adapterInfo.vendor to the name of adapter’s vendor as
@@ -161,10 +160,7 @@ impl GPUAdapter {
         // Step 7. If "subgroups" is supported, set subgroupMaxSize to the largest supported
         // subgroup size. Otherwise, set this value to 128.
         let (subgroup_min_size, subgroup_max_size) = if features.has("subgroups".into()) {
-            (
-                limits.wgpu_limits().min_subgroup_size,
-                limits.wgpu_limits().max_subgroup_size,
-            )
+            (info.subgroup_min_size, info.subgroup_max_size)
         } else {
             (4, 128)
         };
@@ -232,6 +228,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             label: Some(descriptor.parent.label.to_string()),
             memory_hints: MemoryHints::MemoryUsage,
             trace: wgpu_types::Trace::Off,
+            experimental_features: ExperimentalFeatures::disabled(),
         };
         let device_id = self.global().wgpu_id_hub().create_device_id();
         let queue_id = self.global().wgpu_id_hub().create_queue_id();
@@ -316,6 +313,9 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
+                // TODO(sagudev): firefox always says operation error,
+                // meanwhile we create "invalid" device that is not invalid in wgpu
+                // causing crashes when one tries to use it
                 // 1. Let device be a new device.
                 let device = GPUDevice::new(
                     &self.global(),

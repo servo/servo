@@ -12,10 +12,14 @@ bitflags! {
     pub struct LayoutDamage: u16 {
         /// Clear the cached inline content sizes and recompute them during the next layout.
         const RECOMPUTE_INLINE_CONTENT_SIZES = 0b1000_0000_0000 << 4;
+        /// There is a change in a descendant of this box that can affect its layout.
+        /// This flag is not propagated upwards when encountering an absolutely positioned
+        /// box, since it's out-of-flow.
+        const LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT = 0b0100_0000_0000 << 4;
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
-        const DESCENDANT_HAS_BOX_DAMAGE = 0b0111_1111_1111 << 4;
+        const DESCENDANT_HAS_BOX_DAMAGE = 0b0011_1111_1111 << 4;
         /// Rebuild this box, all of its ancestors and all of its descendants. This is the
         /// most a box can be damaged.
         const BOX_DAMAGE = 0b1111_1111_1111 << 4;
@@ -37,6 +41,10 @@ impl LayoutDamage {
 
     pub fn recompute_inline_content_sizes() -> RestyleDamage {
         RestyleDamage::from_bits_retain(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES.bits())
+    }
+
+    pub fn layout_affected_by_inflow_descendant() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT.bits())
     }
 }
 

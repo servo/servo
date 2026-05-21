@@ -4,14 +4,14 @@
 
 use webgpu_traits::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use wgpu_core::id::markers::{
-    Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
-    PipelineLayout, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture,
+    Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder, ComputePipeline,
+    Device, PipelineLayout, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture,
     TextureView,
 };
 use wgpu_core::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-    DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId, SamplerId,
-    ShaderModuleId, TextureId, TextureViewId,
+    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
+    ComputePipelineId, DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId,
+    SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
 use wgpu_core::identity::IdentityManager;
 
@@ -27,6 +27,7 @@ pub(crate) struct IdentityHub {
     pipeline_layouts: IdentityManager<PipelineLayout>,
     shader_modules: IdentityManager<ShaderModule>,
     command_encoders: IdentityManager<CommandEncoder>,
+    command_buffers: IdentityManager<CommandBuffer>,
     textures: IdentityManager<Texture>,
     texture_views: IdentityManager<TextureView>,
     samplers: IdentityManager<Sampler>,
@@ -49,6 +50,7 @@ impl Default for IdentityHub {
             pipeline_layouts: IdentityManager::new(),
             shader_modules: IdentityManager::new(),
             command_encoders: IdentityManager::new(),
+            command_buffers: IdentityManager::new(),
             textures: IdentityManager::new(),
             texture_views: IdentityManager::new(),
             samplers: IdentityManager::new(),
@@ -137,8 +139,16 @@ impl IdentityHub {
         self.command_encoders.process()
     }
 
-    pub(crate) fn free_command_buffer_id(&self, id: CommandEncoderId) {
+    pub(crate) fn free_command_encoder_id(&self, id: CommandEncoderId) {
         self.command_encoders.free(id);
+    }
+
+    pub(crate) fn create_command_buffer_id(&self) -> CommandBufferId {
+        self.command_buffers.process()
+    }
+
+    pub(crate) fn free_command_buffer_id(&self, id: CommandBufferId) {
+        self.command_buffers.free(id);
     }
 
     pub(crate) fn create_sampler_id(&self) -> SamplerId {

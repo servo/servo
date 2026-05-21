@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::{Au, MAX_AU};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
@@ -9,6 +11,7 @@ use euclid::{Scale, Size2D};
 use layout_api::{IFrameSize, LayoutElement, LayoutImageDestination, LayoutNode, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
+use net_traits::request::InternalRequest;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
@@ -30,7 +33,6 @@ use url::Url;
 use web_atoms::local_name;
 use webrender_api::ImageKey;
 
-use crate::cell::ArcRefCell;
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
@@ -150,14 +152,10 @@ pub(crate) enum ReplacedContentKind {
 
 impl ReplacedContents {
     pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
-        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
-            if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
-                return Self::from_image_url(
-                    node,
-                    context,
-                    &ComputedUrl::Valid(ServoArc::new(url)),
-                );
-            }
+        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() &&
+            let Some(url) = try_to_parse_image_data_url(data_attribute_string)
+        {
+            return Self::from_image_url(node, context, &ComputedUrl::Valid(ServoArc::new(url)));
         }
 
         let (kind, natural_size) = {
@@ -292,6 +290,7 @@ impl ReplacedContents {
                     node.opaque(),
                     svg_source,
                     LayoutImageDestination::BoxTreeConstruction,
+                    InternalRequest::Yes,
                 )
                 .ok()
         });
@@ -317,15 +316,14 @@ impl ReplacedContents {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
-            node.style(&context.style_context).clone_content()
+            node.style(&context.style_context).clone_content() &&
+            let [GenericContentItem::Image(image)] = items.as_slice()
         {
-            if let [GenericContentItem::Image(image)] = items.as_slice() {
-                // Invalid images are treated as zero-sized.
-                return Some(
-                    Self::from_image(node, context, image)
-                        .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
-                );
-            }
+            // Invalid images are treated as zero-sized.
+            return Some(
+                Self::from_image(node, context, image)
+                    .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
+            );
         }
         None
     }
@@ -335,39 +333,40 @@ impl ReplacedContents {
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
-        if let ComputedUrl::Valid(image_url) = image_url {
-            let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
-                node.opaque(),
-                image_url.clone().into(),
-                LayoutImageDestination::BoxTreeConstruction,
-            ) {
-                LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
-                    ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                        if let Image::Raster(image) = &image {
-                            context
-                                .image_resolver
-                                .handle_animated_image(node.opaque(), image.clone());
-                        }
-                        let metadata = image.metadata();
-                        (Some(image), metadata.width as f32, metadata.height as f32)
-                    },
-                    ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
-                        (None, metadata.width as f32, metadata.height as f32)
-                    },
+        let ComputedUrl::Valid(image_url) = image_url else {
+            return None;
+        };
+        let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
+            node.opaque(),
+            image_url.clone().into(),
+            LayoutImageDestination::BoxTreeConstruction,
+            InternalRequest::No,
+        ) {
+            LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
+                ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                    if let Image::Raster(image) = &image {
+                        context
+                            .image_resolver
+                            .handle_animated_image(node.opaque(), image.clone());
+                    }
+                    let metadata = image.metadata();
+                    (Some(image), metadata.width as f32, metadata.height as f32)
                 },
-                LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
-            };
-            return Some(Self {
-                kind: ReplacedContentKind::Image(ImageInfo {
-                    image,
-                    showing_broken_image_icon: false,
-                    url: Some(image_url.clone().into()),
-                }),
-                natural_size: NaturalSizes::from_width_and_height(width, height),
-                base_fragment_info: node.into(),
-            });
-        }
-        None
+                ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
+                    (None, metadata.width as f32, metadata.height as f32)
+                },
+            },
+            LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
+        };
+        Some(Self {
+            kind: ReplacedContentKind::Image(ImageInfo {
+                image,
+                showing_broken_image_icon: false,
+                url: Some(image_url.clone().into()),
+            }),
+            natural_size: NaturalSizes::from_width_and_height(width, height),
+            base_fragment_info: node.into(),
+        })
     }
 
     pub fn from_image(
@@ -489,7 +488,7 @@ impl ReplacedContents {
         let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
-        let mut base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
+        let base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
         match &self.kind {
             ReplacedContentKind::Image(image_info) => image_info
                 .image
@@ -514,7 +513,7 @@ impl ReplacedContents {
                     },
                 })
                 .map(|image_key| {
-                    Fragment::Image(ArcRefCell::new(ImageFragment {
+                    Fragment::Image(Arc::new(ImageFragment {
                         base,
                         clip,
                         image_key: Some(image_key),
@@ -525,7 +524,7 @@ impl ReplacedContents {
                 .into_iter()
                 .collect(),
             ReplacedContentKind::Video(video_info) => {
-                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
+                vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
                     clip,
                     image_key: video_info.image_key,
@@ -548,7 +547,7 @@ impl ReplacedContents {
                         },
                     },
                 );
-                vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
+                vec![Fragment::IFrame(Arc::new(IFrameFragment {
                     base,
                     pipeline_id: iframe.pipeline_id,
                 }))]
@@ -564,7 +563,7 @@ impl ReplacedContents {
                     return vec![];
                 };
 
-                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
+                vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
                     clip,
                     image_key: Some(image_key),
@@ -581,25 +580,28 @@ impl ReplacedContents {
                 };
 
                 if !has_viewbox {
-                    base.rect = PhysicalSize::new(
-                        vector_image
-                            .metadata
-                            .width
-                            .try_into()
-                            .map_or(MAX_AU, Au::from_px),
-                        vector_image
-                            .metadata
-                            .height
-                            .try_into()
-                            .map_or(MAX_AU, Au::from_px),
-                    )
-                    .into();
+                    base.set_rect(
+                        PhysicalSize::new(
+                            vector_image
+                                .metadata
+                                .width
+                                .try_into()
+                                .map_or(MAX_AU, Au::from_px),
+                            vector_image
+                                .metadata
+                                .height
+                                .try_into()
+                                .map_or(MAX_AU, Au::from_px),
+                        )
+                        .into(),
+                    );
                 }
 
                 let scale = layout_context.style_context.device_pixel_ratio();
+                let content_size = base.rect().size;
                 let raster_size = Size2D::new(
-                    base.rect.size.width.scale_by(scale.0).to_px(),
-                    base.rect.size.height.scale_by(scale.0).to_px(),
+                    content_size.width.scale_by(scale.0).to_px(),
+                    content_size.height.scale_by(scale.0).to_px(),
                 );
 
                 let tag = self.base_fragment_info.tag.unwrap();
@@ -613,7 +615,7 @@ impl ReplacedContents {
                     )
                     .and_then(|image| image.id)
                     .map(|image_key| {
-                        Fragment::Image(ArcRefCell::new(ImageFragment {
+                        Fragment::Image(Arc::new(ImageFragment {
                             base,
                             clip,
                             image_key: Some(image_key),

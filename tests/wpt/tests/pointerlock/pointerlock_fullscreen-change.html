@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock doesn't change when fullscreen does.</p>
+    <hr/>
+
+    <button id="Button">lockTarget</button>
+    <div id="target">Target</div>
+    <iframe id="frame"></iframe>
+
+    <script type="text/javascript" >
+        const button = document.getElementById('Button');
+        const target = document.getElementById('target');
+        const frame = document.getElementById('frame');
+
+        promise_test(async t => {
+            let pointerLockChange = new Promise(resolve => document.addEventListener("pointerlockchange", resolve, { once: true }));
+            await new Promise(resolve => button.addEventListener("mousedown", async () => {
+                await target.requestPointerLock();
+                resolve();
+            },  {once: true}));
+            await pointerLockChange;
+            assert_equals(document.pointerLockElement, target);
+
+            document.addEventListener("pointerlockchange", () => assert_unreached("PointerLock shouldn't change again"));
+
+            let fullscreenChange = new Promise(resolve => document.addEventListener("fullscreenchange", resolve, { once: true }));
+            await document.body.requestFullscreen();
+            await fullscreenChange;
+            assert_equals(document.fullscreenElement, document.body);
+            assert_equals(document.pointerLockElement, target);
+
+            test_driver.bless("requestFullscreen", async () => await frame.contentDocument.body.requestFullscreen());
+            await new Promise(requestAnimationFrame);
+            assert_equals(document.pointerLockElement, target);
+        }, "PointerLock stays even after fullscreen change");
+
+        // Automated testing
+        test_driver.click(button);
+    </script>
+</body>
+</html>

@@ -48,7 +48,7 @@ test_light_dark_image(
 test_light_dark_image(
   "background-image",
   "light-dark(none, url('dark.png'))",
-  "none",
+  "image(rgba(0, 0, 0, 0))",
   'dark.png")'
 );
 
@@ -56,14 +56,14 @@ test_light_dark_image(
   "background-image",
   "light-dark(url('light.png'), none)",
   'light.png")',
-  "none"
+  "image(rgba(0, 0, 0, 0))",
 );
 
 test_light_dark_image(
   "background-image",
   "light-dark(none, none)",
-  "none",
-  "none"
+  "image(rgba(0, 0, 0, 0))",
+  "image(rgba(0, 0, 0, 0))",
 );
 
 // background-image: gradient values
@@ -114,7 +114,7 @@ test_light_dark_image(
 test_light_dark_image(
   "background-image",
   "light-dark(none, linear-gradient(red, blue))",
-  "none",
+  "image(rgba(0, 0, 0, 0))",
   "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))"
 );
 
@@ -122,7 +122,7 @@ test_light_dark_image(
   "background-image",
   "light-dark(linear-gradient(red, blue), none)",
   "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255))",
-  "none"
+  "image(rgba(0, 0, 0, 0))",
 );
 
 // list-style-image
@@ -136,7 +136,7 @@ test_light_dark_image(
 test_light_dark_image(
   "list-style-image",
   "light-dark(none, url('dark.png'))",
-  "none",
+  "image(rgba(0, 0, 0, 0))",
   'dark.png")'
 );
 
@@ -144,7 +144,7 @@ test_light_dark_image(
   "list-style-image",
   "light-dark(url('light.png'), none)",
   'light.png")',
-  "none"
+  "image(rgba(0, 0, 0, 0))",
 );
 
 // border-image-source

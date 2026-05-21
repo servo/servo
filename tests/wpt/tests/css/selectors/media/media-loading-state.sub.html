@@ -29,12 +29,9 @@
         video.src = `support/stall-resume.py?key=${key}`;
       });
       const promise = video.play();
-      assert_equals(
-        document.querySelector("video:stalled"),
-        video,
-        "video is stalled"
-      );
+      assert_true(video.matches(":stalled"), ":stalled matches");
       video.src = "";
+      assert_false(video.matches(":stalled"), ":stalled stops matching");
       // Wait for the video to abort trying to play
       try {
         await promise;
@@ -51,12 +48,9 @@
       });
       video.currentTime = 10;
       const promise = video.play();
-      assert_equals(
-        document.querySelector("video:buffering"),
-        video,
-        "video is buffering"
-      );
+      assert_true(video.matches(":buffering"), ":buffering matches");
       video.src = "";
+      assert_false(video.matches(":buffering"), ":buffering stops matching");
       // Wait for the video to abort trying to play
       try {
         await promise;

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with Caller Navigation (Abort)</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+function timeout_promise(t, msg) {
+  return new Promise((_, reject) => {
+    t.step_timeout(() => reject(msg), 3000);
+  });
+}
+
+const child_origins = [self.origin, get_host_info().HTTPS_REMOTE_ORIGIN];
+for (const origin of child_origins) {
+  run_test(origin);
+}
+
+function run_test(origin) {
+  const origin_for_description =
+      origin === self.origin ? 'same-origin' : 'cross-origin';
+
+  promise_test(async t => {
+    const iframe = document.createElement('iframe');
+    iframe.src = origin + '/webmcp/imperative/resources/iframe-caller.html';
+    iframe.allow = `tools ${origin}`;
+
+    const load_promise = new Promise(resolve => iframe.onload = resolve);
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await load_promise;
+
+    let resolve_tool_started;
+    const tool_started_promise =
+        new Promise(resolve => { resolve_tool_started = resolve; });
+
+    let resolve_signal_aborted, reject_signal_aborted;
+    const signal_aborted_promise = new Promise((resolve, reject) => {
+      resolve_signal_aborted = resolve;
+      reject_signal_aborted = reject;
+    });
+
+    const controller = new AbortController();
+    navigator.modelContext.registerTool({
+      name: 'parent_tool',
+      description: 'Parent tool',
+      execute: async (input, opts) => {
+        resolve_tool_started();
+
+        // If an `AbortSignal` is not passed into the `execute()` callback, reject
+        // `signal_aborted_promise`.
+        if (!opts || !opts.signal) {
+          reject_signal_aborted('signal not provided to execute()');
+          return;
+        }
+
+        opts.signal.onabort = resolve_signal_aborted;
+
+        // The parent's tool runs "forever", waiting for the signal to abort.
+        await new Promise(() => {});
+      }
+    }, { exposedTo: [origin], signal: controller.signal });
+    t.add_cleanup(() => controller.abort());
+
+    await new Promise(resolve => {
+      navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    });
+
+    iframe.contentWindow.postMessage({action: 'invoke', name: 'parent_tool'}, '*');
+    await Promise.race([tool_started_promise, timeout_promise(t, 'tool never ran')]);
+
+    // The iframe navigates away before the tool has finished executing. Instead
+    // of navigating the iframe with its `src` attribute, we request it initiate
+    // its own navigation, just so if the `signal` above aborts, we're sure that
+    // it's not incidentally aborting due to any bookkeeping `this` Window is
+    // doing regarding navigations and tool executions.
+    iframe.contentWindow.postMessage({action: 'navigate'}, '*');
+
+    await Promise.race([signal_aborted_promise, timeout_promise(t, 'signal never aborted')]);
+  }, `executeTool() aborts target signal when the invoker document (${origin_for_description}) navigates away`);
+}
+</script>
+</body>
+</html>

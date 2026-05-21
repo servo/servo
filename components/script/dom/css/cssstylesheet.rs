@@ -351,7 +351,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         options: &CSSStyleSheetInit,
     ) -> DomRoot<Self> {
         let doc = window.Document();
-        let shared_lock = doc.style_shared_lock().clone();
+        let shared_lock = doc.style_shared_author_lock().clone();
         let media = Arc::new(shared_lock.wrap(match &options.media {
             Some(media) => match media {
                 MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
@@ -388,8 +388,11 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
     fn GetCssRules(&self, cx: &mut JSContext) -> Fallible<DomRoot<CSSRuleList>> {
+        // If the origin-clean flag is unset, we throw an error as the API implicitly allows modification of CSS rules.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "Not allowed to access cross-origin style sheet".to_string(),
+            )));
         }
         Ok(self.rulelist(cx))
     }
@@ -398,12 +401,16 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "Not allowed to access cross-origin style sheet".to_string(),
+            )));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on modifiable style sheets".to_string(),
+            )));
         }
 
         self.rulelist(cx)
@@ -414,12 +421,16 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "Not allowed to access cross-origin style sheet".to_string(),
+            )));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on modifiable style sheets".to_string(),
+            )));
         }
         self.rulelist(cx).remove_rule(index)
     }
@@ -474,8 +485,15 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
-        if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+        if !self.is_constructed() {
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on constructed style sheets".to_string(),
+            )));
+        }
+        if self.disallow_modification() {
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on modifiable style sheets".to_string(),
+            )));
         }
 
         // Step 3. Set the disallow modification flag.
@@ -509,7 +527,14 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
         // throw a NotAllowedError DOMException.
         if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed(None));
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on constructed style sheets".to_string(),
+            )));
+        }
+        if self.disallow_modification() {
+            return Err(Error::NotAllowed(Some(
+                "This method can only be called on modifiable style sheets".to_string(),
+            )));
         }
         self.do_replace_sync(text);
         Ok(())

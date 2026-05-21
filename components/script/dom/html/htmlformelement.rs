@@ -29,7 +29,6 @@ use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
 use crate::body::Extractable;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -874,7 +873,7 @@ impl HTMLFormElement {
         // form's node navigable, and noopener.
         let source = doc.browsing_context().unwrap();
         let (maybe_chosen, _new) =
-            source.choose_browsing_context(target.unwrap_or_default(), noopener);
+            source.choose_browsing_context(cx, target.unwrap_or_default(), noopener);
 
         let Some(chosen) = maybe_chosen else {
             // Step 23. If targetNavigable is null, then return.
@@ -921,13 +920,7 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(
-                    &mut form_data,
-                    load_data,
-                    encoding,
-                    target_window,
-                    history_handling,
-                );
+                self.mutate_action_url(&mut form_data, load_data, target_window, history_handling);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
@@ -967,17 +960,17 @@ impl HTMLFormElement {
         &self,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
-        encoding: &'static Encoding,
         target: &Window,
         history_handling: NavigationHistoryBehavior,
     ) {
-        let charset = encoding.name();
-
         self.set_url_query_pairs(
             &mut load_data.url,
-            form_data
-                .iter()
-                .map(|field| (field.name.str(), field.replace_value(charset))),
+            form_data.iter().map(|field| {
+                (
+                    field.name.normalize_crlf(),
+                    field.replace_value().normalize_crlf(),
+                )
+            }),
         );
 
         self.plan_to_navigate(load_data, target, history_handling);
@@ -998,7 +991,6 @@ impl HTMLFormElement {
         let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
-                let charset = encoding.name();
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
@@ -1006,9 +998,15 @@ impl HTMLFormElement {
                 let mut url = load_data.url.clone();
                 self.set_url_query_pairs(
                     &mut url,
-                    form_data
-                        .iter()
-                        .map(|field| (field.name.str(), field.replace_value(charset))),
+                    // Let pairs be the result of
+                    // converting to a list of name-value pairs with entry list.
+                    // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
+                    form_data.iter().map(|field| {
+                        (
+                            field.name.normalize_crlf(),
+                            field.replace_value().normalize_crlf(),
+                        )
+                    }),
                 );
 
                 url.query().unwrap_or("").to_string().into_bytes()
@@ -1067,10 +1065,8 @@ impl HTMLFormElement {
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
         let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute(&local_name!("rel")) {
-            Some(ref link_types) if link_types.Value().contains("noreferrer") => {
-                Referrer::NoReferrer
-            },
+        let referrer = match elem.get_attribute_string_value(&local_name!("rel")) {
+            Some(link_types) if link_types.contains("noreferrer") => Referrer::NoReferrer,
             _ => target.as_global_scope().get_referrer(),
         };
 
@@ -1104,13 +1100,12 @@ impl HTMLFormElement {
 
         // Note the pending form navigation if this is an iframe;
         // necessary for deciding whether to run the iframe load event steps.
-        if let Some(window_proxy) = target.undiscarded_window_proxy() {
-            if let Some(frame) = window_proxy
+        if let Some(window_proxy) = target.undiscarded_window_proxy() &&
+            let Some(frame) = window_proxy
                 .frame_element()
                 .and_then(|e| e.downcast::<HTMLIFrameElement>())
-            {
-                frame.note_pending_navigation()
-            }
+        {
+            frame.note_pending_navigation()
         }
 
         // 4. Queue an element task on the DOM manipulation task source
@@ -1172,17 +1167,15 @@ impl HTMLFormElement {
             if let Some(validatable) = elem.as_maybe_validatable() {
                 error!("Validation error: {}", validatable.validation_message());
             }
-            if first {
-                if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    // Step 3.1: User agents may focus one of those elements in the process,
-                    // by running the focusing steps for that element,
-                    // and may change the scrolling position of the document, or perform
-                    // some other action that brings the element to the user's attention.
+            if first && let Some(html_elem) = elem.downcast::<HTMLElement>() {
+                // Step 3.1: User agents may focus one of those elements in the process,
+                // by running the focusing steps for that element,
+                // and may change the scrolling position of the document, or perform
+                // some other action that brings the element to the user's attention.
 
-                    // Here we run focusing steps and scroll element into view.
-                    html_elem.Focus(cx, &FocusOptions::default());
-                    first = false;
-                }
+                // Here we run focusing steps and scroll element into view.
+                html_elem.Focus(cx, &FocusOptions::default());
+                first = false;
             }
         }
 
@@ -1475,14 +1468,14 @@ impl Element {
             textarea_element.reset(cx);
         } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {
             output_element.reset(cx);
-        } else if let Some(html_element) = self.downcast::<HTMLElement>() {
-            if html_element.is_form_associated_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    html_element.upcast::<Element>(),
-                    CallbackReaction::FormReset,
-                    None,
-                )
-            }
+        } else if let Some(html_element) = self.downcast::<HTMLElement>() &&
+            html_element.is_form_associated_custom_element()
+        {
+            ScriptThread::enqueue_callback_reaction(
+                html_element.upcast::<Element>(),
+                CallbackReaction::FormReset,
+                None,
+            )
         }
     }
 }
@@ -1501,14 +1494,10 @@ pub(crate) struct FormDatum {
 }
 
 impl FormDatum {
-    pub(crate) fn replace_value(&self, charset: &str) -> String {
-        if self.name.to_ascii_lowercase() == "_charset_" && self.ty == "hidden" {
-            return charset.to_string();
-        }
-
+    pub(crate) fn replace_value(&self) -> &DOMString {
         match self.value {
-            FormDatumValue::File(ref f) => String::from(f.name().clone()),
-            FormDatumValue::String(ref s) => String::from(s.clone()),
+            FormDatumValue::File(ref f) => f.name(),
+            FormDatumValue::String(ref s) => s,
         }
     }
 }
@@ -1722,16 +1711,16 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                 new_owner.add_control(self, can_gc);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
-            if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                if html_elem.is_form_associated_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
-                        elem,
-                        CallbackReaction::FormAssociated(
-                            new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
-                        ),
-                        None,
-                    )
-                }
+            if let Some(html_elem) = elem.downcast::<HTMLElement>() &&
+                html_elem.is_form_associated_custom_element()
+            {
+                ScriptThread::enqueue_callback_reaction(
+                    elem,
+                    CallbackReaction::FormAssociated(
+                        new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
+                    ),
+                    None,
+                )
             }
             self.set_form_owner(new_owner.as_deref());
         }
@@ -1990,45 +1979,27 @@ pub(crate) fn encode_multipart_form_data(
 ) -> Vec<u8> {
     let mut result = vec![];
 
-    // Newline replacement routine as described in Step 1
-    fn clean_crlf(s: &DOMString) -> DOMString {
-        let mut buf = "".to_owned();
-        let mut prev = ' ';
-        for ch in s.str().chars() {
-            match ch {
-                '\n' if prev != '\r' => {
-                    buf.push('\r');
-                    buf.push('\n');
-                },
-                '\n' => {
-                    buf.push('\n');
-                },
-                // This character isn't LF but is
-                // preceded by CR
-                _ if prev == '\r' => {
-                    buf.push('\r');
-                    buf.push('\n');
-                    buf.push(ch);
-                },
-                _ => buf.push(ch),
-            };
-            prev = ch;
-        }
-        // In case the last character was CR
-        if prev == '\r' {
-            buf.push('\n');
-        }
-        DOMString::from(buf)
+    // For field names and filenames for file fields, the result
+    // of the encoding must be escaped by replacing:
+    //   0x0A (LF) bytes with `%0A`,
+    //   0x0D (CR) bytes with `%0D`,
+    //   0x22 (") bytes with `%22`.
+    // The user agent must not perform any other escapes.
+    fn escape_for_header(s: &DOMString) -> String {
+        s.str()
+            .replace('\n', "%0A")
+            .replace('\r', "%0D")
+            .replace('"', "%22")
     }
 
     for entry in form_data.iter_mut() {
         // Step 1.1: Perform newline replacement on entry's name
-        entry.name = clean_crlf(&entry.name);
+        entry.name = entry.name.normalize_crlf().into();
 
         // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
         // value
         if let FormDatumValue::String(ref s) = entry.value {
-            entry.value = FormDatumValue::String(clean_crlf(s));
+            entry.value = FormDatumValue::String(s.normalize_crlf().into());
         }
 
         // Step 2: Return the byte sequence resulting from encoding the entry list.
@@ -2038,11 +2009,14 @@ pub(crate) fn encode_multipart_form_data(
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
 
+        let escaped_name = escape_for_header(&entry.name);
+
         // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
         // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
-                let content_disposition = format!("form-data; name=\"{}\"", entry.name);
+                // Step 2.4
+                let content_disposition = format!("form-data; name=\"{}\"", escaped_name);
                 let mut bytes =
                     format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
                         .into_bytes();
@@ -2050,8 +2024,16 @@ pub(crate) fn encode_multipart_form_data(
             },
             FormDatumValue::File(ref f) => {
                 let charset = encoding.name();
+                // Step 2.4
+                // For field names and filenames for file fields, the result
+                // of the encoding must be escaped by replacing:
+                //   0x0A (LF) bytes with `%0A`,
+                //   0x0D (CR) bytes with `%0D`,
+                //   0x22 (") bytes with `%22`.
+                // The user agent must not perform any other escapes.
                 let extra = if charset.to_lowercase() == "utf-8" {
-                    format!("filename=\"{}\"", String::from(f.name().str()))
+                    let escaped = escape_for_header(f.name());
+                    format!("filename=\"{}\"", escaped)
                 } else {
                     format!(
                         "filename*=\"{}\"''{}",
@@ -2060,7 +2042,8 @@ pub(crate) fn encode_multipart_form_data(
                     )
                 };
 
-                let content_disposition = format!("form-data; name=\"{}\"; {}", entry.name, extra);
+                let content_disposition =
+                    format!("form-data; name=\"{}\"; {}", escaped_name, extra);
                 // https://tools.ietf.org/html/rfc7578#section-4.4
                 let content_type: Mime = f
                     .upcast::<Blob>()

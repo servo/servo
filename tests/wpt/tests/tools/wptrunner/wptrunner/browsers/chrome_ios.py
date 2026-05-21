@@ -3,7 +3,7 @@
 from .base import WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.base import PytestExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverCrashtestExecutor,  # noqa: F401
                                            WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor)  # noqa: F401

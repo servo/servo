@@ -502,17 +502,16 @@ impl Gui {
                                         location_field.request_focus();
                                     }
                                     // Select address bar text when it's focused (click or shortcut).
-                                    if location_field.gained_focus() {
-                                        if let Some(mut state) =
+                                    if location_field.gained_focus() &&
+                                        let Some(mut state) =
                                             TextEditState::load(ui.ctx(), location_id)
-                                        {
-                                            // Select the whole input.
-                                            state.cursor.set_char_range(Some(CCursorRange::two(
-                                                CCursor::new(0),
-                                                CCursor::new(location.len()),
-                                            )));
-                                            state.store(ui.ctx(), location_id);
-                                        }
+                                    {
+                                        // Select the whole input.
+                                        state.cursor.set_char_range(Some(CCursorRange::two(
+                                            CCursor::new(0),
+                                            CCursor::new(location.len()),
+                                        )));
+                                        state.store(ui.ctx(), location_id);
                                     }
                                     // Navigate to address when enter is pressed in the address bar.
                                     if location_field.lost_focus() &&

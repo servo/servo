@@ -39,19 +39,17 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::RequestPolicyContainer;
+use net_traits::policy_container::{EmbedderPolicyValue, RequestPolicyContainer};
 use net_traits::pub_domains::{is_same_site, reg_suffix};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
-    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode, ResponseTainting,
-    ServiceWorkersMode, TraversableForUserPrompts, get_cors_unsafe_header_names,
+    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestClient, RequestMode,
+    ResponseTainting, ServiceWorkersMode, TraversableForUserPrompts, get_cors_unsafe_header_names,
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{
-    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
-};
+use net_traits::response::{CacheState, RedirectTaint, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
     ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer, ResourceTimeValue,
@@ -920,8 +918,14 @@ pub(crate) async fn http_fetch(
     // request’s destination, and internalResponse returns blocked, then return a network error.
     if (request.response_tainting == ResponseTainting::Opaque ||
         response.response_type == ResponseType::Opaque) &&
-        cross_origin_resource_policy_check(request, &response) ==
-            CrossOriginResourcePolicy::Blocked
+        request.client.as_ref().is_some_and(|client| {
+            cross_origin_resource_policy_check(
+                &request.origin,
+                client,
+                &response,
+                ForNavigation::No,
+            ) == CrossOriginResourcePolicy::Blocked
+        })
     {
         return Response::network_error(NetworkError::CrossOriginResponse);
     }
@@ -1047,10 +1051,10 @@ fn location_url_for_response(
         });
 
     // Step 4. If location is a URL whose fragment is null, then set location’s fragment to requestFragment.
-    if let Some(Ok(ref mut location)) = location {
-        if location.fragment().is_none() {
-            location.set_fragment(request_fragment);
-        }
+    if let Some(Ok(ref mut location)) = location &&
+        location.fragment().is_none()
+    {
+        location.set_fragment(request_fragment);
     }
     // Step 5. Return location.
     location
@@ -1314,42 +1318,42 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
-    if http_request.keep_alive {
-        if let Some(content_length) = content_length {
-            // Step 8.10.1. Let inflightKeepaliveBytes be 0.
-            // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
-            // Step 8.10.3. Let inflightRecords be the set of fetch records
-            // in group whose request’s keepalive is true and done flag is unset.
-            let in_flight_keep_alive_bytes: u64 = context
-                .in_flight_keep_alive_records
-                .lock()
-                .get(
-                    &http_request
-                        .pipeline_id
-                        .expect("Must always set a pipeline ID for keep-alive requests"),
-                )
-                .map(|records| {
-                    // Step 8.10.4. For each fetchRecord of inflightRecords:
-                    // Step 8.10.4.1. Let inflightRequest be fetchRecord’s request.
-                    // Step 8.10.4.2. Increment inflightKeepaliveBytes by inflightRequest’s body’s length.
-                    records
-                        .iter()
-                        .map(|record| {
-                            if record.request_id == http_request.id {
-                                // Don't double count for this request. We have already added it in
-                                // `fetch::methods::fetch_with_cors_cache`
-                                0
-                            } else {
-                                record.keep_alive_body_length
-                            }
-                        })
-                        .sum()
-                })
-                .unwrap_or_default();
-            // Step 8.10.5. If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
-            if content_length + in_flight_keep_alive_bytes > 64 * 1024 {
-                return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
-            }
+    if http_request.keep_alive &&
+        let Some(content_length) = content_length
+    {
+        // Step 8.10.1. Let inflightKeepaliveBytes be 0.
+        // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
+        // Step 8.10.3. Let inflightRecords be the set of fetch records
+        // in group whose request’s keepalive is true and done flag is unset.
+        let in_flight_keep_alive_bytes: u64 = context
+            .in_flight_keep_alive_records
+            .lock()
+            .get(
+                &http_request
+                    .pipeline_id
+                    .expect("Must always set a pipeline ID for keep-alive requests"),
+            )
+            .map(|records| {
+                // Step 8.10.4. For each fetchRecord of inflightRecords:
+                // Step 8.10.4.1. Let inflightRequest be fetchRecord’s request.
+                // Step 8.10.4.2. Increment inflightKeepaliveBytes by inflightRequest’s body’s length.
+                records
+                    .iter()
+                    .map(|record| {
+                        if record.request_id == http_request.id {
+                            // Don't double count for this request. We have already added it in
+                            // `fetch::methods::fetch_with_cors_cache`
+                            0
+                        } else {
+                            record.keep_alive_body_length
+                        }
+                    })
+                    .sum()
+            })
+            .unwrap_or_default();
+        // Step 8.10.5. If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
+        if content_length + in_flight_keep_alive_bytes > 64 * 1024 {
+            return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
         }
     }
 
@@ -1380,10 +1384,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
-    if http_request.initiator == Initiator::Prefetch {
-        if let Ok(value) = HeaderValue::from_str("prefetch") {
-            http_request.headers.insert("Sec-Purpose", value);
-        }
+    if http_request.initiator == Initiator::Prefetch &&
+        let Ok(value) = HeaderValue::from_str("prefetch")
+    {
+        http_request.headers.insert("Sec-Purpose", value);
     }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
@@ -1399,10 +1403,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
-    if http_request.headers.contains_key(header::RANGE) {
-        if let Ok(value) = HeaderValue::from_str("identity") {
-            http_request.headers.insert("Accept-Encoding", value);
-        }
+    if http_request.headers.contains_key(header::RANGE) &&
+        let Ok(value) = HeaderValue::from_str("identity")
+    {
+        http_request.headers.insert("Accept-Encoding", value);
     }
 
     // Step 8.20: Modify httpRequest’s header list per HTTP. Do not append a given header if
@@ -1431,10 +1435,10 @@ async fn http_network_or_cache_fetch(
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
-                if !http_request.use_url_credentials || !has_credentials(&current_url) {
-                    authorization_value = Some(basic);
-                }
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) &&
+                (!http_request.use_url_credentials || !has_credentials(&current_url))
+            {
+                authorization_value = Some(basic);
             }
 
             // Substep 5
@@ -1806,58 +1810,134 @@ enum CrossOriginResourcePolicy {
     Blocked,
 }
 
-// TODO(#33615): Judging from the name, this appears to be https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check,
-//       but the steps aren't even close to the spec. Perhaps this needs to be rewritten?
-fn cross_origin_resource_policy_check(
-    request: &Request,
-    response: &Response,
-) -> CrossOriginResourcePolicy {
-    // Step 1
-    if request.mode != RequestMode::NoCors {
-        return CrossOriginResourcePolicy::Allowed;
-    }
+enum ForNavigation {
+    #[expect(dead_code)]
+    Yes,
+    No,
+}
 
-    // Step 2
-    let current_url_origin = request.current_url().origin();
-    let same_origin = if let Origin::Origin(ref origin) = request.origin {
-        *origin == request.current_url().origin()
-    } else {
-        false
+/// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check>
+fn cross_origin_resource_policy_check(
+    origin: &Origin,
+    request_client: &RequestClient,
+    response: &Response,
+    for_navigation: ForNavigation,
+) -> CrossOriginResourcePolicy {
+    // Step 1. Set forNavigation to false if it is not given.
+    //
+    // That's the default value of the enum
+
+    // Step 2. Let embedderPolicy be settingsObject’s policy container’s embedder policy.
+    let RequestPolicyContainer::PolicyContainer(ref policy_container) =
+        request_client.policy_container
+    else {
+        return CrossOriginResourcePolicy::Blocked;
     };
 
-    if same_origin {
+    let embedder_policy = &policy_container.embedder_policy;
+
+    // Step 3. If the cross-origin resource policy internal check with origin, "unsafe-none",
+    // response, and forNavigation returns blocked, then return blocked.
+    if cross_origin_resource_policy_internal_check(
+        origin,
+        EmbedderPolicyValue::UnsafeNone,
+        response,
+        &for_navigation,
+    ) == CrossOriginResourcePolicy::Blocked
+    {
+        return CrossOriginResourcePolicy::Blocked;
+    }
+
+    // TODO Step 4. If the cross-origin resource policy internal check with origin,
+    // embedderPolicy’s report only value, response, and forNavigation returns blocked, then queue
+    // a cross-origin embedder policy CORP violation report with response, settingsObject,
+    // destination, and true.
+
+    // Step 5. If the cross-origin resource policy internal check with origin, embedderPolicy’s
+    // value, response, and forNavigation returns allowed, then return allowed.
+    if cross_origin_resource_policy_internal_check(
+        origin,
+        embedder_policy.value,
+        response,
+        &for_navigation,
+    ) == CrossOriginResourcePolicy::Allowed
+    {
         return CrossOriginResourcePolicy::Allowed;
     }
 
-    // Step 3
+    // TODO Step 6. Queue a cross-origin embedder policy CORP violation report with response,
+    // settingsObject, destination, and false.
+
+    // Step 7. Return blocked.
+    CrossOriginResourcePolicy::Blocked
+}
+
+/// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-internal-check>
+fn cross_origin_resource_policy_internal_check(
+    origin: &Origin,
+    embedder_policy_value: EmbedderPolicyValue,
+    response: &Response,
+    for_navigation: &ForNavigation,
+) -> CrossOriginResourcePolicy {
+    // Step 1. If forNavigation is true and embedderPolicyValue is "unsafe-none", then return allowed.
+    if let ForNavigation::Yes = for_navigation &&
+        let EmbedderPolicyValue::UnsafeNone = embedder_policy_value
+    {
+        return CrossOriginResourcePolicy::Allowed;
+    }
+
+    // Step 2. Let policy be the result of getting `Cross-Origin-Resource-Policy` from response’s header list.
     let policy = response
         .headers
         .get(HeaderName::from_static("cross-origin-resource-policy"))
-        .map(|h| h.to_str().unwrap_or(""))
-        .unwrap_or("");
+        .and_then(|h| h.to_str().ok());
 
-    // Step 4
-    if policy == "same-origin" {
-        return CrossOriginResourcePolicy::Blocked;
+    // Step 3. If policy is neither `same-origin`, `same-site`, nor `cross-origin`, then set policy to null.
+    let policy = policy
+        .filter(|&s| s == "same-origin" || s == "same-site" || s == "cross-origin")
+        // Step 4. If policy is null, then switch on embedderPolicyValue:
+        .or(match embedder_policy_value {
+            // Do nothing.
+            EmbedderPolicyValue::UnsafeNone => None,
+            // Set policy to `same-origin`.
+            EmbedderPolicyValue::RequireCorp => Some("same-origin"),
+        });
+
+    // Step 5. Switch on policy:
+    match policy {
+        Some("same-origin") => {
+            // If origin is same origin with response’s URL’s origin, then return allowed.
+            if let Origin::Origin(request_origin) = origin &&
+                response
+                    .url()
+                    .is_some_and(|url| request_origin == &url.origin())
+            {
+                return CrossOriginResourcePolicy::Allowed;
+            }
+
+            // Otherwise, return blocked.
+            CrossOriginResourcePolicy::Blocked
+        },
+        Some("same-site") => {
+            if let Some(response_url) = response.url() {
+                // If all of the following are true
+                // origin is schemelessly same site with response’s URL’s origin
+                // origin’s scheme is "https" or response’s URL’s scheme is not "https"
+                if let Origin::Origin(request_origin) = origin &&
+                    is_schemelessy_same_site(request_origin, &response_url.origin()) &&
+                    (request_origin.scheme() == Some("https") ||
+                        response_url.scheme() != "https")
+                {
+                    return CrossOriginResourcePolicy::Allowed;
+                }
+            }
+            // Otherwise, return blocked.
+            CrossOriginResourcePolicy::Blocked
+        },
+        // null / 'cross-origin'
+        // Return allowed.
+        _ => CrossOriginResourcePolicy::Allowed,
     }
-
-    // Step 5
-    if let Origin::Origin(ref request_origin) = request.origin {
-        let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
-        if schemeless_same_origin &&
-            (request_origin.scheme() == Some("https") ||
-                response.https_state == HttpsState::None)
-        {
-            return CrossOriginResourcePolicy::Allowed;
-        }
-    };
-
-    // Step 6
-    if policy == "same-site" {
-        return CrossOriginResourcePolicy::Blocked;
-    }
-
-    CrossOriginResourcePolicy::Allowed
 }
 
 // Convenience struct that implements Done, for setting responseEnd on function return
@@ -2059,11 +2139,11 @@ async fn http_network_fetch(
             .host_str()
             .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
 
-        if url.scheme() == "https" {
-            if let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>() {
-                // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
-                hsts_enabled = sts.max_age().as_secs() > 0;
-            }
+        if url.scheme() == "https" &&
+            let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>()
+        {
+            // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
+            hsts_enabled = sts.max_age().as_secs() > 0;
         }
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
@@ -2097,10 +2177,10 @@ async fn http_network_fetch(
     *res_body.lock() = ResponseBody::Receiving(vec![]);
     let res_body2 = res_body.clone();
 
-    if let Some(ref sender) = devtools_sender {
-        if let Some(m) = msg {
-            send_request_to_devtools(m, sender);
-        }
+    if let Some(ref sender) = devtools_sender &&
+        let Some(m) = msg
+    {
+        send_request_to_devtools(m, sender);
     }
 
     let done_sender2 = done_sender.clone();
@@ -2178,11 +2258,6 @@ async fn http_network_fetch(
     // Substep 1
 
     // Substep 2
-
-    response.https_state = match url.scheme() {
-        "https" => HttpsState::Modern,
-        _ => HttpsState::None,
-    };
 
     // TODO Read request
 
@@ -2561,10 +2636,11 @@ fn append_a_request_origin_header(request: &mut Request) {
                 ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
-                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
-                        if scheme == "https" && request.current_url().scheme() != "https" {
-                            serialized_origin = headers::Origin::NULL;
-                        }
+                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin &&
+                        scheme == "https" &&
+                        request.current_url().scheme() != "https"
+                    {
+                        serialized_origin = headers::Origin::NULL;
                     }
                 },
                 ReferrerPolicy::SameOrigin => {

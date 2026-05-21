@@ -37,12 +37,12 @@ use layout_api::{
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
-use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
+use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
@@ -66,7 +66,7 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
@@ -94,6 +94,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
@@ -175,6 +176,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
@@ -200,7 +202,7 @@ use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
@@ -361,10 +363,11 @@ pub(crate) struct Document {
     applets: MutNullableDom<HTMLCollection>,
     /// Information about the `<iframes>` in this [`Document`].
     iframes: RefCell<IFrameCollection>,
-    /// Lock use for style attributes and author-origin stylesheet objects in this document.
-    /// Can be acquired once for accessing many objects.
+    /// Shared locks used for style attributes, author-origin stylesheets, and user and
+    /// user agent stylesheets in this document. Can be acquired once for accessing many
+    /// objects. This is shared with the owning [`ScriptThread`].
     #[no_trace]
-    style_shared_lock: StyleSharedRwLock,
+    shared_style_locks: SharedRwLocks,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     #[custom_trace]
     stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
@@ -490,17 +493,11 @@ pub(crate) struct Document {
     fired_unload: Cell<bool>,
     /// List of responsive images
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
-    /// Number of redirects for the document load
-    redirect_count: Cell<u16>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
+
+    /// A [`ResourceFetchTiming`] that holds timing information for this [`Document`].
     #[no_trace]
-    redirect_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
-    #[no_trace]
-    redirect_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
-    #[no_trace]
-    secure_connection_start: Cell<Option<CrossProcessInstant>>,
+    resource_fetch_timing: RefCell<Option<ResourceFetchTiming>>,
+
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -717,17 +714,17 @@ impl Document {
                 // will trigger a new empty display list.
                 self.root_removal_noted.set(false);
 
-                if let Some(dirty_root) = self.dirty_root.get() {
-                    if dirty_root.is_connected() {
-                        // There was an existing dirty root so we mark its
-                        // ancestors as dirty until the document element.
-                        for ancestor in dirty_root
-                            .upcast::<Node>()
-                            .inclusive_ancestors_in_flat_tree()
-                        {
-                            if ancestor.is::<Element>() {
-                                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-                            }
+                if let Some(dirty_root) = self.dirty_root.get() &&
+                    dirty_root.is_connected()
+                {
+                    // There was an existing dirty root so we mark its
+                    // ancestors as dirty until the document element.
+                    for ancestor in dirty_root
+                        .upcast::<Node>()
+                        .inclusive_ancestors_in_flat_tree()
+                    {
+                        if ancestor.is::<Element>() {
+                            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
                         }
                     }
                 }
@@ -974,10 +971,10 @@ impl Document {
 
         // Step 2: If document's URL matches about:blank and document's about base URL is
         // non-null, then return document's about base URL.
-        if document_url.matches_about_blank() {
-            if let Some(about_base_url) = self.about_base_url() {
-                return about_base_url;
-            }
+        if document_url.matches_about_blank() &&
+            let Some(about_base_url) = self.about_base_url()
+        {
+            return about_base_url;
         }
 
         // Step 3: Return document's URL.
@@ -1011,10 +1008,10 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if let Some(root) = self.GetDocumentElement() {
-            if root.upcast::<Node>().has_dirty_descendants() {
-                condition.insert(RestyleReason::DOMChanged);
-            }
+        if let Some(root) = self.GetDocumentElement() &&
+            root.upcast::<Node>().has_dirty_descendants()
+        {
+            condition.insert(RestyleReason::DOMChanged);
         }
 
         if !self.pending_restyles.borrow().is_empty() {
@@ -1233,7 +1230,7 @@ impl Document {
             //
             // FIXME(stshine): this should be the origin of the stacking context space,
             // which may differ under the influence of writing mode.
-            self.window.scroll(0.0, 0.0, ScrollBehavior::Instant);
+            self.window.scroll(cx, 0.0, 0.0, ScrollBehavior::Instant);
             // Step 2.3. Return.
             return;
         }
@@ -1249,6 +1246,7 @@ impl Document {
         // TODO
         // Step 3.5. Scroll target into view, with behavior set to "auto", block set to "start", and inline set to "nearest". [CSSOMVIEW]
         target.scroll_into_view_with_options(
+            cx,
             ScrollBehavior::Auto,
             ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Start),
             ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Nearest),
@@ -1261,7 +1259,7 @@ impl Document {
         indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport));
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
-        self.event_handler()
+        self.focus_handler()
             .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 
@@ -1965,7 +1963,7 @@ impl Document {
                 // We finished loading the page, so if the `Window` is still waiting for
                 // the first layout, allow it.
                 if self.has_browsing_context && self.is_fully_active() {
-                    self.window().allow_layout_if_necessary();
+                    self.window().allow_layout_if_necessary(cx);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -2349,7 +2347,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result, cx);
+                .resume_with_pending_parsing_blocking_script(cx, &element, result);
         }
     }
 
@@ -2588,17 +2586,21 @@ impl Document {
         !load_cancellers.is_empty()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#active-parser>
+    fn active_parser(&self) -> Option<DomRoot<ServoParser>> {
+        // > A Document is said to have an active parser if it is associated with
+        // > an HTML parser or an XML parser that has not yet been stopped or aborted.
+        self.get_current_parser()
+            .filter(|parser| !(parser.has_stopped() || parser.has_aborted()))
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, cx: &mut js::context::JSContext) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
-        // Step 1.
-        for iframe in self.iframes().iter() {
-            if let Some(document) = iframe.GetContentDocument() {
-                document.abort(cx);
-            }
-        }
+        // Step 1. Assert: this is running as part of a task queued on document's relevant agent's event loop.
+        // TODO
 
         // Step 2. Cancel any instances of the fetch algorithm in the context of document,
         // discarding any tasks queued for them, and discarding any further data received
@@ -2629,7 +2631,7 @@ impl Document {
         // TODO
 
         // Step 4. If document has an active parser, then:
-        if let Some(parser) = self.get_current_parser() {
+        if let Some(parser) = self.active_parser() {
             // Step 4.1. Set document's active parser was aborted to true.
             self.active_parser_was_aborted.set(true);
             // Step 4.2. Abort that parser.
@@ -2637,6 +2639,39 @@ impl Document {
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-document-and-its-descendants>
+    pub(crate) fn abort_a_document_and_its_descendants(&self, cx: &mut js::context::JSContext) {
+        // Step 1. Assert: this is running as part of a task queued on document's relevant agent's event loop.
+        // TODO
+
+        // Step 2. Let descendantNavigables be document's descendant navigables.
+        // Step 3. For each descendantNavigable of descendantNavigables,
+        // queue a global task on the navigation and traversal task source given
+        // descendantNavigable's active window to perform the following steps:
+        for iframe in self.iframes().iter() {
+            if let Some(descendant_document) = iframe.GetContentDocument() {
+                let trusted_descendant_document = Trusted::new(&*descendant_document);
+                let document = Trusted::new(self);
+                descendant_document
+                    .owner_global()
+                    .task_manager()
+                    .navigation_and_traversal_task_source()
+                    .queue(task!(abort_iframe_document: move |cx| {
+                        let descendant_document = trusted_descendant_document.root();
+                        // Step 3.1. Abort descendantNavigable's active document.
+                        descendant_document.abort(cx);
+                        // Step 3.2. If descendantNavigable's active document's salvageable is false, then set document's salvageable to false.
+                        if !descendant_document.salvageable.get() {
+                            document.root().salvageable.set(false);
+                        }
+                    }));
+            }
+        }
+
+        // Step 4. Abort document.
+        self.abort(cx);
     }
 
     pub(crate) fn notify_constellation_load(&self) {
@@ -2885,7 +2920,10 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
-    pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
+    pub(crate) fn update_the_rendering(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> (ReflowPhasesRun, ReflowStatistics) {
         assert!(!self.is_render_blocked());
 
         let mut phases = ReflowPhasesRun::empty();
@@ -2923,7 +2961,7 @@ impl Document {
             );
         }
 
-        let (reflow_phases, statistics) = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        let (reflow_phases, statistics) = self.window().reflow(cx, ReflowGoal::UpdateTheRendering);
         let phases = phases.union(reflow_phases);
 
         self.window().paint_api().update_epoch(
@@ -3308,7 +3346,7 @@ impl Document {
         }
 
         // Step 8: If document's active parser was aborted is true, then return.
-        if !self.is_active() || self.active_parser_was_aborted.get() {
+        if self.active_parser_was_aborted.get() {
             return Ok(());
         }
 
@@ -3330,7 +3368,7 @@ impl Document {
         };
 
         // Steps 10-11.
-        parser.write(string.into(), cx);
+        parser.write(cx, string.into());
 
         Ok(())
     }
@@ -3362,8 +3400,8 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    pub(crate) fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
-        self.unsafe_get().style_shared_lock()
+    pub(crate) fn shared_style_locks(self) -> &'dom SharedRwLocks {
+        self.unsafe_get().shared_style_locks()
     }
 
     #[inline]
@@ -3509,8 +3547,8 @@ impl Document {
             .unwrap_or(UTF_8);
 
         let has_focus = window.parent_info().is_none();
-
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
+        let shared_style_locks = window.script_thread().shared_style_locks().clone();
 
         Document {
             node: Node::new_document_node(),
@@ -3544,19 +3582,7 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             iframes: RefCell::new(IFrameCollection::new()),
-            style_shared_lock: {
-                /// Per-process shared lock for author-origin stylesheets
-                ///
-                /// FIXME: make it per-document or per-pipeline instead:
-                /// <https://github.com/servo/servo/issues/16027>
-                /// (Need to figure out what to do with the style attribute
-                /// of elements adopted into another document.)
-                static PER_PROCESS_AUTHOR_SHARED_LOCK: LazyLock<StyleSharedRwLock> =
-                    LazyLock::new(StyleSharedRwLock::new);
-
-                PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
-                // StyleSharedRwLock::new()
-            },
+            shared_style_locks,
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
@@ -3607,10 +3633,7 @@ impl Document {
             active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
-            redirect_count: Cell::new(0),
-            redirect_start: Cell::new(None),
-            redirect_end: Cell::new(None),
-            secure_connection_start: Cell::new(None),
+            resource_fetch_timing: RefCell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3860,35 +3883,48 @@ impl Document {
     }
 
     pub(crate) fn get_redirect_count(&self) -> u16 {
-        self.redirect_count.get()
+        self.resource_fetch_timing
+            .borrow()
+            .as_ref()
+            .map_or(0, |resource_fetch_timing| {
+                resource_fetch_timing.redirect_count
+            })
     }
 
-    pub(crate) fn set_redirect_count(&self, count: u16) {
-        self.redirect_count.set(count)
+    pub(crate) fn set_resource_fetch_timing(&self, timing: ResourceFetchTiming) {
+        self.resource_fetch_timing.replace(Some(timing));
     }
 
-    pub(crate) fn get_redirect_start(&self) -> Option<CrossProcessInstant> {
-        self.redirect_start.get()
-    }
-
-    pub(crate) fn set_redirect_start(&self, time: Option<CrossProcessInstant>) {
-        self.redirect_start.set(time)
-    }
-
-    pub(crate) fn get_redirect_end(&self) -> Option<CrossProcessInstant> {
-        self.redirect_end.get()
-    }
-
-    pub(crate) fn set_redirect_end(&self, time: Option<CrossProcessInstant>) {
-        self.redirect_end.set(time)
-    }
-
-    pub(crate) fn get_secure_connection_start(&self) -> Option<CrossProcessInstant> {
-        self.secure_connection_start.get()
-    }
-
-    pub(crate) fn set_secure_connection_start(&self, time: Option<CrossProcessInstant>) {
-        self.secure_connection_start.set(time)
+    pub(crate) fn performance_timing_attribute(
+        &self,
+        name: &str,
+    ) -> Fallible<Option<CrossProcessInstant>> {
+        Ok(match name {
+            "unloadEventStart" => self.get_unload_event_start(),
+            "unloadEventEnd" => self.get_unload_event_end(),
+            "domInteractive" => self.get_dom_interactive(),
+            "domContentLoadedEventStart" => self.get_dom_content_loaded_event_start(),
+            "domContentLoadedEventEnd" => self.get_dom_content_loaded_event_end(),
+            "domComplete" => self.get_dom_complete(),
+            "loadEventStart" => self.get_load_event_start(),
+            "loadEventEnd" => self.get_load_event_end(),
+            "redirectStart" | "redirectEnd" | "secureConnectionStart" | "responseEnd" => self
+                .resource_fetch_timing
+                .borrow()
+                .as_ref()
+                .and_then(|resource_fetch_timing| match name {
+                    "redirectStart" => resource_fetch_timing.redirect_start,
+                    "redirectEnd" => resource_fetch_timing.redirect_end,
+                    "secureConnectionStart" => resource_fetch_timing.secure_connection_start,
+                    "responseEnd" => resource_fetch_timing.response_end,
+                    _ => None,
+                }),
+            _ => {
+                return Err(Error::Operation(Some(format!(
+                    "{name} hasn't been implemented."
+                ))));
+            },
+        })
     }
 
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
@@ -3951,9 +3987,14 @@ impl Document {
         self.GetDocumentElement().and_then(DomRoot::downcast)
     }
 
-    /// Return a reference to the per-document shared lock used in stylesheets.
-    pub(crate) fn style_shared_lock(&self) -> &StyleSharedRwLock {
-        &self.style_shared_lock
+    /// Return a reference to the per-ScriptThread shared locks used for stylesheets.
+    pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
+        &self.shared_style_locks
+    }
+
+    /// Return a reference to the per-ScriptThread shared lock used for author stylesheets.
+    pub(crate) fn style_shared_author_lock(&self) -> &SharedRwLock {
+        &self.shared_style_locks.author
     }
 
     /// Flushes the stylesheet list, and returns whether any stylesheet changed.
@@ -4244,7 +4285,7 @@ impl Document {
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
-            self.style_shared_lock(),
+            self.style_shared_author_lock(),
         );
     }
 
@@ -4278,7 +4319,7 @@ impl Document {
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
-            self.style_shared_lock(),
+            self.style_shared_author_lock(),
         );
     }
 
@@ -4778,9 +4819,62 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
+        ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
         // Step 5. Return document.
         document.set_ready_state(cx, DocumentReadyState::Complete);
+        Ok(document)
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-document-parsehtml>
+    fn ParseHTML(
+        cx: &mut js::context::JSContext,
+        window: &Window,
+        html: DOMString,
+        options: &SetHTMLOptions,
+    ) -> Fallible<DomRoot<Document>> {
+        // Step 1. Let document be a new Document, whose content type is "text/html".
+        // Step 2. Set document's allow declarative shadow roots to true.
+        let url = window.get_url();
+        let doc = window.Document();
+        let loader = DocumentLoader::new(&doc.loader());
+        let content_type = "text/html"
+            .parse()
+            .expect("Supported type is not a MIME type");
+        let document = Document::new(
+            window,
+            HasBrowsingContext::No,
+            Some(ServoUrl::parse("about:blank").unwrap()),
+            None,
+            doc.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            Some(content_type),
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+            false,
+            true,
+            Some(doc.insecure_requests_policy()),
+            doc.has_trustworthy_ancestor_or_current_origin(),
+            doc.custom_element_reaction_stack(),
+            doc.creation_sandboxing_flag_set(),
+            CanGc::from_cx(cx),
+        );
+
+        // Step 3. Parse HTML from a string given document and html.
+        ServoParser::parse_html_document(cx, &document, Some(html), url, None, None);
+
+        // Step 4. Let sanitizer be the result of calling get a sanitizer instance from options with
+        // options and true.
+        let sanitizer = Sanitizer::get_sanitizer_instance_from_options(cx, window, options, true)?;
+
+        // Step 5. Call sanitize on document with sanitizer and true.
+        sanitizer.sanitize(cx, document.upcast(), true)?;
+
+        // Step 6. Return document.
         Ok(document)
     }
 
@@ -5341,8 +5435,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createrange>
-    fn CreateRange(&self, can_gc: CanGc) -> DomRoot<Range> {
-        Range::new_with_doc(self, None, can_gc)
+    fn CreateRange(&self, cx: &mut js::context::JSContext) -> DomRoot<Range> {
+        Range::new_with_doc(self, None, CanGc::from_cx(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>
@@ -5957,20 +6051,22 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         _unused1: Option<DOMString>,
         _unused2: Option<DOMString>,
     ) -> Fallible<DomRoot<Document>> {
-        // Step 1
+        // Step 1. If document is an XML document, then throw an "InvalidStateError" DOMException.
         if !self.is_html_document() {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2
+        // Step 2. If document's throw-on-dynamic-markup-insertion counter is greater than 0,
+        // then throw an "InvalidStateError" DOMException.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 3
+        // Step 3. Let entryDocument be the entry global object's associated Document.
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
-        // Step 4
+        // Step 4. If document's origin is not same origin to entryDocument's origin,
+        // then throw a "SecurityError" DOMException.
         if !self
             .origin()
             .same_origin(&entry_responsible_document.origin())
@@ -5978,20 +6074,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Err(Error::Security(None));
         }
 
-        // Step 5
+        // Step 5. If document has an active parser whose script nesting level is greater than 0,
+        // then return document.
         if self
-            .get_current_parser()
-            .is_some_and(|parser| parser.is_active())
+            .active_parser()
+            .is_some_and(|parser| parser.script_nesting_level() > 0)
         {
             return Ok(DomRoot::from_ref(self));
         }
 
-        // Step 6
+        // Step 6. Similarly, if document's unload counter is greater than 0, then return document.
         if self.is_prompting_or_unloading() {
             return Ok(DomRoot::from_ref(self));
         }
 
-        // Step 7
+        // Step 7. If document's active parser was aborted is true, then return document.
         if self.active_parser_was_aborted.get() {
             return Ok(DomRoot::from_ref(self));
         }
@@ -6001,7 +6098,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         self.window().set_navigation_start();
 
-        // Step 8
+        // Step 8. If document's node navigable is non-null and document's node navigable's
+        // ongoing navigation is a navigation ID, then stop loading document's node navigable.
         // TODO: https://github.com/servo/servo/issues/21937
         if self.has_browsing_context() {
             // spec says "stop document loading",
@@ -6009,7 +6107,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.abort(cx);
         }
 
-        // Step 9
+        // Step 9. For each shadow-including inclusive descendant node of document,
+        // erase all event listeners and handlers given node.
         for node in self
             .upcast::<Node>()
             .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
@@ -6017,7 +6116,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 10
+        // Step 10. If document is the associated Document of document's relevant global object,
+        // then erase all event listeners and handlers given document's relevant global object.
         if self.window.Document() == DomRoot::from_ref(self) {
             self.window.upcast::<EventTarget>().remove_all_listeners();
         }
@@ -6263,43 +6363,47 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     fn CreateExpression(
         &self,
+        cx: &mut js::context::JSContext,
         expression: DOMString,
         resolver: Option<Rc<XPathNSResolver>>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<crate::dom::types::XPathExpression>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
         Ok(XPathExpression::new(
+            cx,
             &self.window,
             None,
-            can_gc,
             parsed_expression,
         ))
     }
 
-    fn CreateNSResolver(&self, node_resolver: &Node, can_gc: CanGc) -> DomRoot<Node> {
+    fn CreateNSResolver(
+        &self,
+        cx: &mut js::context::JSContext,
+        node_resolver: &Node,
+    ) -> DomRoot<Node> {
         let global = self.global();
         let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
+        let evaluator = XPathEvaluator::new(cx, window, None);
         XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateNSResolver(&*evaluator, node_resolver)
     }
 
     fn Evaluate(
         &self,
+        cx: &mut js::context::JSContext,
         expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
         result: Option<&crate::dom::types::XPathResult>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<crate::dom::types::XPathResult>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
-        XPathExpression::new(&self.window, None, can_gc, parsed_expression).evaluate_internal(
+        XPathExpression::new(cx, &self.window, None, parsed_expression).evaluate_internal(
+            cx,
             context_node,
             result_type,
             result,
-            can_gc,
         )
     }
 

@@ -6,7 +6,8 @@ createPipelineLayout validation tests.
 TODO: review existing tests, write descriptions, and make sure tests are complete.
 `;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { count, range } from '../../../common/util/util.js';
+import { getGPU } from '../../../common/util/navigator_gpu.js';
+import { count, range, supportsImmediateData } from '../../../common/util/util.js';
 import {
   bufferBindingTypeInfo,
   getBindingLimitForBindingType,
@@ -511,4 +512,55 @@ fn((t) => {
         break;
       }
   }
+});
+
+g.test('immediate_data_size').
+desc(
+  `
+    Test that creating a pipeline layout with immediateSize validates:
+    - immediateSize must be a multiple of 4.
+    - immediateSize must be <= device.limits.maxImmediateSize.
+  `
+).
+params((u) => {
+  const validImmediateSizes = [0, 4, 'max'];
+  const invalidAlignmentImmediateSizes = [1, 2, 3, 5];
+  const invalidRangeImmediateSizes = ['exceedLimit'];
+  return u.combine('immediateSize', [
+  ...validImmediateSizes,
+  ...invalidAlignmentImmediateSizes,
+  ...invalidRangeImmediateSizes]
+  );
+}).
+fn((t) => {
+  t.skipIf(!supportsImmediateData(getGPU(t.rec)), 'Immediate data not supported');
+
+  const maxImmediateSize = t.device.limits.maxImmediateSize;
+
+  const { immediateSize: sizeVariant } = t.params;
+  let size;
+  switch (sizeVariant) {
+    case 'max':
+      size = maxImmediateSize;
+      break;
+    case 'exceedLimit':
+      size = maxImmediateSize + 4;
+      break;
+    default:
+      size = sizeVariant;
+      break;
+  }
+
+  const descriptor = {
+    bindGroupLayouts: [],
+    immediateSize: size
+  };
+
+  const isMultipleOf4 = size % 4 === 0;
+  const isWithinLimit = size <= maxImmediateSize;
+  const shouldSucceed = isMultipleOf4 && isWithinLimit;
+
+  t.expectValidationError(() => {
+    t.device.createPipelineLayout(descriptor);
+  }, !shouldSucceed);
 });

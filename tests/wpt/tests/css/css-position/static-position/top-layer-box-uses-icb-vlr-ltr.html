@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<title>Boxes in the top layer use the initial containing block as their static-position rectangle.</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#staticpos-rect">
+<link rel="match" href="top-layer-box-uses-icb-top-left-ref.html">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<style>
+  :root {
+    writing-mode: vertical-lr;
+    direction: ltr;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #reference {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+
+  #popover {
+    width: 100px;
+    height: 100px;
+    background: green;
+
+    /* Override popover UA style */
+    border: none;
+    padding: 0;
+
+    inset: auto;
+  }
+</style>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<div id="reference"></div>
+<!-- This green box should fully cover the red box above. -->
+<div id="popover" popover></div>
+
+<script>
+  document.getElementById("popover").showPopover();
+  waitForAtLeastOneFrame().then(takeScreenshot);
+</script>
+
+</html>

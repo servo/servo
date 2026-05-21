@@ -939,27 +939,25 @@ fn compute_the_intersection(
         // >      by applying container’s clip.
         // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
         // Additionally, handle css `clip-path` as well.
-        if IntersectionObserver::has_content_clip(&containing_element) {
-            if let Some(container_padding_box) = containing_element
+        if IntersectionObserver::has_content_clip(&containing_element) &&
+            let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
                 .padding_box_without_reflow()
-            {
-                let container_padding_box = if containing_element.establishes_scroll_container() {
-                    let margin = IntersectionObserver::resolve_percentages_with_basis(
-                        scroll_margin,
-                        container_padding_box,
-                    );
-                    container_padding_box.outer_rect(margin)
-                } else {
-                    container_padding_box
-                };
+        {
+            let container_padding_box = if containing_element.establishes_scroll_container() {
+                let margin = IntersectionObserver::resolve_percentages_with_basis(
+                    scroll_margin,
+                    container_padding_box,
+                );
+                container_padding_box.outer_rect(margin)
+            } else {
+                container_padding_box
+            };
 
-                if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box)
-                {
-                    intersection_rect = rect;
-                } else {
-                    return None;
-                }
+            if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
+                intersection_rect = rect;
+            } else {
+                return None;
             }
         }
 

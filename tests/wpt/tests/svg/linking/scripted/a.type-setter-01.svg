@@ -12,10 +12,9 @@
     test(function() {
         var a = document.getElementById("test");
 
-        test(function() {
-            a.type = "plain/text"
-            assert_equals(a.type, "plain/text");
-        }, "Test anchor's type setter");
-    });
+        a.type = "plain/text"
+        assert_equals(a.type, "plain/text");
+        assert_equals(a.getAttribute("type"), "plain/text");
+    }, "Test anchor's type setter");
   ]]></script>
 </svg>

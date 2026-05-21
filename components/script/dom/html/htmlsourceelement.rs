@@ -103,15 +103,15 @@ impl VirtualMethods for HTMLSourceElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's parent is a picture element and a source element that is a previous
                 // sibling has its srcset, sizes, media, type attributes set, changed, or removed.
-                if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-                    if parent.is::<HTMLPictureElement>() {
-                        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-                        HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
-                            cx,
-                            next_sibling_iterator,
-                            |cx, image| image.update_the_image_data(cx),
-                        );
-                    }
+                if let Some(parent) = self.upcast::<Node>().GetParentElement() &&
+                    parent.is::<HTMLPictureElement>()
+                {
+                    let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                    HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
+                        cx,
+                        next_sibling_iterator,
+                        |cx, image| image.update_the_image_data(cx),
+                    );
                 }
             },
             &local_name!("width") | &local_name!("height") => {
@@ -119,14 +119,14 @@ impl VirtualMethods for HTMLSourceElement {
                 // height attributes changes (set, changed, removed) of the source element should be
                 // counted as relevant mutation for the sibling image element, these attributes
                 // affect only the style presentational hints of the image element.
-                if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-                    if parent.is::<HTMLPictureElement>() {
-                        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-                        HTMLSourceElement::iterate_next_html_image_element_siblings(
-                            next_sibling_iterator,
-                            |image| image.upcast::<Node>().dirty(NodeDamage::Other),
-                        );
-                    }
+                if let Some(parent) = self.upcast::<Node>().GetParentElement() &&
+                    parent.is::<HTMLPictureElement>()
+                {
+                    let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                    HTMLSourceElement::iterate_next_html_image_element_siblings(
+                        next_sibling_iterator,
+                        |image| image.upcast::<Node>().dirty(NodeDamage::Other),
+                    );
                 }
             },
             _ => {},
@@ -179,15 +179,16 @@ impl VirtualMethods for HTMLSourceElement {
 
         // Step 1. If oldParent is a picture element, then for each child of oldParent's children,
         // if child is an img element, then count this as a relevant mutation for child.
-        if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
-            if let Some(next_sibling) = context.next_sibling {
-                let next_sibling_iterator = next_sibling.inclusively_following_siblings();
-                HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
-                    cx,
-                    next_sibling_iterator,
-                    |cx, image| image.update_the_image_data(cx),
-                );
-            }
+        if context.parent.is::<HTMLPictureElement>() &&
+            !self.upcast::<Node>().has_parent() &&
+            let Some(next_sibling) = context.next_sibling
+        {
+            let next_sibling_iterator = next_sibling.inclusively_following_siblings();
+            HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
+                cx,
+                next_sibling_iterator,
+                |cx, image| image.update_the_image_data(cx),
+            );
         }
     }
 }

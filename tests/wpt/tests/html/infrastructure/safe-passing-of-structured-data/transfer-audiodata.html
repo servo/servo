@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MessageChannel transfer of AudioData</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+    const audioData = new AudioData({
+        data: new Float32Array([0.1, 0.2, 0.3, 0.4]),
+        format: "f32",
+        sampleRate: 44100,
+        numberOfFrames: 4,
+        numberOfChannels: 1,
+        timestamp: 0
+    });
+
+    const channel = new MessageChannel();
+    const received = new Promise(resolve => {
+        channel.port2.onmessage = e => resolve(e.data);
+    });
+
+    channel.port1.postMessage(audioData, [audioData]);
+
+    const copy = await received;
+    assert_true(copy instanceof AudioData);
+    assert_equals(copy.numberOfFrames, 4);
+    assert_equals(copy.numberOfChannels, 1);
+    assert_equals(copy.sampleRate, 44100);
+    copy.close();
+}, "AudioData can be transferred through a MessageChannel");
+</script>

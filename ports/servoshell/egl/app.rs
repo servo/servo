@@ -18,7 +18,6 @@ use servo::{
     TouchEventType, TouchId, UserContentManager, WebView, WebViewId, WindowRenderingContext,
     convert_rect_to_css_pixel,
 };
-use servo_base::generic_channel::GenericCallback;
 use url::Url;
 
 use crate::egl::host_trait::HostTrait;
@@ -81,7 +80,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
 
     fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
 
-    #[cfg_attr(target_os = "android", expect(unused_variables))]
+    #[cfg_attr(
+        not(all(feature = "tracing", feature = "tracing-hitrace")),
+        expect(unused_variables)
+    )]
     fn update_user_interface_state(
         &self,
         state: &RunningAppState,
@@ -132,7 +134,8 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
             if new_load_status == LoadStatus::Complete {
                 let (callback, receiver) =
-                    GenericCallback::new_blocking().expect("Could not create channel");
+                    servo_base::generic_channel::GenericCallback::new_blocking()
+                        .expect("Could not create channel");
                 state.servo().create_memory_report(callback);
                 std::thread::spawn(move || {
                     let result = receiver.recv().expect("Could not get memory report");
@@ -180,20 +183,17 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     fn show_embedder_control(&self, _: WebViewId, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
-            EmbedderControl::InputMethod(input_method_control) => {
-                if input_method_control.allow_virtual_keyboard() {
-                    self.visible_input_methods.borrow_mut().push(control_id);
-                    self.host.on_ime_show(input_method_control);
-                }
+            EmbedderControl::InputMethod(input_method_control)
+                if input_method_control.allow_virtual_keyboard() =>
+            {
+                self.visible_input_methods.borrow_mut().push(control_id);
+                self.host.on_ime_show(input_method_control);
             },
-            EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
-                SimpleDialog::Alert(alert_dialog) => {
-                    self.host.show_alert(alert_dialog.message().into());
-                    alert_dialog.confirm();
-                },
-                _ => {}, // The drop implementation will send the default response.
+            EmbedderControl::SimpleDialog(SimpleDialog::Alert(alert_dialog)) => {
+                self.host.show_alert(alert_dialog.message().into());
+                alert_dialog.confirm();
             },
-            _ => {},
+            _ => {}, // The drop implementation will send the default response.
         }
     }
 
@@ -236,12 +236,24 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct VsyncRefreshDriver {
     start_frame_callbacks: RefCell<Vec<Box<dyn Fn() + Send>>>,
+    /// On OHOS we own the `OH_NativeVSync` handle and request a single callback
+    /// only when an observer asks for one.
+    #[cfg(target_env = "ohos")]
+    native_vsync: ohos_vsync::NativeVsync,
 }
 
 impl VsyncRefreshDriver {
+    pub(crate) fn new() -> Self {
+        Self {
+            start_frame_callbacks: Default::default(),
+            #[cfg(target_env = "ohos")]
+            native_vsync: ohos_vsync::NativeVsync::new("ServoVsync")
+                .expect("Failed to create NativeVsync"),
+        }
+    }
+
     fn notify_vsync(&self) {
         let start_frame_callbacks: Vec<_> =
             self.start_frame_callbacks.borrow_mut().drain(..).collect();
@@ -253,9 +265,19 @@ impl VsyncRefreshDriver {
 
 impl RefreshDriver for VsyncRefreshDriver {
     fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
-        self.start_frame_callbacks
-            .borrow_mut()
-            .push(new_start_frame_callback);
+        // We only need to request a vsync callback if the queue is empty,
+        // otherwise we will already have a pending callback.
+        #[cfg_attr(not(target_env = "ohos"), allow(unused_variables))]
+        let was_empty = {
+            let mut callbacks = self.start_frame_callbacks.borrow_mut();
+            let was_empty = callbacks.is_empty();
+            callbacks.push(new_start_frame_callback);
+            was_empty
+        };
+        #[cfg(target_env = "ohos")]
+        if was_empty {
+            super::ohos::request_vsync_callback(&self.native_vsync);
+        }
     }
 }
 
@@ -323,7 +345,7 @@ impl App {
         window_id: Option<ServoShellWindowId>,
     ) {
         let viewport_size = viewport_rect.size;
-        let refresh_driver = Rc::new(VsyncRefreshDriver::default());
+        let refresh_driver = Rc::new(VsyncRefreshDriver::new());
         let rendering_context = Rc::new(
             WindowRenderingContext::new_with_refresh_driver(
                 display_handle,
@@ -349,7 +371,7 @@ impl App {
             current_load_status: Default::default(),
         });
         self.state
-            .open_window(platform_window.clone(), self.initial_url.clone());
+            .open_window(platform_window, self.initial_url.clone());
     }
 
     pub(crate) fn servo(&self) -> &Servo {
@@ -364,7 +386,6 @@ impl App {
         self.state
             .focused_window()
             .expect("There is always an active window")
-            .clone()
     }
 
     pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
@@ -631,8 +652,6 @@ impl App {
         }
     }
 
-    // TODO: Instead of letting the embedder drive the RefreshDriver we should move the vsync
-    // notification directly into the VsyncRefreshDriver.
     pub fn notify_vsync(&self) {
         let platform_window = self.window().platform_window();
         let embedded_platform_window = platform_window

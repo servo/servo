@@ -1,4 +1,3 @@
-import java.io.FileFilter
 import java.util.regex.Pattern
 
 plugins {
@@ -131,11 +130,11 @@ android {
     // integration with native C/C++ shared objects (based on the
     // `android.externalNativeBuild` dsl object) assumes that we
     // actually execute compiler commands to produced the shared
-    // objects. We already have the libsimpleservo.so produced by rustc.
+    // objects. We already have the libservoshell.so produced by rustc.
     // We could simply copy the .so to the `sourceSet.jniLibs` folder
-    // to make AGP bundle it with the APK, but this doesn"t copy the STL
+    // to make AGP bundle it with the APK, but this doesn't copy the STL
     // (libc++_shared.so) as well. So we use ndk-build as a glorified
-    // `cp` command to copy the libsimpleservo.so from target/<arch>
+    // `cp` command to copy the libservoshell.so from target/<arch>
     // to target/android and crucially also include libc++_shared.so
     // as well.
     //
@@ -196,53 +195,3 @@ android {
     }
 }
 
-dependencies {
-
-    //Dependency list
-    val deps = listOf(ServoDependency("blurdroid.jar", "blurdroid"))
-    // Iterate all build types and dependencies
-    // For each dependency call the proper implementation command and set the correct dependency path
-    val list = listOf("armv7", "arm64", "x86", "x64")
-    for (arch in list) {
-        for (debug in listOf(true, false)) {
-            val basePath = getTargetDir(debug, arch) + "/build"
-            val cmd = arch + (if (debug) "Debug" else "Release") + "Implementation"
-
-            for (dep in deps) {
-                val path = findDependencyPath(basePath, dep.fileName, dep.folderFilter)
-                if (path.isNotBlank())
-                    cmd(files(path)) // this is how custom flavors are called.
-            }
-        }
-    }
-}
-
-// folderFilter can be used to improve search performance
-fun findDependencyPath(basePath: String, filename: String, folderFilter: String?): String {
-    var path = File(basePath)
-    if (!path.exists()) {
-        return ""
-    }
-
-
-    if (folderFilter != null) {
-        path.listFiles(FileFilter { it.isDirectory })!!.forEach {
-            if (it.name.contains(folderFilter)) {
-                path = File(it.absolutePath)
-            }
-        }
-    }
-
-    var result = ""
-
-    for (file in path.walkTopDown()) {
-        if (file.isFile && file.name == filename) {
-            result = file.absolutePath
-            break // no more walking
-        }
-    }
-
-    return result
-}
-
-data class ServoDependency(val fileName: String, val folderFilter: String? = null)

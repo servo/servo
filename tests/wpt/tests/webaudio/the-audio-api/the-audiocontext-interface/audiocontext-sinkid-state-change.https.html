@@ -32,14 +32,16 @@ promise_test(async t => {
   assert_equals(audioContext.state, 'suspended');
 
   // Step 11.5. Fire an event named sinkchange at the associated AudioContext.
-  audioContext.onsinkchange = t.step_func(() => {
-    events.push('sinkchange');
-    assert_equals(audioContext.sinkId, firstDeviceId);
-  });
+  return new Promise(resolve => {
+    audioContext.onsinkchange = t.step_func(() => {
+      events.push('sinkchange');
+      assert_equals(audioContext.sinkId, firstDeviceId);
+      assert_equals(events[0], 'sinkchange');
+      resolve();
+    });
 
-  await audioContext.setSinkId(firstDeviceId);
-  assert_equals(events[0], 'sinkchange');
-  t.done();
+    audioContext.setSinkId(firstDeviceId);
+  });
 }, 'Calling setSinkId() on a suspended AudioContext should fire only sink ' +
    'change events.');
 
@@ -78,7 +80,8 @@ promise_test(async t => {
 
     // The following event handler will catch 3 state change events:
     // - The initial 'running' state change.
-    // - Step 9.2.1. Set the state attribute of the AudioContext to "suspended".
+    // - Step 9.2.1. Set the state attribute of the AudioContext to
+    //   "suspended".
     //   Fire an event named statechange at the associated AudioContext.
     // - Step 12.2. Set the state attribute of the AudioContext to "running".
     //   Fire an event named statechange at the associated AudioContext.
@@ -94,5 +97,42 @@ promise_test(async t => {
   });
 }, 'Calling setSinkId() on a running AudioContext should fire both state ' +
    'and sink change events.');
+
+  // Test that the setSinkId promise resolves before the sinkchange event.
+  promise_test(async t => {
+    let events = [];
+    const audioContext = new AudioContext();
+
+    await audioContext.resume();
+
+    function eventCheckpoint(resolve) {
+      assert_equals(events[0], 'promise_resolved',
+                    'Promise should resolve first');
+      assert_equals(events[1], 'sinkchange', 'Event should fire second');
+      assert_equals(events[2], 'sinkchange_microtask',
+                    'Event microtasks run last');
+      resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      audioContext.onsinkchange = t.step_func(() => {
+        events.push('sinkchange');
+        Promise.resolve().then(() => {
+          events.push('sinkchange_microtask');
+          if (events.length === 3) {
+            eventCheckpoint(resolve);
+          }
+        });
+      });
+
+      audioContext.setSinkId({ type: 'none' }).then(() => {
+        events.push('promise_resolved');
+        if (events.length === 3) {
+          eventCheckpoint(resolve);
+        }
+      }).catch(reject);
+    });
+  }, 'setSinkId() promise should resolve before the sinkchange event is ' +
+     'fired.');
 </script>
 </html>

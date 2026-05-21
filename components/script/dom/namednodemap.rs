@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::attr::Attr;
@@ -43,55 +44,44 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
-    fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
+    fn Item(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Attr>> {
         let index: usize = index as _;
         if self.owner.attrs().borrow().len() <= index {
             None
         } else {
-            Some(self.owner.attrs().ensure_dom(index, &self.owner))
+            Some(self.owner.attrs().ensure_dom(cx, index, &self.owner))
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem>
-    fn GetNamedItem(&self, name: DOMString) -> Option<DomRoot<Attr>> {
-        self.owner.get_attribute_by_name(name)
+    fn GetNamedItem(&self, cx: &mut JSContext, name: DOMString) -> Option<DomRoot<Attr>> {
+        self.owner.get_attribute_by_name(cx, name)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns>
     fn GetNamedItemNS(
         &self,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Option<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .get_attribute_with_namespace(&ns, &LocalName::from(local_name))
+            .get_attribute_with_namespace(cx, &ns, &LocalName::from(local_name))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem>
-    fn SetNamedItem(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-    ) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetNamedItem(&self, cx: &mut JSContext, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.owner.SetAttributeNode(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns>
-    fn SetNamedItemNS(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-    ) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetNamedItemNS(&self, cx: &mut JSContext, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.SetNamedItem(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem>
-    fn RemoveNamedItem(
-        &self,
-        cx: &mut js::context::JSContext,
-        name: DOMString,
-    ) -> Fallible<DomRoot<Attr>> {
+    fn RemoveNamedItem(&self, cx: &mut JSContext, name: DOMString) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
             .remove_attribute_by_name(cx, &name)
@@ -101,7 +91,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns>
     fn RemoveNamedItemNS(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Fallible<DomRoot<Attr>> {
@@ -112,13 +102,13 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Attr>> {
-        self.Item(index)
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Attr>> {
+        self.Item(cx, index)
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Attr>> {
-        self.GetNamedItem(name)
+    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<DomRoot<Attr>> {
+        self.GetNamedItem(cx, name)
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>

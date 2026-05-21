@@ -176,9 +176,9 @@ impl Callback for TransferBackPressurePromiseReaction {
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
         rooted!(&in(cx) let mut chunk = UndefinedValue());
         chunk.set(self.chunk.get());
-        let result =
-            self.port
-                .pack_and_post_message_handling_error("chunk", chunk.handle(), can_gc);
+        let result = self
+            .port
+            .pack_and_post_message_handling_error(cx, "chunk", chunk.handle());
 
         // If result is an abrupt completion,
         if let Err(error) = result {
@@ -623,8 +623,7 @@ impl WritableStreamDefaultController {
                 // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
 
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result =
-                    port.pack_and_post_message_handling_error("error", reason, CanGc::from_cx(cx));
+                let result = port.pack_and_post_message_handling_error(cx, "error", reason);
 
                 // Disentangle port.
                 global.disentangle_port(cx, port);
@@ -772,7 +771,7 @@ impl WritableStreamDefaultController {
 
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(&in(cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("close", value.handle(), CanGc::from_cx(cx))
+                port.pack_and_post_message(cx, "close", value.handle())
                     .expect("Sending close should not fail.");
 
                 // Disentangle port.

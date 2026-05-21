@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `API Operation Tests for multisample resolve in render passes.`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
+import { isTextureFormatPossiblyResolvable, kColorTextureFormats } from '../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import * as ttu from '../../../texture_test_utils.js';
 
@@ -11,7 +12,7 @@ const kSlotsToResolve = [
 
 
 const kSize = 4;
-const kFormat = 'rgba8unorm';
+const kDepthStencilFormat = 'depth24plus-stencil8';
 
 export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
@@ -27,7 +28,6 @@ Test basic render pass resolve behavior for combinations of:
     TODO: cases where color attachment and resolve target don't have the same mip level
   - resolveTarget {2d array layer, TODO: 3d slice} {0, >0} with {2d, TODO: 3d} resolveTarget
     TODO: cases where color attachment and resolve target don't have the same z (slice or layer)
-  - TODO: test all renderable color formats
   - TODO: test that any not-resolved attachments are rendered to correctly.
   - TODO: test different loadOps
   - TODO?: resolveTarget mip level {0, >0} (TODO?: different mip level from colorAttachment)
@@ -37,18 +37,44 @@ Test basic render pass resolve behavior for combinations of:
 ).
 params((u) =>
 u.
+combine('colorFormat', kColorTextureFormats).
+filter((t) => isTextureFormatPossiblyResolvable(t.colorFormat)).
 combine('separateResolvePass', [false, true]).
 combine('storeOperation', ['discard', 'store']).
 beginSubcases().
+combine('transientColorAttachment', [false, true])
+// Exclude if transient AND (separate pass OR storing)
+.unless(
+  (t) => t.transientColorAttachment && (t.separateResolvePass || t.storeOperation === 'store')
+).
 combine('numColorAttachments', [2, 4]).
 combine('slotsToResolve', kSlotsToResolve).
 combine('resolveTargetBaseMipLevel', [0, 1]).
-combine('resolveTargetBaseArrayLayer', [0, 1])
+combine('resolveTargetBaseArrayLayer', [0, 1]).
+combine('transientDepthStencilAttachment', [false, true]).
+combine('depthStencilAttachment', [false, true]).
+unless((t) => !t.depthStencilAttachment && t.transientDepthStencilAttachment)
 ).
 fn((t) => {
+  const { colorFormat } = t.params;
+  t.skipIfTextureFormatNotSupported(colorFormat);
+  t.skipIfTextureFormatNotResolvable(colorFormat);
+  // MAINTENANCE_TODO(#4509): Remove this after all implementations have TRANSIENT_ATTACHMENT.
+  if (t.params.transientColorAttachment || t.params.transientDepthStencilAttachment) {
+    t.skipIfTransientAttachmentNotSupported();
+  }
+
   const targets = [];
   for (let i = 0; i < t.params.numColorAttachments; i++) {
-    targets.push({ format: kFormat });
+    targets.push({ format: colorFormat });
+  }
+
+  let depthStencil;
+  if (t.params.depthStencilAttachment) {
+    depthStencil = {
+      format: kDepthStencilFormat,
+      depthWriteEnabled: false
+    };
   }
 
   // These shaders will draw a white triangle into a texture. After draw, the top left
@@ -95,6 +121,7 @@ fn((t) => {
       entryPoint: 'main',
       targets
     },
+    depthStencil,
     primitive: { topology: 'triangle-list' },
     multisample: { count: 4 }
   });
@@ -110,19 +137,20 @@ fn((t) => {
   for (let i = 0; i < t.params.numColorAttachments; i++) {
     const colorAttachment = t.
     createTextureTracked({
-      format: kFormat,
+      format: colorFormat,
       size: [kSize, kSize, 1],
       sampleCount: 4,
       mipLevelCount: 1,
-      usage:
-      GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+      usage: t.params.transientColorAttachment ?
+      GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TRANSIENT_ATTACHMENT :
+      GPUTextureUsage.RENDER_ATTACHMENT
     }).
     createView();
 
     let resolveTarget;
     if (t.params.slotsToResolve.includes(i)) {
       const resolveTargetTexture = t.createTextureTracked({
-        format: kFormat,
+        format: colorFormat,
         size: [kResolveTargetSize, kResolveTargetSize, t.params.resolveTargetBaseArrayLayer + 1],
         sampleCount: 1,
         mipLevelCount: t.params.resolveTargetBaseMipLevel + 1,
@@ -162,13 +190,39 @@ fn((t) => {
     }
   }
 
+  let depthStencilAttachment;
+  if (t.params.depthStencilAttachment) {
+    const depthStencilTexture = t.createTextureTracked({
+      format: kDepthStencilFormat,
+      size: [kSize, kSize, 1],
+      sampleCount: 4,
+      usage: t.params.transientDepthStencilAttachment ?
+      GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TRANSIENT_ATTACHMENT :
+      GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    depthStencilAttachment = {
+      view: depthStencilTexture.createView(),
+      depthClearValue: 1.0,
+      depthLoadOp: 'clear',
+      depthStoreOp: 'discard',
+      stencilLoadOp: 'clear',
+      stencilStoreOp: 'discard'
+    };
+  }
+
   const encoder = t.device.createCommandEncoder();
-  const pass = encoder.beginRenderPass({ colorAttachments: drawPassAttachments });
+  const pass = encoder.beginRenderPass({
+    colorAttachments: drawPassAttachments,
+    depthStencilAttachment
+  });
   pass.setPipeline(pipeline);
   pass.draw(3);
   pass.end();
   if (t.params.separateResolvePass) {
-    const pass = encoder.beginRenderPass({ colorAttachments: resolvePassAttachments });
+    const pass = encoder.beginRenderPass({
+      colorAttachments: resolvePassAttachments,
+      depthStencilAttachment
+    });
     pass.end();
   }
   t.device.queue.submit([encoder.finish()]);
@@ -180,6 +234,7 @@ fn((t) => {
     ttu.expectSinglePixelComparisonsAreOkInTexture(
       t,
       { texture: resolveTarget, mipLevel: t.params.resolveTargetBaseMipLevel },
+      // Note: Channels that do not exist in the actual texture are not compared.
       [
       // Top left pixel should be {1.0, 1.0, 1.0, 1.0}.
       { coord: { x: 0, y: 0, z }, exp: { R: 1.0, G: 1.0, B: 1.0, A: 1.0 } },

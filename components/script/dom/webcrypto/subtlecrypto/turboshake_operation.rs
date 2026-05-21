@@ -17,7 +17,7 @@ pub(crate) fn digest(
     let output_length = normalized_algorithm.output_length;
 
     // Step 2. If outputLength is zero or is not a multiple of 8, then throw an OperationError.
-    if output_length == 0 || output_length % 8 != 0 {
+    if output_length == 0 || !output_length.is_multiple_of(8) {
         return Err(Error::Operation(Some(
             "The outputLength is zero or is not a multiple of 8".to_string(),
         )));

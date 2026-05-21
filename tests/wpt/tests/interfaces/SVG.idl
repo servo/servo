@@ -13,7 +13,7 @@ interface SVGElement : Element {
 };
 
 SVGElement includes GlobalEventHandlers;
-SVGElement includes HTMLOrSVGElement;
+SVGElement includes HTMLOrSVGOrMathMLElement;
 
 dictionary SVGBoundingBoxOptions {
   boolean fill = true;
@@ -324,10 +324,12 @@ interface mixin GetSVGDocument {
 
 [Exposed=Window]
 interface SVGStyleElement : SVGElement {
-  attribute DOMString type;
   attribute DOMString media;
   attribute DOMString title;
   attribute boolean disabled;
+
+  // obsolete members
+  attribute DOMString type;
 };
 
 SVGStyleElement includes LinkStyle;

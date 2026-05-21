@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../../trusted-click.js"></script>
+  <style>
+    #inner {
+      background-color: red;
+      width: 200px;
+      height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div id="inner"></div>
+  <button id="fullscreen-btn">Enter fullscreen (keyboardLock: browser)</button>
+  <script>
+    // Keyboard lock + preventDefault() to prevent keys from UA specific behavior.
+    addEventListener("keydown", ev => ev.preventDefault());
+
+    async function respondWith(action, cb) {
+      let error = null;
+      try {
+        await cb();
+      } catch(err) {
+        error = err.message;
+      } finally {
+        window.top.postMessage({ action, error }, "*");
+      }
+    }
+
+    window.addEventListener("message", async e => {
+      if (e.data.action === "requestFullscreen") {
+        await respondWith("fullscreenResult", async () => {
+          await trusted_click();
+          await document.getElementById("inner").requestFullscreen({ keyboardLock: "browser" });
+        })
+      } else if (e.data.action === "singlePressEsc") {
+        await respondWith("keyDownResult", async () => {
+          await new test_driver.Actions()
+          .keyDown("\uE00C")
+          .addTick(1)
+          .keyUp("\uE00C").send();
+          // Wait a little before responding.
+          await new test_driver.Actions().addTick(250).send();
+        })
+      } else if(e.data.action === "holdPressEsc") {
+        await respondWith("keyDownResult", async () => {
+          await new test_driver.Actions()
+            .keyDown("\uE00C")
+            .addTick(1000)
+            .keyDown("\uE00C")
+            .addTick(1000)
+            .keyDown("\uE00C")
+            .addTick(1000)
+            .keyDown("\uE00C")
+            .addTick(1000)
+            .keyDown("\uE00C")
+            .keyUp("\uE00C").send();
+        });
+      }
+    });
+  </script>
+</body>
+</html>

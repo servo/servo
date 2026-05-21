@@ -34,6 +34,10 @@ struct struct_with_array {
   a : array<constructible, 4>
 }
 
+override override_no_default : u32;
+override override_default = 4u;
+override override_expr = override_default + 2;
+
 `;
 
 const kVertexPosCases = {
@@ -278,6 +282,18 @@ const kFunctionParamTypeCases = {
     name: `ptr<workgroup, array<atomic<u32>,1>>`,
     valid: 'with_unrestricted_pointer_parameters'
   },
+  ptrWorkgroupOverrideNoDefault: {
+    name: `ptr<workgroup, array<u32, override_no_default>>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptrWorkgroupOverrideWithDefault: {
+    name: `ptr<workgroup, array<f32, override_default>>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptrWorkgroupOverrideExpr: {
+    name: `ptr<workgroup, array<vec4f, override_expr>>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
 
   // Invalid pointers.
   invalid_ptr1: { name: `ptr<handle, u32>`, valid: false }, // Can't spell handle address space
@@ -487,6 +503,21 @@ const kFunctionParamValueCases = {
     value: `&uniform_host_shareable`,
     matches: ['ptr12'],
     needsUnrestrictedPointerParameters: true
+  },
+  ptrWorkgroupOverrideNoDefault: {
+    value: `&wg_override_no_default`,
+    matches: ['ptrWorkgroupOverrideNoDefault'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptrWorkgroupOverrideWithDefault: {
+    value: `&wg_override_default`,
+    matches: ['ptrWorkgroupOverrideWithDefault'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptrWorkgroupOverrideExpr: {
+    value: `&wg_override_expr`,
+    matches: ['ptrWorkgroupOverrideExpr'],
+    needsUnrestrictedPointerParameters: true
   }
 };
 
@@ -568,6 +599,10 @@ var<private> g_array4 : array<mat2x2f, 4>;
 var<private> g_array5 : array<bool, 4>;
 var<private> g_constructible : constructible;
 var<private> g_struct_with_array : struct_with_array;
+
+var<workgroup> wg_override_no_default : array<u32, override_no_default>;
+var<workgroup> wg_override_default : array<f32, override_default>;
+var<workgroup> wg_override_expr : array<vec4f, override_expr>;
 
 fn foo() {
   var f_u32 : u32;

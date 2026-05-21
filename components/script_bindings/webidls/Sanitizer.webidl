@@ -23,6 +23,8 @@ interface Sanitizer {
   boolean allowElement(SanitizerElementWithAttributes element);
   boolean removeElement(SanitizerElement element);
   boolean replaceElementWithChildren(SanitizerElement element);
+  boolean allowProcessingInstruction(SanitizerPI pi);
+  boolean removeProcessingInstruction(SanitizerPI pi);
   boolean allowAttribute(SanitizerAttribute attribute);
   boolean removeAttribute(SanitizerAttribute attribute);
   boolean setComments(boolean allow);
@@ -47,6 +49,12 @@ dictionary SanitizerElementNamespaceWithAttributes : SanitizerElementNamespace {
 typedef (DOMString or SanitizerElementNamespace) SanitizerElement;
 typedef (DOMString or SanitizerElementNamespaceWithAttributes) SanitizerElementWithAttributes;
 
+dictionary SanitizerProcessingInstruction {
+  required DOMString target;
+};
+
+typedef (DOMString or SanitizerProcessingInstruction) SanitizerPI;
+
 dictionary SanitizerAttributeNamespace {
   required DOMString name;
   DOMString? _namespace = null;
@@ -57,6 +65,9 @@ dictionary SanitizerConfig {
   sequence<SanitizerElementWithAttributes> elements;
   sequence<SanitizerElement> removeElements;
   sequence<SanitizerElement> replaceWithChildrenElements;
+
+  sequence<SanitizerPI> processingInstructions;
+  sequence<SanitizerPI> removeProcessingInstructions;
 
   sequence<SanitizerAttribute> attributes;
   sequence<SanitizerAttribute> removeAttributes;

@@ -1216,7 +1216,7 @@ class ConnectionlessProtocol(Protocol):
         pass
 
 
-class WdspecProtocol(ConnectionlessProtocol):
+class PytestProtocol(ConnectionlessProtocol):
     implements = [ConnectionlessBaseProtocolPart]
 
     def __init__(self, executor, browser):

@@ -52,6 +52,7 @@ base64 = { workspace = true }
 base64ct = { workspace = true }
 bitflags = { workspace = true }
 brotli = { workspace = true }
+buf-read-ext = { workspace = true }
 cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chardetng = { workspace = true }
@@ -81,6 +82,7 @@ headers = { workspace = true }
 hkdf = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
+httparse = { workspace = true }
 hyper_serde = { workspace = true }
 icu_locid = { workspace = true }
 indexmap = { workspace = true }
@@ -98,7 +100,6 @@ markup5ever = { workspace = true }
 media = { workspace = true }
 metrics = { workspace = true }
 mime = { workspace = true }
-mime-multipart-hyper1 = { workspace = true }
 mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
@@ -114,7 +115,7 @@ p521 = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.13"
+phf = { workspace = true }
 pixels = { workspace = true }
 pkcs8 = { workspace = true }
 postcard = { workspace = true }
@@ -139,7 +140,6 @@ servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
-servo-wakelock = { workspace = true }
 servo_arc = { workspace = true }
 sha1 = { workspace = true }
 sha2 = { workspace = true }
@@ -152,8 +152,8 @@ stylo_atoms = { workspace = true }
 stylo_dom = { workspace = true }
 stylo_malloc_size_of = { workspace = true }
 stylo_traits = { workspace = true }
-swapper = "0.1"
-tempfile = "3"
+swapper = { workspace = true }
+tempfile = { workspace = true }
 tendril = { workspace = true }
 time = { workspace = true }
 timers = { workspace = true }
@@ -163,7 +163,7 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
-web_atoms = "0.2.4"
+web_atoms = { workspace = true }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }

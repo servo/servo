@@ -35,4 +35,8 @@ test(function() {
   var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
   assert_true(svg.dataset instanceof DOMStringMap);
 }, "SVG elements should have a .dataset");
+test(function() {
+  var mathml = document.createElementNS("http://www.w3.org/1998/Math/MathML", "math");
+  assert_true(mathml.dataset instanceof DOMStringMap);
+}, "MathML elements should have a .dataset");
 </script>

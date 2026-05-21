@@ -216,7 +216,7 @@ class AndroidTarget(CrossBuildTarget):
                 encoding="utf8",
             ).stdout
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
-            env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
+            env["RUSTFLAGS"] += f" -C link-arg={libclangrt_filename}"
 
         assert host_cc
         assert host_cxx

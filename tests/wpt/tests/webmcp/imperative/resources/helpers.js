@@ -14,8 +14,24 @@ function waitForIframeMessage(action) {
 // Helper to compare tool objects that should conform to the `RegisteredTool`
 // dictionary.
 function toolsAreEqual(actual, expected) {
-  if (actual.name !== expected.name) return false;
-  if (actual.description !== expected.description) return false;
-  if (actual.inputSchema !== expected.inputSchema) return false;
+  if (actual.name !== expected.name) {
+    return `names are unequal: ${actual.name} !== ${expected.name}`;
+  }
+  if (actual.description !== expected.description) {
+    return `descriptions are unequal: ${actual.description} !== ${expected.description}`;
+  }
+  if (actual.inputSchema !== expected.inputSchema) {
+    return `inputSchemas are unequal: ${actual.inputSchemas} !== ${expected.inputSchemas}`;
+  }
+  if (actual.origin !== expected.origin) {
+    return `origins are unequal: ${actual.origin} !== ${expected.origin}`;
+  }
+  if (actual.annotations?.readOnlyHint !== expected.annotations?.readOnlyHint) {
+    return `readOnlyHints are unequal: ${actual.annotations?.readOnlyHint} !== ${expected.annotations?.readOnlyHint}`;
+  }
+  if (actual.annotations?.untrustedContentHint !== expected.annotations?.untrustedContentHint) {
+    return `untrustedContentHints are unequal: ${actual.annotations?.untrustedContentHint} !== ${expected.annotations?.untrustedContentHint}`;
+  }
+
   return true;
 }

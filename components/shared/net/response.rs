@@ -77,14 +77,6 @@ pub enum CacheState {
     Partial,
 }
 
-/// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum HttpsState {
-    None,
-    Deprecated,
-    Modern,
-}
-
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResponseInit {
     pub url: ServoUrl,
@@ -114,7 +106,6 @@ pub struct Response {
     #[conditional_malloc_size_of]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
-    pub https_state: HttpsState,
     pub tls_security_info: Option<TlsSecurityInfo>,
     pub referrer: Option<ServoUrl>,
     /// <https://fetch.spec.whatwg.org/#response-redirect-taint>
@@ -154,7 +145,6 @@ impl Response {
             headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
-            https_state: HttpsState::None,
             tls_security_info: None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
@@ -189,7 +179,6 @@ impl Response {
             headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
-            https_state: HttpsState::None,
             tls_security_info: None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
@@ -328,7 +317,6 @@ impl Response {
             metadata.location_url.clone_from(&response.location_url);
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status.clone_from(&response.status);
-            metadata.https_state = response.https_state;
             metadata.referrer.clone_from(&response.referrer);
             metadata.referrer_policy = response.referrer_policy;
             metadata.redirected = response.actual_response().url_list.len() > 1;

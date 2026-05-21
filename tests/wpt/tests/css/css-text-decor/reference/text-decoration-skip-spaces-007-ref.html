@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<style>
+/*
+ * Reference for text-decoration-skip-spaces-007.html (match test)
+ *
+ * text-decoration-skip-spaces: all skips interior spaces between words.
+ * We reproduce this by wrapping each word in its own underlined <span>,
+ * leaving the spaces outside any span. The spaces thus have no underline,
+ * matching exactly what "all" produces.
+ */
+div {
+    color: orange;
+    font-size: 2em;
+    white-space: pre;
+}
+span {
+    text-decoration: underline;
+    text-decoration-color: blue;
+}
+</style>
+
+<p>Test passes if this page renders the same as the reference page (underline only under AB, CDE, FG — not under the spaces between them).
+
+<div><span>AB</span> <span>CDE</span> <span>FG</span></div>

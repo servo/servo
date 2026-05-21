@@ -3,7 +3,7 @@
 **/export const description = `
 Interface matching between vertex and fragment shader validation for createRenderPipeline.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { range } from '../../../../common/util/util.js';
+import { hasFeature, range, unreachable } from '../../../../common/util/util.js';
 
 import * as vtu from '../validation_test_utils.js';
 
@@ -51,6 +51,8 @@ class InterStageMatchingValidationTest extends CreateRenderPipelineValidationTes
       targets: [{ format: 'rgba8unorm' }],
       module: this.device.createShaderModule({
         code: `
+        ${hasFeature(this.device.features, 'primitive-index') ? 'enable primitive_index;' : ''}
+        ${hasFeature(this.device.features, 'subgroups') ? 'enable subgroups;' : ''}
         struct B {
             ${inputs.map((v, i) => v.replace('__', getVarName(i))).join(',\n')},
             ${hasBuiltinPosition ? '@builtin(position) pos: vec4<f32>' : ''}
@@ -309,43 +311,56 @@ fn((t) => {
 g.test('max_variables_count,input').
 desc(
   `Tests that validation should fail when all user-defined inputs > max vertex shader output
-    variables.`
+    variables (with varying proportions of builtins and user-defined variables).`
 ).
 params((u) =>
-u.combine('isAsync', [false, true]).combineWithParams([
-// Number of user-defined output variables in test shader =
-//     device.limits.maxInterStageShaderVariables + numVariablesDelta
-{ numVariablesDelta: 0, useExtraBuiltinInputs: false },
-{ numVariablesDelta: 1, useExtraBuiltinInputs: false },
-{ numVariablesDelta: 0, useExtraBuiltinInputs: true },
-{ numVariablesDelta: -1, useExtraBuiltinInputs: true }]
-)
+u.
+combine('isAsync', [false, true]).
+combine('builtins', ['none', 'compat', 'all']).
+beginSubcases().
+combine('overLimit', [false, true])
 ).
 fn((t) => {
-  const { isAsync, numVariablesDelta, useExtraBuiltinInputs } = t.params;
+  const { isAsync, builtins, overLimit } = t.params;
 
-  const numVec4 = t.device.limits.maxInterStageShaderVariables + numVariablesDelta;
-  const numExtraVariables = useExtraBuiltinInputs ? 1 : 0;
-  const numUsedVariables = numVec4 + numExtraVariables;
-  const success = numUsedVariables <= t.device.limits.maxInterStageShaderVariables;
-
-  const outputs = range(numVec4, (i) => `@location(${i}) vout${i}: vec4<f32>`);
-  const inputs = range(numVec4, (i) => `@location(${i}) fin${i}: vec4<f32>`);
-
-  if (useExtraBuiltinInputs) {
-    inputs.push('@builtin(front_facing) front_facing_in: bool');
-    if (!t.isCompatibility) {
+  const inputs = [];
+  switch (builtins) {
+    case 'all':
+      t.skipIf(t.isCompatibility);
       inputs.push(
         '@builtin(sample_mask) sample_mask_in: u32',
         '@builtin(sample_index) sample_index_in: u32'
       );
-    }
+      if (hasFeature(t.device.features, 'primitive-index')) {
+        inputs.push('@builtin(primitive_index) primitive_index_in: u32');
+      }
+      if (hasFeature(t.device.features, 'subgroups')) {
+        inputs.push(
+          '@builtin(subgroup_invocation_id) subgroup_invocation_id_in: u32',
+          '@builtin(subgroup_size) subgroup_size_in: u32'
+        );
+      }
+    // fallthrough
+    case 'compat':
+      inputs.push('@builtin(front_facing) front_facing_in: bool');
+    // fallthrough
+    case 'none':
+      break;
+    default:
+      unreachable();
   }
+
+  const numVec4 =
+  t.device.limits.maxInterStageShaderVariables - inputs.length + (overLimit ? 1 : 0);
+
+  const outputs = range(numVec4, (i) => `@location(${i}) vout${i}: vec4<f32>`);
+  inputs.push(...range(numVec4, (i) => `@location(${i}) fin${i}: vec4<f32>`));
 
   const descriptor = t.getDescriptorWithStates(
     t.getVertexStateWithOutputs(outputs),
     t.getFragmentStateWithInputs(inputs, true)
   );
 
+  const success = !overLimit;
   vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
 });

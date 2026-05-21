@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>caret-color second value follows the caret when it moves</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-block-shape-text-color-003-ref.html">
+<meta name="assert" content="When the caret moves, the character under the new caret position is painted with the second value of caret-color and the previous character returns to its normal color.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  div {
+    font-size: 5em;
+  }
+  #target {
+    caret-color: black white;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+  // Move the caret one position forward so the block now covers 'b'.
+  const range = document.createRange();
+  range.setStart(target.firstChild, 1);
+  range.collapse(true);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+</script>

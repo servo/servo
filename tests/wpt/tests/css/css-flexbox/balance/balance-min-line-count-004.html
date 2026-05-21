@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<link rel="match" href="balance-min-line-count-004-ref.html">
+<meta name="assert" content="Tests balancing with a minimum number of lines.">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: balance;
+  flex-line-count: 5;
+  gap: 20px;
+}
+div > div {
+  background: green;
+  width: 20px;
+  height: 20px;
+}
+</style>
+<p>There should be a minimum of 5 lines.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

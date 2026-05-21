@@ -69,6 +69,12 @@
         "String request keeps setRequestHeader() Content-Type, with charset adjusted to UTF-8"
       )
       request(
+        function _String() { return "test"; },
+        {"Content-Type": "application/xml"},
+        "application/xml",
+        "String request keeps setRequestHeader() Content-Type without charset"
+      )
+      request(
         function _XMLDocument() { return new DOMParser().parseFromString("<xml/>", "application/xml"); },
         {"Content-Type": ""},
         "",
@@ -87,6 +93,12 @@
         "XML Document request keeps setRequestHeader() Content-Type, with charset adjusted to UTF-8"
       )
       request(
+        function _XMLDocument() { return new DOMParser().parseFromString("<xml/>", "application/xml"); },
+        {"Content-Type": "application/xhtml+xml"},
+        "application/xhtml+xml",
+        "XML Document request keeps setRequestHeader() Content-Type without charset"
+      )
+      request(
         function _HTMLDocument() { return new DOMParser().parseFromString("<html></html>", "text/html"); },
         {"Content-Type": ""},
         "",
@@ -103,6 +115,12 @@
         {"Content-Type": "text/html+junk;charset=ASCII"},
         "text/html+junk;charset=UTF-8",
         "HTML Document request keeps setRequestHeader() Content-Type, with charset adjusted to UTF-8"
+      )
+      request(
+        function _HTMLDocument() { return new DOMParser().parseFromString("<html></html>", "text/html"); },
+        {"Content-Type": "text/html+junk"},
+        "text/html+junk",
+        "HTML Document request keeps setRequestHeader() Content-Type without charset"
       )
       request(
         function _Blob() { return new Blob(["test"]); },
@@ -205,6 +223,18 @@
         {},
         "application/x-www-form-urlencoded;charset=UTF-8",
         'URLSearchParams request has correct default Content-Type of "application/x-www-form-urlencoded;charset=UTF-8"'
+      )
+      request(
+        function _URLSearchParams() { return new URLSearchParams("q=testQ&topic=testTopic") },
+        {"Content-Type": "application/xml;charset=ASCII"},
+        "application/xml;charset=UTF-8",
+        "URLSearchParams request keeps setRequestHeader() Content-Type, with charset adjusted to UTF-8"
+      )
+      request(
+        function _URLSearchParams() { return new URLSearchParams("q=testQ&topic=testTopic") },
+        {"Content-Type": "application/xml"},
+        "application/xml",
+        "URLSearchParams request keeps setRequestHeader() Content-Type without charset"
       )
     </script>
   </body>

@@ -43,5 +43,30 @@
       assert_equals(document.querySelector("video:muted"), video);
       assert_equals(document.querySelector("video:not(:muted)"), null);
     }, "Test :muted pseudo-class");
+
+    test((t) => {
+      assert_implements(CSS.supports("selector(:muted)"), ":muted is not supported");
+
+      const video = document.createElement("video");
+      document.body.appendChild(video);
+      t.add_cleanup(() => video.remove());
+
+      assert_false(video.muted);
+      assert_false(video.matches(":muted"));
+
+      video.setAttribute("muted", "");
+      assert_true(video.muted);
+      assert_true(video.matches(":muted"));
+
+      video.removeAttribute("muted");
+      assert_false(video.muted);
+      assert_false(video.matches(":muted"));
+
+      video.setAttribute("muted", "");
+      assert_true(video.muted);
+      video.muted = false;
+      assert_false(video.muted);
+      assert_false(video.matches(":muted"));
+    }, "Test :muted matches .muted for content attribute default");
   </script>
 </body>

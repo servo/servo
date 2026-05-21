@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test OfflineAudioContext suspend with renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async () => {
+  // Use a non-standard render quantum size.
+  const renderSize = 441;
+  const sampleRate = 48000;
+  const context = new OfflineAudioContext({
+    length: renderSize * 2,
+    sampleRate: sampleRate,
+    renderSizeHint: renderSize
+  });
+
+  // Schedule suspend at the first quantum boundary.
+  const suspendPromise = context.suspend(renderSize / sampleRate);
+  const renderingPromise = context.startRendering();
+
+  await suspendPromise;
+  assert_equals(context.currentTime, renderSize / sampleRate,
+      'Suspend should occur at exactly the quantum boundary');
+
+  // Resume to allow rendering to complete.
+  context.resume();
+  await renderingPromise;
+}, 'Offline suspend quantizes to custom render quantum size');
+</script>

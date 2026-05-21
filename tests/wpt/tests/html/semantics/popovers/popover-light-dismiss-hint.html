@@ -43,16 +43,20 @@
 </style>
 
 <script>
-  const popovers = [
+  const setA = [
     document.querySelector('#auto1'),
     document.querySelector('#auto2'),
     document.querySelector('#innerhint1'),
     document.querySelector('#innerhint2'),
+    document.querySelector('#manual1'),
+  ];
+  const setB = [
     document.querySelector('#hint1'),
     document.querySelector('#hint2'),
     document.querySelector('#manual1'),
   ];
-  function assertState(expectedState,description) {
+
+  function assertState(popovers, expectedState,description) {
     description = description || 'Error';
     const n = popovers.length;
     assert_equals(expectedState.length,n,'Invalid');
@@ -60,48 +64,59 @@
       assert_equals(popovers[i].matches(':popover-open'),expectedState[i],`${description}, index ${i} (${popovers[i].id})`);
     }
   }
-  function openall(t) {
-    // All popovers can be open at once, if shown in order:
+
+  function openall(popovers, t) {
     popovers.forEach((p) => p.hidePopover());
     popovers.forEach((p) => p.showPopover());
-    assertState(Array(popovers.length).fill(true),'All popovers should be able to be open at once');
+    assertState(popovers, Array(popovers.length).fill(true),'All popovers should be able to be open at once');
     t.add_cleanup(() => popovers.forEach((p) => p.hidePopover()));
   }
+
   function nvals(n,val) {
     return new Array(n).fill(val);
   }
-  for(let i=0;i<(popovers.length-1);++i) {
+
+  for(let i=0;i<(setA.length-1);++i) {
     promise_test(async (t) => {
-      openall(t);
-      await clickOn(popovers[i]);
-      let expectedState = [...nvals(i+1,true),...nvals(popovers.length-i-2,false),true];
-      assertState(expectedState);
-    },`Mixed auto/hint light dismiss behavior, click on ${popovers[i].id}`);
+      openall(setA, t);
+      await clickOn(setA[i]);
+      let expectedState = [...nvals(i+1,true),...nvals(setA.length-i-2,false),true];
+      assertState(setA, expectedState);
+    }, 'Mixed auto/hint light dismiss behavior, click on ' + setA[i].id);
+  }
+
+  for(let i=0;i<(setB.length-1);++i) {
+    promise_test(async (t) => {
+      openall(setB, t);
+      await clickOn(setB[i]);
+      let expectedState = [...nvals(i+1,true),...nvals(setB.length-i-2,false),true];
+      assertState(setB, expectedState);
+    }, 'Mixed auto/hint light dismiss behavior, click on ' + setB[i].id);
   }
 
   promise_test(async (t) => {
-    openall(t);
+    openall(setA, t);
     await clickOn(outside);
-    assertState([false,false,false,false,false,false,true]);
-  },'Clicking outside closes all');
+    assertState(setA, [false,false,false,false,true]);
+  },'Clicking outside closes all setA');
 
   promise_test(async (t) => {
-    openall(t);
-    invalidauto1.showPopover();
-    assertState([true,true,false,false,false,false,true],'auto inside hint ignores the hints and gets nested within auto2');
-    assert_true(invalidauto1.matches(':popover-open'),'the inner nested auto should be open');
-    invalidauto1.hidePopover();
-    assertState([true,true,false,false,false,false,true]);
-    assert_false(invalidauto1.matches(':popover-open'));
+    openall(setB, t);
+    await clickOn(outside);
+    assertState(setB, [false,false,true]);
+  },'Clicking outside closes all setB');
+
+  promise_test(async (t) => {
+    openall(setA, t);
+    assert_throws_dom('InvalidStateError', () => {
+      invalidauto1.showPopover();
+    });
   },'Auto cannot be nested inside hint (invalidauto1)');
 
   promise_test(async (t) => {
-    openall(t);
-    invalidauto2.showPopover();
-    assertState([false,false,false,false,false,false,true],'auto inside hint works as an independent (non-nested) auto');
-    assert_true(invalidauto2.matches(':popover-open'),'the inner nested auto should be open');
-    invalidauto2.hidePopover();
-    assertState([false,false,false,false,false,false,true]);
-    assert_false(invalidauto2.matches(':popover-open'));
+    openall(setB, t);
+    assert_throws_dom('InvalidStateError', () => {
+      invalidauto2.showPopover();
+    });
   },'Auto cannot be nested inside hint (invalidauto2)');
 </script>

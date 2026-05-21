@@ -63,10 +63,10 @@ impl Selection {
         // If we are setting to literally the same Range object
         // (not just the same positions), then there's nothing changing
         // and no task to queue.
-        if let Some(existing) = self.range.get() {
-            if &*existing == range {
-                return;
-            }
+        if let Some(existing) = self.range.get() &&
+            &*existing == range
+        {
+            return;
         }
         self.range.set(Some(range));
         range.associate_selection(self);
@@ -129,6 +129,26 @@ impl Selection {
     pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
         // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
         self.range.get()
+    }
+
+    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
+        let range = self.range.get().expect("Must always have a range");
+        range.set_start(node, offset);
+        range.set_end(node, offset);
+    }
+
+    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
+        let range = self.range.get().expect("Must always have a range");
+        assert!(range.collapsed(), "Must only extend after collapsing");
+
+        let anchor_node = range.start_container();
+        if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
+            range.set_end(node, offset);
+            self.direction.set(Direction::Forwards);
+        } else {
+            range.set_start(node, offset);
+            self.direction.set(Direction::Backwards);
+        }
     }
 }
 
@@ -239,11 +259,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
     fn RemoveRange(&self, range: &Range) -> ErrorResult {
-        if let Some(own_range) = self.range.get() {
-            if &*own_range == range {
-                self.clear_range();
-                return Ok(());
-            }
+        if let Some(own_range) = self.range.get() &&
+            &*own_range == range
+        {
+            self.clear_range();
+            return Ok(());
         }
         Err(Error::NotFound(None))
     }

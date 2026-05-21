@@ -4,7 +4,7 @@
 Tests for capability checking for features enabling optional texture formats.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../../common/util/navigator_gpu.js';
-import { assert } from '../../../../../common/util/util.js';
+import { assert, hasFeature } from '../../../../../common/util/util.js';
 import { kCanvasTextureFormats } from '../../../../capability_info.js';
 import {
   kASTCCompressedTextureFormats,
@@ -551,11 +551,11 @@ fn(async (t) => {
 
   const features = adapter.features;
 
-  const supportsBC = features.has('texture-compression-bc');
-  const supportsBCSliced3D = features.has('texture-compression-bc-sliced-3d');
-  const supportsASTC = features.has('texture-compression-astc');
-  const supportsASTCSliced3D = features.has('texture-compression-astc-sliced-3d');
-  const supportsETC2 = features.has('texture-compression-etc2');
+  const supportsBC = hasFeature(features, 'texture-compression-bc');
+  const supportsBCSliced3D = hasFeature(features, 'texture-compression-bc-sliced-3d');
+  const supportsASTC = hasFeature(features, 'texture-compression-astc');
+  const supportsASTCSliced3D = hasFeature(features, 'texture-compression-astc-sliced-3d');
+  const supportsETC2 = hasFeature(features, 'texture-compression-etc2');
 
   t.expect(
     supportsBC || supportsETC2 && supportsASTC,

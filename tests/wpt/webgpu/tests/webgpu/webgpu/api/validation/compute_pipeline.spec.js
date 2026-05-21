@@ -804,7 +804,7 @@ fn((t) => {
     `;
   const module = t.device.createShaderModule({ code });
 
-  const success = isTextureFormatUsableWithStorageAccessMode(t.device, format, access);
+  const success = isTextureFormatUsableWithStorageAccessMode(t.device.features, format, access);
   const descriptor = {
     layout: 'auto',
     compute: { module }

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -38,12 +38,16 @@ impl DOMParser {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<DOMParser> {
-        reflect_dom_object_with_proto(
+    fn new(
+        cx: &mut js::context::JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<DOMParser> {
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMParser::new_inherited(window)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -51,11 +55,11 @@ impl DOMParser {
 impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
     /// <https://html.spec.whatwg.org/multipage/#dom-domparser-constructor>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMParser>> {
-        Ok(DOMParser::new(window, proto, can_gc))
+        Ok(DOMParser::new(cx, window, proto))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domparser-parsefromstring>
@@ -111,12 +115,12 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
                 ServoParser::parse_html_document(
+                    cx,
                     &document,
                     Some(compliant_string),
                     url,
                     None,
                     None,
-                    cx,
                 );
                 document
             },
@@ -148,7 +152,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.
-                ServoParser::parse_xml_document(&document, Some(compliant_string), url, None, cx);
+                ServoParser::parse_xml_document(cx, &document, Some(compliant_string), url, None);
                 document
             },
         };

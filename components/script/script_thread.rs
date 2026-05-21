@@ -73,7 +73,7 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
-use script_bindings::script_runtime::{JSContext, temp_cx};
+use script_bindings::script_runtime::JSContext;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -101,8 +101,8 @@ use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use style::context::QuirksMode;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::media_queries::MediaList;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{AllowImportRules, DocumentStyleSheet, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
@@ -222,9 +222,8 @@ struct ScriptThreadUserContents {
     user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
 }
 
-impl From<UserContents> for ScriptThreadUserContents {
-    fn from(user_contents: UserContents) -> Self {
-        let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+impl ScriptThreadUserContents {
+    fn new(user_contents: UserContents, shared_locks: &SharedRwLocks) -> Self {
         let user_stylesheets = user_contents
             .stylesheets
             .iter()
@@ -233,8 +232,8 @@ impl From<UserContents> for ScriptThreadUserContents {
                     user_stylesheet.source(),
                     user_stylesheet.url().into(),
                     Origin::User,
-                    ServoArc::new(shared_lock.wrap(MediaList::empty())),
-                    shared_lock.clone(),
+                    ServoArc::new(shared_locks.ua_or_user.wrap(MediaList::empty())),
+                    shared_locks.ua_or_user.clone(),
                     None,
                     Some(&RustLogReporter),
                     QuirksMode::NoQuirks,
@@ -245,6 +244,21 @@ impl From<UserContents> for ScriptThreadUserContents {
         Self {
             user_scripts: Rc::new(user_contents.scripts),
             user_stylesheets: Rc::new(user_stylesheets),
+        }
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct SharedRwLocks {
+    pub author: SharedRwLock,
+    pub ua_or_user: SharedRwLock,
+}
+
+impl Default for SharedRwLocks {
+    fn default() -> Self {
+        Self {
+            author: SharedRwLock::new(),
+            ua_or_user: SharedRwLock::new(),
         }
     }
 }
@@ -354,6 +368,10 @@ pub struct ScriptThread {
 
     /// Unminify Css.
     unminify_css: bool,
+
+    /// The [`SharedRwLocks`] that are used by all Stylo operations in this ScriptThread.
+    #[no_trace]
+    shared_style_locks: SharedRwLocks,
 
     /// A map from [`UserContentManagerId`] to its [`UserContents`]. This is initialized
     /// with a copy of the map in constellation (via the `InitialScriptState`). After that,
@@ -529,6 +547,10 @@ impl ScriptThread {
 
     pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
         with_script_thread(|script_thread| script_thread.microtask_queue.clone())
+    }
+
+    pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
+        &self.shared_style_locks
     }
 
     pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
@@ -709,6 +731,10 @@ impl ScriptThread {
                 browsing_context_id,
             )
         })
+    }
+
+    pub(crate) fn find_window(id: PipelineId) -> Option<DomRoot<Window>> {
+        with_script_thread(|script_thread| script_thread.documents.borrow().find_window(id))
     }
 
     pub(crate) fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
@@ -971,10 +997,14 @@ impl ScriptThread {
 
         debugger_global.execute(&mut cx);
 
+        let shared_style_locks = Default::default();
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
                 |(user_content_manager_id, user_contents)| {
-                    (user_content_manager_id, user_contents.into())
+                    (
+                        user_content_manager_id,
+                        ScriptThreadUserContents::new(user_contents, &shared_style_locks),
+                    )
                 },
             ));
 
@@ -1014,6 +1044,7 @@ impl ScriptThread {
                     unminify_js: opts.unminify_js,
                     local_script_source: opts.local_script_source.clone(),
                     unminify_css: opts.unminify_css,
+                    shared_style_locks,
                     user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
                     player_context: state.player_context,
                     pipeline_to_node_ids: Default::default(),
@@ -1273,7 +1304,7 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            if document.update_the_rendering().0.needs_frame() {
+            if document.update_the_rendering(cx).0.needs_frame() {
                 painters_generating_frames.insert(document.webview_id().into());
             }
 
@@ -1415,7 +1446,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::SpawnPipeline(
                     new_pipeline_info,
                 )) => {
-                    self.spawn_pipeline(new_pipeline_info);
+                    self.spawn_pipeline(cx, new_pipeline_info);
                 },
                 MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -1728,19 +1759,20 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if opts::get()
-                        .debug
-                        .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
-                    {
-                        println!(
-                            "Task took longer than max allowed ({category:?}) {:?}",
-                            task_duration.as_nanos()
-                        );
-                    }
-                    doc.start_tti();
+            if let Some(pipeline_id) = pipeline_id &&
+                pipeline_id == doc_id &&
+                task_duration.as_nanos() > MAX_TASK_NS
+            {
+                if opts::get()
+                    .debug
+                    .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
+                {
+                    println!(
+                        "Task took longer than max allowed ({category:?}) {:?}",
+                        task_duration.as_nanos()
+                    );
                 }
+                doc.start_tti();
             }
             doc.record_tti_if_necessary();
         }
@@ -1956,7 +1988,7 @@ impl ScriptThread {
             },
             ScriptThreadMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
                 if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-                    document.event_handler().do_keyboard_scroll(scroll);
+                    document.event_handler().do_keyboard_scroll(cx, scroll);
                 }
             },
             ScriptThreadMessage::RequestScreenshotReadiness(webview_id, pipeline_id) => {
@@ -1966,9 +1998,10 @@ impl ScriptThread {
                 self.handle_embedder_control_response(id, response, cx);
             },
             ScriptThreadMessage::SetUserContents(user_content_manager_id, user_contents) => {
-                self.user_contents_for_manager_id
-                    .borrow_mut()
-                    .insert(user_content_manager_id, user_contents.into());
+                self.user_contents_for_manager_id.borrow_mut().insert(
+                    user_content_manager_id,
+                    ScriptThreadUserContents::new(user_contents, &self.shared_style_locks),
+                );
             },
             ScriptThreadMessage::DestroyUserContentManager(user_content_manager_id) => {
                 self.user_contents_for_manager_id
@@ -2027,9 +2060,7 @@ impl ScriptThread {
             WebGPUMsg::FreeComputePipeline(id) => self.gpu_id_hub.free_compute_pipeline_id(id),
             WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.free_bind_group_id(id),
             WebGPUMsg::FreeBindGroupLayout(id) => self.gpu_id_hub.free_bind_group_layout_id(id),
-            WebGPUMsg::FreeCommandBuffer(id) => self
-                .gpu_id_hub
-                .free_command_buffer_id(id.into_command_encoder_id()),
+            WebGPUMsg::FreeCommandBuffer(id) => self.gpu_id_hub.free_command_buffer_id(id),
             WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.free_sampler_id(id),
             WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.free_shader_module_id(id),
             WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.free_render_bundle_id(id),
@@ -2536,6 +2567,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) => {
                 webdriver_handlers::handle_get_attribute(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,
@@ -2702,10 +2734,11 @@ impl ScriptThread {
         }
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo) {
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    pub(crate) fn spawn_pipeline(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_pipeline_info: NewPipelineInfo,
+    ) {
         self.profile_event(
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
@@ -3440,7 +3473,6 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
             self.this.clone(),
-            metadata.https_state,
         );
         self.debugger_global
             .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
@@ -3606,20 +3638,20 @@ impl ScriptThread {
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
-                cx,
             );
         } else {
             ServoParser::parse_html_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
                 incomplete.load_data.container_document_encoding,
-                cx,
             );
         }
 
@@ -3922,20 +3954,19 @@ impl ScriptThread {
             // we need to register an iframe entry to the performance timeline if present
             if let Some(window_proxy) = context
                 .get_document()
-                .and_then(|document| document.browsing_context())
+                .and_then(|document| document.browsing_context()) &&
+                let Some(frame_element) = window_proxy.frame_element()
             {
-                if let Some(frame_element) = window_proxy.frame_element() {
-                    let iframe_ctx = IframeContext::new(
-                        frame_element
-                            .downcast::<HTMLIFrameElement>()
-                            .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
-                    );
+                let iframe_ctx = IframeContext::new(
+                    frame_element
+                        .downcast::<HTMLIFrameElement>()
+                        .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
+                );
 
-                    // submit_timing will only accept timing that is of type ResourceTimingType::Resource
-                    let mut resource_timing = timing.clone();
-                    resource_timing.timing_type = ResourceTimingType::Resource;
-                    submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
-                }
+                // submit_timing will only accept timing that is of type ResourceTimingType::Resource
+                let mut resource_timing = timing.clone();
+                resource_timing.timing_type = ResourceTimingType::Resource;
+                submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
             }
 
             context.process_response_eof(cx, request_id, eof, timing);
@@ -4126,17 +4157,17 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            if window.live_devtools_updates() {
-                let css_error = CSSError {
-                    filename,
-                    line,
-                    column,
-                    msg,
-                };
-                let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
-                sender.send(message).unwrap();
-            }
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) &&
+            window.live_devtools_updates()
+        {
+            let css_error = CSSError {
+                filename,
+                line,
+                column,
+                msg,
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 

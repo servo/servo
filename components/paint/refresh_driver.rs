@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use crossbeam_channel::{Sender, select};
+use crossbeam_channel::{RecvTimeoutError, Sender};
 use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
 use servo_constellation_traits::EmbedderToConstellationMessage;
@@ -207,19 +207,19 @@ impl Default for TimerRefreshDriver {
                 let mut scheduler = TimerScheduler::default();
 
                 loop {
-                    select! {
-                        recv(receiver) -> message => {
-                            match message {
-                                Ok(TimerThreadMessage::Request(request)) => {
-                                    scheduler.schedule_timer(request);
-                                },
-                                _ => return,
-                            }
-                        },
-                        recv(scheduler.wait_channel()) -> _message => {
-                            scheduler.dispatch_completed_timers();
-                        },
+                    let recv_result = match scheduler.next_deadline() {
+                        Some(deadline) => receiver.recv_deadline(deadline),
+                        None => receiver.recv().map_err(|_| RecvTimeoutError::Disconnected),
                     };
+                    match recv_result {
+                        Ok(TimerThreadMessage::Request(request)) => {
+                            scheduler.schedule_timer(request);
+                        },
+                        Err(RecvTimeoutError::Timeout) => scheduler.dispatch_completed_timers(),
+                        Ok(TimerThreadMessage::Quit) | Err(RecvTimeoutError::Disconnected) => {
+                            return;
+                        },
+                    }
                 }
             })
             .expect("Could not create RefreshDriver timer thread.");

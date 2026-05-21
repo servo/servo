@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
@@ -261,9 +262,9 @@ impl Serializable for DOMException {
 
     /// <https://webidl.spec.whatwg.org/#idl-DOMException>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -272,7 +273,7 @@ impl Serializable for DOMException {
             owner,
             DOMErrorName::from(&DOMString::from(serialized.name)).ok_or(())?,
             serialized.message,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

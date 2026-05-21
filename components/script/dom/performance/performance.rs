@@ -24,6 +24,7 @@ use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
 use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
+use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
@@ -41,30 +42,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-
-pub(crate) const INVALID_ENTRY_NAMES: &[&str] = &[
-    "navigationStart",
-    "unloadEventStart",
-    "unloadEventEnd",
-    "redirectStart",
-    "redirectEnd",
-    "fetchStart",
-    "domainLookupStart",
-    "domainLookupEnd",
-    "connectStart",
-    "connectEnd",
-    "secureConnectionStart",
-    "requestStart",
-    "responseStart",
-    "responseEnd",
-    "domLoading",
-    "domInteractive",
-    "domContentLoadedEventStart",
-    "domContentLoadedEventEnd",
-    "domComplete",
-    "loadEventStart",
-    "loadEventEnd",
-];
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
@@ -497,27 +474,10 @@ impl Performance {
         // FIXME: We don't implement this value yet, so we assume it's zero (and then we don't need it at all)
 
         // Step 4. Let endTime be the value of name in the PerformanceTiming interface.
+        //
         // NOTE: We store all performance values on the document
-        let document = window.Document();
-        let end_time = match name {
-            "unloadEventStart" => document.get_unload_event_start(),
-            "unloadEventEnd" => document.get_unload_event_end(),
-            "domInteractive" => document.get_dom_interactive(),
-            "domContentLoadedEventStart" => document.get_dom_content_loaded_event_start(),
-            "domContentLoadedEventEnd" => document.get_dom_content_loaded_event_end(),
-            "domComplete" => document.get_dom_complete(),
-            "loadEventStart" => document.get_load_event_start(),
-            "loadEventEnd" => document.get_load_event_end(),
-            "redirectStart" => document.get_redirect_start(),
-            "redirectEnd" => document.get_redirect_end(),
-            "secureConnectionStart" => document.get_secure_connection_start(),
-            other => {
-                if cfg!(debug_assertions) {
-                    unreachable!("{other:?} is not the name of a timestamp");
-                }
-                return Err(Error::Operation(None));
-            },
-        };
+        let end_time = window.Document().performance_timing_attribute(name)?;
+
         // Step 5. If endTime is 0, throw an InvalidAccessError.
         let Some(end_time) = end_time else {
             return Err(Error::InvalidAccess(Some(format!(
@@ -539,22 +499,7 @@ impl Performance {
                 // Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
                 // PerformanceTiming interface, let end time be the value returned by running the convert
                 // a name to a timestamp algorithm with name set to the value of mark.
-                // TODO: These aren't all fields because servo doesn't support some of them yet
-                if matches!(
-                    &*name.str(),
-                    "navigationStart" |
-                        "unloadEventStart" |
-                        "unloadEventEnd" |
-                        "domInteractive" |
-                        "domContentLoadedEventStart" |
-                        "domContentLoadedEventEnd" |
-                        "domComplete" |
-                        "loadEventStart" |
-                        "loadEventEnd" |
-                        "redirectStart" |
-                        "redirectEnd" |
-                        "secureConnectionStart"
-                ) {
+                if PERFORMANCE_TIMING_ATTRIBUTES.contains(&&*name.str()) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }
                 // Step 2. Otherwise, if mark is a DOMString, let end time be the value of the startTime
@@ -692,30 +637,31 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // Step 1. If startOrMeasureOptions is a PerformanceMeasureOptions object and at least one of start,
         // end, duration, and detail exist, run the following checks:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
-            &start_or_measure_options
-        {
-            if options.start.is_some() ||
+            &start_or_measure_options &&
+            (options.start.is_some() ||
                 options.duration.is_some() ||
                 options.end.is_some() ||
-                options.detail.get().is_object_or_null()
-            {
-                // Step 1.1 If endMark is given, throw a TypeError.
-                if end_mark.is_some() {
-                    return Err(Error::Type(
-                        c"Must not provide endMark if PerformanceMeasureOptions is also provided"
-                            .to_owned(),
-                    ));
-                }
+                options.detail.get().is_object_or_null())
+        {
+            // Step 1.1 If endMark is given, throw a TypeError.
+            if end_mark.is_some() {
+                return Err(Error::Type(
+                    c"Must not provide endMark if PerformanceMeasureOptions is also provided"
+                        .to_owned(),
+                ));
+            }
 
-                // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
-                if options.start.is_none() && options.end.is_none() {
-                    return Err(Error::Type(c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided".to_owned()));
-                }
+            // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
+            if options.start.is_none() && options.end.is_none() {
+                return Err(Error::Type(
+                    c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided"
+                        .to_owned(),
+                ));
+            }
 
-                // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
-                if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
-                    return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
-                }
+            // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
+            if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
+                return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
             }
         }
 
@@ -820,20 +766,14 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         rooted!(&in(cx) let mut detail = NullValue());
         // Step 9.1. If startOrMeasureOptions is a PerformanceMeasureOptions object and startOrMeasureOptions’s detail member exists:
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
-            &start_or_measure_options
+            &start_or_measure_options &&
+            !options.detail.get().is_null_or_undefined()
         {
-            if !options.detail.get().is_null_or_undefined() {
-                // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
-                let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
+            // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
+            let record = structuredclone::write(cx, options.detail.handle(), None)?;
 
-                // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
-                structuredclone::read(
-                    &self.global(),
-                    record,
-                    detail.handle_mut(),
-                    CanGc::from_cx(cx),
-                )?;
-            }
+            // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
+            structuredclone::read(cx, &self.global(), record, detail.handle_mut())?;
         }
         // Step 9.2. Otherwise, set it to null.
         //

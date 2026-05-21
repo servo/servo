@@ -6,4 +6,11 @@
 [Exposed=Window]
 interface MathMLElement : Element { };
 MathMLElement includes GlobalEventHandlers;
-MathMLElement includes HTMLOrSVGElement;
+MathMLElement includes HTMLOrSVGOrMathMLElement;
+
+[Exposed=Window]
+interface MathMLAnchorElement : MathMLElement {
+  [ReflectSetter] attribute USVString href;
+  [Reflect] attribute DOMString target;
+};
+MathMLAnchorElement includes HyperlinkElementUtils;

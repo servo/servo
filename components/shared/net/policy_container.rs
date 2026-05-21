@@ -31,10 +31,10 @@ pub struct PolicyContainer {
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     /// <https://html.spec.whatwg.org/multipage/#policy-container-csp-list>
     pub csp_list: Option<CspList>,
+    /// <https://html.spec.whatwg.org/multipage/#policy-container-embedder-policy>
+    pub embedder_policy: EmbedderPolicy,
     /// <https://html.spec.whatwg.org/multipage/#policy-container-referrer-policy>
     pub referrer_policy: ReferrerPolicy,
-    // https://html.spec.whatwg.org/multipage/#policy-container-embedder-policy
-    // TODO: Embedder Policy
 }
 
 impl PolicyContainer {
@@ -54,4 +54,22 @@ impl PolicyContainer {
 
         self.referrer_policy
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#embedder-policy>
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct EmbedderPolicy {
+    /// <https://html.spec.whatwg.org/multipage/#embedder-policy-value-2>
+    pub value: EmbedderPolicyValue,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#embedder-policy-value>
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub enum EmbedderPolicyValue {
+    /// "unsafe-none"
+    #[default]
+    UnsafeNone,
+    /// "require-corp"
+    RequireCorp,
+    // TODO "credentialless"
 }

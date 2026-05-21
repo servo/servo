@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>test reference</title>
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    font-size: 20px;
+    white-space: pre;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+    tab-size: 1ic;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=test>a<ruby>&Tab;　　　あ　　　　<rt>ああああああああああ</ruby>a</div>
+<div class=measure>a&Tab;　　　あ　　　　a</div>
+</body>

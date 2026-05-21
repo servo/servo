@@ -24,6 +24,7 @@ use stylo_atoms::Atom;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -50,6 +51,7 @@ use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
     UnbindContext, VecPreOrderInsertionHelper,
 };
+use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -227,7 +229,7 @@ impl ShadowRoot {
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
-            self.document.style_shared_lock(),
+            self.document.style_shared_author_lock(),
         );
     }
 
@@ -253,7 +255,7 @@ impl ShadowRoot {
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
-            self.document.style_shared_lock(),
+            self.document.style_shared_author_lock(),
         );
     }
 
@@ -541,8 +543,24 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         Ok(())
     }
 
+    /// <https://wicg.github.io/sanitizer-api/#dom-shadowroot-sethtml>
+    fn SetHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+        html: DOMString,
+        options: &SetHTMLOptions,
+    ) -> ErrorResult {
+        // Step 1. Set and filter HTML using this (as target), this (as context element), html,
+        // options, and true.
+        // NOTE: The specification text is incorrect. We should use this's shadow host as context
+        // element.
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+        Sanitizer::set_and_filter_html(cx, target, &context_element, html, options, true)
+    }
+
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
-    event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
+    event_handler!(slotchange, GetOnslotchange, SetOnslotchange);
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {

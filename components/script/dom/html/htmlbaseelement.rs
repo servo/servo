@@ -68,10 +68,10 @@ impl HTMLBaseElement {
         let document = self.owner_document();
         // Step 2. Let urlRecord be the result of parsing the value of element's href content attribute
         // with document's fallback base URL, and document's character encoding. (Thus, the base element isn't affected by itself.)
-        let attr = self.upcast::<Element>().get_attribute(&local_name!("href"));
-        let Some(href_value) = attr.as_ref().map(|attr| attr.value()) else {
-            unreachable!("Must always have a href set when setting frozen base URL");
-        };
+        let href_value = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("href"))
+            .expect("Must always have a href set when setting frozen base URL");
         let document_fallback_url = document.fallback_base_url();
         let url_record = document_fallback_url.join(&href_value).ok();
         // Step 3. If any of the following are true:
@@ -115,13 +115,14 @@ impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
         let document = self.owner_document();
 
         // Step 2. Let url be the value of the href attribute of this element, if it has one, and the empty string otherwise.
-        let attr = self.upcast::<Element>().get_attribute(&local_name!("href"));
-        let value = attr.as_ref().map(|attr| attr.value());
-        let url = value.as_ref().map_or("", |value| &**value);
+        let url = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("href"))
+            .unwrap_or_default();
 
         // Step 3. Let urlRecord be the result of parsing url with document's fallback base URL,
         // and document's character encoding. (Thus, the base element isn't affected by other base elements or itself.)
-        let url_record = document.fallback_base_url().join(url);
+        let url_record = document.fallback_base_url().join(&url);
 
         match url_record {
             Err(_) => {

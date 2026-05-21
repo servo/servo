@@ -106,6 +106,11 @@ ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune 
 ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -vcodec h264 -vf "setfield=tff,format=yuv420p" -flags +ilme+ildct -top 1 h264_interlaced.mp4
 ```
 
+### h264_444.mp4
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv444p -vcodec h264 h264_444.mp4
+```
+
 ### h264_sei.mp4
 Similar to the construction of `h264.mp4`, but produces a file where the 5th
 frame is an SEI recovery point with a `recovery_frame_cnt=0`.

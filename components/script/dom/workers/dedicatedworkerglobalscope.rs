@@ -386,7 +386,6 @@ impl DedicatedWorkerGlobalScope {
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
-        let current_global_https_state = current_global.get_https_state();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_secure_context = current_global.is_secure_context();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
@@ -510,7 +509,6 @@ impl DedicatedWorkerGlobalScope {
                     client: request_client,
                     pipeline_id,
                     origin,
-                    https_state: current_global_https_state,
                 };
 
                 // Step 12. Obtain script by switching on options["type"]:
@@ -523,7 +521,7 @@ impl DedicatedWorkerGlobalScope {
                                 worker_url,
                                 fetch_client,
                                 Destination::Worker,
-                                webview_id,
+                                Some(webview_id),
                                 referrer,
                             );
                         },
@@ -635,12 +633,9 @@ impl DedicatedWorkerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
         rooted!(&in(cx) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(
-            scope.upcast(),
-            *msg.data,
-            message.handle_mut(),
-            CanGc::from_cx(cx),
-        ) {
+        if let Ok(ports) =
+            structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
+        {
             MessageEvent::dispatch_jsval(
                 target,
                 scope.upcast(),
@@ -738,7 +733,7 @@ impl DedicatedWorkerGlobalScope {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let global_scope = self.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
@@ -785,16 +780,16 @@ impl DedicatedWorkerGlobalScope {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
-fn fetch_a_classic_worker_script(
+pub(crate) fn fetch_a_classic_worker_script(
     workerscope: &WorkerGlobalScope,
     url_with_blob_lock: UrlWithBlobClaim,
     fetch_client: ModuleFetchClient,
     destination: Destination,
-    webview_id: WebViewId,
+    webview_id: Option<WebViewId>,
     referrer: Referrer,
 ) {
     // Step 1. Let request be a new request whose URL is url,
-    let request = RequestBuilder::new(Some(webview_id), url_with_blob_lock.clone(), referrer)
+    let request = RequestBuilder::new(webview_id, url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
@@ -802,7 +797,6 @@ fn fetch_a_classic_worker_script(
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))
         .origin(fetch_client.origin)
-        .https_state(fetch_client.https_state)
         // destination is destination,
         .destination(destination)
         // TODO initiator type is "other",

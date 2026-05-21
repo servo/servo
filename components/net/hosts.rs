@@ -8,15 +8,19 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
+use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use parking_lot::Mutex;
+use servo_config::opts;
 
 static HOST_TABLE: LazyLock<Mutex<Option<HashMap<String, IpAddr>>>> =
     LazyLock::new(|| Mutex::new(create_host_table()));
 
 fn create_host_table() -> Option<HashMap<String, IpAddr>> {
-    let path = env::var_os("HOST_FILE")?;
+    let path = env::var_os("HOST_FILE")
+        .map(PathBuf::from)
+        .or_else(|| opts::get().host_file.clone())?;
 
     let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);

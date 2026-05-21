@@ -77,6 +77,7 @@ pub(crate) enum FileReaderFunction {
     Text,
     DataUrl,
     ArrayBuffer,
+    BinaryString,
 }
 
 pub(crate) type TrustedFileReader = Trusted<FileReader>;
@@ -84,19 +85,19 @@ pub(crate) type TrustedFileReader = Trusted<FileReader>;
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct ReadMetaData {
     pub(crate) blobtype: String,
-    pub(crate) label: Option<String>,
+    pub(crate) encoding: Option<String>,
     pub(crate) function: FileReaderFunction,
 }
 
 impl ReadMetaData {
     pub(crate) fn new(
         blobtype: String,
-        label: Option<String>,
+        encoding: Option<String>,
         function: FileReaderFunction,
     ) -> ReadMetaData {
         ReadMetaData {
             blobtype,
-            label,
+            encoding,
             function,
         }
     }
@@ -122,26 +123,44 @@ pub(crate) enum FileReaderResult {
 pub(crate) struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
-    pub(crate) fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
-        let base64 = base64::engine::general_purpose::STANDARD.encode(blob_contents);
-
-        let dataurl = if blob_type.is_empty() {
-            format!("data:base64,{}", base64)
+    /// <https://w3c.github.io/FileAPI/#blob-package-data>
+    pub(crate) fn dataurl_for_bytes(bytes: &[u8], blob_type: &str) -> DOMString {
+        // If mimeType (blobType) is not available return a Data URL without a media-type. [RFC2397].
+        // Spec says a Data URL without a media-type when blob_type is unavailable.
+        // However, all other browsers use "application/octet-stream" in this case.
+        let mime_type = if blob_type.is_empty() {
+            "application/octet-stream"
         } else {
-            format!("data:{};base64,{}", blob_type, base64)
+            blob_type
         };
+
+        Self::dataurl_format(bytes, mime_type)
+    }
+
+    /// [RFC2397]
+    /// <https://www.rfc-editor.org/rfc/rfc2397.html>
+    fn dataurl_format(bytes: &[u8], mime_type: &str) -> DOMString {
+        let base64 = base64::engine::general_purpose::STANDARD.encode(bytes);
+        let dataurl = format!("data:{};base64,{}", mime_type, base64);
 
         DOMString::from(dataurl)
     }
 
-    pub(crate) fn text_decode(
-        blob_contents: &[u8],
+    /// <https://w3c.github.io/FileAPI/#blob-package-data>
+    pub(crate) fn binary_string_for_bytes(bytes: &[u8]) -> DOMString {
+        DOMString::from(bytes.iter().map(|&byte| byte as char).collect::<String>())
+    }
+
+    /// <https://w3c.github.io/FileAPI/#blob-package-data>
+    pub(crate) fn text_for_bytes(
+        bytes: &[u8],
         blob_type: &str,
-        blob_label: &Option<String>,
+        encoding: &Option<String>,
     ) -> DOMString {
         // https://w3c.github.io/FileAPI/#encoding-determination
+        // FIXME: This url is non-existent. Fixing later...
         // Steps 1 & 2 & 3
-        let mut encoding = blob_label
+        let mut encoding = encoding
             .as_ref()
             .map(|string| string.as_bytes())
             .and_then(Encoding::for_label);
@@ -159,8 +178,9 @@ impl FileReaderSharedFunctionality {
         // Step 6
         let enc = encoding.unwrap_or(UTF_8);
 
-        let convert = blob_contents;
+        let convert = bytes;
         // Step 7
+        // https://encoding.spec.whatwg.org/#decode
         let (output, _, _) = enc.decode(convert);
         DOMString::from(output)
     }
@@ -264,7 +284,7 @@ impl FileReader {
         fr.dispatch_progress_event(atom!("loadstart"), 0, None, can_gc);
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    // https://w3c.github.io/FileAPI/#readOperation
     pub(crate) fn process_read_eof(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
@@ -285,8 +305,11 @@ impl FileReader {
         return_on_abort!();
         // Step 8.1
         fr.change_ready_state(FileReaderReadyState::Done);
-        // Step 8.2
 
+        // Step 10.5.2: Let result be the result of package data given bytes,
+        // type, blob’s type, and encodingName.
+
+        // <https://w3c.github.io/FileAPI/#blob-package-data>
         match data.function {
             FileReaderFunction::DataUrl => {
                 FileReader::perform_readasdataurl(&fr.result, data, &blob_contents)
@@ -299,9 +322,11 @@ impl FileReader {
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
                     GlobalScope::get_cx(),
-                    data,
                     &blob_contents,
                 )
+            },
+            FileReaderFunction::BinaryString => {
+                FileReader::perform_readasbinarystring(&fr.result, &blob_contents)
             },
         };
 
@@ -315,36 +340,47 @@ impl FileReader {
         return_on_abort!();
     }
 
-    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
+    /// <https://w3c.github.io/FileAPI/#packaging-data>
     fn perform_readastext(
         result: &DomRefCell<Option<FileReaderResult>>,
         data: ReadMetaData,
         blob_bytes: &[u8],
     ) {
-        let blob_label = &data.label;
-        let blob_type = &data.blobtype;
-
-        let output = FileReaderSharedFunctionality::text_decode(blob_bytes, blob_type, blob_label);
-        *result.borrow_mut() = Some(FileReaderResult::String(output));
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::text_for_bytes(
+                blob_bytes,
+                &data.blobtype,
+                &data.encoding,
+            ),
+        ));
     }
 
-    /// <https://w3c.github.io/FileAPI/#dfn-readAsDataURL>
+    /// <https://w3c.github.io/FileAPI/#packaging-data>
     fn perform_readasdataurl(
         result: &DomRefCell<Option<FileReaderResult>>,
         data: ReadMetaData,
         bytes: &[u8],
     ) {
-        let output = FileReaderSharedFunctionality::dataurl_format(bytes, data.blobtype);
-
-        *result.borrow_mut() = Some(FileReaderResult::String(output));
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::dataurl_for_bytes(bytes, &data.blobtype),
+        ));
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    /// <https://w3c.github.io/FileAPI/#packaging-data>
+    /// > Return bytes as a binary string, in which every byte
+    /// > is represented by a code unit of equal value [0..255].
+    fn perform_readasbinarystring(result: &DomRefCell<Option<FileReaderResult>>, bytes: &[u8]) {
+        *result.borrow_mut() = Some(FileReaderResult::String(
+            FileReaderSharedFunctionality::binary_string_for_bytes(bytes),
+        ));
+    }
+
+    /// <https://w3c.github.io/FileAPI/#packaging-data>
+    /// > Return a new ArrayBuffer whose contents are bytes.
     #[expect(unsafe_code)]
     fn perform_readasarraybuffer(
         result: &DomRefCell<Option<FileReaderResult>>,
         cx: JSContext,
-        _: ReadMetaData,
         bytes: &[u8],
     ) {
         unsafe {
@@ -392,24 +428,37 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     // https://w3c.github.io/FileAPI/#dfn-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer>
     fn ReadAsArrayBuffer(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        // > The readAsArrayBuffer(blob) method, when invoked,
+        // must initiate a read operation for blob with ArrayBuffer.
         self.read(cx, FileReaderFunction::ArrayBuffer, blob, None)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsBinaryString>
+    fn ReadAsBinaryString(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        // > The readAsBinaryString(blob) method, when invoked,
+        // must initiate a read operation for blob with BinaryString.
+        self.read(cx, FileReaderFunction::BinaryString, blob, None)
+    }
+
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsDataURL>
     fn ReadAsDataURL(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        // > The readAsDataURL(blob) method, when invoked,
+        // must initiate a read operation for blob with DataURL.
         self.read(cx, FileReaderFunction::DataUrl, blob, None)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     fn ReadAsText(
         &self,
         cx: &mut js::context::JSContext,
         blob: &Blob,
-        label: Option<DOMString>,
+        encoding: Option<DOMString>,
     ) -> ErrorResult {
-        self.read(cx, FileReaderFunction::Text, blob, label)
+        // > The readAsText(blob, encoding) method, when invoked,
+        // must initiate a read operation for blob with Text and encoding.
+        self.read(cx, FileReaderFunction::Text, blob, encoding)
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
@@ -482,7 +531,7 @@ impl FileReader {
         cx: &mut js::context::JSContext,
         function: FileReaderFunction,
         blob: &Blob,
-        label: Option<DOMString>,
+        encoding: Option<DOMString>,
     ) -> ErrorResult {
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
         if self.ready_state.get() == FileReaderReadyState::Loading {
@@ -504,9 +553,11 @@ impl FileReader {
         // Let reader be the result of getting a reader from stream.
         let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
 
-        let type_ = blob.Type();
-
-        let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
+        let load_data = ReadMetaData::new(
+            String::from(blob.Type()),
+            encoding.map(String::from),
+            function,
+        );
 
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));

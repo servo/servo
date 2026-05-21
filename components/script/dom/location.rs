@@ -71,7 +71,7 @@ impl Location {
         let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
         let mut load_data = incumbent_global
             .as_window()
-            .load_data_for_document(url, navigable.pipeline_id());
+            .load_data_for_document(url, incumbent_global.pipeline_id());
         load_data.about_base_url = navigable_document.about_base_url();
         // Step 3. If location's relevant Document is not yet completely loaded,
         // and the incumbent global object does not have transient activation, then set historyHandling to "replace".

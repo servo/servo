@@ -115,7 +115,7 @@ impl Block {
     }
 
     pub fn for_vec(buffer: Vec<f32>) -> Self {
-        assert!(buffer.len() % FRAMES_PER_BLOCK_USIZE == 0);
+        assert!(buffer.len().is_multiple_of(FRAMES_PER_BLOCK_USIZE));
         Block {
             channels: (buffer.len() / FRAMES_PER_BLOCK_USIZE) as u8,
             repeat: false,

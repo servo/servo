@@ -52,7 +52,7 @@ fn test_from_limited_i32_should_parse_a_uint_when_value_is_0_or_greater() {
 #[test]
 fn test_from_limited_i32_should_keep_parsed_value_when_not_an_int() {
     match AttrValue::from_limited_i32(String::from("parsed-value"), 0) {
-        AttrValue::Int(p, 0) => assert_eq!(p, String::from("parsed-value")),
+        attribute @ AttrValue::Int(_, 0) => assert_eq!(&*attribute, "parsed-value"),
         _ => panic!("expected an successful parsing"),
     }
 }

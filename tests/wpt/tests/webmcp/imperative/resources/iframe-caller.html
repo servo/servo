@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Iframe Caller</title>
+<script src="/resources/testharness.js"></script>
+</head>
+<body>
+<script>
+  window.onmessage = e => {
+    if (e.data.action === 'invoke') {
+      navigator.modelContext.getTools().then(tools => {
+        const tool = tools.find(t => t.name === e.data.name);
+        navigator.modelContext.executeTool(tool, '{}').then(result => {
+          parent.postMessage({action: 'executeResponse', result: result, success: true}, '*');
+        }).catch(err => {
+          parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');
+        });
+      });
+    } else if (e.data.action === 'navigate') {
+      window.location.href = 'about:blank';
+    }
+  };
+</script>
+</body>
+</html>

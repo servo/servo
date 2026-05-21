@@ -496,14 +496,12 @@ impl ImageCacheStore {
     /// If a key is available the image will be immediately loaded, otherwise it will load then the next batch of
     /// keys is received. Only call this if the image does not have a `LoadKey` yet.
     fn load_image_with_keycache(&mut self, pending_image: PendingKey) {
-        if let PendingKey::Svg((pending_id, ref _raster_image, requested_size)) = pending_image {
-            if self
-                .key_cache
+        if let PendingKey::Svg((pending_id, ref _raster_image, requested_size)) = pending_image &&
+            self.key_cache
                 .evicted_images
                 .remove(&(pending_id, requested_size))
-            {
-                return;
-            }
+        {
+            return;
         };
         match self.key_cache.cache {
             KeyCacheState::PendingBatch => {
@@ -647,16 +645,14 @@ impl ImageCacheStore {
     ) {
         if let Some(loaded_image) =
             self.completed_loads
-                .remove(&(url.clone(), origin.clone(), *cors_setting))
+                .remove(&(url.clone(), origin.clone(), *cors_setting)) &&
+            let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response &&
+            let Some(id) = image.id
         {
-            if let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response {
-                if let Some(id) = image.id {
-                    self.paint_api.update_images(
-                        self.webview_id.into(),
-                        vec![ImageUpdate::DeleteImage(id)].into(),
-                    );
-                }
-            }
+            self.paint_api.update_images(
+                self.webview_id.into(),
+                vec![ImageUpdate::DeleteImage(id)].into(),
+            );
         }
     }
 
@@ -977,17 +973,15 @@ impl ImageCache for ImageCacheImpl {
             return Some(result.clone());
         }
 
-        if let Some(svg_id) = svg_id {
-            if let Some(old_mapped_image_id) =
-                self.svg_id_image_id_map.lock().insert(svg_id, image_id)
-            {
-                if old_mapped_image_id != image_id {
-                    store.vector_images.remove(&old_mapped_image_id);
-                    store
-                        .rasterized_vector_images
-                        .remove(&(old_mapped_image_id, requested_size));
-                }
-            }
+        if let Some(svg_id) = svg_id &&
+            let Some(old_mapped_image_id) =
+                self.svg_id_image_id_map.lock().insert(svg_id, image_id) &&
+            old_mapped_image_id != image_id
+        {
+            store.vector_images.remove(&old_mapped_image_id);
+            store
+                .rasterized_vector_images
+                .remove(&(old_mapped_image_id, requested_size));
         }
         if let Some(requested_sizes_for_id) = self.image_id_size_map.lock().get_mut(&image_id) {
             requested_sizes_for_id.push(requested_size);

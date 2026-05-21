@@ -122,6 +122,7 @@
 
         // First, verify that the trigger is indeed active.
         await rangeBoundaries.enterTriggerRange();
+        await waitForCompositorCommit();
         await animation.finished;
 
         assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>#target fragment navigation without scroll-snap-align (y-axis)</title>
+<link rel='help' href='https://www.w3.org/TR/css-scroll-snap-1/#choosing'>
+<link rel='match' href='scroll-target-004-ref.html'>
+<meta name="flags" content="may">
+<meta name='assert'
+      content="Test passes if the target element is aligned to the start
+               of the scroll container when navigating to its fragment ID,
+               with no scroll-snap-align set on the target.">
+
+<style type='text/css'>
+  iframe {
+    border: solid blue 4px;
+    height: 80px;
+    width: calc(100% - 8px);
+  }
+</style>
+
+<div id='instructions'>Test passes if there is a green stripe across the first quarter of the box below and no red.</div>
+
+<iframe class="container" src="support/scroll-target-align-004-iframe.html#target">This UA doesn't support iframes; please request a custom version of this test!</iframe>

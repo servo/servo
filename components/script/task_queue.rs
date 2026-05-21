@@ -155,11 +155,11 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 self.msg_queue.borrow_mut().push_back(msg);
                 continue;
             }
-            if let Some(pipeline_id) = msg.pipeline_id() {
-                if !fully_active.contains(&pipeline_id) {
-                    self.store_task_for_inactive_pipeline(msg, &pipeline_id);
-                    continue;
-                }
+            if let Some(pipeline_id) = msg.pipeline_id() &&
+                !fully_active.contains(&pipeline_id)
+            {
+                self.store_task_for_inactive_pipeline(msg, &pipeline_id);
+                continue;
             }
             // Immediately send non-throttled tasks for processing.
             self.msg_queue.borrow_mut().push_back(msg);
@@ -242,15 +242,15 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     let msg = T::from_queued_task(queued_task);
 
                     // Hold back tasks for currently inactive documents.
-                    if let Some(pipeline_id) = msg.pipeline_id() {
-                        if !fully_active.contains(&pipeline_id) {
-                            self.store_task_for_inactive_pipeline(msg, &pipeline_id);
-                            // Reduce the length of throttles,
-                            // but don't add the task to "msg_queue",
-                            // and neither increment "taken_task_counter".
-                            throttled_length -= 1;
-                            continue;
-                        }
+                    if let Some(pipeline_id) = msg.pipeline_id() &&
+                        !fully_active.contains(&pipeline_id)
+                    {
+                        self.store_task_for_inactive_pipeline(msg, &pipeline_id);
+                        // Reduce the length of throttles,
+                        // but don't add the task to "msg_queue",
+                        // and neither increment "taken_task_counter".
+                        throttled_length -= 1;
+                        continue;
                     }
 
                     // Make the task available for the event-loop to handle as a message.

@@ -27,7 +27,7 @@ promise_test(async () => {
   assert_greater_than(usage, 0);
   assert_equals(session.contextUsage, usage);
   assert_regexp_match(
-      await session.prompt([{role: 'system', content: ''}]), kValidAudioRegex);
+      await session.prompt([{role: 'user', content: ''}]), kValidAudioRegex);
 }, 'Test Audio initialPrompt');
 
 promise_test(async () => {

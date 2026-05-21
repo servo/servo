@@ -47,7 +47,6 @@ use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
-use net_traits::response::HttpsState;
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
 };
@@ -66,6 +65,7 @@ use servo_base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
+use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
     MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
@@ -356,10 +356,6 @@ pub(crate) struct GlobalScope {
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: CachedFrozenArray,
-
-    /// currect https state (from previous request)
-    #[no_trace]
-    https_state: Cell<HttpsState>,
 
     /// The stack of active group labels for the Console APIs.
     console_group_stack: DomRefCell<Vec<DOMString>>,
@@ -745,6 +741,33 @@ impl FileListener {
 }
 
 impl GlobalScope {
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
+    pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> ImmutableOrigin {
+        // Step 1: Let origin be environment’s origin if environment is an environment settings object; otherwise environment’s creation URL’s origin.
+        // Step 2: Return a tuple consisting of origin.
+        self.origin().immutable().clone()
+    }
+
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
+    pub(crate) fn obtain_storage_key(&self) -> Option<ImmutableOrigin> {
+        // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
+        // with environment.
+        let key = self.obtain_storage_key_for_non_storage_purposes();
+
+        // Step 2: If key's origin is an opaque origin, then return failure.
+        if let ImmutableOrigin::Opaque(_) = key {
+            return None;
+        }
+
+        // Step 3: If the user has disabled storage, then return failure.
+        if !pref!(dom_indexeddb_enabled) {
+            return None;
+        }
+
+        // Step 4: Return key.
+        Some(key)
+    }
+
     /// A sender to the event loop of this global scope. This either sends to the Worker event loop
     /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
     /// workers that are not currently handling a message.
@@ -776,7 +799,6 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
         font_context: Option<Arc<FontContext>>,
-        initial_https_state: HttpsState,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -815,7 +837,6 @@ impl GlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_devices: DomRefCell::new(HashMapTracedValues::new_fx()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
-            https_state: Cell::new(initial_https_state),
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
             inherited_secure_context,
@@ -1318,17 +1339,17 @@ impl GlobalScope {
         // Step 7, a few preliminary steps.
 
         // - Check the worker is not closing.
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            if worker.is_closing() {
-                return;
-            }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() &&
+            worker.is_closing()
+        {
+            return;
         }
 
         // - Check the associated document is fully-active.
-        if let Some(window) = self.downcast::<Window>() {
-            if !window.Document().is_fully_active() {
-                return;
-            }
+        if let Some(window) = self.downcast::<Window>() &&
+            !window.Document().is_fully_active()
+        {
+            return;
         }
 
         // - Check for a case-sensitive match for the name of the channel.
@@ -1370,7 +1391,7 @@ impl GlobalScope {
                         rooted!(&in(cx) let mut message = UndefinedValue());
 
                         // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
+                        if let Ok(ports) = structuredclone::read(cx, &global, data, message.handle_mut()) {
                             // Step 10.4, Fire an event named message at destination.
                             MessageEvent::dispatch_jsval(
                                 destination.upcast(),
@@ -1516,12 +1537,8 @@ impl GlobalScope {
                 // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
                 // if any, maintaining their relative order.
                 // Note: both done in `structuredclone::read`.
-                if let Ok(ports) = structuredclone::read(
-                    self,
-                    data,
-                    message_clone.handle_mut(),
-                    CanGc::from_cx(cx),
-                ) {
+                if let Ok(ports) = structuredclone::read(cx, self, data, message_clone.handle_mut())
+                {
                     // Note: if this port is used to transfer a stream, we handle the events in Rust.
                     if let Some(transform) = cross_realm_transform.deref().as_ref() {
                         match transform {
@@ -3154,14 +3171,6 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn get_https_state(&self) -> HttpsState {
-        self.https_state.get()
-    }
-
-    pub(crate) fn set_https_state(&self, https_state: HttpsState) {
-        self.https_state.set(https_state);
-    }
-
     pub(crate) fn inherited_secure_context(&self) -> Option<bool> {
         self.inherited_secure_context
     }
@@ -3332,9 +3341,9 @@ impl GlobalScope {
         #[expect(unsafe_code)]
         let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
-        let data = structuredclone::write(cx.into(), value, Some(guard))?;
+        let data = structuredclone::write(cx, value, Some(guard))?;
 
-        structuredclone::read(self, data, retval, CanGc::from_cx(cx))?;
+        structuredclone::read(cx, self, data, retval)?;
 
         Ok(())
     }

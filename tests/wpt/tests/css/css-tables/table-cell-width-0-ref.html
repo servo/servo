@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference for table cell with `width:0` case testing different table widths</title>
+<style>
+.row {
+  display: flex;
+  border: 2px solid black;
+  border-spacing: 2px;
+  text-indent: initial;
+  box-sizing: border-box;
+  width: fit-content;
+}
+
+.row.percent {
+  width: 100%;
+}
+
+.row.fixed {
+  width: 100px;
+}
+
+.cell {
+  padding: 1px;
+  line-height: normal;
+  font: initial;
+  box-sizing: content-box;
+}
+
+.zero {
+  width: fit-content;
+  background:lightblue;
+}
+
+.positive-width {
+  width: auto;
+  background:lightblue;
+}
+
+.big-positive-width {
+  width: 20px;
+  background:lightblue;
+}
+
+.normal {
+  background:lightgreen;
+  flex: 1;
+}
+</style>
+</head>
+<body>
+
+<!-- auto width -->
+<div class="row">
+  <div class="cell zero">1</div>
+  <div class="cell normal">2</div>
+</div>
+<br>
+
+<div class="row">
+  <div class="cell positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+<br>
+
+<div class="row">
+  <div class="cell big-positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+<br>
+
+<!-- width:100% -->
+<div class="row percent">
+  <div class="cell zero">1</div>
+  <div class="cell normal">2</div>
+</div>
+
+<div class="row percent">
+  <div class="cell positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+
+<div class="row percent">
+  <div class="cell big-positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+<br>
+
+<!-- width:100px -->
+<div class="row fixed">
+  <div class="cell zero">1</div>
+  <div class="cell normal">2</div>
+</div>
+
+<div class="row fixed">
+  <div class="cell positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+
+<div class="row fixed">
+  <div class="cell big-positive-width">1</div>
+  <div class="cell normal">2</div>
+</div>
+
+</body>
+</html>

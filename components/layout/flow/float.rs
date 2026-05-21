@@ -828,22 +828,21 @@ impl FloatBandLink {
     ///     A   B          B   R
     /// ```
     fn skew(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref left) = this.left.0 {
-                if this.level == left.level {
-                    return FloatBandLink(Some(Arc::new(FloatBandNode {
-                        level: this.level,
-                        left: left.left.clone(),
-                        band: left.band,
-                        right: FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level,
-                            left: left.right.clone(),
-                            band: this.band,
-                            right: this.right.clone(),
-                        }))),
-                    })));
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref left) = this.left.0 &&
+            this.level == left.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level,
+                left: left.left.clone(),
+                band: left.band,
+                right: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: left.right.clone(),
+                    band: this.band,
+                    right: this.right.clone(),
+                }))),
+            })));
         }
 
         (*self).clone()
@@ -858,24 +857,22 @@ impl FloatBandLink {
     ///         B   X    A   B
     /// ```
     fn split(&self) -> FloatBandLink {
-        if let Some(ref this) = self.0 {
-            if let Some(ref right) = this.right.0 {
-                if let Some(ref right_right) = right.right.0 {
-                    if this.level == right_right.level {
-                        return FloatBandLink(Some(Arc::new(FloatBandNode {
-                            level: this.level + 1,
-                            left: FloatBandLink(Some(Arc::new(FloatBandNode {
-                                level: this.level,
-                                left: this.left.clone(),
-                                band: this.band,
-                                right: right.left.clone(),
-                            }))),
-                            band: right.band,
-                            right: right.right.clone(),
-                        })));
-                    }
-                }
-            }
+        if let Some(ref this) = self.0 &&
+            let Some(ref right) = this.right.0 &&
+            let Some(ref right_right) = right.right.0 &&
+            this.level == right_right.level
+        {
+            return FloatBandLink(Some(Arc::new(FloatBandNode {
+                level: this.level + 1,
+                left: FloatBandLink(Some(Arc::new(FloatBandNode {
+                    level: this.level,
+                    left: this.left.clone(),
+                    band: this.band,
+                    right: right.left.clone(),
+                }))),
+                band: right.band,
+                right: right.right.clone(),
+            })));
         }
 
         (*self).clone()
@@ -1083,7 +1080,7 @@ impl SequentialLayoutState {
     /// This function places a Fragment that has been created for a FloatBox.
     pub(crate) fn place_float_fragment(
         &mut self,
-        box_fragment: &mut BoxFragment,
+        box_fragment: &BoxFragment,
         containing_block: &ContainingBlock,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
@@ -1133,13 +1130,15 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.base.rect = LogicalRect {
-            start_corner: new_position_in_containing_block,
-            size: box_fragment
-                .content_rect()
-                .size
-                .to_logical(container_writing_mode),
-        }
-        .as_physical(Some(containing_block));
+        box_fragment.base.set_rect(
+            LogicalRect {
+                start_corner: new_position_in_containing_block,
+                size: box_fragment
+                    .content_rect()
+                    .size
+                    .to_logical(container_writing_mode),
+            }
+            .as_physical(Some(containing_block)),
+        );
     }
 }

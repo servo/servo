@@ -164,3 +164,8 @@ Element includes ARIAMixin;
 partial interface Element {
   [SameObject, PutForwards=value] readonly attribute DOMTokenList part;
 };
+
+// https://wicg.github.io/sanitizer-api/#sanitizer-api
+partial interface Element {
+  [CEReactions, Throws] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
+};

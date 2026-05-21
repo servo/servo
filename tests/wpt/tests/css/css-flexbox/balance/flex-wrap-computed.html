@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-wrap-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("flex-wrap", "nowrap");
+test_computed_value("flex-wrap", "wrap");
+test_computed_value("flex-wrap", "wrap-reverse");
+test_computed_value("flex-wrap", "balance");
+test_computed_value("flex-wrap", "wrap balance", "balance");
+test_computed_value("flex-wrap", "wrap-reverse balance");
+test_computed_value("flex-wrap", "balance wrap", "balance");
+test_computed_value("flex-wrap", "balance wrap-reverse", "wrap-reverse balance");
+</script>
+</body>
+</html>

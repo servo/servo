@@ -184,7 +184,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         context.animations.get_animation_declarations(
             &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
-            document.style_shared_lock(),
+            &document.shared_style_locks().author,
         )
     }
 
@@ -197,7 +197,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         context.animations.get_transition_declarations(
             &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
-            document.style_shared_lock(),
+            &document.shared_style_locks().author,
         )
     }
 
@@ -911,10 +911,10 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
         // Handle flags that apply to the parent.
         let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.as_node().parent_element() {
-                p.element.insert_selector_flags(flags);
-            }
+        if !parent_flags.is_empty() &&
+            let Some(p) = self.as_node().parent_element()
+        {
+            p.element.insert_selector_flags(flags);
         }
     }
 

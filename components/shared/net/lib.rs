@@ -43,7 +43,7 @@ use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{PreloadId, Request, RequestBuilder};
-use crate::response::{HttpsState, Response, ResponseInit};
+use crate::response::{Response, ResponseInit};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -622,6 +622,18 @@ impl ResourceThreads {
                 source,
             ));
     }
+
+    pub fn clear_cookies_async(&self, id: CookieOperationId) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderClearCookies(id));
+    }
+
+    pub fn clear_session_cookies_async(&self, id: CookieOperationId) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -719,6 +731,10 @@ pub enum CoreResourceMsg {
         Serde<Cookie<'static>>,
         CookieSource,
     ),
+    /// Clear all cookies on behalf of the embedder. The response is sent via NetToEmbedderMsg.
+    EmbedderClearCookies(CookieOperationId),
+    /// Clear session cookies on behalf of the embedder. The response is sent via NetToEmbedderMsg.
+    EmbedderClearSessionCookies(CookieOperationId),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
@@ -998,9 +1014,6 @@ pub struct Metadata {
     /// HTTP Status
     pub status: HttpStatus,
 
-    /// Is successful HTTPS connection
-    pub https_state: HttpsState,
-
     /// Referrer Url
     pub referrer: Option<ServoUrl>,
 
@@ -1024,7 +1037,6 @@ impl Metadata {
             charset: None,
             headers: None,
             status: HttpStatus::default(),
-            https_state: HttpsState::None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
             timing: None,

@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,jsshell,shadowrealm
+// META: global=window,dedicatedworker,jsshell
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 let emptyModuleBinary;

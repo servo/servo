@@ -41,7 +41,6 @@ servo-base = { workspace = true }
 servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
-servo-wakelock = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 uuid = { workspace = true }

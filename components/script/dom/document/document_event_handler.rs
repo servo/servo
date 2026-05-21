@@ -4,7 +4,6 @@
 
 use std::array::from_ref;
 use std::cell::{Cell, RefCell};
-use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
@@ -23,7 +22,6 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Vector2D};
 use js::context::JSContext;
-use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
@@ -40,16 +38,13 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, W
 use script_bindings::inheritance::Castable;
 use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
-use script_bindings::reflector::DomObject;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
-use servo_constellation_traits::{
-    KeyboardScroll, ScriptToConstellationMessage, SequentialFocusDirection,
-};
+use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
@@ -60,9 +55,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::focus::{
-    FocusableArea, SequentialFocusNavigationMechanism, SequentialFocusNavigationSearch,
-};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -71,17 +64,16 @@ use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::interactive_element_command::InteractiveElementCommand;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::focus::FocusNavigationScopeOwner;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, HTMLElement, HTMLIFrameElement, HTMLLabelElement, MouseEvent, Touch,
-    TouchEvent, TouchList, WheelEvent, Window,
+    HTMLAnchorElement, HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 
 /// A data structure used for tracking the current click count. This can be
 /// reset to 0 if a mouse button event happens at a sufficient distance or time
@@ -182,6 +174,9 @@ pub(crate) struct DocumentEventHandler {
     mouse_buttons_down: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
+    /// The element that was most recently activated during a mouse button press or touch
+    /// event.
+    current_active_element: MutNullableDom<Element>,
     /// The element that was most recently clicked.
     most_recently_clicked_element: MutNullableDom<Element>,
     /// The most recent mouse movement point, used for processing `mouseleave` events.
@@ -202,8 +197,6 @@ pub(crate) struct DocumentEventHandler {
     next_touch_pointer_id: Cell<i32>,
     /// A map holding information about currently registered access key handlers.
     access_key_handlers: DomRefCell<FxHashMap<NoTrace<Code>, Dom<HTMLElement>>>,
-    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
-    sequential_focus_navigation_starting_point: MutNullableDom<Node>,
 }
 
 impl DocumentEventHandler {
@@ -219,6 +212,7 @@ impl DocumentEventHandler {
             last_mouse_button_down_point: Default::default(),
             mouse_buttons_down: Cell::new(0),
             current_hover_target: Default::default(),
+            current_active_element: Default::default(),
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
@@ -227,7 +221,6 @@ impl DocumentEventHandler {
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
             access_key_handlers: Default::default(),
-            sequential_focus_navigation_starting_point: Default::default(),
         }
     }
 
@@ -256,23 +249,20 @@ impl DocumentEventHandler {
             if let Some(existing_constellation_wheel_event) = self
                 .wheel_event_index
                 .borrow()
-                .and_then(|index| pending_input_events.get_mut(index))
+                .and_then(|index| pending_input_events.get_mut(index)) &&
+                let InputEvent::Wheel(ref mut existing_wheel_event) =
+                    existing_constellation_wheel_event.event.event &&
+                existing_wheel_event.delta.mode == new_wheel_event.delta.mode
             {
-                if let InputEvent::Wheel(ref mut existing_wheel_event) =
-                    existing_constellation_wheel_event.event.event
-                {
-                    if existing_wheel_event.delta.mode == new_wheel_event.delta.mode {
-                        self.coalesced_wheel_event_ids
-                            .borrow_mut()
-                            .push(existing_constellation_wheel_event.event.id);
-                        existing_wheel_event.delta.x += new_wheel_event.delta.x;
-                        existing_wheel_event.delta.y += new_wheel_event.delta.y;
-                        existing_wheel_event.delta.z += new_wheel_event.delta.z;
-                        existing_wheel_event.point = new_wheel_event.point;
-                        existing_constellation_wheel_event.event.id = event.event.id;
-                        return;
-                    }
-                }
+                self.coalesced_wheel_event_ids
+                    .borrow_mut()
+                    .push(existing_constellation_wheel_event.event.id);
+                existing_wheel_event.delta.x += new_wheel_event.delta.x;
+                existing_wheel_event.delta.y += new_wheel_event.delta.y;
+                existing_wheel_event.delta.z += new_wheel_event.delta.z;
+                existing_wheel_event.point = new_wheel_event.point;
+                existing_constellation_wheel_event.event.id = event.event.id;
+                return;
             }
 
             *self.wheel_event_index.borrow_mut() = Some(pending_input_events.len());
@@ -444,7 +434,6 @@ impl DocumentEventHandler {
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 element.set_hover_state(false);
-                self.element_for_activation(element).set_active_state(false);
             }
 
             if let Some(hit_test_result) = self
@@ -622,7 +611,6 @@ impl DocumentEventHandler {
                         .filter_map(DomRoot::downcast::<Element>)
                     {
                         element.set_hover_state(false);
-                        self.element_for_activation(element).set_active_state(false);
                     }
                 }
 
@@ -742,19 +730,18 @@ impl DocumentEventHandler {
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
-        if let Some(target) = self.current_hover_target.get() {
-            if let Some(anchor) = target
+        if let Some(target) = self.current_hover_target.get() &&
+            let Some(anchor) = target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::Yes)
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
-            {
-                let status = anchor
-                    .full_href_url_for_user_interface()
-                    .map(|url| url.to_string());
-                self.window
-                    .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
-                return;
-            }
+        {
+            let status = anchor
+                .full_href_url_for_user_interface()
+                .map(|url| url.to_string());
+            self.window
+                .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
+            return;
         }
 
         // No state was set above, which means that the new value of the status in the embedder
@@ -787,27 +774,49 @@ impl DocumentEventHandler {
         self.set_cursor(Some(hit_test_result.cursor));
     }
 
-    fn element_for_activation(&self, element: DomRoot<Element>) -> DomRoot<Element> {
-        let node: &Node = element.upcast();
-        if node.is_in_ua_widget() {
-            if let Some(containing_shadow_root) = node.containing_shadow_root() {
+    fn set_active_element(&self, original_target: &Element) {
+        let find_element_for_activation = |element: &Element| {
+            let node: &Node = element.upcast();
+            if node.is_in_ua_widget() &&
+                let Some(containing_shadow_root) = node.containing_shadow_root()
+            {
                 return containing_shadow_root.Host();
             }
-        }
 
-        // If the element is a label, the activable element is the control element.
-        if node.type_id() ==
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLLabelElement,
-            ))
-        {
-            let label = element.downcast::<HTMLLabelElement>().unwrap();
-            if let Some(control) = label.GetControl() {
-                return DomRoot::from_ref(control.upcast::<Element>());
+            // If the element is a label, the activable element is the control element.
+            if node.type_id() ==
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLLabelElement,
+                ))
+            {
+                let label = element.downcast::<HTMLLabelElement>().unwrap();
+                if let Some(control) = label.GetControl() {
+                    return DomRoot::from_ref(control.upcast::<Element>());
+                }
             }
+
+            DomRoot::from_ref(element)
+        };
+        let element_for_activation = find_element_for_activation(original_target);
+
+        // This might happen if the user is alternating between different pointing devices
+        // such as two mice or a mouse and touch events. Only keep the latest activated.
+        if let Some(currently_active_element) = self.current_active_element.get() {
+            if currently_active_element == element_for_activation {
+                return;
+            }
+            self.unset_active_element();
         }
 
-        element
+        element_for_activation.set_active_state(true);
+        self.current_active_element
+            .set(Some(&*element_for_activation));
+    }
+
+    fn unset_active_element(&self) {
+        if let Some(active_element) = self.current_active_element.take() {
+            active_element.set_active_state(false);
+        }
     }
 
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
@@ -830,8 +839,11 @@ impl DocumentEventHandler {
 
         // Set the sequential focus navigation starting point for any mouse button down event, no
         // matter if the target is not a node.
+        let document = self.window.Document();
         if event.action == MouseButtonAction::Down {
-            self.set_sequential_focus_navigation_starting_point(&hit_test_result.node);
+            document
+                .focus_handler()
+                .set_sequential_focus_navigation_starting_point(&hit_test_result.node);
         }
 
         let Some(element) = hit_test_result
@@ -846,15 +858,16 @@ impl DocumentEventHandler {
         debug!("{:?} on {:?}", event.action, node.debug_str());
 
         // <https://html.spec.whatwg.org/multipage/#selector-active>
-        // If the element is being actively pointed at the element is being activated.
-        // Disabled elements can also be activated.
-        if event.action == MouseButtonAction::Down {
-            self.element_for_activation(element.clone())
-                .set_active_state(true);
-        }
-        if event.action == MouseButtonAction::Up {
-            self.element_for_activation(element.clone())
-                .set_active_state(false);
+        // > If the element is being actively pointed at the element is being activated.
+        // Disabled elements can also be activated, so this must happen before the
+        // early return below.
+        if event.button == MouseButton::Left {
+            if event.action == MouseButtonAction::Down {
+                self.set_active_element(&element);
+            }
+            if event.action == MouseButtonAction::Up {
+                self.unset_active_element();
+            }
         }
 
         // https://w3c.github.io/uievents/#hit-test
@@ -931,8 +944,7 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    self.window
-                        .Document()
+                    document
                         .focus_handler()
                         .focus(cx, node.find_click_focusable_area());
                 }
@@ -1052,7 +1064,7 @@ impl DocumentEventHandler {
         //
         // We follow the latter approach here, considering that every sequence of
         // even numbered clicks is a series of double clicks.
-        if click_count % 2 == 0 {
+        if click_count.is_multiple_of(2) {
             MouseEvent::for_platform_button_event(
                 cx,
                 Atom::from("dblclick"),
@@ -1270,9 +1282,7 @@ impl DocumentEventHandler {
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*pointer_touch));
-                // <https://html.spec.whatwg.org/multipage/#selector-active>
-                // If the element is being actively pointed at the element is being activated.
-                self.element_for_activation(element).set_active_state(true);
+                self.set_active_element(&element);
                 (current_target, pointer_touch)
             },
             _ => {
@@ -1313,9 +1323,7 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
-                        // <https://html.spec.whatwg.org/multipage/#selector-active>
-                        // If the element is being actively pointed at the element is being activated.
-                        self.element_for_activation(element).set_active_state(false);
+                        self.unset_active_element();
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
@@ -1621,12 +1629,11 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_disconnected: move |cx| {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
-                if let Some(gamepad) = navigator.get_gamepad(index) {
-                    if window.Document().is_fully_active() {
+                if let Some(gamepad) = navigator.get_gamepad(index)
+                    && window.Document().is_fully_active() {
                         gamepad.update_connected(false, gamepad.exposed(), CanGc::from_cx(cx));
                         navigator.remove_gamepad(index);
                     }
-                }
             }));
     }
 
@@ -1985,7 +1992,10 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                self.sequential_focus_navigation_via_keyboard_event(cx, event);
+                self.window
+                    .Document()
+                    .focus_handler()
+                    .sequential_focus_navigation_via_keyboard_event(cx, event);
                 return;
             },
             _ => return,
@@ -1995,176 +2005,10 @@ impl DocumentEventHandler {
             return;
         }
 
-        self.do_keyboard_scroll(scroll);
+        self.do_keyboard_scroll(cx, scroll);
     }
 
-    pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
-        self.sequential_focus_navigation_starting_point
-            .set(Some(node));
-    }
-
-    pub(crate) fn sequential_focus_navigation_starting_point(&self) -> Option<DomRoot<Node>> {
-        self.sequential_focus_navigation_starting_point
-            .get()
-            .filter(|node| node.is_connected())
-    }
-
-    fn sequential_focus_navigation_via_keyboard_event(
-        &self,
-        cx: &mut JSContext,
-        event: &KeyboardEvent,
-    ) {
-        let direction = if event.modifiers().contains(Modifiers::SHIFT) {
-            SequentialFocusDirection::Backward
-        } else {
-            SequentialFocusDirection::Forward
-        };
-
-        self.sequential_focus_navigation(cx, direction);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
-    fn sequential_focus_navigation(&self, cx: &mut JSContext, direction: SequentialFocusDirection) {
-        // > When the user requests that focus move from the currently focused area of a top-level
-        // > traversable to the next or previous focusable area (e.g., as the default action of
-        // > pressing the tab key), or when the user requests that focus sequentially move to a
-        // > top-level traversable in the first place (e.g., from the browser's location bar), the
-        // > user agent must use the following algorithm:
-
-        // > 1. Let starting point be the currently focused area of a top-level traversable, if the
-        // > user requested to move focus sequentially from there, or else the top-level traversable
-        // > itself, if the user instead requested to move focus from outside the top-level
-        // > traversable.
-        //
-        // Note: Here `None` represents the current traversible.
-        let mut starting_point = self
-            .window
-            .Document()
-            .focus_handler()
-            .focused_area()
-            .element()
-            .map(|element| DomRoot::from_ref(element.upcast::<Node>()));
-
-        // > 2. If there is a sequential focus navigation starting point defined and it is inside
-        // > starting point, then let starting point be the sequential focus navigation starting point
-        // > instead.
-        if let Some(sequential_focus_navigation_starting_point) =
-            self.sequential_focus_navigation_starting_point()
-        {
-            if starting_point.as_ref().is_none_or(|starting_point| {
-                starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
-            }) {
-                starting_point = Some(sequential_focus_navigation_starting_point);
-            }
-        }
-
-        // > 3. Let direction be "forward" if the user requested the next control, and "backward" if
-        // > the user requested the previous control.
-        //
-        // Note: This is handled by the `direction` argument to this method.
-        self.sequential_focus_navigation_loop(
-            cx,
-            starting_point,
-            direction,
-            false, /* allow_focusing_viewport */
-        );
-    }
-
-    /// The inner loop ("Loop") of:
-    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
-    pub(crate) fn sequential_focus_navigation_loop(
-        &self,
-        cx: &mut JSContext,
-        starting_point: Option<DomRoot<Node>>,
-        direction: SequentialFocusDirection,
-        allow_focusing_viewport: bool,
-    ) {
-        // > 4. Loop: Let selection mechanism be "sequential" if starting point is a navigable or if
-        // > starting point is in its Document's sequential focus navigation order.
-        // > Otherwise, starting point is not in its Document's sequential focus navigation order;
-        // > let selection mechanism be "DOM".
-        let starting_point_is_navigable = starting_point
-            .as_ref()
-            .is_none_or(|starting_point| starting_point.is::<HTMLIFrameElement>());
-        let selection_mechanism = starting_point
-            .as_ref()
-            .and_then(|node| node.downcast::<Element>())
-            .filter(|element| element.is_sequentially_focusable())
-            .map(|element| {
-                SequentialFocusNavigationMechanism::Sequential(
-                    element.explicitly_set_tab_index().unwrap_or_default(),
-                )
-            })
-            .unwrap_or_else(|| {
-                if starting_point_is_navigable {
-                    SequentialFocusNavigationMechanism::FirstOrLast
-                } else {
-                    SequentialFocusNavigationMechanism::Dom
-                }
-            });
-
-        // > 5. Let candidate be the result of running the sequential navigation search algorithm
-        // > with starting point, direction, and selection mechanism.
-        let candidate = SequentialFocusNavigationSearch::new(
-            starting_point
-                .as_ref()
-                .and_then(|node| node.containing_focus_navigation_scope_owner())
-                .unwrap_or_else(|| FocusNavigationScopeOwner::Document(self.window.Document())),
-            direction,
-            selection_mechanism,
-            starting_point,
-        )
-        .search();
-
-        // > 6. If candidate is not null, then run the focusing steps for candidate and return.
-        if let Some(candidate) = candidate {
-            self.focus_and_scroll_to_element_for_key_event(cx, &candidate);
-            // We can't simply run the focusing steps, because:
-            //  1. The focusing steps do not scroll to the element.
-            //  2. When focus shifts to a child navigable (iframe) we have special behavior to reach
-            //     across document boundaries to focus the first focusable element in the iframe.
-            match candidate.downcast::<HTMLIFrameElement>() {
-                Some(iframe_element) => self
-                    .window
-                    .Document()
-                    .focus_handler()
-                    .sequentially_focus_child_iframe_local_or_remote(cx, iframe_element, direction),
-                None => self.focus_and_scroll_to_element_for_key_event(cx, &candidate),
-            }
-            return;
-        }
-
-        // > 7. Otherwise, unset the sequential focus navigation starting point.
-        self.sequential_focus_navigation_starting_point.clear();
-
-        // This is not in the specification, but there's a difference between moving focus into
-        // a child `<iframe>` and within a Document. If no suitable focusable area can be found
-        // when moving into an `<iframe>`, we want to focus the `<iframe>`'s viewport itself.
-        if allow_focusing_viewport {
-            self.window
-                .Document()
-                .focus_handler()
-                .focus(cx, FocusableArea::Viewport);
-            return;
-        }
-
-        // > 8. If starting point is a top-level traversable, or a focusable area in the top-level
-        // > traversable, the user agent should transfer focus to its own controls appropriately (if
-        // > any), honouring direction, and then return.
-        // TODO: Implement this.
-        if self.window.is_top_level() {
-            return;
-        }
-
-        // > 9. Otherwise, starting point is a focusable area in a child navigable. Set starting
-        // > point to that child navigable's parent and return to the step labeled loop.
-        self.window
-            .Document()
-            .focus_handler()
-            .sequentially_focus_parent_local_or_remote(cx, direction);
-    }
-
-    pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
+    pub(crate) fn do_keyboard_scroll(&self, cx: &mut JSContext, scroll: KeyboardScroll) {
         let scroll_axis = match scroll {
             KeyboardScroll::Left | KeyboardScroll::Right => ScrollingBoxAxis::X,
             _ => ScrollingBoxAxis::Y,
@@ -2240,13 +2084,13 @@ impl DocumentEventHandler {
             if let Some(iframe) = window_proxy.frame_element() {
                 // When the `<iframe>` is local (in this ScriptThread), we can
                 // synchronously chain up the keyboard scrolling event.
-                let cx = GlobalScope::get_cx();
                 let iframe_window = iframe.owner_window();
-                let _ac = JSAutoRealm::new(*cx, iframe_window.reflector().get_jsobject().get());
+                let mut realm = enter_auto_realm(cx, &*iframe_window);
+                let cx = &mut realm;
                 iframe_window
                     .Document()
                     .event_handler()
-                    .do_keyboard_scroll(scroll);
+                    .do_keyboard_scroll(cx, scroll);
             } else if let Some(parent_pipeline) = parent_pipeline {
                 // Otherwise, if we have a parent (presumably from a different origin)
                 // asynchronously ask the Constellation to forward the event to the parent
@@ -2259,7 +2103,7 @@ impl DocumentEventHandler {
         }
 
         let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
-        scrolling_box.scroll_to(delta + current_scroll_offset, ScrollBehavior::Auto);
+        scrolling_box.scroll_to(cx, delta + current_scroll_offset, ScrollBehavior::Auto);
     }
 
     /// Get or create a pointer ID for the given touch identifier.
@@ -2423,31 +2267,24 @@ impl DocumentEventHandler {
         true
     }
 
-    fn focus_and_scroll_to_element_for_key_event(&self, cx: &mut JSContext, element: &Element) {
+    pub(crate) fn focus_and_scroll_to_element_for_key_event(
+        &self,
+        cx: &mut JSContext,
+        element: &Element,
+    ) {
         element.upcast::<Node>().run_the_focusing_steps(cx, None);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
         };
         element.scroll_into_view_with_options(
+            cx,
             ScrollBehavior::Auto,
             scroll_axis,
             scroll_axis,
             None,
             None,
         );
-    }
-}
-
-fn compare_tab_indices(a: i32, b: i32) -> Ordering {
-    if a == b {
-        Ordering::Equal
-    } else if a == 0 {
-        Ordering::Greater
-    } else if b == 0 {
-        Ordering::Less
-    } else {
-        a.cmp(&b)
     }
 }
 

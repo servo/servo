@@ -604,7 +604,9 @@ pub(crate) fn export_key(
                     //     Set the alg attribute of jwk to the string "A256CTR".
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
-                        return Err(Error::Operation(None));
+                        return Err(Error::Operation(Some(
+                            "The key is not an AES-CTR key".to_string(),
+                        )));
                     };
                     let alg = match algorithm.length {
                         128 => "A128CTR",
@@ -627,7 +629,9 @@ pub(crate) fn export_key(
                     //     Set the alg attribute of jwk to the string "A256CBC".
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
-                        return Err(Error::Operation(None));
+                        return Err(Error::Operation(Some(
+                            "The key is not an AES-CBC key".to_string(),
+                        )));
                     };
                     let alg = match algorithm.length {
                         128 => "A128CBC",
@@ -650,7 +654,9 @@ pub(crate) fn export_key(
                     //     Set the alg attribute of jwk to the string "A256GCM".
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
-                        return Err(Error::Operation(None));
+                        return Err(Error::Operation(Some(
+                            "The key is not an AES-GCM key".to_string(),
+                        )));
                     };
                     let alg = match algorithm.length {
                         128 => "A128GCM",
@@ -673,7 +679,9 @@ pub(crate) fn export_key(
                     //     Set the alg attribute of jwk to the string "A256KW".
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
-                        return Err(Error::Operation(None));
+                        return Err(Error::Operation(Some(
+                            "The key is not an AES-KW key".to_string(),
+                        )));
                     };
                     let alg = match algorithm.length {
                         128 => "A128KW",
@@ -696,7 +704,9 @@ pub(crate) fn export_key(
                     //     Set the alg attribute of jwk to the string "A256OCB".
                     let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
                     else {
-                        return Err(Error::Operation(None));
+                        return Err(Error::Operation(Some(
+                            "The key is not an AES-OCB key".to_string(),
+                        )));
                     };
                     let alg = match algorithm.length {
                         128 => "A128OCB",

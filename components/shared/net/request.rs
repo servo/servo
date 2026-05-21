@@ -27,7 +27,7 @@ use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
 use crate::resource_fetch_timing::ResourceTimingType;
-use crate::response::{HttpsState, RedirectTaint, Response};
+use crate::response::{RedirectTaint, Response};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one network request from another.
@@ -133,6 +133,14 @@ pub enum ResponseTainting {
     Basic,
     CorsTainting,
     Opaque,
+}
+
+/// Servo-internal to keep track of which requests originate from Servo internal implementation
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum InternalRequest {
+    Yes,
+    #[default]
+    No,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#preload-key>
@@ -500,10 +508,11 @@ pub struct RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub initiator: Initiator,
-    pub https_state: HttpsState,
     pub response_tainting: ResponseTainting,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+    /// Servo internal: whether this request originates from Servo internal implementation
+    pub is_internal_request: InternalRequest,
 }
 
 impl RequestBuilder {
@@ -544,8 +553,8 @@ impl RequestBuilder {
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
-            https_state: HttpsState::None,
             response_tainting: ResponseTainting::Basic,
+            is_internal_request: Default::default(),
             crash: None,
         }
     }
@@ -671,11 +680,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn https_state(mut self, https_state: HttpsState) -> RequestBuilder {
-        self.https_state = https_state;
-        self
-    }
-
     pub fn response_tainting(mut self, response_tainting: ResponseTainting) -> RequestBuilder {
         self.response_tainting = response_tainting;
         self
@@ -729,6 +733,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn is_internal_request(mut self, is_internal_request: InternalRequest) -> RequestBuilder {
+        self.is_internal_request = is_internal_request;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
@@ -737,7 +746,6 @@ impl RequestBuilder {
             self.referrer,
             self.pipeline_id,
             self.target_webview_id,
-            self.https_state,
         );
         request.preload_id = self.preload_id;
         request.initiator = self.initiator;
@@ -775,6 +783,7 @@ impl RequestBuilder {
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
         request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
+        request.is_internal_request = self.is_internal_request;
         request
     }
 
@@ -856,9 +865,10 @@ pub struct Request {
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
     pub has_trustworthy_ancestor_origin: bool,
-    pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+    /// Servo internal: whether this request originates from Servo internal implementation
+    pub is_internal_request: InternalRequest,
 }
 
 impl Request {
@@ -869,7 +879,6 @@ impl Request {
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
         webview_id: Option<WebViewId>,
-        https_state: HttpsState,
     ) -> Request {
         Request {
             id,
@@ -906,7 +915,7 @@ impl Request {
             policy_container: RequestPolicyContainer::Client,
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             has_trustworthy_ancestor_origin: false,
-            https_state,
+            is_internal_request: Default::default(),
             crash: None,
         }
     }
@@ -1213,15 +1222,15 @@ fn validate_range_header(value: &str) -> bool {
         let start = parts.next();
         let end = parts.next();
 
-        if let Some(start) = start {
-            if let Ok(start_num) = start.parse::<u64>() {
-                return match end {
-                    Some(e) if !e.is_empty() => {
-                        e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
-                    },
-                    _ => true,
-                };
-            }
+        if let Some(start) = start &&
+            let Ok(start_num) = start.parse::<u64>()
+        {
+            return match end {
+                Some(e) if !e.is_empty() => {
+                    e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
+                },
+                _ => true,
+            };
         }
     }
     false

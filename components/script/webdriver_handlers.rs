@@ -199,10 +199,10 @@ fn get_known_shadow_root(
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
-    if let Some(ref node) = node {
-        if !node.is::<ShadowRoot>() {
-            return Err(ErrorStatus::NoSuchShadowRoot);
-        }
+    if let Some(ref node) = node &&
+        !node.is::<ShadowRoot>()
+    {
+        return Err(ErrorStatus::NoSuchShadowRoot);
     }
 
     // Step 4.1. If node is null return error with error code detached shadow root.
@@ -253,10 +253,10 @@ fn get_known_element(
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    if let Some(ref node) = node {
-        if !node.is::<Element>() {
-            return Err(ErrorStatus::NoSuchElement);
-        }
+    if let Some(ref node) = node &&
+        !node.is::<Element>()
+    {
+        return Err(ErrorStatus::NoSuchElement);
     }
     // Step 4.1. If node is null return error with error code stale element reference.
     let Some(node) = node else {
@@ -874,12 +874,12 @@ fn find_elements_xpath_strategy(
 
     // A snapshot is used to promote operation atomicity.
     let evaluate_result = match document.Evaluate(
+        cx,
         DOMString::from(selector),
         start_node,
         None,
         XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
         None,
-        CanGc::from_cx(cx),
     ) {
         Ok(res) => res,
         Err(_) => return Err(ErrorStatus::InvalidSelector),
@@ -1679,6 +1679,7 @@ pub(crate) fn handle_get_name(
 }
 
 pub(crate) fn handle_get_attribute(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1689,14 +1690,14 @@ pub(crate) fn handle_get_attribute(
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 if is_boolean_attribute(&name) {
-                    if element.HasAttribute(DOMString::from(name)) {
+                    if element.HasAttribute(cx, DOMString::from(name)) {
                         Some(String::from("true"))
                     } else {
                         None
                     }
                 } else {
                     element
-                        .GetAttribute(DOMString::from(name))
+                        .GetAttribute(cx, DOMString::from(name))
                         .map(String::from)
                 }
             }),
@@ -1829,10 +1830,10 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
             if input_element.Value().is_empty() {
                 return Ok(());
             }
-        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
-            if textarea_element.Value().is_empty() {
-                return Ok(());
-            }
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() &&
+            textarea_element.Value().is_empty()
+        {
+            return Ok(());
         }
     }
 
@@ -1959,10 +1960,10 @@ pub(crate) fn handle_element_click(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
-                if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-                    if matches!(*input_element.input_type(), InputType::File(_)) {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
+                if let Some(input_element) = element.downcast::<HTMLInputElement>() &&
+                    matches!(*input_element.input_type(), InputType::File(_))
+                {
+                    return Err(ErrorStatus::InvalidArgument);
                 }
 
                 let Some(container) = get_container(&element) else {
@@ -2204,7 +2205,7 @@ fn scroll_into_view(
         container: Default::default(),
     });
     // Step 2. Run scrollIntoView
-    element.ScrollIntoView(options);
+    element.ScrollIntoView(cx, options);
 }
 
 pub(crate) fn set_protocol_handler_automation_mode(

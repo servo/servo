@@ -49,13 +49,12 @@ use webrender_api::{
 };
 use wr::units::LayoutVector2D;
 
-use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
-    SpecificLayoutInfo, Tag, TextFragment,
+    BackgroundMode, BoxFragment, ContainingBlockCalculation, Fragment, FragmentFlags,
+    FragmentStatus, FragmentTree, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -152,7 +151,7 @@ struct HighlightTraversalState {
 
     /// When the highlighted fragment is a box fragment we remember the information
     /// needed to paint padding, border and margin areas.
-    maybe_box_fragment: Option<ArcRefCell<BoxFragment>>,
+    maybe_box_fragment: Option<Arc<BoxFragment>>,
 }
 
 impl InspectorHighlight {
@@ -488,8 +487,10 @@ impl DisplayListBuilder<'_> {
                     }
 
                     let bounds = box_fragment
-                        .borrow()
-                        .offset_by_containing_block(&fragment_relative_bounds)
+                        .offset_by_containing_block(
+                            &fragment_relative_bounds,
+                            ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+                        )
                         .to_webrender();
 
                     // We paint each highlighted area as if it was a border for simplicity
@@ -516,7 +517,6 @@ impl DisplayListBuilder<'_> {
                     self.wr().push_border(&common, bounds, widths, details)
                 };
 
-            let box_fragment = box_fragment.borrow();
             paint_highlight(
                 PADDING_BOX_HIGHLIGHT_COLOR,
                 box_fragment.padding_rect(),
@@ -605,7 +605,7 @@ impl InspectorHighlight {
             );
         }
 
-        let Some(fragment_relative_rect) = fragment.base().map(|base| base.rect) else {
+        let Some(fragment_relative_rect) = fragment.base().map(|base| base.rect()) else {
             return;
         };
         state.maybe_box_fragment = match fragment {
@@ -629,19 +629,19 @@ impl Fragment {
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
-        if let Some(mut base) = self.base_mut() {
-            match base.status {
+        if let Some(base) = self.base() {
+            match base.status() {
                 FragmentStatus::New => {
                     builder.reflow_statistics.rebuilt_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                    base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::StyleChanged => {
                     builder.reflow_statistics.restyle_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                    base.set_status(FragmentStatus::Clean)
                 },
-                FragmentStatus::PositionMaybeChanged => {
-                    builder.reflow_statistics.possibly_moved_fragment_count += 1;
-                    base.status = FragmentStatus::Clean;
+                FragmentStatus::OnlyDescendantsChanged => {
+                    builder.reflow_statistics.only_descendants_changed_count += 1;
+                    base.set_status(FragmentStatus::Clean)
                 },
                 FragmentStatus::Clean => {},
             }
@@ -649,20 +649,19 @@ impl Fragment {
 
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
-        if let Some(inspector_highlight) = &mut builder.inspector_highlight {
-            if self.tag() == Some(inspector_highlight.tag) {
-                inspector_highlight.register_fragment_of_highlighted_dom_node(
-                    self,
-                    spatial_id,
-                    clip_chain_id,
-                    containing_block,
-                );
-            }
+        if let Some(inspector_highlight) = &mut builder.inspector_highlight &&
+            self.tag() == Some(inspector_highlight.tag)
+        {
+            inspector_highlight.register_fragment_of_highlighted_dom_node(
+                self,
+                spatial_id,
+                clip_chain_id,
+                containing_block,
+            );
         }
 
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                let box_fragment = &*box_fragment.borrow();
                 match box_fragment.style().get_inherited_box().visibility {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
@@ -677,7 +676,6 @@ impl Fragment {
             },
             Fragment::AbsoluteOrFixedPositioned(_) | Fragment::Positioning(_) => {},
             Fragment::Image(image) => {
-                let image = image.borrow();
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
@@ -685,7 +683,7 @@ impl Fragment {
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
                             .base
-                            .rect
+                            .rect()
                             .translate(containing_block.origin.to_vector())
                             .to_webrender();
                         let clip = image
@@ -742,13 +740,12 @@ impl Fragment {
                 }
             },
             Fragment::IFrame(iframe) => {
-                let iframe = iframe.borrow();
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
                         let rect = iframe
                             .base
-                            .rect
+                            .rect()
                             .translate(containing_block.origin.to_vector());
 
                         let common = builder.common_properties(rect.to_webrender(), &style);
@@ -776,18 +773,15 @@ impl Fragment {
                     Visibility::Collapse => (),
                 }
             },
-            Fragment::Text(text) => {
-                let text = &*text.borrow();
-                match text.base.style().get_inherited_box().visibility {
-                    Visibility::Visible => self.build_display_list_for_text_fragment(
-                        text,
-                        builder,
-                        containing_block,
-                        text_decorations,
-                    ),
-                    Visibility::Hidden => (),
-                    Visibility::Collapse => (),
-                }
+            Fragment::Text(text) => match text.base.style().get_inherited_box().visibility {
+                Visibility::Visible => self.build_display_list_for_text_fragment(
+                    text,
+                    builder,
+                    containing_block,
+                    text_decorations,
+                ),
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
             },
         }
     }
@@ -803,7 +797,7 @@ impl Fragment {
         // shadows, underline, overline, text, text-emphasis, and then line-through.
         let rect = fragment
             .base
-            .rect
+            .rect()
             .translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
@@ -891,7 +885,7 @@ impl Fragment {
             fragment,
             builder,
             containing_block,
-            fragment.base.rect.min_x(),
+            fragment.base.rect().min_x(),
             fragment.justification_adjustment,
         );
 
@@ -1700,8 +1694,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         // `border-image` replaces an element's border entirely.
-        let common = builder.common_properties(self.border_rect, &style);
-        if self.build_border_image(builder, &common, border, border_widths) {
+        if self.build_border_image(builder, border, border_widths) {
             return;
         }
 
@@ -1715,6 +1708,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             radius: self.border_radius,
             do_aa: true,
         });
+        let common = builder.common_properties(self.border_rect, &style);
         builder
             .wr()
             .push_border(&common, self.border_rect, border_widths, details)
@@ -1724,7 +1718,6 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_border_image(
         &self,
         builder: &mut DisplayListBuilder,
-        common: &CommonItemProperties,
         border: &Border,
         border_widths: SideOffsets2D<f32, LayoutPixel>,
     ) -> bool {
@@ -1742,6 +1735,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let border_image_repeat = &border_style_struct.border_image_repeat;
         let border_image_fill = border_style_struct.border_image_slice.fill;
         let border_image_slice = &border_style_struct.border_image_slice.offsets;
+        let common = builder.common_properties(border_image_area.to_box2d(), &style);
 
         let stops = Vec::new();
         let mut width = border_image_size.width;
@@ -1824,7 +1818,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             repeat_vertical: border_image_repeat.1.to_webrender(),
         });
         builder.wr().push_border(
-            common,
+            &common,
             border_image_area.to_box2d(),
             border_image_widths,
             details,

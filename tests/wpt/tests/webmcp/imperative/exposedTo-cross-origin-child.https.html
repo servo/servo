@@ -43,8 +43,15 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'parent_tool_exposed',
     description: 'Parent tool exposed to child',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    origin: self.origin
   }), 'Tool details should match');
+
+  // Child executes parent's tool.
+  iframe.contentWindow.postMessage({action: 'execute', name: 'parent_tool_exposed'}, '*');
+  const exec_response = await waitForIframeMessage('executeResponse');
+  assert_true(exec_response.success, 'Child should successfully execute parent tool');
+  assert_equals(exec_response.result, 'hello', 'Child should get correct result from parent tool');
 
   // Unregister and verify `toolchange` is fired in iframe.
   iframe.contentWindow.postMessage('listenForToolchange', '*');
@@ -76,7 +83,7 @@ promise_test(async t => {
       description: 'Iframe tool exposed to parent',
       inputSchema: { type: 'object', properties: { query: { type: 'string' } } }
     },
-    options: { exposedTo: [host_info.HTTPS_ORIGIN] }
+    options: { exposedTo: [self.origin] }
   }, '*');
 
   await new Promise(resolve => {
@@ -88,8 +95,13 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'iframe_tool_exposed',
     description: 'Iframe tool exposed to parent',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    origin: host_info.HTTPS_REMOTE_ORIGIN
   }), 'Tool details should match');
+
+  // Parent executes iframe's tool.
+  const result = await navigator.modelContext.executeTool(tool, '{}');
+  assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Tell the iframe to unregister its tool, and confirm that `toolchange` fires here.
   const toolchange_promise  = new Promise(resolve => {

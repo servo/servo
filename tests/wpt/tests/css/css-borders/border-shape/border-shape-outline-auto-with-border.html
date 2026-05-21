@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: outline auto follows border-shape with border</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline">
+<link rel="match" href="border-shape-outline-auto-with-border-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-50">
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 20px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  border: 10px solid green;
+  border-shape: inset(0 round 60px);
+  outline: auto 4px blue;
+}
+</style>
+<div class="container">
+  <div class="target" tabindex="0" id="target"></div>
+</div>
+<script>
+document.getElementById('target').focus();
+</script>

@@ -15,8 +15,8 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = { workspace = true }
-blurmock = { version = "0.1.2", optional = true }
-btleplug = { version = "0.12", optional = true }
+blurmock = { workspace = true, optional = true }
+btleplug = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 futures = { workspace = true, features = ["executor"] }
 log = { workspace = true }
@@ -24,7 +24,7 @@ rand = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth-traits = { workspace = true }
 servo-config = { workspace = true }
-tokio = { workspace = true, features = ["rt", "time", "sync"], optional = true }
+tokio = { workspace = true, features = ["rt", "sync", "time"], optional = true }
 uuid = { workspace = true }
 
 [features]

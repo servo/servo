@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Leave character color overlapping the block caret unchanged when the second value of caret-color is auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-block-shape-text-color-002-ref.html">
+<meta name="assert" content="When the second value of caret-color is 'auto', the character under a block caret is painted with its normal text color, not overridden.">
+<style>
+  div {
+    font-size: 5em;
+    color: red;
+  }
+  #target {
+    caret-color: black auto;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+</script>

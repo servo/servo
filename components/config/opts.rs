@@ -70,6 +70,10 @@ pub struct Opts {
     /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
 
+    /// Path to a hosts file (like `/etc/hosts`).
+    /// Ignored if the `HOST_FILE` environment variable is set.
+    pub host_file: Option<PathBuf>,
+
     /// Whether or not to completely ignore SSL certificate validation errors.
     /// TODO: We should see if we can eliminate the need for this by fixing
     /// <https://github.com/servo/servo/issues/30080>.
@@ -142,6 +146,10 @@ pub enum DiagnosticsLoggingOption {
     /// Log Progressive Web Metrics
     #[strum(to_string = "progressive-web-metrics")]
     ProgressiveWebMetrics,
+
+    /// Log the accessibility tree
+    #[strum(to_string = "accessibility-tree")]
+    AccessibilityTree,
 }
 
 impl DiagnosticsLoggingOption {
@@ -186,10 +194,10 @@ impl DiagnosticsLogging {
         #[cfg(debug_assertions)]
         {
             let mut config: DiagnosticsLogging = Default::default();
-            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") {
-                if let Err(error) = config.extend_from_string(&diagnostics_var) {
-                    eprintln!("Could not parse debug logging option: {error}");
-                }
+            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") &&
+                let Err(error) = config.extend_from_string(&diagnostics_var)
+            {
+                eprintln!("Could not parse debug logging option: {error}");
             };
             config
         }
@@ -246,6 +254,7 @@ impl Default for Opts {
             temporary_storage: false,
             shaders_path: None,
             certificate_path: None,
+            host_file: None,
             ignore_certificate_errors: false,
             unminify_js: false,
             local_script_source: None,

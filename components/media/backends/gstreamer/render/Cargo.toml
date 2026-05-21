@@ -15,5 +15,4 @@ path = "lib.rs"
 
 [dependencies]
 gstreamer = { workspace = true }
-gstreamer-video = { workspace = true }
 servo-media-player = { workspace = true }

@@ -466,10 +466,10 @@ impl IDBTransaction {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
         // NOTE: Implementors need to keep in mind that the value "null" is considered an error, as it is set from abort()
-        if self.error.get().is_none() {
-            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
-                self.error.set(Some(&exception));
-            }
+        if self.error.get().is_none() &&
+            let Ok(exception) = create_dom_exception(&self.global(), error, can_gc)
+        {
+            self.error.set(Some(&exception));
         }
     }
 

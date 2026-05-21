@@ -258,6 +258,7 @@ impl GPUCanvasContext {
         self.current_texture.get().map(|texture| PendingTexture {
             texture_id: texture.id().0,
             encoder_id: self.global().wgpu_id_hub().create_command_encoder_id(),
+            command_buffer_id: self.global().wgpu_id_hub().create_command_buffer_id(),
             configuration: self
                 .context_configuration()
                 .expect("Context should be configured if there is a texture."),

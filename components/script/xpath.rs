@@ -208,7 +208,11 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
         DomRoot::from_ref(self.0.upcast::<Node>()).into()
     }
 
+    #[expect(unsafe_code)]
     fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         struct AttributeIterator<'a> {
             attributes: &'a AttributeStorage,
             position: usize,
@@ -232,7 +236,7 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
 
         // XPath needs full DOM attribute nodes.
         AttributeIterator {
-            attributes: self.0.dom_attrs(),
+            attributes: self.0.dom_attrs(cx),
             position: 0,
         }
     }

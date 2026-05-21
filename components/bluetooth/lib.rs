@@ -137,10 +137,10 @@ async fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) 
     }
 
     // Step 1.
-    if let Some(name) = filter.get_name() {
-        if device.get_name().await.ok() != Some(name.to_string()) {
-            return false;
-        }
+    if let Some(name) = filter.get_name() &&
+        device.get_name().await.ok() != Some(name.to_string())
+    {
+        return false;
     }
 
     // Step 2.
@@ -155,12 +155,12 @@ async fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) 
     }
 
     // Step 3.
-    if !filter.get_services().is_empty() {
-        if let Ok(device_uuids) = device.get_uuids().await {
-            for service in filter.get_services() {
-                if !device_uuids.iter().any(|x| x == service) {
-                    return false;
-                }
+    if !filter.get_services().is_empty() &&
+        let Ok(device_uuids) = device.get_uuids().await
+    {
+        for service in filter.get_services() {
+            if !device_uuids.iter().any(|x| x == service) {
+                return false;
             }
         }
     }
@@ -830,14 +830,13 @@ impl BluetoothManager {
                     return Err(BluetoothError::InvalidState);
                 }
                 // Step 6.
-                if let Some(ref uuid) = uuid {
-                    if !self
+                if let Some(ref uuid) = uuid &&
+                    !self
                         .allowed_services
                         .get(&id)
                         .is_some_and(|s| s.contains(uuid))
-                    {
-                        return Err(BluetoothError::Security);
-                    }
+                {
+                    return Err(BluetoothError::Security);
                 }
                 let mut services = self.get_and_cache_gatt_services(&mut adapter, &id).await;
                 if let Some(uuid) = uuid {
@@ -845,14 +844,14 @@ impl BluetoothManager {
                 }
                 let mut services_vec = vec![];
                 for service in services {
-                    if service.is_primary().unwrap_or(false) {
-                        if let Ok(uuid) = service.get_uuid() {
-                            services_vec.push(BluetoothServiceMsg {
-                                uuid,
-                                is_primary: true,
-                                instance_id: service.get_id(),
-                            });
-                        }
+                    if service.is_primary().unwrap_or(false) &&
+                        let Ok(uuid) = service.get_uuid()
+                    {
+                        services_vec.push(BluetoothServiceMsg {
+                            uuid,
+                            is_primary: true,
+                            instance_id: service.get_id(),
+                        });
                     }
                 }
 

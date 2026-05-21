@@ -19,6 +19,7 @@ async_test((t) => {
   });
 
   var popup_window = window.open("/common/blank.html", "popup");
+  t.add_cleanup(popup_window.close);
   assert_not_equals(popup_window, null, "Popup windows not allowed?");
 
   form.submit();
@@ -43,6 +44,7 @@ async_test((t) => {
   });
 
   var popup_window = window.open("/common/blank.html", "popup");
+  t.add_cleanup(popup_window.close);
   assert_not_equals(popup_window, null, "Popup windows not allowed?");
 
   form.submit();

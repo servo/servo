@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Decoration skipping spaces: all value trims trailing letter-spacing</title>
+<meta name="assert" content="text-decoration-skip-spaces:all trims trailing letter-spacing at line end from the underline, unlike start end which does not.">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<link rel="match" href="reference/text-decoration-skip-spaces-005-ref.html">
+<meta name="fuzzy" content="maxDifference=0-70;totalPixels=0-5">
+<style>
+div {
+    text-decoration: underline;
+    text-decoration-color: blue;
+
+    text-decoration-skip-spaces: all;
+    color: orange;
+    font-size: 2em;
+    letter-spacing: 20px;
+    white-space: pre;
+}
+</style>
+
+<p>Test passes if this page renders the same as the reference page (underline stops at F's right edge, no trailing 20px gap).
+
+<div>ABCDEF</div>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-balance">
+<link rel="match" href="balance-min-line-count-008-ref.html">
+<meta name="assert" content="Tests that flex-line-count has no effect on a non-wrapping flexbox.">
+<style>
+#flex {
+  display: flex;
+  flex-line-count: 10000;
+  width: 20px;
+  gap: 20px;
+  padding: 20px;
+  border: solid 3px;
+}
+div > div {
+  background: green;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+</style>
+<p>There should be 1 overflowing flex-line.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

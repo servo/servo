@@ -22,10 +22,10 @@ tracing = ["dep:tracing"]
 
 [dependencies]
 async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
-async-recursion = "1.1"
+async-recursion = { workspace = true }
 async-tungstenite = { workspace = true }
 base64 = { workspace = true }
-bytes = "1"
+bytes = { workspace = true }
 chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
@@ -33,11 +33,11 @@ crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
-fst = "0.4"
+fst = { workspace = true }
 futures = { workspace = true }
 futures-core = { workspace = true }
 futures-util = { workspace = true }
-generic-array = "0.14"
+generic-array = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
@@ -67,20 +67,20 @@ rustls = { workspace = true, features = ["aws-lc-rs"] }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
-servo_arc = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-default-resources = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
-tracing = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "fs"] }
+tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true, features = ["codec", "io"] }
 tower = { workspace = true }
+tracing = { workspace = true, optional = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
@@ -88,15 +88,15 @@ webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-servo-default-resources = { workspace = true }
 flate2 = { workspace = true }
-fst = "0.4"
+fst = { workspace = true }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
 net = { package = "servo-net", path = ".", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+servo-default-resources = { workspace = true }
 
 [[test]]
 name = "main"

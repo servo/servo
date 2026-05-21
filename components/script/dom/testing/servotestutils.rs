@@ -6,6 +6,7 @@
 
 use backtrace::Backtrace;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use layout_api::ReflowPhasesRun;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
@@ -35,15 +36,12 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         unsafe { std::ptr::null_mut::<i32>().write(42) }
     }
 
-    fn ForceLayout(global: &GlobalScope, can_gc: CanGc) -> DomRoot<LayoutResult> {
-        let (phases_run, statistics) = global.as_window().Document().update_the_rendering();
+    fn ForceLayout(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<LayoutResult> {
+        let (phases_run, statistics) = global.as_window().Document().update_the_rendering(cx);
 
         let mut phases = Vec::new();
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
             phases.push(DOMString::from("RanLayout"))
-        }
-        if phases_run.contains(ReflowPhasesRun::CalculatedOverflow) {
-            phases.push(DOMString::from("CalculatedOverflow"))
         }
         if phases_run.contains(ReflowPhasesRun::BuiltStackingContextTree) {
             phases.push(DOMString::from("BuiltStackingContextTree"))
@@ -63,8 +61,8 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             phases,
             statistics.rebuilt_fragment_count,
             statistics.restyle_fragment_count,
-            statistics.possibly_moved_fragment_count,
-            can_gc,
+            statistics.only_descendants_changed_count,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -76,5 +74,11 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
 
     fn Panic(_: &GlobalScope) {
         panic!("explicit panic from script")
+    }
+
+    fn ForceAccessibilityUpdate(cx: &mut JSContext, global: &GlobalScope) {
+        let window = global.as_window();
+        window.layout().set_needs_accessibility_update();
+        let _ = window.Document().update_the_rendering(cx);
     }
 }

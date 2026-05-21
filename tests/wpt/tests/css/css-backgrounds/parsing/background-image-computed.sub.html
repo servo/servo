@@ -73,6 +73,10 @@ test_computed_value('background-image', 'conic-gradient(from 45deg at 1lh 1lh, r
 
 test_computed_value('background-image', 'repeating-conic-gradient(red, gold)', 'repeating-conic-gradient(rgb(255, 0, 0), rgb(255, 215, 0))');
 test_computed_value('background-image', 'repeating-conic-gradient(from 0deg at center, red, gold)', 'repeating-conic-gradient(rgb(255, 0, 0), rgb(255, 215, 0))');
+
+test_computed_value('background-image', 'light-dark(none, none)', 'image(rgba(0, 0, 0, 0))');
+test_computed_value('background-image', 'image(red)', 'image(rgb(255, 0, 0))');
+test_computed_value('background-image', 'image(transparent)', 'image(rgba(0, 0, 0, 0))');
 </script>
 </body>
 </html>

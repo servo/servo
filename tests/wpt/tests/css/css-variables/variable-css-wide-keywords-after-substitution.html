@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<title>CSS Custom Properties: CSS-wide keyword detected after var() substitution</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables-2/#defining-variables">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#substitute-arbitrary-substitution-function">
+<meta name="assert" content="A CSS-wide keyword as the sole non-whitespace token of a custom property's value after arbitrary substitution is treated as that keyword, equivalent to specifying the keyword directly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #parent > .direct,
+  #parent > .substituted,
+  #parent > .use-as-sibling {
+    --empty: ;
+  }
+
+  /* initial */
+  #parent > .direct.initial     { --x: initial; }
+  #parent > .substituted.initial { --x: var(--empty) initial; }
+
+  /* inherit */
+  #parent > .direct.inherit     { --x: inherit; }
+  #parent > .substituted.inherit { --x: var(--empty) inherit; }
+
+  /* unset */
+  #parent > .direct.unset       { --x: unset; }
+  #parent > .substituted.unset   { --x: var(--empty) unset; }
+
+  /* revert */
+  #parent > .direct.revert      { --x: revert; }
+  #parent > .substituted.revert  { --x: var(--empty) revert; }
+
+  /* revert-layer (layered) */
+  #parent > .direct.revert-layer {
+    @layer a { --x: layer-a-value; }
+    @layer b { & { --x: revert-layer; } }
+  }
+  #parent > .substituted.revert-layer {
+    @layer a { --x: layer-a-value; }
+    @layer b { & { --x: var(--empty) revert-layer; } }
+  }
+
+  /* Use --x as a sibling of a literal (exercises the bug's failure mode too). */
+  #parent > .use-as-sibling {
+    @layer a { --x: ; }
+    @layer b { & { --x: var(--empty) revert-layer; } }
+    background: var(--x) green;
+  }
+</style>
+
+<div id="parent">
+  <div class="direct initial">direct initial</div>
+  <div class="substituted initial">substituted initial</div>
+
+  <div class="direct inherit">direct inherit</div>
+  <div class="substituted inherit">substituted inherit</div>
+
+  <div class="direct unset">direct unset</div>
+  <div class="substituted unset">substituted unset</div>
+
+  <div class="direct revert">direct revert</div>
+  <div class="substituted revert">substituted revert</div>
+
+  <div class="direct revert-layer">direct revert-layer</div>
+  <div class="substituted revert-layer">substituted revert-layer</div>
+
+  <div class="use-as-sibling">use-as-sibling</div>
+</div>
+
+<script>
+  const keywords = ['initial', 'inherit', 'unset', 'revert', 'revert-layer'];
+  for (const keyword of keywords) {
+    test(() => {
+      const direct = document.querySelector('#parent > .direct.' + CSS.escape(keyword));
+      const substituted = document.querySelector('#parent > .substituted.' + CSS.escape(keyword));
+      const directValue = getComputedStyle(direct).getPropertyValue('--x');
+      const substitutedValue = getComputedStyle(substituted).getPropertyValue('--x');
+      assert_equals(substitutedValue, directValue,
+        '`var(--empty) ' + keyword + '` must resolve identically to `' + keyword + '`');
+    }, 'CSS-wide keyword `' + keyword + '` after var() substitution');
+  }
+
+  test(() => {
+    // `--x: var(--empty) revert-layer;` in layer b must revert to layer a's empty value,
+    // so `background: var(--x) green` resolves to `background: green`.
+    const el = document.querySelector('#parent > .use-as-sibling');
+    assert_equals(getComputedStyle(el).backgroundColor, 'rgb(0, 128, 0)');
+  }, 'revert-layer after var() substitution takes effect on the cascade');
+</script>

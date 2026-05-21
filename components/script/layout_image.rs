@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Destination, RequestBuilder, RequestId};
+use net_traits::request::{Destination, InternalRequest, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 
@@ -92,6 +92,7 @@ pub(crate) fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,
     id: PendingImageId,
+    is_internal_request: InternalRequest,
     cache: Arc<dyn ImageCache>,
 ) {
     let document = node.owner_document();
@@ -109,6 +110,7 @@ pub(crate) fn fetch_image_for_layout(
         global.get_referrer(),
     )
     .destination(Destination::Image)
+    .is_internal_request(is_internal_request)
     .with_global_scope(&global);
 
     // Layout image loads do not delay the document load event.

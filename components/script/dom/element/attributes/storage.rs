@@ -6,6 +6,7 @@ use std::cell::Ref;
 
 use devtools_traits::AttrInfo;
 use html5ever::{LocalName, Namespace, Prefix};
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
@@ -287,8 +288,12 @@ impl AttributeStorage {
     /// This method carefully splits the mutable borrow around the `Attr::new()`
     /// allocation so that GC tracing can safely borrow the storage.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    #[expect(unsafe_code)]
-    pub(crate) fn ensure_dom(&self, index: usize, element: &Element) -> DomRoot<Attr> {
+    pub(crate) fn ensure_dom(
+        &self,
+        cx: &mut JSContext,
+        index: usize,
+        element: &Element,
+    ) -> DomRoot<Attr> {
         // Fast path: already materialized.
         if let AttributeEntry::Dom(attr) = &self.0.borrow()[index] {
             return DomRoot::from_ref(&**attr);
@@ -313,9 +318,6 @@ impl AttributeStorage {
             }
         };
 
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
         let doc = element.owner_document();
         let attr = Attr::new(
             cx,

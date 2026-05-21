@@ -186,6 +186,36 @@ test(() => {
     assert_throws_js(TypeError, () => document.importNode(root, { customElementRegistry: null }));
 }, "importNode: pass options argument with value { customElementRegistry: null }");
 
+test(() => {
+    const tagName = 'some-element';
+    const fallbackRegistry = new CustomElementRegistry();
+    class FallbackSomeElement extends HTMLElement {};
+    fallbackRegistry.define(tagName, FallbackSomeElement);
+
+    const container = document.createElement('div', {customElementRegistry: null});
+    const child = document.createElement(tagName, {customElementRegistry: scopedRegistry});
+    container.append(child);
+    const grandchild = document.createElement(tagName, {customElementRegistry: null});
+    child.append(grandchild);
+
+    assert_equals(container.customElementRegistry, null);
+    assert_equals(child.customElementRegistry, scopedRegistry);
+    assert_equals(grandchild.customElementRegistry, null);
+
+    const imported = document.importNode(container, {customElementRegistry: fallbackRegistry});
+    const importedChild = imported.firstElementChild;
+    const importedGrandchild = importedChild.firstElementChild;
+
+    assert_equals(imported.customElementRegistry, fallbackRegistry,
+        'imported container with null registry should use the fallback registry');
+    assert_equals(importedChild.customElementRegistry, scopedRegistry,
+        'imported child with non-null registry should retain its own registry');
+    assert_equals(importedGrandchild.customElementRegistry, fallbackRegistry,
+        'imported grandchild with null registry should use the fallback registry, not the intermediate ancestor\'s registry');
+    assert_true(importedGrandchild instanceof FallbackSomeElement,
+        'grandchild should be upgraded using the fallback registry');
+}, 'importNode should use the provided fallback registry for null-registry descendants nested under non-null-registry ancestors');
+
 </script>
 </body>
 </html>

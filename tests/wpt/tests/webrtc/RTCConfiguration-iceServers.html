@@ -142,7 +142,7 @@ if (rest) {
     const pc = makePc({ iceServers: [{
       urls: 'turns:turn.example.org',
       username: '',
-      credential: ''
+      credential: 'cred'
     }] });
 
     const { iceServers } = pc.getConfiguration();
@@ -151,15 +151,15 @@ if (rest) {
     const server = iceServers[0];
     assert_array_equals(server.urls, ['turns:turn.example.org']);
     assert_equals(server.username, '');
-    assert_equals(server.credential, '');
+    assert_equals(server.credential, 'cred');
 
-  }, `with turns server and empty string username, credential should succeed`);
+  }, `with turns server and empty string username should succeed`);
 
   config_test(makePc => {
     const pc = makePc({ iceServers: [{
       urls: 'turn:turn.example.org',
       username: '',
-      credential: ''
+      credential: 'cred'
     }] });
 
     const { iceServers } = pc.getConfiguration();
@@ -168,9 +168,9 @@ if (rest) {
     const server = iceServers[0];
     assert_array_equals(server.urls, ['turn:turn.example.org']);
     assert_equals(server.username, '');
-    assert_equals(server.credential, '');
+    assert_equals(server.credential, 'cred');
 
-  }, `with turn server and empty string username, credential should succeed`);
+  }, `with turn server and empty string username should succeed`);
 
   config_test(makePc => {
     const pc = makePc({ iceServers: [{
@@ -261,6 +261,24 @@ if (interop2026) {
   }, `with a turn server and a username of 510 characters throw InvalidAccessError`);
 }
 if (rest) {
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turn:turn.example.net',
+        username: 'user',
+        credential: ''
+      }] }));
+  }, `with a turn server and an empty credential throw InvalidAccessError`);
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turns:turn.example.net',
+        username: 'user',
+        credential: ''
+      }] }));
+  }, `with a turns server and an empty credential throw InvalidAccessError`);
+
   /*
     4.3.2.  To set a configuration
       11.3. For each url in server.urls parse url and obtain scheme name.
@@ -328,6 +346,74 @@ if (interop2026) {
   }, 'with invalid stun url should throw SyntaxError');
 }
 if (rest) {
+  // RFC 7064/7065 define STUN/TURN URI syntax as:
+  //   stunURI = scheme ":" host [ ":" port ]
+  //   turnURI = scheme ":" host [ ":" port ] [ "?transport=" transport ]
+  // No authority (//), path, fragment, or userinfo is permitted.
+  // According to webrtc-pc, only "transport=udp" and "transport=tcp" are valid
+  // query values for TURN/TURNS, and other transport strings should result in
+  // SyntaxError.
+  [
+    { urls: 'stun:',
+      desc: 'stun url with no host or port' },
+    { urls: 'stun::8191',
+      desc: 'stun url with port but no host' },
+    { urls: 'turn:',
+      desc: 'turn url with no host or port' },
+    { urls: 'turn::8191',
+      desc: 'turn url with port but no host' },
+    { urls: 'stun:example.org:131071',
+      desc: 'stun url with too large a port' },
+    { urls: 'turn:example.org:131071',
+      desc: 'turn url with too large a port' },
+    { urls: 'stun:2001:4860:4860::8888',
+      desc: 'stun url with IPv6 and no brackets' },
+    { urls: 'turn:2001:4860:4860::8888',
+      desc: 'turn url with IPv6 and no brackets' },
+    { urls: 'stun:::ffff:192.0.2.128',
+      desc: 'stun url with IPv4-mapped IPv6 and no brackets' },
+    { urls: 'turn:::ffff:192.0.2.128',
+      desc: 'turn url with IPv4-mapped IPv6 and no brackets' },
+    { urls: 'stun:example.org#frag',
+      desc: 'stun url with fragment' },
+    { urls: 'turn:example.org#frag',
+      desc: 'turn url with fragment' },
+    { urls: 'stun:user@example.org',
+      desc: 'stun url with userinfo' },
+    { urls: 'turn:user@example.org',
+      desc: 'turn url with userinfo' },
+    { urls: 'stun:example.org/',
+      desc: 'stun url with /' },
+    { urls: 'turn:example.org/',
+      desc: 'turn url with /' },
+    { urls: 'stun:example.org\\',
+      desc: 'stun url with \\' },
+    { urls: 'turn:example.org\\',
+      desc: 'turn url with \\' },
+    { urls: 'stun:example.org/path',
+      desc: 'stun url with path' },
+    { urls: 'turn:example.org/path',
+      desc: 'turn url with path' },
+    { urls: 'stun:example.org\\path',
+      desc: 'stun url with \\path' },
+    { urls: 'turn:example.org\\path',
+      desc: 'turn url with \\path' },
+    { urls: 'stun:example.org?foo=bar',
+      desc: 'stun url with query' },
+    { urls: 'stun:example.org?transport=udp',
+      desc: 'stun url with transport query' },
+    { urls: 'turn:example.org?foo=bar',
+      desc: 'turn url with non-transport query' },
+    { urls: 'turn:example.org?transport=datachannel',
+      desc: 'turn url with invalid transport' },
+    { urls: 'turn:example.org?transport=',
+      desc: 'turn url with empty transport query' },
+  ].forEach(({ urls, desc }) =>
+    config_test(makePc => {
+      assert_throws_dom("SyntaxError", () =>
+        makePc({ iceServers: [{ urls }] }));
+    }, `with ${desc} should throw SyntaxError`));
+
   config_test(makePc => {
     assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{

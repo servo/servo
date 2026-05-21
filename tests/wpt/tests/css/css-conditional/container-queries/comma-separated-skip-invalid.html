@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>@container: comma-separated with general-enclosed and invalid queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container: --container / inline-size;
+    width: 500px;
+  }
+  #container { --match: no; }
+  @container foo(bar), not (unknown: feature), --container (width > 400px) {
+    #t1 { --match: yes; }
+  }
+  @container #invalid, --container (width > 400px) {
+    #t2 { --match: yes; }
+  }
+</style>
+<div id="container">
+  <div>
+    <div id="t1"></div>
+    <div id="t2"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).getPropertyValue("--match"), "yes");
+  }, "Should allow <general-enclosed> but match the valid query");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).getPropertyValue("--match"), "no");
+  }, "Invalid queries, not matching <general-enclosed>, makes the whole rule invalid");
+</script>

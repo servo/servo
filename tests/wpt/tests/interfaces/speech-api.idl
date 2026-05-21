@@ -38,9 +38,16 @@ interface SpeechRecognition : EventTarget {
     attribute EventHandler onend;
 };
 
+enum SpeechRecognitionQuality {
+  "command",
+  "dictation",
+  "conversation"
+};
+
 dictionary SpeechRecognitionOptions {
   required sequence<DOMString> langs;
   boolean processLocally = false;
+  SpeechRecognitionQuality quality = "command";
 };
 
 enum SpeechRecognitionErrorCode {

@@ -491,6 +491,7 @@ impl Tokenizer {
                     .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))
                     .collect();
                 let element = create_element_for_token(
+                    cx,
                     name,
                     attrs,
                     &self.document,
@@ -498,7 +499,6 @@ impl Tokenizer {
                     ParsingAlgorithm::Normal,
                     &self.custom_element_reaction_stack,
                     had_duplicate_attributes,
-                    cx,
                 );
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },

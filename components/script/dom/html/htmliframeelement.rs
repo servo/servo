@@ -123,9 +123,8 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
         let url = element
-            .get_attribute(&local_name!("src"))
-            .and_then(|src| {
-                let url = src.value();
+            .get_attribute_string_value(&local_name!("src"))
+            .and_then(|url| {
                 if url.is_empty() {
                     None
                 } else {
@@ -166,23 +165,23 @@ impl HTMLIFrameElement {
         self.already_fired_synchronous_load_event.set(false);
 
         self.start_new_pipeline(
+            cx,
             load_data,
             PipelineType::Navigation,
             history_handling,
             mode,
             target_snapshot_params,
-            cx,
         );
     }
 
     fn start_new_pipeline(
         &self,
+        cx: &mut JSContext,
         mut load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
         mode: ProcessingMode,
         target_snapshot_params: TargetSnapshotParams,
-        cx: &mut JSContext,
     ) {
         let document = self.owner_document();
 
@@ -200,6 +199,7 @@ impl HTMLIFrameElement {
 
         if load_data.url.scheme() != "javascript" {
             self.continue_navigation(
+                cx,
                 load_data,
                 pipeline_type,
                 history_handling,
@@ -236,12 +236,13 @@ impl HTMLIFrameElement {
                     }
                     load_data.about_base_url = doc.root().about_base_url();
                 }
-                this.continue_navigation(load_data, pipeline_type, history_handling, target_snapshot_params);
+                this.continue_navigation(cx, load_data, pipeline_type, history_handling, target_snapshot_params);
             }));
     }
 
     fn continue_navigation(
         &self,
+        cx: &mut JSContext,
         load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
@@ -312,7 +313,7 @@ impl HTMLIFrameElement {
 
                 self.pipeline_id.set(Some(new_pipeline_id));
                 with_script_thread(|script_thread| {
-                    script_thread.spawn_pipeline(new_pipeline_info);
+                    script_thread.spawn_pipeline(cx, new_pipeline_info);
                 });
             },
             PipelineType::Navigation => {
@@ -462,14 +463,14 @@ impl HTMLIFrameElement {
         // Note: the spec says to set the name 'when the nested browsing context is created'.
         // The current implementation sets the name on the window,
         // when the iframe attributes are first processed.
-        if mode == ProcessingMode::FirstTime {
-            if let Some(window) = self.GetContentWindow() {
-                window.set_name(
-                    element
-                        .get_name()
-                        .map_or(DOMString::from(""), |n| DOMString::from(&*n)),
-                );
-            }
+        if mode == ProcessingMode::FirstTime &&
+            let Some(window) = self.GetContentWindow()
+        {
+            window.set_name(
+                element
+                    .get_name()
+                    .map_or(DOMString::from(""), |n| DOMString::from(&*n)),
+            );
         }
 
         // Step 2.1. Let url be the result of running the shared attribute processing steps
@@ -513,17 +514,16 @@ impl HTMLIFrameElement {
         // against simple typo self-includes but nothing more elaborate.
         let mut ancestor = window.GetParent();
         while let Some(a) = ancestor {
-            if let Some(ancestor_url) = a.document().map(|d| d.url()) {
-                if ancestor_url.scheme() == url.scheme() &&
-                    ancestor_url.username() == url.username() &&
-                    ancestor_url.password() == url.password() &&
-                    ancestor_url.host() == url.host() &&
-                    ancestor_url.port() == url.port() &&
-                    ancestor_url.path() == url.path() &&
-                    ancestor_url.query() == url.query()
-                {
-                    return;
-                }
+            if let Some(ancestor_url) = a.document().map(|d| d.url()) &&
+                ancestor_url.scheme() == url.scheme() &&
+                ancestor_url.username() == url.username() &&
+                ancestor_url.password() == url.password() &&
+                ancestor_url.host() == url.host() &&
+                ancestor_url.port() == url.port() &&
+                ancestor_url.path() == url.path() &&
+                ancestor_url.query() == url.query()
+            {
+                return;
             }
             ancestor = a.parent().map(DomRoot::from_ref);
         }
@@ -609,12 +609,12 @@ impl HTMLIFrameElement {
         self.webview_id.set(Some(webview_id));
         self.browsing_context_id.set(Some(browsing_context_id));
         self.start_new_pipeline(
+            cx,
             load_data,
             PipelineType::InitialAboutBlank,
             NavigationHistoryBehavior::Push,
             ProcessingMode::FirstTime,
             snapshot_self(self),
-            cx,
         );
     }
 

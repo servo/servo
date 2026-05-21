@@ -23,7 +23,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbfactory::IDBFactory;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -45,7 +44,6 @@ impl ServiceWorkerContainer {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
         reflect_dom_object(
             Box::new(ServiceWorkerContainer::new_inherited()),
@@ -168,7 +166,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // B: Step 8 - 13
 
         // Step 10: Let storage key be the result of running obtain a storage key given client.
-        let Some(storage_key) = IDBFactory::obtain_storage_key(&global) else {
+        let Some(storage_key) = global.obtain_storage_key() else {
             promise.reject_error(
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
                 can_gc,

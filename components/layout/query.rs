@@ -4,13 +4,14 @@
 
 //! Utilities for querying the layout, as needed by layout.
 use std::rc::Rc;
+use std::sync::Arc;
 
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleElementOf, LayoutElement,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
     LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
     ScrollContainerQueryFlags, ScrollContainerResponse,
 };
@@ -44,13 +45,13 @@ use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 
-use crate::ArcRefCell;
 use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, TextFragment,
 };
+use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
@@ -63,8 +64,7 @@ fn root_transform_for_layout_node(
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
-        .and_then(Fragment::retrieve_box_fragment)?
-        .borrow();
+        .and_then(Fragment::retrieve_box_fragment)?;
     let scroll_tree_node_id = box_fragment.spatial_tree_node()?;
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
@@ -74,7 +74,7 @@ pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<Physi
     let fragment = fragments.first()?;
     Some(match fragment {
         Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-            let padding = box_fragment.borrow().padding;
+            let padding = box_fragment.padding;
             PhysicalSides {
                 top: padding.top,
                 left: padding.left,
@@ -87,6 +87,7 @@ pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<Physi
 }
 
 pub(crate) fn process_box_area_request(
+    layout_thread: &LayoutThread,
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
@@ -99,9 +100,9 @@ pub(crate) fn process_box_area_request(
             !exclude_transform_and_inline ||
                 fragment
                     .retrieve_box_fragment()
-                    .is_none_or(|fragment| !fragment.borrow().is_inline_box())
+                    .is_none_or(|fragment| !fragment.is_inline_box())
         })
-        .filter_map(|node| node.cumulative_box_area_rect(area))
+        .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
         .peekable();
 
     rects.peek()?;
@@ -121,22 +122,27 @@ pub(crate) fn process_box_area_request(
 }
 
 pub(crate) fn process_box_areas_request(
+    layout_thread: &LayoutThread,
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
-) -> CSSPixelRectIterator {
+) -> CSSPixelRectVec {
     let fragments = node
         .fragments_for_pseudo(None)
         .into_iter()
-        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area));
+        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
     else {
-        return Box::new(fragments.map(|rect| Rect::new(rect.origin, Size2D::zero())));
+        return fragments
+            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
+            .collect();
     };
 
-    Box::new(fragments.filter_map(move |rect| transform_au_rectangle(rect, transform)))
+    fragments
+        .filter_map(move |rect| transform_au_rectangle(rect, transform))
+        .collect()
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32, CSSPixel> {
@@ -167,6 +173,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
+    layout_thread: &LayoutThread,
     requested_node: Option<ServoLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
 ) -> Rect<i32, CSSPixel> {
@@ -178,7 +185,7 @@ pub fn process_node_scroll_area_request(
         Some(node) => node
             .fragments_for_pseudo(None)
             .first()
-            .map(Fragment::scrolling_area)
+            .map(|fragment| fragment.scrolling_area(layout_thread))
             .unwrap_or_default(),
         None => tree.scrollable_overflow(),
     };
@@ -194,6 +201,7 @@ pub fn process_node_scroll_area_request(
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request(
+    layout_thread: &LayoutThread,
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
     pseudo: &Option<PseudoElement>,
@@ -318,9 +326,10 @@ pub fn process_resolved_style_request(
     let resolve_for_fragment = |fragment: &Fragment| {
         let (content_rect, margins, padding, specific_layout_info) = match fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                let box_fragment = box_fragment.borrow();
                 if style.get_box().position != Position::Static {
-                    let resolved_insets = || box_fragment.calculate_resolved_insets_if_positioned();
+                    let resolved_insets = || {
+                        box_fragment.calculate_resolved_insets_if_positioned(layout_thread.into())
+                    };
                     match longhand_id {
                         LonghandId::Top => return resolved_insets().top.to_css_string(),
                         LonghandId::Right => {
@@ -335,21 +344,21 @@ pub fn process_resolved_style_request(
                         LonghandId::Transform => {
                             // If we can compute the string do it, but otherwise fallback to a cruder serialization
                             // of the value.
-                            if let Ok(string) = serialize_transform_value(Some(&*box_fragment)) {
+                            if let Ok(string) = serialize_transform_value(Some(box_fragment)) {
                                 return string;
                             }
                         },
                         _ => {},
                     }
                 }
-                let content_rect = box_fragment.base.rect;
+                let content_rect = box_fragment.base.rect();
                 let margins = box_fragment.margin;
                 let padding = box_fragment.padding;
                 let specific_layout_info = box_fragment.specific_layout_info().as_deref().cloned();
                 (content_rect, margins, padding, specific_layout_info)
             },
             Fragment::Positioning(positioning_fragment) => (
-                positioning_fragment.borrow().base.rect,
+                positioning_fragment.base.rect(),
                 SideOffsets2D::zero(),
                 SideOffsets2D::zero(),
                 None,
@@ -362,12 +371,11 @@ pub fn process_resolved_style_request(
         // > resolved value special case properties.
         //
         // > When an element generates a grid container box...
-        if display.inside() == DisplayInside::Grid {
-            if let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info {
-                if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
-                    return value;
-                }
-            }
+        if display.inside() == DisplayInside::Grid &&
+            let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info &&
+            let Some(value) = resolve_grid_template(&info, style, longhand_id)
+        {
+            return value;
         }
 
         // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
@@ -407,7 +415,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
     // > Applies to: all elements except non-replaced inlines
     match fragment {
-        Fragment::Box(box_fragment) => !box_fragment.borrow().is_inline_box(),
+        Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositioned(_) |
@@ -429,7 +437,7 @@ fn should_honor_min_size_auto(fragment: Option<&Fragment>, style: &ComputedValue
     let Some(Fragment::Box(box_fragment)) = fragment else {
         return false;
     };
-    let flags = box_fragment.borrow().base.flags;
+    let flags = box_fragment.base.flags;
     flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM) ||
         style.clone_aspect_ratio() != AspectRatio::auto()
 }
@@ -567,7 +575,7 @@ fn shorthand_to_css_string(
 }
 
 struct OffsetParentFragments {
-    parent: ArcRefCell<BoxFragment>,
+    parent: Arc<BoxFragment>,
     grandparent: Option<Fragment>,
 }
 
@@ -587,7 +595,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
         return None;
     }
     if matches!(
-        fragment, Fragment::Box(fragment) if fragment.borrow().style().get_box().position == Position::Fixed
+        fragment, Fragment::Box(fragment) if fragment.style().get_box().position == Position::Fixed
     ) {
         return None;
     }
@@ -611,14 +619,14 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
             let grandparent_fragment =
                 maybe_parent_node.and_then(|node| node.fragments_for_pseudo(None).first().cloned());
 
-            if parent_fragment.borrow().style().get_box().position != Position::Static {
+            if parent_fragment.style().get_box().position != Position::Static {
                 return Some(OffsetParentFragments {
                     parent: parent_fragment.clone(),
                     grandparent: grandparent_fragment,
                 });
             }
 
-            let flags = parent_fragment.borrow().base.flags;
+            let flags = parent_fragment.base.flags;
             if flags.intersects(
                 FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT |
                     FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT,
@@ -636,6 +644,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
 
 #[inline]
 pub fn process_offset_parent_query(
+    layout_thread: &LayoutThread,
     scroll_tree: &ScrollTree,
     node: ServoLayoutNode<'_>,
 ) -> Option<OffsetParentResponse> {
@@ -656,10 +665,11 @@ pub fn process_offset_parent_query(
     // > 1. If the element is the HTML body element or does not have any associated CSS
     //      layout box return zero and terminate this algorithm.
     let fragment = node.fragments_for_pseudo(None).first().cloned()?;
-    let mut border_box = fragment.cumulative_box_area_rect(BoxAreaType::Border)?;
+    let mut border_box =
+        fragment.cumulative_box_area_rect(BoxAreaType::Border, layout_thread.into())?;
     let cumulative_sticky_offsets = fragment
         .retrieve_box_fragment()
-        .and_then(|box_fragment| box_fragment.borrow().spatial_tree_node())
+        .and_then(|box_fragment| box_fragment.spatial_tree_node())
         .map(|node_id| {
             scroll_tree
                 .cumulative_sticky_offsets(node_id)
@@ -679,7 +689,7 @@ pub fn process_offset_parent_query(
         });
     };
 
-    let parent_fragment = offset_parent_fragment.parent.borrow();
+    let parent_fragment = offset_parent_fragment.parent;
     let parent_is_static_body_element = parent_fragment
         .base
         .flags
@@ -710,13 +720,17 @@ pub fn process_offset_parent_query(
     // See <https://github.com/w3c/csswg-drafts/issues/10549>.
     let parent_offset_rect = if parent_is_static_body_element {
         if let Some(grandparent_fragment) = grandparent_box_fragment() {
-            let grandparent_fragment = grandparent_fragment.borrow();
-            grandparent_fragment.offset_by_containing_block(&grandparent_fragment.border_rect())
+            grandparent_fragment.offset_by_containing_block(
+                &grandparent_fragment.border_rect(),
+                layout_thread.into(),
+            )
         } else {
-            parent_fragment.offset_by_containing_block(&parent_fragment.padding_rect())
+            parent_fragment
+                .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
         }
     } else {
-        parent_fragment.offset_by_containing_block(&parent_fragment.padding_rect())
+        parent_fragment
+            .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
     }
     .translate(
         cumulative_sticky_offsets
@@ -1334,7 +1348,7 @@ fn rendered_text_collection_steps(
 }
 
 struct ClosestFragment {
-    fragment: ArcRefCell<TextFragment>,
+    fragment: Arc<TextFragment>,
     point_in_fragment: Point2D<Au, CSSPixel>,
     distance: Au,
     point_in_vertical_bounds: bool,
@@ -1367,10 +1381,9 @@ pub fn find_character_offset_in_fragment_descendants(
         };
 
         let (distance, point_in_vertical_bounds) = {
-            let borrowed_text_fragment = text_fragment.borrow();
             (
-                borrowed_text_fragment.distance_to_point_for_glyph_offset(point_in_fragment),
-                borrowed_text_fragment.point_is_within_vertical_boundaries(point_in_fragment),
+                text_fragment.distance_to_point_for_glyph_offset(point_in_fragment),
+                text_fragment.point_is_within_vertical_boundaries(point_in_fragment),
             )
         };
 
@@ -1400,7 +1413,7 @@ pub fn find_character_offset_in_fragment_descendants(
             for child in children.iter() {
                 let offset = child
                     .base()
-                    .map(|base| base.rect.origin)
+                    .map(|base| base.rect().origin)
                     .unwrap_or_default();
                 let point = point_in_viewport - offset.to_vector();
                 collect_relevant_children(child, point, closest_relative_fragment);
@@ -1420,7 +1433,6 @@ pub fn find_character_offset_in_fragment_descendants(
     closest_relative_fragment.and_then(|closest_fragment| {
         closest_fragment
             .fragment
-            .borrow()
             .character_offset(closest_fragment.point_in_fragment)
     })
 }
@@ -1548,7 +1560,6 @@ pub(crate) fn transform_au_rectangle(
 pub(crate) fn process_effective_overflow_query(node: ServoLayoutNode<'_>) -> Option<AxesOverflow> {
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments.first()?.retrieve_box_fragment()?;
-    let box_fragment = box_fragment.borrow();
 
     Some(
         box_fragment

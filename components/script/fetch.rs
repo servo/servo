@@ -170,7 +170,6 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .client(global.request_client())
     .insecure_requests_policy(request.insecure_requests_policy)
     .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
-    .https_state(request.https_state)
     .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
@@ -188,10 +187,10 @@ fn abort_fetch_call(
     // Step 1. Reject promise with error.
     promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    if let Some(body) = request.body() {
-        if body.is_readable() {
-            body.cancel(cx, global, abort_reason);
-        }
+    if let Some(body) = request.body() &&
+        body.is_readable()
+    {
+        body.cancel(cx, global, abort_reason);
     }
     // Step 3. If responseObject is null, then return.
     // Step 4. Let response be responseObject’s response.
@@ -199,10 +198,10 @@ fn abort_fetch_call(
         return;
     };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    if let Some(body) = response.body() {
-        if body.is_readable() {
-            body.error(cx, abort_reason);
-        }
+    if let Some(body) = response.body() &&
+        body.is_readable()
+    {
+        body.error(cx, abort_reason);
     }
 }
 
@@ -644,10 +643,10 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
-        if let Err(ref error) = response {
-            if *error == NetworkError::DecompressionError {
-                response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
-            }
+        if let Err(ref error) = response &&
+            *error == NetworkError::DecompressionError
+        {
+            response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
         }
         response_object.finish(cx);
         // TODO
@@ -746,7 +745,6 @@ pub(crate) fn load_whole_resource(
     csp_violations_processor: &dyn CspViolationsProcessor,
     cx: &mut js::context::JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
-    let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let url = request.url.url();
     core_resource_thread
@@ -798,7 +796,6 @@ impl RequestWithGlobalScope for RequestBuilder {
             .client(global.request_client())
             .pipeline_id(Some(global.pipeline_id()))
             .origin(global.origin().immutable().clone())
-            .https_state(global.get_https_state())
     }
 }
 

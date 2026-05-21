@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :empty in :has() with display:none</title>
+<link rel="author" title="Simon Fraser" href="smfr@apple.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors/#empty-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #subject {
+    color: green;
+  }
+  #subject:has(:empty) {
+    display: none;
+  }
+</style>
+<div id="subject">
+  <p>This should be visible after the child div gets content.</p>
+  <div id="child"></div>
+</div>
+<script>
+const subject = document.getElementById("subject");
+const child = document.getElementById("child");
+
+function testVisibility(test_name, expectVisible) {
+  test(function() {
+    const rect = subject.getBoundingClientRect();
+    if (expectVisible) {
+      assert_not_equals(getComputedStyle(subject).display, "none", "display should not be none");
+      assert_greater_than(rect.width, 0, "width should be greater than 0");
+      assert_greater_than(rect.height, 0, "height should be greater than 0");
+    } else {
+      assert_equals(getComputedStyle(subject).display, "none", "display should be none");
+    }
+  }, test_name);
+}
+
+testVisibility("Initially hidden because #child is :empty", false);
+
+child.textContent = "text";
+testVisibility("Visible after inserting text into #child", true);
+
+{
+  let inner = document.createElement("div");
+  child.appendChild(inner);
+}
+testVisibility("Hidden after inserting empty element into #child", false);
+
+child.textContent = "text";
+testVisibility("Visible after inserting text into empty #child", true);
+
+child.replaceChildren();
+testVisibility("Hidden again after removing all children from #child", false);
+
+child.textContent = "text";
+testVisibility("Visible again after inserting text into empty #child", true);
+
+child.textContent = "";
+testVisibility("Hidden again after clearing text from #child", false);
+
+{
+  let inner = document.createElement("div");
+  inner.textContent = "content";
+  child.appendChild(inner);
+}
+testVisibility("Visible after inserting non-empty element into #child", true);
+</script>
+
+<!-- Test :has(:not(:empty)) with display:none -->
+<style>
+  #subject2 {
+    display: none;
+  }
+  #subject2:has(:not(:empty)) {
+    display: block;
+  }
+</style>
+<div id="subject2">
+  <div id="child2"></div>
+</div>
+<script>
+{
+  const subject2 = document.getElementById("subject2");
+  const child2 = document.getElementById("child2");
+
+  function testVisibility2(test_name, expectVisible) {
+    test(function() {
+      if (expectVisible) {
+        assert_not_equals(getComputedStyle(subject2).display, "none", "display should not be none");
+      } else {
+        assert_equals(getComputedStyle(subject2).display, "none", "display should be none");
+      }
+    }, test_name);
+  }
+
+  testVisibility2(":not(:empty) - Initially hidden because #child2 is :empty", false);
+
+  child2.textContent = "text";
+  testVisibility2(":not(:empty) - Visible after inserting text into #child2", true);
+
+  child2.textContent = "";
+  testVisibility2(":not(:empty) - Hidden after clearing text from #child2", false);
+
+  child2.textContent = "text";
+  testVisibility2(":not(:empty) - Visible again after inserting text into #child2", true);
+
+  child2.replaceChildren();
+  testVisibility2(":not(:empty) - Hidden after removing all children from #child2", false);
+
+  child2.appendChild(document.createElement("div"));
+  testVisibility2(":not(:empty) - Visible after inserting element into #child2", true);
+}
+</script>

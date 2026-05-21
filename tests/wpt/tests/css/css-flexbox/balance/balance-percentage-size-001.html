@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<link rel="match" href="balance-percentage-size-001-ref.html">
+<meta name="assert" content="Tests that the percentage lengths resolve against the container.">
+<style>
+#flex {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: balance;
+  flex-line-count: 2;
+  gap: 20px;
+  width: 100px;
+  border: solid 3px;
+}
+
+#flex > div {
+  width: 60%;
+  aspect-ratio: 1;
+  background: green;
+}
+</style>
+<p>There should be four (4) green squares below, which overflow in the inline direction.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

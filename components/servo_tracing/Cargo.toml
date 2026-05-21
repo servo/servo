@@ -20,4 +20,4 @@ proc-macro = true
 doctest = false
 
 [dev-dependencies]
-prettyplease = "0.2.32"
+prettyplease = { workspace = true }

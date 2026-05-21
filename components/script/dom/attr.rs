@@ -195,13 +195,13 @@ impl Attr {
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    pub(crate) fn set_owner(&self, owner: Option<&Element>) {
+    pub(crate) fn set_owner(&self, cx: &mut JSContext, owner: Option<&Element>) {
         let ns = self.namespace();
         match (self.owner(), owner) {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(
-                    old.get_attribute_with_namespace(ns, &self.identifier.local_name)
+                    old.get_attribute_with_namespace(cx, ns, &self.identifier.local_name)
                         .as_deref() !=
                         Some(self)
                 )

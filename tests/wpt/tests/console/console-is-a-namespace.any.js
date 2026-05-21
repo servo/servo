@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,shadowrealm
+// META: global=window,dedicatedworker
 "use strict";
 // https://webidl.spec.whatwg.org/#es-namespaces
 // https://console.spec.whatwg.org/#console-namespace

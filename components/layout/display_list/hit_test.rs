@@ -301,26 +301,20 @@ impl Fragment {
             };
 
         match self {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                let box_fragment = box_fragment.borrow();
-                hit_test_fragment_inner(
-                    &box_fragment.style(),
-                    box_fragment.border_rect(),
-                    box_fragment.border_radius(),
-                    box_fragment.base.flags,
-                    Cursor::Default,
-                )
-            },
-            Fragment::Text(text) => {
-                let text = &*text.borrow();
-                hit_test_fragment_inner(
-                    &text.base.style(),
-                    text.base.rect,
-                    BorderRadius::zero(),
-                    FragmentFlags::empty(),
-                    Cursor::Text,
-                )
-            },
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => hit_test_fragment_inner(
+                &box_fragment.style(),
+                box_fragment.border_rect(),
+                box_fragment.border_radius(),
+                box_fragment.base.flags,
+                Cursor::Default,
+            ),
+            Fragment::Text(text) => hit_test_fragment_inner(
+                &text.base.style(),
+                text.base.rect(),
+                BorderRadius::zero(),
+                FragmentFlags::empty(),
+                Cursor::Text,
+            ),
             _ => false,
         }
     }

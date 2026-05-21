@@ -1,28 +1,21 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
 <head>
-<svg width="0" height="0">
-    <filter id="svg-filter">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-    </filter>
-</svg>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
 <script>
-    function waitForFinish() {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                document.documentElement.classList.remove('reftest-wait');
-            });
-        });
-    }
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
 </script>
 </head>
-<body onload="waitForFinish()">
+<body>
     <div>
         SVG filter security test: this test passes if there is no filter effect on the web plugin.
     </div>
     <br />
     <div>
-        <embed width="100px" height="100px" frameBorder="0" type="application/x-webkit-test-webplugin"></embed>
+        <embed width="100px" height="100px" type="application/x-webkit-test-webplugin"></embed>
     </div>
 </body>
 </html>

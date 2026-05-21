@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,shadowrealm
+// META: global=window,dedicatedworker
 // META: title=Encoding API: TextDecoder decode() optional arguments
 
 test(t => {

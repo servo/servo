@@ -65,9 +65,6 @@ updates:
       patterns:
         - "serde"
         - "serde_core"
-    servo-media-related:
-      patterns:
-        - "servo-media*"
     strum-related:
       patterns:
         - "strum"

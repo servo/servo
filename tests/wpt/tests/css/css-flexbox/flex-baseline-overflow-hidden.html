@@ -81,14 +81,6 @@ test(function() {
 
 test(function() {
   assert_equals(
-    document.getElementById('test-hidden').offsetHeight,
-    42,
-    "container height should be inline-flex height plus strut descent"
-  );
-}, "inline-flex with overflow:hidden does not inflate line box from overflowing content");
-
-test(function() {
-  assert_equals(
     document.getElementById('test-scroll').offsetHeight,
     document.getElementById('ref-hidden').offsetHeight,
     "should match inline-block with overflow:hidden"

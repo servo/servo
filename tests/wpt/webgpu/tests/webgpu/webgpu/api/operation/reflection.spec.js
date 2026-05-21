@@ -5,6 +5,7 @@ Tests that object attributes which reflect the object's creation properties are 
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { GPUConst } from '../../constants.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
+import { reifyExtent3D } from '../../util/unions.js';
 
 export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
@@ -92,6 +93,7 @@ const kTextureSubcases =
 
 
 
+
 [
 {
   size: { width: 4, height: 4 },
@@ -116,16 +118,57 @@ const kTextureSubcases =
   mipLevelCount: 2
 },
 {
+  size: [4, 4],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  mipLevelCount: 2,
+  textureBindingViewDimension: '2d'
+},
+{
+  size: [4, 4],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  mipLevelCount: 2,
+  textureBindingViewDimension: '2d-array'
+},
+{
+  size: [4, 4, 4],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  mipLevelCount: 2
+},
+{
   size: [16, 16, 16],
   format: 'rgba8unorm',
   usage: GPUConst.TextureUsage.TEXTURE_BINDING,
   dimension: '3d'
 },
 {
+  size: [16, 16, 16],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  dimension: '3d',
+  textureBindingViewDimension: '3d'
+},
+{
+  size: [16, 16, 6],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  dimension: '2d',
+  textureBindingViewDimension: 'cube'
+},
+{
   size: [32],
   format: 'rgba8unorm',
   usage: GPUConst.TextureUsage.TEXTURE_BINDING,
   dimension: '1d'
+},
+{
+  size: [32],
+  format: 'rgba8unorm',
+  usage: GPUConst.TextureUsage.TEXTURE_BINDING,
+  dimension: '1d',
+  textureBindingViewDimension: '1d'
 },
 {
   size: { width: 4, height: 4 },
@@ -141,6 +184,28 @@ const kTextureSubcases =
   invalid: true
 }];
 
+
+function getExpectedTextureBindingViewDimension(
+t,
+descriptor)
+{
+  if (t.isCompatibility) {
+    if (descriptor.textureBindingViewDimension) {
+      return descriptor.textureBindingViewDimension;
+    }
+    switch (descriptor.dimension) {
+      case '1d':
+        return '1d';
+      case '2d':
+      case undefined:
+        return reifyExtent3D(descriptor.size).depthOrArrayLayers > 1 ? '2d-array' : '2d';
+      case '3d':
+        return '3d';
+    }
+  } else {
+    return undefined;
+  }
+}
 
 g.test('texture_reflection_attributes').
 desc(`For every texture attribute, the corresponding descriptor value is carried over.`).
@@ -172,6 +237,10 @@ fn((t) => {
     t.expect(texture.dimension === (descriptor.dimension || '2d'));
     t.expect(texture.mipLevelCount === (descriptor.mipLevelCount || 1));
     t.expect(texture.sampleCount === (descriptor.sampleCount || 1));
+    t.expect(
+      texture.textureBindingViewDimension ===
+      getExpectedTextureBindingViewDimension(t, descriptor)
+    );
   }, descriptor.invalid === true);
 });
 

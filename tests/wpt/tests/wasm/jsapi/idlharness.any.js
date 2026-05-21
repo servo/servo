@@ -1,7 +1,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: script=../resources/load_wasm.js
-// META: global=window,dedicatedworker,shadowrealm-in-window
+// META: global=window,dedicatedworker
 
 'use strict';
 

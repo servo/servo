@@ -528,7 +528,7 @@
     []
    ],
    "checkout_commit.txt": [
-    "89da4f7fa1db3d4470fadb49d9f5dcf4b640ff28",
+    "3f9c6aebc25f1857991e4d587b2894c59b99a916",
     []
    ],
    "webgpu": {
@@ -539,7 +539,7 @@
        []
       ],
       "fixture.js": [
-       "95547c44e6d8c9727711b5c429d002f8d39c6586",
+       "d040a198a7f990995a181de511509b601d638f4e",
        []
       ],
       "metadata.js": [
@@ -559,7 +559,7 @@
        []
       ],
       "test_config.js": [
-       "f92d25ee5b1cb7ffffaf9ab23b875a8abdd14656",
+       "78d1e821bd42105db44653bca5b64535ce1f6021",
        []
       ],
       "test_group.js": [
@@ -633,7 +633,7 @@
        []
       ],
       "test_group.js": [
-       "09a5ac6d37b5115ab04281d3c131ea5db698cccc",
+       "e414b240a3cba0ee6ff6eef017e31cfd7b6bb066",
        []
       ],
       "test_suite_listing.js": [
@@ -649,7 +649,7 @@
        []
       ],
       "version.js": [
-       "98fc8599a2a313eb3d042cb89e24cedef9434b16",
+       "788ba8600e1d81746f8604e288fce95b2f75bcf3",
        []
       ],
       "websocket_logger.js": [
@@ -703,7 +703,7 @@
        []
       ],
       "navigator_gpu.js": [
-       "a08d0dc3390d6f66d0125327dbe4a159e1210b93",
+       "c4149ca09d62f5f02e6752f27eae47fc5fa70b12",
        []
       ],
       "parse_imports.js": [
@@ -723,7 +723,7 @@
        []
       ],
       "util.js": [
-       "041a66375cb7000c27951d7fbd3154e7923b1cef",
+       "dadff6c45d33e4887bafe0f7d433c3e370c9920f",
        []
       ],
       "wpt_reftest_wait.js": [
@@ -753,7 +753,7 @@
      ],
      "cache": {
       "hashes.json": [
-       "d9ec08c7485e9cca8ec5e7b7ac9a391095f88efa",
+       "8c678b1a15efc66b696e9ee0db4812b6f51203bb",
        []
       ],
       "webgpu": {
@@ -946,7 +946,7 @@
           ]
          },
          "bitcast.bin": [
-          "7ef0b7653d0a6de8f95da365e450bd4acca89f1d",
+          "9a0dd012e550b258eb213524f98ca038ca122b21",
           []
          ],
          "ceil.bin": [
@@ -1321,15 +1321,15 @@
       "operation": {
        "adapter": {
         "info.spec.js": [
-         "c456dd1657083631fb820ea4696f0702d325ee17",
+         "5d25133cce31eea53024fbd5b7ab4c0fc1399f0d",
          []
         ],
         "requestAdapter.spec.js": [
-         "bd259d9fdd94bcea1592756db65b3cd1193653cb",
+         "741f07b9773f98c843e18c7f4811e476a7dfea7e",
          []
         ],
         "requestDevice.spec.js": [
-         "3fa2d0d7d1b9096c71e2a8757c7c4177585829f5",
+         "6c30ccdc4a19a006a8e2446c93f669fa1a06d6c6",
          []
         ]
        },
@@ -1351,7 +1351,7 @@
          []
         ],
         "map_oom.spec.js": [
-         "2df80b787e5c74806026ae130e06f23e00414b96",
+         "c539f018f0c1d9a9a8523199ff6f007431a8e096",
          []
         ],
         "mapping_test.js": [
@@ -1377,14 +1377,18 @@
          []
         ],
         "copyTextureToTexture.spec.js": [
-         "ed0a18c2ea0dab7abed74b5cced2bb62f42075c6",
+         "2e0c4d7208fdcbdb652c13ff36e01e4bd5317dc5",
          []
         ],
         "image_copy.spec.js": [
-         "5d16f31bd22ecc2a6977c48e653f4d027a7809fe",
+         "a0101e37789ef934f2e25fb053a694ea08bc2c86",
          []
         ],
         "programmable": {
+         "immediate.spec.js": [
+          "0c26b044c114a88d1a24be333c97f74f0b5b1093",
+          []
+         ],
          "programmable_state_test.js": [
           "98b1b98dbfee718f5ef071807a0bd20a088b7589",
           []
@@ -1396,13 +1400,21 @@
         },
         "queries": {
          "occlusionQuery.spec.js": [
-          "1d3e5509b7e72916ac70ac6e42da15de65e8f3d4",
+          "5ebf21ab7d9273e95641e281c86e59ffa1dbb864",
+          []
+         ],
+         "timestampQuery.spec.js": [
+          "918baacfdf865f89385222c0f76585f8301027eb",
           []
          ]
         },
         "render": {
          "dynamic_state.spec.js": [
           "7b9c2b95b3cc37dac72e00183cf5e486f90c0fb2",
+          []
+         ],
+         "render_bundle.spec.js": [
+          "783ca30438725dadc7f51a5bef1dda301305a2d8",
           []
          ],
          "state_tracking.spec.js": [
@@ -1429,7 +1441,7 @@
        },
        "device": {
         "all_limits_and_features.spec.js": [
-         "5317b46970a8e430fbb00892d0cc9f22d7eac922",
+         "bf910b220f7d69c1e6f88dcd8dcf065bab5a02df",
          []
         ],
         "lost.spec.js": [
@@ -1476,7 +1488,7 @@
           []
          ],
          "texture_sync_test.js": [
-          "f23af118bb130b086c55e4e91740b8fbbb093851",
+          "ddf4b805b77c6c54b119e3047289cc3fc02bbfb7",
           []
          ]
         }
@@ -1502,7 +1514,7 @@
         ]
        },
        "reflection.spec.js": [
-        "75f31b3f80865338d6bb3415ba30120cd4046890",
+        "39faafea6a4a1ec548d0c852f28f174620ad68c3",
         []
        ],
        "render_pass": {
@@ -1511,7 +1523,7 @@
          []
         ],
         "resolve.spec.js": [
-         "ff499bd70adc9226a88172928360a3fb08df4451",
+         "3be7672fb791ea843c30288803a5b265d331c57d",
          []
         ],
         "storeOp.spec.js": [
@@ -1520,6 +1532,10 @@
         ],
         "storeop2.spec.js": [
          "f6a02f867120c170194955f966929993f6070ebb",
+         []
+        ],
+        "transient_attachment.spec.js": [
+         "7f5d8db7075f0320bf3d6f5c45457c81b96835e3",
          []
         ]
        },
@@ -1551,7 +1567,7 @@
        },
        "rendering": {
         "3d_texture_slices.spec.js": [
-         "a9245580c75007c5e25b34f172cd0f79acb604f6",
+         "04e0bda3a62aadb98b9310649255112c803687ba",
          []
         ],
         "basic.spec.js": [
@@ -1610,7 +1626,7 @@
           []
          ],
          "texture_zero_init_test.js": [
-          "78ecf6d0d686ce07d0ddfeeee90994d9ee9137f8",
+          "f8d00c58df6c1de5e8fee371c0dd5584830afa51",
           []
          ]
         },
@@ -1625,7 +1641,7 @@
          []
         ],
         "filter_mode.spec.js": [
-         "5998f8fed17dd3cc61ec0d87eb577d34d0360a4f",
+         "1fda3dacd3a2c5c3e6b1fedffa923b5a123b391c",
          []
         ],
         "sampler_texture.spec.js": [
@@ -1654,6 +1670,10 @@
          "3c40a72d98692bed9846d14f721d5fbc7a91bbaa",
          []
         ],
+        "texture_component_swizzle.spec.js": [
+         "cd55f24a76648337da7fecabd729985c98ef14ef",
+         []
+        ],
         "write.spec.js": [
          "aecf6fe960600e884f423930c9772d9be07ec0ad",
          []
@@ -1677,7 +1697,7 @@
       "validation": {
        "buffer": {
         "create.spec.js": [
-         "4c781d17050cc367705c1986082415bc6d60864f",
+         "88fc9adcedd824c84cf9c511be998eac6622289f",
          []
         ],
         "destroy.spec.js": [
@@ -1685,7 +1705,7 @@
          []
         ],
         "mapping.spec.js": [
-         "c871d295770902b6f9d3f2e8819c322de11b4b00",
+         "355bd6ecfe173ee712749f198d51d1221e088c78",
          []
         ],
         "threading.spec.js": [
@@ -1703,22 +1723,30 @@
           "8a8056a45e47ae800fb78605e5a714a364c7d271",
           []
          ],
+         "texture_component_swizzle.spec.js": [
+          "0d941f6a7397f92970d05a4b90e07b6a2a1eeb58",
+          []
+         ],
+         "texture_component_swizzle_utils.js": [
+          "d8065603673627565b4cca43f642f0c9302f492c",
+          []
+         ],
          "texture_formats.spec.js": [
-          "e7be25132c942b4281c809fdccbc4334bfcafca8",
+          "691098a2e4e35959d447ace4f5b4128240fd3a25",
           []
          ],
          "texture_formats_tier1.spec.js": [
-          "fa4dafc6e259ada0e91650ee45489d8e4eaeb5be",
+          "f72ee90bc2aa78f38173f74122ee8b0a78564db5",
           []
          ],
          "texture_formats_tier2.spec.js": [
-          "20d7fa23f98560a0ea6d82996cd807b1b96bc39a",
+          "9d3327e2b737429d92ab966c6879882c09b82d03",
           []
          ]
         },
         "limits": {
          "limit_utils.js": [
-          "0f1c7d8d75f32e77d5299e3ee074158c63ab4e25",
+          "019b7e8df9feb0b440a1d83496d4ad0d88fe1be7",
           []
          ],
          "maxBindGroups.spec.js": [
@@ -1762,7 +1790,7 @@
           []
          ],
          "maxComputeWorkgroupStorageSize.spec.js": [
-          "4eb76c7d388295206acbdcde5f5d2129cb4b57ff",
+          "28b9f9c25989298c2f57ed2972349e345c899b49",
           []
          ],
          "maxComputeWorkgroupsPerDimension.spec.js": [
@@ -1778,7 +1806,7 @@
           []
          ],
          "maxInterStageShaderVariables.spec.js": [
-          "9747ab866d3acfeed1fa1e342acd6d1a9a070bbd",
+          "42dadb7836b15244bbf844243358f6b92daaec81",
           []
          ],
          "maxSampledTexturesPerShaderStage.spec.js": [
@@ -1794,11 +1822,11 @@
           []
          ],
          "maxStorageBuffersInFragmentStage.spec.js": [
-          "a393643d5133929b7c1c08ff1940393ae7fd28d1",
+          "485e2717f863fe4b7591bc35874c64acbc1d3135",
           []
          ],
          "maxStorageBuffersInVertexStage.spec.js": [
-          "0cf5c81d5ff9c4f5f8aa60764ecee394fd34a87d",
+          "c55795ab53e9c0fb7660c9a23431a64127d3a391",
           []
          ],
          "maxStorageBuffersPerShaderStage.spec.js": [
@@ -1806,11 +1834,11 @@
           []
          ],
          "maxStorageTexturesInFragmentStage.spec.js": [
-          "25a9ff85a252eec60aaa0d5426513d9182646af3",
+          "18bbc69bff03b0e80bf4fdeb45a680922a8094a5",
           []
          ],
          "maxStorageTexturesInVertexStage.spec.js": [
-          "dd899e265b02d24633ca34de029e1eb7ea67b90b",
+          "5483c9bebe8818cd6f1dc7e5c302431a9e326098",
           []
          ],
          "maxStorageTexturesPerShaderStage.spec.js": [
@@ -1864,19 +1892,19 @@
         }
        },
        "compute_pipeline.spec.js": [
-        "33cb6ed934e1a571c5ece43f8c951fdc2ac2d014",
+        "515c15b234539a991c84381adaa9003b70b5421f",
         []
        ],
        "createBindGroup.spec.js": [
-        "db5fef7f621ee6334e65aa72069fdc4f4cbe6c79",
+        "8c7441970d4ef5b300e7c765f132b09adb27131a",
         []
        ],
        "createBindGroupLayout.spec.js": [
-        "6286d53dcf5a9cfdd7dffda0b4bf2f695c061292",
+        "3fadc2be8f1ea80685654d738892aec1880412dd",
         []
        ],
        "createPipelineLayout.spec.js": [
-        "029ad81b5fc8d612e6e7dee39c3aa2e8bda66b66",
+        "4756611d072bb951acdd2d4045d37bbd12c1228d",
         []
        ],
        "createSampler.spec.js": [
@@ -1884,15 +1912,19 @@
         []
        ],
        "createTexture.spec.js": [
-        "70a1a32228bcf8982331adab77d9853d092552b4",
+        "ee107be11b3110d22d0ffe73729847ad9f2edd28",
         []
        ],
        "createView.spec.js": [
-        "48c1909bb0cc887511980f721ff8605f943100bd",
+        "93a8f649d540e7104af94f1a4c0768ef70e4580e",
         []
        ],
        "debugMarker.spec.js": [
         "758fea859534a76f45f70ff2cc924635221ac446",
+        []
+       ],
+       "dispatch.spec.js": [
+        "2b151b31753f9edf81ab747373ec949b9bf0b4a8",
         []
        ],
        "encoding": {
@@ -1918,7 +1950,7 @@
           []
          ],
          "copyTextureToTexture.spec.js": [
-          "631de0ffcd28f9efa160b194134decc36c613c82",
+          "7e8770314af522fbb05aabe7ce05be787aa4f4e5",
           []
          ],
          "debug.spec.js": [
@@ -1974,23 +2006,31 @@
          "setBindGroup.spec.js": [
           "c901a3cd05e6242e896b241c9cea449d22b07ea7",
           []
+         ],
+         "setImmediates.spec.js": [
+          "4a41b24560c7b3e1c2dcb6bea84613aaeab61647",
+          []
          ]
         },
         "createRenderBundleEncoder.spec.js": [
-         "76c420780e2897deb32998a2f77a9e0678f1515d",
+         "9fefb6bc59a1f3776302c0812392c3867d4b724f",
          []
         ],
         "encoder_open_state.spec.js": [
-         "3fef0b4b54ffadffdc4a81f0d465c561debf9876",
+         "0142676164628c5b72c1753c44e9bd1fc05080d3",
          []
         ],
         "encoder_state.spec.js": [
-         "0a13adf8a6fcd3058d89b2cc59f53cc97d028670",
+         "19d838f5efe112b316cd58224b2d349cd87d1a21",
          []
         ],
         "programmable": {
          "pipeline_bind_group_compat.spec.js": [
           "f99378ba37904c50f8196b8963e7068b5e0b383d",
+          []
+         ],
+         "pipeline_immediate.spec.js": [
+          "4a0256f4f0b02a066c782b6734f746177b453473",
           []
          ]
         },
@@ -2035,7 +2075,7 @@
          []
         ],
         "buffer_texture_copies.spec.js": [
-         "b2baa85bd37281ad45438992e00033aaae53c2a6",
+         "8816824bcac8e5c106f3b584d2dd79b6622ec2a0",
          []
         ],
         "image_copy.js": [
@@ -2047,7 +2087,7 @@
          []
         ],
         "texture_related.spec.js": [
-         "59995ac0eee36da85639422eaaaed6650164444d",
+         "4037cfd5550f2ca14ab287fef749545beec450e4",
          []
         ]
        },
@@ -2059,6 +2099,12 @@
         "3f3c6b1204cbecf5207263cd9f8717fe7f05a231",
         []
        ],
+       "pipeline": {
+        "immediates.spec.js": [
+         "c9a91935943c9abac5ee145660e28c9557847e6d",
+         []
+        ]
+       },
        "query_set": {
         "create.spec.js": [
          "4e57a7435233d6a1c34cc801f39f5691ca147fc1",
@@ -2076,7 +2122,7 @@
         ],
         "copyToTexture": {
          "CopyExternalImageToTexture.spec.js": [
-          "b9aff855dd0338768616f366c191824ac9082f6d",
+          "29018be8d45ea49701d97b11aec2dee928192e17",
           []
          ]
         },
@@ -2086,7 +2132,7 @@
           []
          ],
          "query_set.spec.js": [
-          "a6603845fd624fa52daeee517f6c9351cae1c772",
+          "b12b459148833a8b844b84dd9766acfe81a11bb9",
           []
          ],
          "texture.spec.js": [
@@ -2113,11 +2159,11 @@
          []
         ],
         "render_pass_descriptor.spec.js": [
-         "582ebcb39a5520cdc9b10322cf49a8947404885a",
+         "107ed42c5f0c5b2809f85b5f335184c84a95c136",
          []
         ],
         "resolve.spec.js": [
-         "dbc9b98c2388433ea7c37e0933e6e78bcd790920",
+         "b5ee338416ee0aafa0a9493e6d6707812ddc096a",
          []
         ]
        },
@@ -2135,15 +2181,15 @@
          []
         ],
         "fragment_state.spec.js": [
-         "bdc92cd5e6cb8b02478a154fc756b78655d6b49c",
+         "dadd3182d493434c0e970196581f3aca1213e33a",
          []
         ],
         "inter_stage.spec.js": [
-         "e5698186f06da63a96887ab7d05360fbaf3a7284",
+         "8a81868233d46d306b0a4e52adde56ec91d563c7",
          []
         ],
         "misc.spec.js": [
-         "0f076b14671e0f4bb8094824d787bf7846331b69",
+         "c897629b2c59ed4a3eeac43cd25dbc4482ddccc2",
          []
         ],
         "multisample_state.spec.js": [
@@ -2155,7 +2201,7 @@
          []
         ],
         "primitive_state.spec.js": [
-         "ef7eed049345f9fd06cfb73cddd285fc9bd6c22b",
+         "e744d3f99aabf7a71046a87b82ff3f6403b4d41b",
          []
         ],
         "resource_compatibility.spec.js": [
@@ -2192,7 +2238,7 @@
           []
          ],
          "in_render_misc.spec.js": [
-          "92adf18d5e4d101e22ffc391b14c051e105b644f",
+          "7d25ddb731bc7bbc535f1b172c07a63d3d985f40",
           []
          ]
         }
@@ -2217,7 +2263,7 @@
        },
        "texture": {
         "bgra8unorm_storage.spec.js": [
-         "7bd714ce34d65ac2472b036ca181c48fae65ca03",
+         "4c134ac30c066515a729e35edf178237f629ae90",
          []
         ],
         "destroy.spec.js": [
@@ -2244,7 +2290,7 @@
       }
      },
      "capability_info.js": [
-      "60d301f8b83ceab1c6990c22e69086952b6e3bbe",
+      "f67c7f822684f1554df42606fcc5fc7534ebd4b2",
       []
      ],
      "compat": {
@@ -2285,7 +2331,7 @@
          }
         },
         "pipeline_creation.spec.js": [
-         "d4cbfa3fb51d81b5765af1e8d6c0a5308848b008",
+         "88feb77ba12d801a2b8032f7ce690634636c02a8",
          []
         ],
         "render_pipeline": {
@@ -2312,7 +2358,7 @@
         },
         "texture": {
          "createTexture.spec.js": [
-          "79bbf1e923676919dea084e56585e0867184882c",
+          "147c1e7dad91d6b9960769a5bde1964bb52dc66a",
           []
          ],
          "cubeArray.spec.js": [
@@ -2328,7 +2374,7 @@
       ]
      },
      "constants.js": [
-      "5ed0f78310a43669a05a6ccb3b7b1b949f115ddc",
+      "56648c2ca385336f909dad6037a89d9c2b70fa54",
       []
      ],
      "error_test.js": [
@@ -2340,17 +2386,17 @@
       []
      ],
      "format_info.js": [
-      "36e8510a847cb0620a4266493eed081601f8837e",
+      "1d95c58e462f547928f449ee6df5b5731282171d",
       []
      ],
      "gpu_test.js": [
-      "1e618c3048ac028bda8310e16c1bc7eee42117f5",
+      "ecc00a651de0ed6f8967c81a14052ff5eb50b88d",
       []
      ],
      "idl": {
       "constants": {
        "flags.spec.js": [
-        "f7005eea26120ea26ea8c77d642fa85b1a209d1e",
+        "89e5a16dee17bf0bc0b9a23d6a47e8e9dc4304c2",
         []
        ]
       },
@@ -2376,7 +2422,7 @@
       []
      ],
      "listing.js": [
-      "4b76407333c4aac6ff9e41732f1575d7234e13c0",
+      "7507edb08dbc4ae5e0a87039af3e8ea75165a4e7",
       []
      ],
      "multisample_info.js": [
@@ -2393,7 +2439,7 @@
         "access": {
          "array": {
           "index.spec.js": [
-           "3f126f75846c9591f5b80ce396c069244202e9d4",
+           "699f09eeab21036ec2e6a9c600a06e4e3c862dd3",
            []
           ]
          },
@@ -2454,7 +2500,7 @@
           []
          ],
          "af_matrix_addition.spec.js": [
-          "32d8b593a00e019eb670ee78e60c041c465c9133",
+          "c0dc54d072c3c1b16c73c90013e4e06e4d4fb7ce",
           []
          ],
          "af_matrix_matrix_multiplication.cache.js": [
@@ -2462,7 +2508,7 @@
           []
          ],
          "af_matrix_matrix_multiplication.spec.js": [
-          "2400184300b632a25a43357ce057c9dd8adf39d0",
+          "6646ab46a03299480cde81a6cbd1e01f7f9ada31",
           []
          ],
          "af_matrix_scalar_multiplication.cache.js": [
@@ -2470,7 +2516,7 @@
           []
          ],
          "af_matrix_scalar_multiplication.spec.js": [
-          "75661b6349cf4c9b0eae3f66a77d1061a4a3f084",
+          "5c554e50d991e0b9dc9a9a45873db6151c7e9ebc",
           []
          ],
          "af_matrix_subtraction.cache.js": [
@@ -2478,7 +2524,7 @@
           []
          ],
          "af_matrix_subtraction.spec.js": [
-          "85339445486fa9330c19d8924a3f90c11417fb7f",
+          "a1367a5c4a51df6d6281bb76e2d766d01fbd9c0a",
           []
          ],
          "af_matrix_vector_multiplication.cache.js": [
@@ -2486,7 +2532,7 @@
           []
          ],
          "af_matrix_vector_multiplication.spec.js": [
-          "ac71c86204b59923088eaf349934c76773176911",
+          "66de744207cdd17b28c363488ab8238551de7c3f",
           []
          ],
          "af_multiplication.cache.js": [
@@ -2526,7 +2572,7 @@
           []
          ],
          "binary.js": [
-          "1f0329e40bbd7022deb55e506703fcd501e374f5",
+          "d9140b5bfb2693f94b6813e5435ebac8fa6aaf06",
           []
          ],
          "bitwise.spec.js": [
@@ -2570,7 +2616,7 @@
           []
          ],
          "f16_matrix_addition.spec.js": [
-          "9ffcc0290193a639c85a90757e3e2714ee275d6a",
+          "50cdae17ae656cfe0edd26dc8d5335690b10c161",
           []
          ],
          "f16_matrix_matrix_multiplication.cache.js": [
@@ -2658,7 +2704,7 @@
           []
          ],
          "f32_matrix_addition.spec.js": [
-          "903d9bc27f2106818130e4ddc0f14f33b5d6cc81",
+          "c7a4c6e4f17f0da6d5a4c7a237055d24fdd0b746",
           []
          ],
          "f32_matrix_matrix_multiplication.cache.js": [
@@ -2999,7 +3045,7 @@
            []
           ],
           "dpdxFine.spec.js": [
-           "2227489fdceebd37dd0b52ddcb266a2e21ddd363",
+           "a8e9756d5ae5d51f4e5797b0bd0dee15d7cf6517",
            []
           ],
           "dpdy.spec.js": [
@@ -3011,7 +3057,7 @@
            []
           ],
           "dpdyFine.spec.js": [
-           "c9c8aea367b11624f16ae0b5c5a4a8853283c111",
+           "f0104e787e4fc68bae4be13ce531c09b932720ff",
            []
           ],
           "exp.cache.js": [
@@ -3031,7 +3077,7 @@
            []
           ],
           "extractBits.spec.js": [
-           "9a8ebdf579f87608e7f32a51c094bf17c7c31e81",
+           "048da037e5469d329621a8e4ff738bd76f8d2197",
            []
           ],
           "faceForward.cache.js": [
@@ -3099,11 +3145,11 @@
            []
           ],
           "fwidthFine.spec.js": [
-           "0fcd8b04c1a4ae2ee157f46973d3abaa6d76b430",
+           "7319fa77bc3aa9c6f0948c495ff82209397169bc",
            []
           ],
           "insertBits.spec.js": [
-           "1297221b7b26c02c00d7fdf5a083c3b93129c3f9",
+           "2ab34b4b8658104a03321e6b577d998dfdb12376",
            []
           ],
           "inversesqrt.cache.js": [
@@ -3235,11 +3281,11 @@
            []
           ],
           "quadBroadcast.spec.js": [
-           "fe43f35bafe989775500259bd43e7a1182f13ce5",
+           "39c6e474969ad3da5a866539d53b6a430c0c3d3f",
            []
           ],
           "quadSwap.spec.js": [
-           "4721edbc342c038211b15c0c83a32ddc4026b143",
+           "a106c4480d86649e598859caf27cd914d7746fa8",
            []
           ],
           "quantizeToF16.cache.js": [
@@ -3295,7 +3341,7 @@
            []
           ],
           "select.spec.js": [
-           "4b74a21d49850b9d9008ba60cd4201bd4a1bd615",
+           "bacc22c849b7116f631518cfe30b29598f4a7a95",
            []
           ],
           "sign.cache.js": [
@@ -3351,27 +3397,27 @@
            []
           ],
           "subgroupAdd.spec.js": [
-           "96ae3700d63e947a0dbb74675f6194774725b7ee",
+           "cc4d91357bc38c462abb5786201af20a40ab7364",
            []
           ],
           "subgroupAll.spec.js": [
-           "70e2949ece6967d0c2dfd363fb74254c2366cbf9",
+           "723dc954bf2f7ca5b92177182adc35f1412695c5",
            []
           ],
           "subgroupAny.spec.js": [
-           "b328f69dcdf497e2d164c67506c9958813fcc85d",
+           "5292c4e5202a5d419805b3e008a5e15a6bd7cab9",
            []
           ],
           "subgroupBallot.spec.js": [
-           "cad5fd52684de4e8324bd874a47f673e64c3282c",
+           "2634ea1293727f0808ccbac2aa8a5c27eb454fbf",
            []
           ],
           "subgroupBitwise.spec.js": [
-           "812b498d09432f0972640cbf5a1f0a8808a6a868",
+           "b72d1a02723fe956e78bd977a8fabe438b62e3fc",
            []
           ],
           "subgroupBroadcast.spec.js": [
-           "b7912556d51888a452f21f31ad0cba7afead7c03",
+           "bc50f7a7a0cd2bbde15e443b1bd25bb025e05bad",
            []
           ],
           "subgroupElect.spec.js": [
@@ -3383,7 +3429,7 @@
            []
           ],
           "subgroupMul.spec.js": [
-           "074196f758b71d48292655c78211c5bee199bfa1",
+           "e53f8e7d27a6a58562a2d563947e72ed65bef349",
            []
           ],
           "subgroupShuffle.spec.js": [
@@ -3411,7 +3457,7 @@
            []
           ],
           "textureDimensions.spec.js": [
-           "cb315bf594c789ede133af918dde7cd37732773b",
+           "2ef709c3729812eaea97465623b71621c7058608",
            []
           ],
           "textureGather.spec.js": [
@@ -3423,7 +3469,7 @@
            []
           ],
           "textureLoad.spec.js": [
-           "24dadb0f085e81b117686e94a45fbca451371663",
+           "030683a4609fff1f28ba7d7202f98b9c70dd23ad",
            []
           ],
           "textureNumLayers.spec.js": [
@@ -3471,11 +3517,11 @@
            []
           ],
           "texture_utils.js": [
-           "cacd276afb58b202573c56d089d1583def0cf2c8",
+           "ed1f67a135de9bae96103557dd07c98f182b1fbb",
            []
           ],
           "texture_utils.spec.js": [
-           "c72aa898b1ef016df66243399a8ba8c56089500f",
+           "f4986d841aa56c381a7ab2afd922d28ee68de3ca",
            []
           ],
           "transpose.cache.js": [
@@ -3491,7 +3537,7 @@
            []
           ],
           "trunc.spec.js": [
-           "199f7239e59d9c85311f4794c2268e5a179052bf",
+           "5a4f70dd3a68cb8d9cbadf2b16589f5431bc3cac",
            []
           ],
           "unpack2x16float.cache.js": [
@@ -3557,7 +3603,7 @@
          },
          "user": {
           "ptr_params.spec.js": [
-           "fdc31662a613ccb3367c7300f3f416a9519b09a4",
+           "efbdc40486e7576b1945ca35ed763b2eff8842f0",
            []
           ]
          }
@@ -3585,7 +3631,7 @@
          []
         ],
         "expression.js": [
-         "8ce5a018ac0a8216ee7016c4acf11422abca276b",
+         "5cabc8e8363c11eb4b70304cd58943136153083d",
          []
         ],
         "interval_filter.js": [
@@ -3770,11 +3816,11 @@
         ]
        },
        "limits.spec.js": [
-        "717a287956feb3e0a020eaaf9befab13ab5df823",
+        "6414035106e7bfcf6cb45341acdcb401e87e06bc",
         []
        ],
        "memory_layout.spec.js": [
-        "6916c291b9a860029c50a528db06eed6cd45647f",
+        "411cd142ceea25a40ac158fc92b1f4f629dcd98a",
         []
        ],
        "memory_model": {
@@ -3825,11 +3871,11 @@
        ],
        "shader_io": {
         "compute_builtins.spec.js": [
-         "d5cfa7a9d506c781c00ebc4bbfcb8319149a2132",
+         "f4baef9d41c3f08f2175d94f28d7896da5ad711f",
          []
         ],
         "fragment_builtins.spec.js": [
-         "3cd29d065e1359bfe3c525a93ea746627aa5336a",
+         "1c04625f4c2df31acf350002965646cb2b9f0b74",
          []
         ],
         "shared_structs.spec.js": [
@@ -3859,7 +3905,7 @@
        ],
        "statement": {
         "compound.spec.js": [
-         "c8ec09de9c5edde2f0d5448e685f6af66e96691d",
+         "8fc6c03bc77ba0184d0a144c5f411c72a5d25b19",
          []
         ],
         "discard.spec.js": [
@@ -3873,6 +3919,10 @@
         "phony.spec.js": [
          "8712d12c2691adcccca58371649e699e061b3b30",
          []
+        ],
+        "swizzle_assignment.spec.js": [
+         "c26338477b4dcf0550bcd7665367f69d99f3b21c",
+         []
         ]
        },
        "value_init.spec.js": [
@@ -3885,7 +3935,7 @@
        ]
       },
       "types.js": [
-       "70f767d7960d6babe389fa35c49ae25fcdc473e1",
+       "6944f4f50fa4dbca8825893ea010814c68bcec05",
        []
       ],
       "validation": {
@@ -3896,6 +3946,10 @@
         ]
        },
        "decl": {
+        "assignment_statement.spec.js": [
+         "bcdbe9f18e7294f7ed2a62e2750b1002cb61e9f1",
+         []
+        ],
         "compound_statement.spec.js": [
          "f7bcf6d9d6c339e8ec3a569f64de6a63dc1b05b1",
          []
@@ -3909,7 +3963,7 @@
          []
         ],
         "let.spec.js": [
-         "a1349597c9eb3b38e48f93d400e5ee3282877efe",
+         "86e886ea04e31bb6a05f3e274d75c277aa45133e",
          []
         ],
         "override.spec.js": [
@@ -3940,7 +3994,7 @@
           []
          ],
          "vector.spec.js": [
-          "5134a62fcc296bc86ba1aa5dc8347497c7dc82e0",
+          "672250904d288e0662b851650cab0bca29ae89ba",
           []
          ]
         },
@@ -3954,7 +4008,7 @@
           []
          ],
          "bitwise_shift.spec.js": [
-          "30cb73c5bb6d5d70efd00622bd364f78e73e20c5",
+          "a2e9b575f2e224a8fe0eb9032b5b0d51288bffb3",
           []
          ],
          "comparison.spec.js": [
@@ -4341,7 +4395,7 @@
            []
           ],
           "textureDimensions.spec.js": [
-           "e91014fef343864ff04eeeacf9d9ffbbc5121e94",
+           "c38f57fda26be319452a4baacefe2d11f4fbfc8a",
            []
           ],
           "textureGather.spec.js": [
@@ -4517,7 +4571,7 @@
          []
         ],
         "readonly_and_readwrite_storage_textures.spec.js": [
-         "b10dc50f026ad962addec8a40d00521c8f89b4d8",
+         "bc5adde2db9820e56fddbde15ea054fb8d9119ca",
          []
         ]
        },
@@ -4527,7 +4581,7 @@
          []
         ],
         "restrictions.spec.js": [
-         "2c9efe036bfd45230de3c26f25b7f73becb52701",
+         "048c9784f733e22815a25d91b793e9fec285a7de",
          []
         ]
        },
@@ -4583,7 +4637,7 @@
        },
        "shader_io": {
         "align.spec.js": [
-         "6427b5cc56599a9d4270f65bdeab01ed18b3a291",
+         "86607183676d542ba798c8e959e783601258a6a9",
          []
         ],
         "binding.spec.js": [
@@ -4591,7 +4645,7 @@
          []
         ],
         "builtins.spec.js": [
-         "12b380e58349e19cbc8efd5a449c237cbf00d541",
+         "9fbf4a33854b2425b850721bf007dd074dbb96c0",
          []
         ],
         "entry_point.spec.js": [
@@ -4619,7 +4673,7 @@
          []
         ],
         "layout_constraints.spec.js": [
-         "aab28e5a9368ca350fab5e3c0103eeb7f40b447b",
+         "6315246c9ddd496d5a976dc6b758fb06a8451532",
          []
         ],
         "locations.spec.js": [
@@ -4635,11 +4689,11 @@
          []
         ],
         "util.js": [
-         "b2ca3402ffb39c8162fd3fde27679060fa401a5a",
+         "98ee1e0920e5ce1c580012a652fd67f35835f522",
          []
         ],
         "workgroup_size.spec.js": [
-         "5755f4d43115dd99afa3761a7a82564d0847e1ed",
+         "e572a6189f69e080e9fe5232ce46aa03ca2b7e90",
          []
         ]
        },
@@ -4669,7 +4723,7 @@
          []
         ],
         "continuing.spec.js": [
-         "7f6825dcd3c31ba6bd792bb8f677a04e97537f9a",
+         "699dd8c2958538a7ab1484d2710cb99127f08737",
          []
         ],
         "discard.spec.js": [
@@ -4706,6 +4760,10 @@
         ],
         "switch.spec.js": [
          "db14f48bc299f48a79410dfc104e0567d235d39e",
+         []
+        ],
+        "swizzle_assignment.spec.js": [
+         "eaa107205e16f542421aba3e304c0b1b4156f420",
          []
         ],
         "test_types.js": [
@@ -4751,7 +4809,7 @@
          []
         ],
         "textures.spec.js": [
-         "a80a173313828993f8cc76c30688151502ae8101",
+         "3eb98a0b08d74120f489bc0eb4b40527be3b1485",
          []
         ],
         "vector.spec.js": [
@@ -4760,8 +4818,12 @@
         ]
        },
        "uniformity": {
+        "snippet.js": [
+         "39b4897fa8ddbbb58452c18dcfa279c5bfd22d9b",
+         []
+        ],
         "uniformity.spec.js": [
-         "732e78d3f5739e9313805af530262e3d4d2da394",
+         "a8b779de0dcbb0176874d7af5934c3ed3c1d9a0c",
          []
         ]
        }
@@ -4813,7 +4875,7 @@
        []
       ],
       "device_pool.js": [
-       "1734ec3a3a7db9d270dc0ba9146fbe60ea1ea255",
+       "1919d6be7b51971e86bd467082c96d9a318022d6",
        []
       ],
       "floating_point.js": [
@@ -4846,7 +4908,7 @@
       ],
       "texture": {
        "base.js": [
-        "dca356301ecec9fb8779e3775eeef709a8ff200a",
+        "563d2f11a5cfa9f79b964ed6550a7fa8cad3621c",
         []
        ],
        "color_space_conversions.spec.js": [
@@ -4887,7 +4949,7 @@
        ]
       },
       "texture.js": [
-       "02cb1663eb5857f6fa721c6e51638a222c37ed61",
+       "a4514a2267b97e6d245cebd941c6ed766cb897a7",
        []
       ],
       "unions.js": [
@@ -4898,7 +4960,7 @@
      "web_platform": {
       "canvas": {
        "configure.spec.js": [
-        "11fe5248a0287b178689af12674e2863aa1ba7da",
+        "1aef6323422993e391943d9fc4daea5f8f9c41de",
         []
        ],
        "context_creation.spec.js": [
@@ -4906,7 +4968,7 @@
         []
        ],
        "getCurrentTexture.spec.js": [
-        "4aa548733afd788a92ee70391116fa5127922126",
+        "8fea11878a55d99a37ee131ebe78c604c487e370",
         []
        ],
        "getPreferredCanvasFormat.spec.js": [
@@ -4914,25 +4976,25 @@
         []
        ],
        "readbackFromWebGPUCanvas.spec.js": [
-        "c07def68b7debd04a734067ae0e76e49ff29e852",
+        "8ee681c278b0bd73cb2fd2bbbf350f7f2db51c4b",
         []
        ]
       },
       "copyToTexture": {
        "ImageBitmap.spec.js": [
-        "bc1e3a3b4b2972fb403c2afff54273c331fbe75b",
+        "1966749a295e839c47f8a0054b834ce8a914a060",
         []
        ],
        "ImageData.spec.js": [
-        "4cf5d6bbb77456f74af364ef41f5aad1f0aba39f",
+        "3b37906c428c57a503e6afd3515a06636a31376d",
         []
        ],
        "canvas.spec.js": [
-        "729681e6fbf54d13c2e2200ce59ddc21f4a7b3c6",
+        "b27a29bf71f731e651dd44e8663b4bd7c8da61e9",
         []
        ],
        "image.spec.js": [
-        "ba19c691330dbc251912a7beb1c9fd15f078807b",
+        "bf3c96f0607f102bf3d283c92ef8fde03995fda4",
         []
        ],
        "image_file.spec.js": [
@@ -4950,7 +5012,7 @@
       },
       "external_texture": {
        "video.spec.js": [
-        "7b18b5de002136d44394d50ffa906f63f5b08e40",
+        "65aa343175dd48ee264a305182087a858b61a83b",
         []
        ]
       },
@@ -5122,6 +5184,10 @@
           []
          ],
          "programmable": {
+          "immediate.as_worker.js": [
+           "2d6ff6d4944ab063d14a734c9ac9e2023ada5f74",
+           []
+          ],
           "state_tracking.as_worker.js": [
            "8e17f588ad450477d05ae786a35d468769c5384a",
            []
@@ -5131,11 +5197,19 @@
           "occlusionQuery.as_worker.js": [
            "de05375bbf7ad5f754faba09ffbd7edec42e0581",
            []
+          ],
+          "timestampQuery.as_worker.js": [
+           "ec8c81b50faa107a596d4fb5ea49aa75d646eae7",
+           []
           ]
          },
          "render": {
           "dynamic_state.as_worker.js": [
            "a5e0b76f3e96bec231ebcea9df7f8dc77352279d",
+           []
+          ],
+          "render_bundle.as_worker.js": [
+           "6291dec9171ff6570a54fad72c973d47195482cc",
            []
           ],
           "state_tracking.as_worker.js": [
@@ -5241,6 +5315,10 @@
          ],
          "storeop2.as_worker.js": [
           "7b91a303028d4defeb482a0f81a3525c5d507ec0",
+          []
+         ],
+         "transient_attachment.as_worker.js": [
+          "f58153c99c3220d7b010b108dd46512ab4ed5151",
           []
          ]
         },
@@ -5357,6 +5435,10 @@
           "149586acaed2424a56fae36e64bea75fbad9bad1",
           []
          ],
+         "texture_component_swizzle.as_worker.js": [
+          "65f49f2e047cd5b4344c053627f12cdc1fd26026",
+          []
+         ],
          "write.as_worker.js": [
           "d5a8fef0b543b5cb46bf958058a69b95b6d3de65",
           []
@@ -5404,6 +5486,10 @@
           ],
           "query_types.as_worker.js": [
            "1b47f1ebe58d7b4f57a3706114cbefcfe64a754b",
+           []
+          ],
+          "texture_component_swizzle.as_worker.js": [
+           "cdc5ad4d33d3cd4b28f52940fbe49b160b1b7c8b",
            []
           ],
           "texture_formats.as_worker.js": [
@@ -5594,6 +5680,10 @@
          "0fadeb557a0aa8b6e0e77caffd489bd28e35ad12",
          []
         ],
+        "dispatch.as_worker.js": [
+         "f4b3ff694856ebcbc6f1e072bada09defc347770",
+         []
+        ],
         "encoding": {
          "beginComputePass.as_worker.js": [
           "2e321f4129605ceb394971e8b54548f9ee030741",
@@ -5669,6 +5759,10 @@
           "setBindGroup.as_worker.js": [
            "25ac67208dbfe5a5c99a4e51de06e9fa98866ba5",
            []
+          ],
+          "setImmediates.as_worker.js": [
+           "8c65dfe780f386619897cd0691b74d7a85694926",
+           []
           ]
          },
          "createRenderBundleEncoder.as_worker.js": [
@@ -5686,6 +5780,10 @@
          "programmable": {
           "pipeline_bind_group_compat.as_worker.js": [
            "3d5af06ba05a5c82561c2541a6bf420fcb21f4ae",
+           []
+          ],
+          "pipeline_immediate.as_worker.js": [
+           "151675b6adbd2f15e3ad9ad35ad62470f185dc4a",
            []
           ]
          },
@@ -5746,6 +5844,12 @@
          "5e9f41e43a95c2c3f7da76667ceecdc31edebd54",
          []
         ],
+        "pipeline": {
+         "immediates.as_worker.js": [
+          "dcbf60ed29a99479dda422da2b102dc45f4e1b68",
+          []
+         ]
+        },
         "query_set": {
          "create.as_worker.js": [
           "6b25b2e59a95962aa2d8c5c4fb8ab7e45456ecc6",
@@ -6996,6 +7100,10 @@
          "phony.as_worker.js": [
           "be0c5d890c8fe91e382c343789b37b1d8aa984b0",
           []
+         ],
+         "swizzle_assignment.as_worker.js": [
+          "823557985e4a1af597b3aa5693158475c79ff9a8",
+          []
          ]
         },
         "value_init.as_worker.js": [
@@ -7015,6 +7123,10 @@
          ]
         },
         "decl": {
+         "assignment_statement.as_worker.js": [
+          "8576f459b434ec6448c7425d64e7aff2388543a2",
+          []
+         ],
          "compound_statement.as_worker.js": [
           "815908c745c15f52a320159fd865d39a587b0639",
           []
@@ -7803,6 +7915,10 @@
           "c7a975bc33c77a4610884ee1596aeadd3dab3262",
           []
          ],
+         "swizzle_assignment.as_worker.js": [
+          "39bd0657f16620ebb5f7a0667ae5f73a29e7a1e2",
+          []
+         ],
          "while.as_worker.js": [
           "6d1fb31475aff2567c9ca0f9af6f6357d69d002d",
           []
@@ -7943,7 +8059,7 @@
   "testharness": {
    "webgpu": {
     "cts.https.html": [
-     "0f389cb02af12695af4e56bd3734a09cc6cfe60f",
+     "aafb9913093fe8051a40d85a587fbf23f39debcd",
      [
       "webgpu/cts.https.html?q=webgpu:api,operation,adapter,info:adapter_info:*",
       {
@@ -8275,6 +8391,54 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:basic_execution:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:multiple_updates_before_draw_or_dispatch:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:pipeline_switch:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:render_bundle_isolation:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:render_pass_and_bundle_mix:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:typed_array_arguments:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:update_data:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,immediate:use_max_immediate_size:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,programmable,state_tracking:bind_group_before_pipeline:*",
       {
        "timeout": "long"
@@ -8347,6 +8511,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,occlusionQuery:occlusion_query,reuse:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,occlusionQuery:occlusion_query,sample_mask:*",
       {
        "timeout": "long"
@@ -8360,6 +8530,66 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,occlusionQuery:occlusion_query,stencil:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,occlusionQuery:occlusion_query,unsubmitted_render_pass:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,timestampQuery:many_query_sets:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,timestampQuery:many_slots:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,timestampQuery:multi_resolve:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,timestampQuery:resolve_unused_slots:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,queries,timestampQuery:unused_slots_are_zero:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,render,render_bundle:basic:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,render,render_bundle:one_bundle_used_multiple_times:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,render,render_bundle:one_bundle_used_multiple_times_same_executeBundles:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,command_buffer,render,render_bundle:two_bundles:*",
       {
        "timeout": "long"
       }
@@ -8750,6 +8980,18 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,operation,render_pass,storeop2:storeOp_controls_whether_1x1_drawn_quad_is_stored:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,render_pass,transient_attachment:increasing_attachments_count:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,operation,render_pass,transient_attachment:overlapping_transient_attachments:*",
       {
        "timeout": "long"
       }
@@ -9241,6 +9483,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,operation,texture_view,texture_component_swizzle:read_swizzle:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,operation,texture_view,write:aspect:*",
       {
        "timeout": "long"
@@ -9386,6 +9634,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,buffer,create:limit:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,buffer,create:new_usages:*",
       {
        "timeout": "long"
       }
@@ -9644,6 +9898,30 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,capability_checks,features,query_types:timestamp:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,capability_checks,features,texture_component_swizzle:compatibility_mode:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,capability_checks,features,texture_component_swizzle:invalid_swizzle:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,capability_checks,features,texture_component_swizzle:no_render_no_resolve_no_storage:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,capability_checks,features,texture_component_swizzle:only_identity_swizzle:*",
       {
        "timeout": "long"
       }
@@ -10717,6 +10995,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createPipelineLayout:immediate_data_size:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,createPipelineLayout:number_of_bind_group_layouts_exceeds_the_maximum_value:*",
       {
        "timeout": "long"
@@ -10741,6 +11025,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:depthOrArrayLayers_and_mipLevelCount_for_transient_attachments:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:dimension_type_and_format_compatibility:*",
       {
        "timeout": "long"
@@ -10760,6 +11050,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:mipLevelCount,format:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:new_usages:*",
       {
        "timeout": "long"
       }
@@ -10831,6 +11127,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:usage:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,createTexture:viewFormats:*",
       {
        "timeout": "long"
@@ -10891,6 +11193,18 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createView:texture_view_usage_of_multiple_usages:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,createView:texture_view_usage_with_view_format:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,debugMarker:push_pop_call_count_unbalance,command_encoder:*",
       {
        "timeout": "long"
@@ -10898,6 +11212,18 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,debugMarker:push_pop_call_count_unbalance,render_compute_pass:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,dispatch:dispatch,linear_indexing_range:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,dispatch:dispatchIndirect,linear_indexing_range:*",
       {
        "timeout": "long"
       }
@@ -11473,6 +11799,24 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,cmds,setImmediates:alignment:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,cmds,setImmediates:out_of_bounds:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,cmds,setImmediates:overflow:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,encoding,createRenderBundleEncoder:attachment_state,empty_color_formats:*",
       {
        "timeout": "long"
@@ -11624,6 +11968,30 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,encoding,programmable,pipeline_bind_group_compat:sampler_binding,render_pipeline:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,programmable,pipeline_immediate:overprovisioned_immediate_data:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,programmable,pipeline_immediate:render_bundle_execution_state_invalidation:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,programmable,pipeline_immediate:required_slots_set:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,encoding,programmable,pipeline_immediate:unused_variable:*",
       {
        "timeout": "long"
       }
@@ -12013,6 +12381,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:api,validation,pipeline,immediates:pipeline_creation_immediate_size_mismatch:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:api,validation,query_set,create:count:*",
       {
        "timeout": "long"
@@ -12194,6 +12568,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,queue,destroyed,query_set:timestamps:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,queue,destroyed,query_set:unusedOcclusionQuery:*",
       {
        "timeout": "long"
       }
@@ -12458,6 +12838,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,render_pass,render_pass_descriptor:color_attachments,limits,maxColorAttachments:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,render_pass,render_pass_descriptor:color_attachments,loadOp_storeOp:*",
       {
        "timeout": "long"
       }
@@ -13556,6 +13942,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:compat,api,validation,pipeline_creation:depth_textures:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:compat,api,validation,pipeline_creation:fine_derivatives:*",
       {
        "timeout": "long"
       }
@@ -17593,6 +17985,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,expression,call,builtin,select:short_circuit:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:shader,execution,expression,call,builtin,select:vector:*",
       {
        "timeout": "long"
@@ -18554,6 +18952,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:shader,execution,expression,call,builtin,trunc:f32:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,expression,call,builtin,trunc:subnormal_division:*",
       {
        "timeout": "long"
       }
@@ -19975,6 +20379,18 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,shader_io,compute_builtins:num_subgroups:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,shader_io,compute_builtins:subgroup_id:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:shader,execution,shader_io,compute_builtins:subgroup_invocation_id:*",
       {
        "timeout": "long"
@@ -20161,6 +20577,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,statement,compound:eval_order:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:shader,execution,statement,discard:all:*",
       {
        "timeout": "long"
@@ -20311,6 +20733,30 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,statement,swizzle_assignment:compound_eval_order:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,statement,swizzle_assignment:eval_order:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,statement,swizzle_assignment:swizzle_assignment_vars:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,execution,statement,swizzle_assignment:swizzle_compound_assignment:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:shader,execution,value_init:array,nested:*",
       {
        "timeout": "long"
@@ -20390,6 +20836,36 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:shader,validation,const_assert,const_assert:evaluation_stage:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,decl,assignment_statement:compound_assignment_with_swizzle:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,decl,assignment_statement:scalar_assignment:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,decl,assignment_statement:vector_full_assignment:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,decl,assignment_statement:vector_indexed_assignment:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,decl,assignment_statement:vector_swizzle_assignment:*",
       {
        "timeout": "long"
       }
@@ -25843,6 +26319,60 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_address_of_swizzle_view:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_component_mismatch:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_component_oob:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_duplicate_components:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_index_into_swizzle_view:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_lhs_not_reference:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_mixed_letter_schemes:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:invalid_type_mismatch:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,statement,swizzle_assignment:valid:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:shader,validation,statement,while:condition_type:*",
       {
        "timeout": "long"
@@ -26251,6 +26781,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:shader,validation,uniformity,uniformity:uniform_subgroup_ops:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:util,texture,color_space_conversions:util_matches_2d_canvas:*",
       {
        "timeout": "long"
@@ -26335,6 +26871,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:web_platform,canvas,configure:invalid_usage:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:web_platform,canvas,configure:size_zero_after_configure:*",
       {
        "timeout": "long"
@@ -26365,6 +26907,12 @@
       }
      ],
      [
+      "webgpu/cts.https.html?q=webgpu:web_platform,canvas,getCurrentTexture:compatibility:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
       "webgpu/cts.https.html?q=webgpu:web_platform,canvas,getCurrentTexture:configured:*",
       {
        "timeout": "long"
@@ -26390,6 +26938,18 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:web_platform,canvas,getCurrentTexture:single_frames:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:web_platform,canvas,getCurrentTexture:usage_as_color_attachment_and_resolve_target:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:web_platform,canvas,getCurrentTexture:usage_as_texture_binding:*",
       {
        "timeout": "long"
       }
@@ -26570,6 +27130,18 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:web_platform,external_texture,video:importExternalTexture,sample_non_YUV_video_frame:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:web_platform,external_texture,video:importExternalTexture,video_frame_display_size_diff_with_coded_size:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:web_platform,external_texture,video:importExternalTexture,video_frame_display_size_from_textureDimensions:*",
       {
        "timeout": "long"
       }

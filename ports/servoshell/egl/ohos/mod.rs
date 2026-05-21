@@ -50,7 +50,8 @@
 /// `servoshell` registers callbacks for the xcomponent object.
 /// After [`init()`] finishes, ArkTS will call the callback for `on_surface_created`, that we just
 /// registered. In the callback we send a message to our main thread, informing it of the new window.
-/// Additionally, for the first window, we also setup vsync callbacks.
+/// Vsync subscription is owned by [`super::app::VsyncRefreshDriver`] (created when the platform
+/// window is registered) and armed on demand whenever an observer asks for the next frame.
 ///
 /// At this point the initialization is finished, and servoshell is ready.
 mod resources;
@@ -143,6 +144,7 @@ pub(crate) fn get_raw_window_handle(
 #[derive(Debug)]
 struct NativeValues {
     cache_dir: String,
+    #[expect(dead_code)]
     display_density: f32,
     device_type: ohos_deviceinfo::OhosDeviceType,
     os_full_name: String,
@@ -522,26 +524,28 @@ impl ServoAction {
     }
 }
 
-/// Vsync callback
+/// Ask the OHOS framework to invoke [`on_vsync_cb`] once on the next vsync.
 ///
-/// # Safety
-///
-/// The caller should pass a valid raw NativeVsync object to us via
-/// `native_vsync.request_raw_callback_with_self(Some(on_vsync_cb))`
+/// Calling this multiple times in the same vsync period will result in
+/// one callback execution.
+pub(crate) fn request_vsync_callback(native_vsync: &ohos_vsync::NativeVsync) {
+    // SAFETY: We don't pass any data, and `on_vsync_cb` is a function with static lifetime.
+    if let Err(e) =
+        unsafe { native_vsync.request_raw_callback(Some(on_vsync_cb), std::ptr::null_mut()) }
+    {
+        warn!("Failed to request vsync callback: {e:?}");
+    }
+}
+
+/// Vsync callback. Runs on the OHOS framework's vsync helper thread
 unsafe extern "C" fn on_vsync_cb(
     timestamp: ::core::ffi::c_longlong,
-    data: *mut ::core::ffi::c_void,
+    _data: *mut ::core::ffi::c_void,
 ) {
     trace!("Vsync callback at time {timestamp}");
-    // SAFETY: We require the function registering us as a callback provides a valid
-    //  `OH_NativeVSync` object. We do not use `data` after this point.
-    let native_vsync = unsafe { ohos_vsync::NativeVsync::from_raw(data.cast()) };
-    call(ServoAction::Vsync).unwrap();
-    // Todo: Do we have a callback for when the frame finished rendering?
-    unsafe {
-        native_vsync
-            .request_raw_callback_with_self(Some(on_vsync_cb))
-            .unwrap();
+    // Let's not panic here, that's been a source of confusion.
+    if let Err(e) = call(ServoAction::Vsync) {
+        error!("Failed to send Vsync event: {e:?} - Main thread died?");
     }
 }
 
@@ -587,15 +591,6 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             window_wrapper,
         ))
         .expect("Servo main thread channel not initialized");
-
-        let native_vsync =
-            ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
-        unsafe {
-            native_vsync
-                .request_raw_callback_with_self(Some(on_vsync_cb))
-                .expect("Failed to request vsync callback")
-        }
-        info!("Enabled Vsync!");
     } else {
         call(ServoAction::CreatePlatformWindow(
             xc_wrapper,
@@ -1084,8 +1079,8 @@ impl HostCallbacks {
             .enterkey_type(options.enterkey_type)
             .build();
         let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
-            .map_err(|e| ImeError::TextEditorProxy(e))?;
-        ImeProxy::new(editor, attach_options).map_err(|e| ImeError::ImeProxy(e))
+            .map_err(ImeError::TextEditorProxy)?;
+        ImeProxy::new(editor, attach_options).map_err(ImeError::ImeProxy)
     }
 }
 

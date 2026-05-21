@@ -238,7 +238,7 @@ impl BlockLevelBox {
 
         // If this Fragment's layout depends on the block size of the containing block,
         // then the entire layout of the inline formatting context does as well.
-        layout.depends_on_block_constraints |= fragment.borrow().base.flags.contains(
+        layout.depends_on_block_constraints |= fragment.base.flags.contains(
             FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
         );
 
@@ -1137,7 +1137,7 @@ impl InlineFormattingContextLayout<'_> {
         };
 
         // Set up the new line now that we no longer need the old one.
-        let mut line_to_layout = std::mem::replace(
+        let line_to_layout = std::mem::replace(
             &mut self.current_line,
             LineUnderConstruction::new(LogicalVec2 {
                 inline: Au::zero(),
@@ -1149,7 +1149,7 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         if line_to_layout.has_floats_waiting_to_be_placed {
-            place_pending_floats(self, &mut line_to_layout.line_items);
+            place_pending_floats(self, &line_to_layout.line_items);
         }
 
         let start_position = LogicalVec2 {
@@ -1325,7 +1325,7 @@ impl InlineFormattingContextLayout<'_> {
         (adjusted_line_start, justification_adjustment)
     }
 
-    fn place_float_fragment(&mut self, fragment: &mut BoxFragment) {
+    fn place_float_fragment(&mut self, fragment: &BoxFragment) {
         let state = self
             .sequential_layout_state
             .as_mut()
@@ -1356,7 +1356,7 @@ impl InlineFormattingContextLayout<'_> {
         line_inline_size_without_trailing_whitespace: Au,
     ) {
         let containing_block = self.containing_block();
-        let mut float_fragment = float_item.fragment.borrow_mut();
+        let float_fragment = &float_item.fragment;
         let logical_margin_rect_size = float_fragment
             .margin_rect()
             .size
@@ -1381,7 +1381,7 @@ impl InlineFormattingContextLayout<'_> {
         if needs_placement_later {
             self.current_line.has_floats_waiting_to_be_placed = true;
         } else {
-            self.place_float_fragment(&mut float_fragment);
+            self.place_float_fragment(float_fragment);
             float_item.needs_placement = false;
         }
 
@@ -1575,35 +1575,36 @@ impl InlineFormattingContextLayout<'_> {
 
         let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
+        let current_inline_container_state = self.current_inline_container_state();
         if quirks_mode && !flags.is_collapsible_whitespace() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
             // ultimately does not collapse because it is between two other pieces of content.
-            block_contribution.max_assign(&self.current_inline_container_state().strut_block_sizes);
+            block_contribution.max_assign(&current_inline_container_state.strut_block_sizes);
         }
 
         // If the metrics of this font don't match the default font, we are likely using another
         // font from the font list or a fallback and should incorporate its block size into the block
         // size of the container.
         let font_metrics = &info.font.metrics;
-        if self
-            .current_inline_container_state()
+        if current_inline_container_state
             .font_metrics
             .block_metrics_meaningfully_differ(font_metrics)
         {
             // TODO(mrobinson): This value should probably be cached somewhere.
-            let container_state = self.current_inline_container_state();
             let baseline_shift = effective_baseline_shift(
-                &container_state.style,
+                &current_inline_container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
-            let mut font_block_conribution = container_state.get_block_size_contribution(
-                baseline_shift,
-                font_metrics,
-                &container_state.font_metrics,
-            );
-            font_block_conribution.adjust_for_baseline_offset(container_state.baseline_offset);
+            let mut font_block_conribution = current_inline_container_state
+                .get_block_size_contribution(
+                    baseline_shift,
+                    font_metrics,
+                    &current_inline_container_state.font_metrics,
+                );
+            font_block_conribution
+                .adjust_for_baseline_offset(current_inline_container_state.baseline_offset);
             block_contribution.max_assign(&font_block_conribution);
         }
 
@@ -1611,18 +1612,11 @@ impl InlineFormattingContextLayout<'_> {
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
-            self.current_line_segment.line_items.last_mut()
+            self.current_line_segment.line_items.last_mut() &&
+            *inline_box_identifier == current_inline_box_identifier &&
+            line_item.merge_if_possible(info, &glyph_store, &offsets, &text_run.inline_styles)
         {
-            if *inline_box_identifier == current_inline_box_identifier &&
-                line_item.merge_if_possible(
-                    info,
-                    &glyph_store,
-                    &offsets,
-                    &text_run.inline_styles,
-                )
-            {
-                return;
-            }
+            return;
         }
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
@@ -2489,7 +2483,7 @@ impl IndependentFormattingContext {
         let pbm_physical_offset = pbm_sums
             .start_offset()
             .to_physical_size(container_writing_mode);
-        fragment.base.rect.origin += pbm_physical_offset.to_vector();
+        fragment.base.translate_rect(pbm_physical_offset);
 
         // Apply baselines.
         fragment = fragment.with_baselines(baselines);
@@ -2517,7 +2511,7 @@ impl IndependentFormattingContext {
             layout.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() + fragment.base.rect.size.to_logical(container_writing_mode);
+        let size = pbm_sums.sum() + fragment.base.rect().size.to_logical(container_writing_mode);
         let baseline_offset = self
             .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)
@@ -2531,7 +2525,7 @@ impl IndependentFormattingContext {
             SegmentContentFlags::empty(),
         );
 
-        let fragment = ArcRefCell::new(fragment);
+        let fragment = Arc::new(fragment);
         self.base.set_fragment(Fragment::Box(fragment.clone()));
 
         layout.push_line_item_to_unbreakable_segment(LineItem::Atomic(
@@ -2608,7 +2602,7 @@ impl IndependentFormattingContext {
 
 impl FloatBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
-        let fragment = ArcRefCell::new(self.layout(
+        let fragment = Arc::new(self.layout(
             layout.layout_context,
             layout.positioning_context,
             layout.placement_state.containing_block,
@@ -2627,12 +2621,12 @@ impl FloatBox {
     }
 }
 
-fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mut [LineItem]) {
-    for item in line_items.iter_mut() {
-        if let LineItem::Float(_, float_line_item) = item {
-            if float_line_item.needs_placement {
-                ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
-            }
+fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &[LineItem]) {
+    for item in line_items.iter() {
+        if let LineItem::Float(_, float_line_item) = item &&
+            float_line_item.needs_placement
+        {
+            ifc.place_float_fragment(&float_line_item.fragment);
         }
     }
 }

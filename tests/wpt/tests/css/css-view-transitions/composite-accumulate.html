@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://crbug.com/480074843">
+  <title>Composite accumulate</title>
+</head>
+<style>
+  body, #target {
+    margin: 0;
+  }
+
+  #target {
+    background-color: rebeccapurple;
+    height: 100px;
+    width: 100px;
+    view-transition-name: box;
+  }
+
+  ::view-transition-group(box) {
+    animation-name: none;
+  }
+
+  :root {
+    view-transition-name: none;
+    user-select: none;
+  }
+
+  ::view-transition {
+    pointer-events: none;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  async function accumulate_translation() {
+    const vt = document.startViewTransition();
+    await vt.ready;
+    const anim =
+      document.documentElement.animate([
+        { transform: `none` },
+        { transform: 'translateX(100px)'}
+      ],
+      {
+        duration: 1000,
+        composite: 'accumulate',
+        pseudoElement: '::view-transition-group(box)',
+        fill: 'forwards'
+      });
+    // Prevent replacement of finished animation.
+    anim.persist();
+    anim.finish();
+    return vt.finished;
+  }
+  promise_test(async t => {
+    await accumulate_translation();
+    await accumulate_translation();
+    const vt = document.startViewTransition();
+    await vt.ready;
+    requestAnimationFrame(() => {
+      assert_equals(getComputedStyle(document.documentElement,
+                                     '::view-transition-group(box)').transform,
+                    'matrix(1, 0, 0, 1, 200, 0)');
+    });
+  }, 'Composite accumulate of script based animations across view transitions');
+</script>
+</html>

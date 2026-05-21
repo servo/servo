@@ -27,7 +27,7 @@ if (userPropertiesFile.exists()) {
     }
     props.forEach { (key, value) ->
         println("$key = $value")
-        gradle.extra.set(key!!.toString(), value);
+        gradle.extra.set(key!!.toString(), value)
     }
     if (props.containsKey("servoViewLocal")) {
         println("Using local build of servoview")

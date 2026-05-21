@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter with 3D transform and perspective on parent (reference)</title>
+
+<style>
+  .backdrop {
+    width: 150px;
+    height: 150px;
+    background: yellow;
+    perspective: 600px;
+    padding: 20px;
+  }
+  .card {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    transform: rotateY(45deg);
+  }
+</style>
+
+<div class="backdrop">
+  <div class="card"></div>
+</div>

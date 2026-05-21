@@ -5,12 +5,12 @@
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
 use html5ever::local_name;
+use js::context::JSContext;
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::str::HTML_SPACE_CHARACTERS;
 
-use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
@@ -182,10 +182,7 @@ impl LinkRelations {
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
     pub(crate) fn for_element(element: &Element) -> Self {
-        let rel = element.get_attribute(&local_name!("rel")).map(|e| {
-            let value = e.value();
-            (**value).to_owned()
-        });
+        let rel = element.get_attribute_string_value(&local_name!("rel"));
 
         let mut relations = rel
             .map(|attribute| {
@@ -198,8 +195,8 @@ impl LinkRelations {
 
         // For historical reasons, "rev=made" is treated as if the "author" relation was specified
         let has_legacy_author_relation = element
-            .get_attribute(&local_name!("rev"))
-            .is_some_and(|rev| &**rev.value() == "made");
+            .get_attribute_string_value(&local_name!("rev"))
+            .is_some_and(|rev| rev == "made");
         if has_legacy_author_relation {
             relations |= Self::AUTHOR;
         }
@@ -375,10 +372,11 @@ pub(crate) fn get_element_target(
         }
     });
     // Step 2. If target is not null, and contains an ASCII tab or newline and a U+003C (<), then set target to "_blank".
-    if let Some(ref target) = target {
-        if target.contains_tab_or_newline() && target.contains("\u{003C}") {
-            return Some("_blank".into());
-        }
+    if let Some(ref target) = target &&
+        target.contains_tab_or_newline() &&
+        target.contains("\u{003C}")
+    {
+        return Some("_blank".into());
     }
     // Step 3. Return target.
     target
@@ -386,6 +384,7 @@ pub(crate) fn get_element_target(
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
 pub(crate) fn follow_hyperlink(
+    cx: &mut JSContext,
     subject: &Element,
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
@@ -434,7 +433,7 @@ pub(crate) fn follow_hyperlink(
     let source = document.browsing_context().unwrap();
     let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
-            let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
+            let (maybe_chosen, new) = source.choose_browsing_context(cx, name, noopener);
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace
             } else {
@@ -456,14 +455,15 @@ pub(crate) fn follow_hyperlink(
         // Step 9: Let urlString be the result of applying the URL serializer to urlRecord.
         // TODO: Implement this.
 
-        let attribute = subject.get_attribute(&local_name!("href")).unwrap();
-        let mut href = attribute.Value();
+        let mut href = subject
+            .get_attribute_string_value(&local_name!("href"))
+            .unwrap();
 
         // Step 10: If hyperlinkSuffix is non-null, then append it to urlString.
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let Ok(url) = document.encoding_parse_a_url(&href.str()) else {
+        let Ok(url) = document.encoding_parse_a_url(&href) else {
             return;
         };
 
@@ -481,13 +481,12 @@ pub(crate) fn follow_hyperlink(
         // Step 13: Navigate targetNavigable to urlString using subject's node document,
         //          with referrerPolicy set to referrerPolicy, userInvolvement set to
         //          userInvolvement, and sourceElement set to subject.
-        let pipeline_id = target_window.as_global_scope().pipeline_id();
         let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
             document.about_base_url(),
-            Some(pipeline_id),
+            Some(window.pipeline_id()),
             referrer,
             referrer_policy,
             Some(secure),

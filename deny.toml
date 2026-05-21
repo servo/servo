@@ -35,10 +35,6 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
-    # The crate `time` has DOS stack exhaustion vulnerability, which is fixed in version 0.3.47.
-    # We can't upgrade yet due to MSRV. However, we do not use the vulnerable API at all.
-    # As per <https://github.com/advisories/GHSA-r6v5-fh4h-64xc> this can be verified with clippy.
-    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -101,8 +97,6 @@ skip = [
     "bitflags",
     "cookie",
     "redox_syscall",
-    # Duplicated by getrandom 0.1 and getrandom 0.2
-    "wasi",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
@@ -131,9 +125,6 @@ skip = [
 
     # wgpu has the latest and greatest.
     "windows-core",
-
-    # rust-content-security-policy uses newest base64.
-    "base64",
 
     # Duplicated by gilrs.
     "core-foundation",
@@ -180,12 +171,6 @@ skip = [
     # duplicated by core-graphics
     "core-graphics-types",
 
-    # duplicated by winresource and proc-macro-crate. Once everything
-    # switches to the latest version of toml we can remove this. It's
-    # really just a build dep, so not a large problem.
-    "toml_datetime",
-    "toml_edit",
-
     # usvg depends on svgtypes, which depends on old version of kurbo
     "kurbo",
 
@@ -198,18 +183,12 @@ skip = [
     # this.
     "hybrid-array",
 
-    # duplicated by zbus
-    "winnow",
-
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
     # are added here to allow the fix for this issue to land as a priority.
     # These need to be investigated separately to see if the duplication can be
     # avoided.
     "libloading",
-    "cfg-expr",
-    "system-deps",
-    "target-lexicon",
 
     # Duplicated by wgpu/egui+dependencies
     "font-types",
@@ -220,6 +199,27 @@ skip = [
     "skrifa",
     "vello_common",
     "vello_cpu",
+
+    # Duplicated by resvg/image
+    "pastey",
+    "png",
+    "roxmltree",
+    "tiny-skia",
+    "tiny-skia-path",
+
+    # wgpu-core stuff gets duplicated by vello (which is disabled by default)
+    "bit-set",
+    "bit-vec",
+    "codespan-reporting",
+    "gpu-allocator",
+    "naga",
+    "spirv",
+    "wgpu-core",
+    "wgpu-core-deps-apple",
+    "wgpu-core-deps-emscripten",
+    "wgpu-core-deps-windows-linux-android",
+    "wgpu-hal",
+    "wgpu-types",
 ]
 
 # github.com organizations to allow git sources for

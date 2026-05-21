@@ -23,7 +23,7 @@ byteorder = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
-half = "2"
+half = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
 paint_api = { workspace = true }

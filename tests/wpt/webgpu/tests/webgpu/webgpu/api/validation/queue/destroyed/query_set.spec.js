@@ -25,6 +25,21 @@ fn((t) => {
   encoder.validateFinishAndSubmitGivenState(t.params.querySetState);
 });
 
+g.test('unusedOcclusionQuery').
+desc(
+  `
+Tests that use a destroyed query set in occlusion query on render pass encoder, even if no beginOcclusionQuery calls are done.
+- x= {destroyed, not destroyed (control case)}
+  `
+).
+paramsSubcasesOnly((u) => u.combine('querySetState', ['valid', 'destroyed'])).
+fn((t) => {
+  const occlusionQuerySet = vtu.createQuerySetWithState(t, t.params.querySetState);
+
+  const encoder = t.createEncoder('render pass', { occlusionQuerySet });
+  encoder.validateFinishAndSubmitGivenState(t.params.querySetState);
+});
+
 g.test('timestamps').
 desc(
   `

@@ -26,3 +26,12 @@ promise_test(async t => {
       t, TypeError, session.prompt([{role: 'system', content: 'bar'}]));
   await result3;
 }, 'prompt() should reject system role messages after other messages');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel(
+      {initialPrompts: [{role: 'user', content: 'initial user prompt'}]});
+  await promise_rejects_js(
+      t, TypeError,
+      session.prompt([{role: 'system', content: 'prompt system prompt'}]));
+}, 'prompt() after initializing with user prompt should reject system role');

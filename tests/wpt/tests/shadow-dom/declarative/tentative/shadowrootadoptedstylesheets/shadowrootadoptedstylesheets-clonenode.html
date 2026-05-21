@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<title>cloneNode preserves shadowrootadoptedstylesheets on declarative shadow roots</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-clone">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span{color:blue}",
+    "bar": "data:text/css,span{text-decoration:underline}"
+  }
+}
+</script>
+
+<!-- Single specifier, clonable host. -->
+<div id="host_basic">
+  <template shadowrootmode="open"
+            shadowrootclonable
+            shadowrootadoptedstylesheets="foo">
+    <span id="t">basic</span>
+  </template>
+</div>
+
+<!-- Multiple specifiers (whitespace-separated). -->
+<div id="host_multi">
+  <template shadowrootmode="open"
+            shadowrootclonable
+            shadowrootadoptedstylesheets="foo bar">
+    <span id="t">multi</span>
+  </template>
+</div>
+
+<!-- Empty (present-but-empty) attribute. -->
+<div id="host_empty">
+  <template shadowrootmode="open"
+            shadowrootclonable
+            shadowrootadoptedstylesheets="">
+    <span id="t">empty</span>
+  </template>
+</div>
+
+<!-- Absent attribute. -->
+<div id="host_absent">
+  <template shadowrootmode="open" shadowrootclonable>
+    <span id="t">absent</span>
+  </template>
+</div>
+
+<!-- Non-clonable host: clone should have NO shadow root at all. -->
+<div id="host_nonclonable">
+  <template shadowrootmode="open"
+            shadowrootadoptedstylesheets="foo">
+    <span id="t">nonclonable</span>
+  </template>
+</div>
+
+<!-- Whitespace-only authored value. -->
+<div id="host_whitespace">
+  <template shadowrootmode="open"
+            shadowrootclonable
+            shadowrootadoptedstylesheets="  foo   bar  ">
+    <span id="t">whitespace</span>
+  </template>
+</div>
+
+<!-- Serializable + clonable for the round-trip test. -->
+<div id="host_serializable">
+  <template shadowrootmode="open"
+            shadowrootclonable
+            shadowrootserializable
+            shadowrootadoptedstylesheets="foo">
+    <span id="t">serializable</span>
+  </template>
+</div>
+
+<script>
+test(() => {
+  const host = document.getElementById("host_basic");
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 1,
+    "Sanity: original shadow root has 1 adopted stylesheet.");
+  const clone = host.cloneNode(true);
+  assert_true(!!clone.shadowRoot,
+    "Clone of clonable host has a shadow root.");
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 1,
+    "Clone's shadow root has the same number of adopted stylesheets as the original.");
+  assert_equals(clone.shadowRoot.adoptedStyleSheets[0],
+    host.shadowRoot.adoptedStyleSheets[0],
+    "Clone's adopted stylesheet is the same CSSStyleSheet instance " +
+    "(import-map specifiers resolve to one shared module sheet).");
+}, "cloneNode(true) re-processes shadowrootadoptedstylesheets and the clone shares the resolved sheet.");
+
+test(() => {
+  const host = document.getElementById("host_multi");
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 2,
+    "Sanity: original has 2 adopted stylesheets.");
+  const clone = host.cloneNode(true);
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 2,
+    "Clone has the same 2 adopted stylesheets.");
+  assert_array_equals(
+    Array.from(clone.shadowRoot.adoptedStyleSheets),
+    Array.from(host.shadowRoot.adoptedStyleSheets),
+    "Clone's adoptedStyleSheets list matches the original element-by-element."
+  );
+}, "cloneNode(true) preserves order of multiple shadowrootadoptedstylesheets specifiers.");
+
+test(() => {
+  const host = document.getElementById("host_empty");
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 0,
+    "Sanity: empty attribute yields empty array.");
+  const clone = host.cloneNode(true);
+  assert_true(!!clone.shadowRoot, "Clone has a shadow root.");
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 0,
+    "Clone of host with empty shadowrootadoptedstylesheets has empty adoptedStyleSheets.");
+}, "cloneNode(true) with empty shadowrootadoptedstylesheets produces an empty adoptedStyleSheets on the clone.");
+
+test(() => {
+  const host = document.getElementById("host_absent");
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 0,
+    "Sanity: absent attribute yields empty array.");
+  const clone = host.cloneNode(true);
+  assert_true(!!clone.shadowRoot, "Clone has a shadow root.");
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 0,
+    "Clone of host without shadowrootadoptedstylesheets has empty adoptedStyleSheets.");
+}, "cloneNode(true) with absent shadowrootadoptedstylesheets does not crash and produces an empty adoptedStyleSheets.");
+
+test(() => {
+  const host = document.getElementById("host_nonclonable");
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 1,
+    "Sanity: non-clonable original still has its adopted stylesheet.");
+  const clone = host.cloneNode(true);
+  assert_true(!clone.shadowRoot,
+    "Non-clonable declarative shadow root is not cloned at all.");
+}, "cloneNode(true) on a non-clonable host does not produce a shadow root regardless of shadowrootadoptedstylesheets.");
+
+test(() => {
+  const host = document.getElementById("host_whitespace");
+  // Whitespace-only authored value still resolves to two specifiers
+  // (SpaceSplitString collapses adjacent whitespace).
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 2,
+    "Sanity: whitespace-padded list resolves to 2 sheets.");
+  const clone = host.cloneNode(true);
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 2,
+    "Clone resolves the same 2 specifiers from the whitespace-padded value.");
+}, "cloneNode(true) preserves resolution semantics for whitespace-padded shadowrootadoptedstylesheets values.");
+
+test(() => {
+  // Mutating original's adoptedStyleSheets after attachment must NOT
+  // be reflected in the clone — clone is built from the attribute, not
+  // the live array.
+  const host = document.getElementById("host_basic");
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("span{font-weight:bold}");
+  host.shadowRoot.adoptedStyleSheets =
+      [...host.shadowRoot.adoptedStyleSheets, sheet];
+  assert_equals(host.shadowRoot.adoptedStyleSheets.length, 2,
+    "Sanity: original now has 2 adopted stylesheets after mutation.");
+  const clone = host.cloneNode(true);
+  assert_equals(clone.shadowRoot.adoptedStyleSheets.length, 1,
+    "Clone reflects the original attribute value, not the post-attachment mutation.");
+  // Restore to keep test isolation across runs.
+  host.shadowRoot.adoptedStyleSheets =
+      host.shadowRoot.adoptedStyleSheets.slice(0, 1);
+}, "cloneNode(true) reflects only the shadowrootadoptedstylesheets attribute, not script mutations to adoptedStyleSheets.");
+
+test(() => {
+  // Round-trip: serialized clone still carries the attribute.
+  const host = document.getElementById("host_serializable");
+  const clone = host.cloneNode(true);
+  const html = clone.getHTML({ serializableShadowRoots: true });
+  assert_true(html.includes("shadowrootadoptedstylesheets=\"foo\""),
+    `Clone serializes back with the original attribute value. Got: ${html}`);
+}, "cloneNode(true) followed by getHTML() round-trips the shadowrootadoptedstylesheets attribute.");
+
+test(() => {
+  // Style application: confirm the resolved sheet in the clone actually
+  // styles the cloned tree once attached to the document.
+  const host = document.getElementById("host_basic");
+  const clone = host.cloneNode(true);
+  document.body.appendChild(clone);
+  try {
+    const t = clone.shadowRoot.getElementById("t");
+    assert_equals(getComputedStyle(t).color, "rgb(0, 0, 255)",
+      "Clone's adopted stylesheet styles its content.");
+  } finally {
+    clone.remove();
+  }
+}, "Adopted stylesheets resolved from the cloned shadow root style the cloned tree.");
+
+promise_test(async (t) => {
+  // Cross-document importNode: the source host lives in an iframe that
+  // declares its own import map. importNode must resolve specifiers
+  // against the destination document's import map (not the source's),
+  // because ResolveAdoptedStyleSheets uses the cloned root's document.
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = `
+    <!DOCTYPE html>
+    <script type="importmap">
+    { "imports": { "iframe-only": "data:text/css,span{color:green}" } }
+    <\/script>
+    <body>
+    <div id="ihost">
+      <template shadowrootmode="open"
+                shadowrootclonable
+                shadowrootadoptedstylesheets="iframe-only">
+        <span id="t">iframe</span>
+      </template>
+    </div>
+  `;
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+    document.body.appendChild(iframe);
+  });
+  try {
+    const sourceHost = iframe.contentDocument.getElementById("ihost");
+    assert_equals(sourceHost.shadowRoot.adoptedStyleSheets.length, 1,
+      "Sanity: source host (iframe-only specifier) resolved in the iframe.");
+
+    // The source specifier is "iframe-only" which exists in the iframe's
+    // import map but NOT in the parent document's import map. Importing
+    // into the parent document must therefore produce a placeholder /
+    // empty resolution — NOT inherit the iframe's resolution.
+    const importedHost = document.importNode(sourceHost, true);
+    assert_true(!!importedHost.shadowRoot,
+      "Imported host has a shadow root.");
+    // "iframe-only" is not a valid specifier in the parent doc's import
+    // map, so resolution silently skips it (per ResolveAdoptedStyleSheets:
+    // invalid specifiers are dropped). The clone's adoptedStyleSheets
+    // should be empty.
+    assert_equals(importedHost.shadowRoot.adoptedStyleSheets.length, 0,
+      "importNode resolves against the destination document's import map; " +
+      "an iframe-only specifier does not resolve in the parent document.");
+    document.body.appendChild(importedHost);
+    try {
+      assert_equals(
+        importedHost.shadowRoot.adoptedStyleSheets.length, 0,
+        "After insertion, no stylesheets resolved from iframe-only specifier."
+      );
+    } finally {
+      importedHost.remove();
+    }
+  } finally {
+    iframe.remove();
+  }
+}, "document.importNode resolves shadowrootadoptedstylesheets against the destination document.");
+
+promise_test(async (t) => {
+  // Cross-document importNode where BOTH documents have a matching
+  // import map entry — the clone resolves against the destination map.
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = `
+    <!DOCTYPE html>
+    <script type="importmap">
+    { "imports": { "shared": "data:text/css,span{color:green}" } }
+    <\/script>
+    <body>
+    <div id="ihost">
+      <template shadowrootmode="open"
+                shadowrootclonable
+                shadowrootadoptedstylesheets="shared">
+        <span id="t">shared-iframe</span>
+      </template>
+    </div>
+  `;
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+    document.body.appendChild(iframe);
+  });
+  try {
+    const sourceHost = iframe.contentDocument.getElementById("ihost");
+    assert_equals(sourceHost.shadowRoot.adoptedStyleSheets.length, 1,
+      "Sanity: source host resolved in the iframe (green).");
+
+    // The parent document's import map (declared at top of this file)
+    // does NOT define "shared", so the clone should resolve to nothing.
+    // (If we wanted same-resolution, we'd add "shared" to the parent
+    // import map; this test asserts the destination-doc semantic.)
+    const imported = document.importNode(sourceHost, true);
+    assert_equals(imported.shadowRoot.adoptedStyleSheets.length, 0,
+      "Destination document lacks the 'shared' specifier; resolution is empty.");
+  } finally {
+    iframe.remove();
+  }
+}, "document.importNode does NOT inherit the source document's import map resolution.");
+</script>

@@ -47,7 +47,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestClient, RequestId, RequestMode,
 };
-use net_traits::response::HttpsState;
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
@@ -643,7 +642,6 @@ pub(crate) struct ModuleFetchClient {
     pub client: RequestClient,
     pub pipeline_id: PipelineId,
     pub origin: ImmutableOrigin,
-    pub https_state: HttpsState,
 }
 
 impl ModuleFetchClient {
@@ -655,7 +653,6 @@ impl ModuleFetchClient {
             client: global.request_client(),
             pipeline_id: global.pipeline_id(),
             origin: global.origin().immutable().clone(),
-            https_state: global.get_https_state(),
         }
     }
 }
@@ -1315,17 +1312,17 @@ pub(crate) fn fetch_a_modulepreload_module(
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
-            if pref!(dom_allow_preloading_module_descendants) {
-                if let Some(module) = result {
-                    fetch_the_descendants_and_link_module_script(
-                        cx,
-                        &global_scope,
-                        module,
-                        fetch_client,
-                        destination,
-                        |_, _| {},
-                    );
-                }
+            if pref!(dom_allow_preloading_module_descendants) &&
+                let Some(module) = result
+            {
+                fetch_the_descendants_and_link_module_script(
+                    cx,
+                    &global_scope,
+                    module,
+                    fetch_client,
+                    destination,
+                    |_, _| {},
+                );
             }
         },
     );
@@ -1598,8 +1595,7 @@ pub(crate) fn fetch_a_single_module_script(
         .policy_container(fetch_client.policy_container)
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))
-        .origin(fetch_client.origin)
-        .https_state(fetch_client.https_state);
+        .origin(fetch_client.origin);
 
         let context = ModuleContext {
             owner: Trusted::new(global),

@@ -360,6 +360,22 @@ class WebDriverSpecTest(URLManifestItem):
         return rv
 
 
+class AccessibilityAPIMappingTest(URLManifestItem):
+    __slots__ = ()
+
+    item_type = "aamtest"
+
+    @property
+    def timeout(self) -> Optional[Text]:
+        return self._extras.get("timeout")
+
+    def to_json(self) -> Tuple[Optional[Text], Dict[Text, Any]]:
+        rv = super().to_json()
+        if self.timeout is not None:
+            rv[-1]["timeout"] = self.timeout
+        return rv
+
+
 class SupportFile(ManifestItem):
     __slots__ = ()
 

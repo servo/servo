@@ -63,7 +63,7 @@ webxr = ["servo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
-bpaf = { version = "0.9.25", features = ["derive"] }
+bpaf = { version = "0.9.26", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
@@ -97,8 +97,8 @@ euclid = { workspace = true }
 hilog = "0.2.2"
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
-napi-derive-ohos = "1.1.6"
-napi-ohos = "1.1.6"
+napi-derive-ohos = "1.2.0"
+napi-ohos = "1.2.0"
 ohos-abilitykit-sys = { version = "0.1.5", features = ["api-14"] }
 ohos-deviceinfo = "0.1.0"
 ohos-ime = "0.4.2"
@@ -108,14 +108,14 @@ ohos-window-manager-sys = { version = "0.1", features = ["api-14"] }
 xcomponent-sys = { version = "0.3.5", features = ["api-14", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
-servo-base = { workspace = true }
 nix = { workspace = true, features = ["fs"] }
 serde_json = { workspace = true }
+servo-base = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = "6.0"
-egui = { version = "0.34.2" }
+egui = "0.34.2"
 egui-file-dialog = "0.13.0"
 egui-winit = { version = "0.34.2", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { version = "0.34.2", features = ["winit"] }

@@ -188,6 +188,25 @@ const H264_INTERLACED_AVC_DATA = {
   ]
 };
 
+const H264_444_AVC_DATA = {
+  src: 'h264_444.mp4',
+  config: {
+    codec: 'avc1.f4000c',
+    description: {offset: 7546, size: 42},
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 48, size: 3653}, {offset: 3701, size: 996},
+    {offset: 4697, size: 345}, {offset: 5042, size: 197},
+    {offset: 5239, size: 167}, {offset: 5406, size: 669},
+    {offset: 6075, size: 272}, {offset: 6347, size: 160},
+    {offset: 6507, size: 179}, {offset: 6686, size: 341}
+  ]
+};
+
 // Allows mutating `callbacks` after constructing the VideoDecoder, wraps calls
 // in t.step().
 function createVideoDecoder(t, callbacks) {
@@ -252,6 +271,7 @@ promise_setup(async () => {
     '?h264_avc': H264_AVC_DATA,
     '?h264_sei_avc': H264_SEI_AVC_DATA,
     '?h264_interlaced_avc': H264_INTERLACED_AVC_DATA,
+    '?h264_444_avc': H264_444_AVC_DATA,
     '?h264_annexb': H264_ANNEXB_DATA,
     '?h264_sei_annexb': H264_SEI_ANNEXB_DATA,
     '?h265_hevc': H265_HEVC_DATA,

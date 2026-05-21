@@ -7,6 +7,7 @@ use std::vec::Vec;
 
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -149,7 +150,7 @@ impl ImageData {
                 reflector_: Reflector::new(),
                 width,
                 height,
-                data,
+                data: *data.into_box(),
                 pixel_format,
                 color_space,
             }),
@@ -242,9 +243,9 @@ impl Serializable for ImageData {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagedata-interface:deserialization-steps>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1 Initialize value's data attribute to the sub-deserialization of serialized.[[Data]].
         // Step 2 Initialize value's width attribute to serialized.[[Width]].
@@ -256,7 +257,7 @@ impl Serializable for ImageData {
             serialized.width,
             serialized.height,
             Some(serialized.data),
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .map_err(|_| ())
     }
@@ -317,13 +318,13 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         }
         // 3. If length is not a nonzero integral multiple of bytesPerPixel,
         // then throw an "InvalidStateError" DOMException.
-        if length % bytes_per_pixel != 0 {
+        if !length.is_multiple_of(bytes_per_pixel) {
             return Err(Error::InvalidState(None));
         }
         // 4. Let length be length divided by bytesPerPixel.
         let length = length / bytes_per_pixel;
         // 5. If length is not an integral multiple of sw, then throw an "IndexSizeError" DOMException.
-        if sw == 0 || length % sw as usize != 0 {
+        if sw == 0 || !length.is_multiple_of(sw as usize) {
             return Err(Error::IndexSize(None));
         }
         // 6. Let height be length divided by sw.

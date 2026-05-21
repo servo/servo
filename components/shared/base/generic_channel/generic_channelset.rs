@@ -9,21 +9,21 @@ use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, use_ipc};
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
 /// # Examples
-/// ```
-/// # let mut rx_set = GenericReceiverSet::new();
-/// # let private_channel = generic_channel::channel().unwrap();
-/// # let public_channel = generic_channel::channel().unwrap();
-/// # let reporter_channel = generic_channel::channel().unwrap();
-/// # let private_id = rx_set.add(private_receiver);
-/// # let public_id = rx_set.add(public_receiver);
-/// # let reporter_id = rx_set.add(memory_reporter);
-/// # for received in rx_set.select().into_iter() {
-/// #     match received {
-/// #         GenericSelectionResult::ChannelClosed(_) => continue,
-/// #         GenericSelectionResult::Error => println!("Found selection error"),
-/// #         GenericSelectionResult::MessageReceived(id, msg) => {
-/// #     }
-/// # }
+/// ```ignore
+/// let mut rx_set = GenericReceiverSet::new();
+/// let private_channel = generic_channel::channel().unwrap();
+/// let public_channel = generic_channel::channel().unwrap();
+/// let reporter_channel = generic_channel::channel().unwrap();
+/// let private_id = rx_set.add(private_receiver);
+/// let public_id = rx_set.add(public_receiver);
+/// let reporter_id = rx_set.add(memory_reporter);
+/// for received in rx_set.select().into_iter() {
+///     match received {
+///         GenericSelectionResult::ChannelClosed(_) => continue,
+///         GenericSelectionResult::Error => println!("Found selection error"),
+///         GenericSelectionResult::MessageReceived(id, msg) => { /*...*/ }
+///     }
+/// }
 /// ```
 pub struct GenericReceiverSet<T: Serialize + for<'de> Deserialize<'de>>(
     GenericReceiverSetVariants<T>,
@@ -121,10 +121,75 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
         }
     }
 
-    /// Block until at least one of the Receivers receives a message and return a vector of the received messages.
+    /// Create a [`Selector`] that owns the underlying select state.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    ///  use servo_base::generic_channel::{self, GenericReceiverSet};
+    ///
+    ///  let (_, receiver_one) = generic_channel::channel::<()>().unwrap();
+    ///  let (_, receiver_two) = generic_channel::channel::<()>().unwrap();
+    ///  let mut rx_set = GenericReceiverSet::<()>::new();
+    ///  let _select_idx_1 = rx_set.add(receiver_one);
+    ///  let _select_idx_2 = rx_set.add(receiver_two);
+    ///  // Build the Selector once, before the loop if all receivers are known in advance.
+    ///  let mut selector = rx_set.selector();
+    ///  loop {
+    ///    for received in selector.select().into_iter() {
+    ///      // do something
+    ///    }
+    ///  }
+    /// ```
+    pub fn selector(&mut self) -> Selector<'_, T> {
+        let inner = match &mut self.0 {
+            GenericReceiverSetVariants::Ipc(set) => SelectorInner::Ipc(set),
+            GenericReceiverSetVariants::Crossbeam(receivers) => {
+                let mut sel = crossbeam_channel::Select::new();
+                for receiver in receivers.iter() {
+                    sel.recv(receiver);
+                }
+                SelectorInner::Crossbeam {
+                    receivers: receivers.as_slice(),
+                    sel,
+                }
+            },
+        };
+        Selector { inner }
+    }
+
+    /// One-shot select. Builds a [`Selector`], runs select once and drops it.
+    ///
+    /// For usage in loops consider using [`GenericReceiverSet::selector()`] to build the selector
+    /// once upfront.
     pub fn select(&mut self) -> Vec<GenericSelectionResult<T>> {
-        match &mut self.0 {
-            GenericReceiverSetVariants::Ipc(ipc_receiver_set) => ipc_receiver_set
+        self.selector().select()
+    }
+}
+
+/// Borrows of a [`GenericReceiverSet`] used to drive repeated `select` calls
+/// without rebuilding the underlying `crossbeam_channel::Select` each time.
+/// See [`GenericReceiverSet::selector`].
+pub struct Selector<'a, T: Serialize + for<'de> Deserialize<'de>> {
+    inner: SelectorInner<'a, T>,
+}
+
+enum SelectorInner<'a, T: for<'de> Deserialize<'de>> {
+    Ipc(&'a mut IpcReceiverSet),
+    Crossbeam {
+        receivers: &'a [crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>],
+        sel: crossbeam_channel::Select<'a>,
+    },
+}
+
+impl<'a, T: Serialize + for<'de> Deserialize<'de>> Selector<'a, T> {
+    /// Block until at least one of the Receivers receives a message.
+    ///
+    /// Note: The IPC variant can return multiple results in one call.
+    /// The crossbeam variant always returns exactly one.
+    pub fn select(&mut self) -> Vec<GenericSelectionResult<T>> {
+        match &mut self.inner {
+            SelectorInner::Ipc(ipc_receiver_set) => ipc_receiver_set
                 .select()
                 .map(|result_value| {
                     result_value
@@ -133,26 +198,20 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                         .collect()
                 })
                 .unwrap_or_else(|e| vec![GenericSelectionResult::Error(e.to_string())]),
-            GenericReceiverSetVariants::Crossbeam(receivers) => {
-                let mut sel = crossbeam_channel::Select::new();
-                // we need to add all the receivers to the set
-                let _selected_receivers = receivers
-                    .iter()
-                    .map(|receiver| sel.recv(receiver))
-                    .collect::<Vec<usize>>();
-                let selector = sel.select();
-                let index = selector.index();
-                let Some(receiver) = receivers.get(index) else {
-                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
+            SelectorInner::Crossbeam { receivers, sel } => {
+                let selected = sel.select();
+                let index = selected.index();
+                let selection_result = match receivers.get(index) {
+                    None => GenericSelectionResult::ChannelClosed(index as u64),
+                    Some(receiver) => match selected.recv(receiver) {
+                        Ok(Ok(value)) => {
+                            GenericSelectionResult::MessageReceived(index as u64, value)
+                        },
+                        Ok(Err(error)) => GenericSelectionResult::Error(error.to_string()),
+                        Err(_) => GenericSelectionResult::ChannelClosed(index as u64),
+                    },
                 };
-                let Ok(result) = selector.recv(receiver) else {
-                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
-                };
-
-                vec![GenericSelectionResult::MessageReceived(
-                    index.try_into().unwrap(),
-                    result.unwrap(),
-                )]
+                vec![selection_result]
             },
         }
     }

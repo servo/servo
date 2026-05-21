@@ -196,7 +196,6 @@ fn((t) => {
   const wgsl = `
 enable subgroups;
 
-diagnostic(off, subgroup_branching);
 
 var<workgroup> wgmem : u32;
 
@@ -274,6 +273,8 @@ fn main(@builtin(subgroup_invocation_id) id : u32,
   t.expectGPUBufferValuesEqual(outputBuffer, new Uint32Array(expect));
 });
 
+const kUnattemptedBroadcast = 555 << 16;
+
 /**
  * Checks the results of broadcast in compute shaders.
  *
@@ -281,6 +282,8 @@ fn main(@builtin(subgroup_invocation_id) id : u32,
  *                 * first half is subgroup_invocation_id
  *                 * second half is subgroup_size
  * @param output An array uint32s containing the broadcast results
+ *               If the broadcast was not attempted due to generating a dynamic error,
+ *               the value will be kUnattemptedWrite | ballot-based subgroup size
  * @param numInvs The number of invocations
  * @param broadcast The broadcast invocation (or 'first' to indicate the lowest active)
  * @param filter A functor indicating whether the invocation participates in the broadcast
@@ -311,6 +314,16 @@ filter)
     const size = metadata[i + numInvs];
 
     const res = output[i];
+    const upper = res & 0xffff0000;
+    if (upper === kUnattemptedBroadcast) {
+      const lower = res & 0xffff;
+      if (Number(broadcastedId) < lower) {
+        return new Error(`Invocation ${i}: expected a valid broadcast:
+-       broadcast id: ${id}
+- real subgroup size: ${lower}`);
+      }
+      continue;
+    }
 
     if (filter(id, size)) {
       let seen = mapping.get(res) ?? 0;
@@ -351,9 +364,8 @@ desc('Test broadcasts in compute shaders with all active invocations').
 params((u) =>
 u.
 combine('wgSize', kWGSizes).
-beginSubcases()
-// Only values < 4 are used because it is a dynamic error to broadcast an inactive invocation.
-.combine('id', [0, 1, 2, 3])
+beginSubcases().
+combine('id', [0, 1, 2, 3, 7, 13, 25, 46])
 ).
 fn(async (t) => {
   t.skipIfDeviceDoesNotHaveFeature('subgroups');
@@ -364,8 +376,14 @@ fn(async (t) => {
   `subgroupBroadcastFirst(input[lid])` :
   `subgroupBroadcast(input[lid], ${t.params.id})`;
 
+  const diagnostic = t.hasLanguageFeature('subgroup_uniformity') ?
+  '' :
+  'diagnostic(off, subgroup_uniformity);';
+
   const wgsl = `
 enable subgroups;
+
+${diagnostic}
 
 @group(0) @binding(0)
 var<storage> input : array<u32>;
@@ -381,6 +399,12 @@ var<storage, read_write> output : array<u32>;
 @group(0) @binding(2)
 var<storage, read_write> metadata: Metadata;
 
+fn ballotSize() -> u32 {
+  let b = subgroupBallot(true);
+  let count = countOneBits(b);
+  return count.x + count.y + count.z + count.w;
+}
+
 @compute @workgroup_size(${t.params.wgSize[0]}, ${t.params.wgSize[1]}, ${t.params.wgSize[2]})
 fn main(
   @builtin(local_invocation_index) lid : u32,
@@ -390,7 +414,13 @@ fn main(
   metadata.id[lid] = id;
   metadata.size[lid] = subgroupSize;
 
-  output[lid] = ${broadcast};
+  // subgroup_invocation_id is dense in compute shaders
+  let realSize = ballotSize();
+  if ${t.params.id} < realSize {
+    output[lid] = ${broadcast};
+  } else {
+    output[lid] = ${kUnattemptedBroadcast}u | realSize;
+  }
 }`;
 
   const inputData = new Uint32Array([...iterRange(wgThreads, (x) => x)]);
@@ -425,7 +455,7 @@ filter((t) => {
   return t.predicate !== 'upper_half';
 }).
 beginSubcases().
-combine('id', [0, 1, 2, 3]).
+combine('id', [0, 1, 2, 3, 7, 13, 25, 46]).
 combine('wgSize', kWGSizes)
 ).
 fn(async (t) => {
@@ -465,6 +495,12 @@ var<storage, read_write> output : array<u32>;
 @group(0) @binding(2)
 var<storage, read_write> metadata: Metadata;
 
+fn ballotSize() -> u32 {
+  let b = subgroupBallot(true);
+  let count = countOneBits(b);
+  return count.x + count.y + count.z + count.w;
+}
+
 @compute @workgroup_size(${t.params.wgSize[0]}, ${t.params.wgSize[1]}, ${t.params.wgSize[2]})
 fn main(
   @builtin(local_invocation_index) lid : u32,
@@ -474,10 +510,16 @@ fn main(
   metadata.id[lid] = id;
   metadata.size[lid] = subgroupSize;
 
-  if ${testcase.cond} {
-    output[lid] = ${broadcast};
+  // subgroup_invocation_id is dense in compute shaders
+  let realSize = ballotSize();
+  if ${t.params.id} < realSize {
+    if ${testcase.cond} {
+      output[lid] = ${broadcast};
+    } else {
+      return;
+    }
   } else {
-    return;
+    output[lid] = ${kUnattemptedBroadcast}u | realSize;
   }
 }`;
 

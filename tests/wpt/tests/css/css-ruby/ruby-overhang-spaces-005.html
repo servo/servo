@@ -10,6 +10,7 @@ ruby {
     ruby-align: center;
 }
 div {
+    font-size: 20px;
     border-left: 5px solid;
     border-right: 5px solid;
     width: max-content;
@@ -17,6 +18,8 @@ div {
 .test { border-color: orange; }
 .measure { border-color: blue; }
 </style>
+<body lang="ja">
 <p>Test passes if orange and blue lines are aligned.
 <div class=test>あ・<ruby>あ<rt>あああああああ</ruby>・あ</div>
 <div class=measure>あ・　あ　・あ</div>
+</body>

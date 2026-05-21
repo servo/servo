@@ -7,11 +7,12 @@ use std::fs::File;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
-use std::{fs, io};
+use std::{fs, io, thread};
 
 use log::{debug, error, warn};
 use read_fonts::FileRef::{Collection, Font as OHOS_Font};
 use read_fonts::{FileRef, FontRef, TableProvider};
+use serde::{Deserialize, Serialize};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -20,6 +21,9 @@ use style::values::computed::{
 };
 use unicode_script::Script;
 
+use crate::platform::freetype::ohos::font_cache::{
+    font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk_wrapper,
+};
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
@@ -36,7 +40,7 @@ static OHOS_FONTS_DIR: &str = env!("OHOS_SDK_FONTS_DIR");
 #[cfg(not(ohos_mock))]
 static OHOS_FONTS_DIR: &str = "/system/fonts";
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 // HarmonyOS only comes in Condensed and Normal variants
 enum FontWidth {
     Condensed,
@@ -53,7 +57,7 @@ impl From<FontWidth> for StyleFontStretch {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Font {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
@@ -63,19 +67,21 @@ struct Font {
     width: FontWidth,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontFamily {
     name: String,
     fonts: Vec<Font>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontAlias {
     from: String,
     to: String,
     weight: Option<i32>,
 }
 
-struct FontList {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(super) struct FontList {
     families: Vec<FontFamily>,
     aliases: Vec<FontAlias>,
 }
@@ -110,7 +116,7 @@ fn detect_hos_font_style(font: &FontRef, file_path: &str) -> Option<String> {
             panic!("Failed to read {:?}'s postscript table!", file_path);
         })
         .italic_angle() !=
-        (0 as i32).into()
+        (0_i32).into()
     {
         Some("italic".to_string())
     } else {
@@ -134,10 +140,10 @@ fn detect_hos_font_width(font: &FontRef) -> FontWidth {
     // and we simply return `FontWidth::Normal` as a default.
     match font.os2() {
         Ok(result) => {
-            let font_width = result.us_width_class().clone();
+            let font_width = result.us_width_class();
             // According to https://learn.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass,
             // value between 1 & 4 inclusive represents condensed type.
-            if font_width >= 1 && font_width <= 4 {
+            if (1..=4).contains(&font_width) {
                 FontWidth::Condensed
             } else {
                 FontWidth::Normal
@@ -182,7 +188,7 @@ fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
         match file_ref {
             OHOS_Font(font) => {
-                if let Some(result) = get_family_name_and_generate_font_struct(&font, &font_file) {
+                if let Some(result) = get_family_name_and_generate_font_struct(&font, font_file) {
                     all_families.push(result);
                 }
             },
@@ -190,7 +196,7 @@ fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
                 // Process all the font files within the collection one by one.
                 for f in font_collection.iter() {
                     if let Some(result) =
-                        get_family_name_and_generate_font_struct(&(f.unwrap()), &font_file)
+                        get_family_name_and_generate_font_struct(&(f.unwrap()), font_file)
                     {
                         all_families.push(result);
                     };
@@ -215,12 +221,10 @@ fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
 fn get_family_name_and_generate_font_struct(
     font_ref: &FontRef,
-    file_path: &PathBuf,
+    file_path: &Path,
 ) -> Option<(String, Font)> {
     // Parse the file path to string. If this fails, then skip this font.
-    let Some(file_path_string_slice) = file_path.to_str() else {
-        return None;
-    };
+    let file_path_string_slice = file_path.to_str()?;
     let file_path_str = file_path_string_slice.to_string();
 
     // Obtain the font's styling
@@ -230,10 +234,8 @@ fn get_family_name_and_generate_font_struct(
 
     // Get the family name via the name table. According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
     // the name table is a mandatory table. Therefore, if Fontations fails to read this table for whatever reason, return `None` to skip this font altogether.
-    let Ok(font_name_table) = font_ref.name() else {
-        return None;
-    };
-    let Some(family_name) = font_name_table
+    let font_name_table = font_ref.name().ok()?;
+    let family_name = font_name_table
         .name_record()
         .iter()
         .filter(|record| record.name_id().to_u16() == 1) // According to the reference manual, name identifier code (nameID) `1` is the font family name.
@@ -242,10 +244,7 @@ fn get_family_name_and_generate_font_struct(
                 .string(font_name_table.string_data())
                 .ok()
                 .map(|s| s.to_string())
-        })
-    else {
-        return None;
-    };
+        })?;
 
     let font = Font {
         filepath: file_path_str,
@@ -258,10 +257,26 @@ fn get_family_name_and_generate_font_struct(
 
 impl FontList {
     fn new() -> FontList {
-        FontList {
-            families: Self::detect_installed_font_families(),
-            aliases: Self::fallback_font_aliases(),
+        if !font_file_cached_on_disk() {
+            let font_list = FontList {
+                families: Self::detect_installed_font_families(),
+                aliases: Self::fallback_font_aliases(),
+            };
+
+            let font_list_clone = font_list.clone();
+            thread::spawn(move || serialize_and_write_to_disk_wrapper(font_list_clone));
+            return font_list;
         }
+
+        read_from_disk().unwrap_or_else(|e| {
+            error!("Servo failed to read cached FontList from disk: {:?}", e);
+
+            // Since reading from disk failed, we have no choice but to generate the FontList...
+            FontList {
+                families: Self::detect_installed_font_families(),
+                aliases: Self::fallback_font_aliases(),
+            }
+        })
     }
 
     /// Detect available fonts or fallback to a hardcoded list
@@ -441,14 +456,14 @@ where
         return;
     }
 
-    if let Some(alias) = FONT_LIST.find_alias(family_name) {
-        if let Some(family) = FONT_LIST.find_family(&alias.to) {
-            for font in &family.fonts {
-                match (alias.weight, font.weight) {
-                    (None, _) => produce_font(font),
-                    (Some(w1), Some(w2)) if w1 == w2 => produce_font(font),
-                    _ => {},
-                }
+    if let Some(alias) = FONT_LIST.find_alias(family_name) &&
+        let Some(family) = FONT_LIST.find_family(&alias.to)
+    {
+        for font in &family.fonts {
+            match (alias.weight, font.weight) {
+                (None, _) => produce_font(font),
+                (Some(w1), Some(w2)) if w1 == w2 => produce_font(font),
+                _ => {},
             }
         }
     }

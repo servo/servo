@@ -35,8 +35,8 @@ pub enum NetToEmbedderMsg {
         bool, /* for proxy */
         TokioOneshotSender<Option<AuthenticationResponse>>,
     ),
-    /// Response to a [`CoreResourceMsg::EmbedderGetCookiesForUrl`] request.
-    EmbedderGetCookiesForUrlResponse(CookieOperationId, Vec<Cookie<'static>>),
-    /// Response to a [`CoreResourceMsg::EmbedderSetCookieForUrl`] request.
-    EmbedderSetCookieForUrlResponse(CookieOperationId),
+    /// Response to an asynchronous request from SiteDataManager with cookies result.
+    EmbedderCookieOperationResponseWithCookies(CookieOperationId, Vec<Cookie<'static>>),
+    /// Response to an asynchronous request from SiteDataManager.
+    EmbedderCookieOperationResponse(CookieOperationId),
 }

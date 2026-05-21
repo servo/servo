@@ -224,5 +224,5 @@ fn parse_size(input: &DOMString) -> AttrValue {
     value = value.clamp(1, 7);
 
     // Step 12
-    AttrValue::UInt(original_input.str().into(), value as u32)
+    AttrValue::UInt(String::from(original_input.str()).into(), value as u32)
 }

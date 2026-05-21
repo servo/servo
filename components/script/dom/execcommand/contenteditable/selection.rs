@@ -10,7 +10,6 @@ use script_bindings::inheritance::Castable;
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
@@ -68,20 +67,21 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
         }
         // Step 2. If offset is 0, and node's parent is not null, and node is an inline node,
         // return (node's parent, node's index).
-        if *offset == 0 && node.is_inline_node() {
-            if let Some(parent) = node.GetParentNode() {
-                return Some((parent, node.index()));
-            }
+        if *offset == 0 &&
+            node.is_inline_node() &&
+            let Some(parent) = node.GetParentNode()
+        {
+            return Some((parent, node.index()));
         }
         // Step 3. If node has a child with index offset − 1, and that child's length is not zero,
         // and that child is an inline node, return (that child, that child's length).
-        if *offset > 0 {
-            if let Some(child) = node.children().nth(*offset as usize - 1) {
-                if !child.is_empty() && child.is_inline_node() {
-                    let len = child.len();
-                    return Some((child, len));
-                }
-            }
+        if *offset > 0 &&
+            let Some(child) = node.children().nth(*offset as usize - 1) &&
+            !child.is_empty() &&
+            child.is_inline_node()
+        {
+            let len = child.len();
+            return Some((child, len));
         }
 
         // Step 4. Return null.
@@ -103,10 +103,11 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
 
         // Step 3. If offset is node's length, and node's parent is not null, and node is an inline node,
         // return (node's parent, 1 + node's index).
-        if *offset == len && node.is_inline_node() {
-            if let Some(parent) = node.GetParentNode() {
-                return Some((parent, node.index() + 1));
-            }
+        if *offset == len &&
+            node.is_inline_node() &&
+            let Some(parent) = node.GetParentNode()
+        {
+            return Some((parent, node.index() + 1));
         }
 
         // Step 4.
@@ -115,10 +116,11 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
 
         // Step 5. If node has a child with index offset, and that child's length is not zero,
         // and that child is an inline node, return (that child, 0).
-        if let Some(child) = node.children().nth(*offset as usize) {
-            if !child.is_empty() && child.is_inline_node() {
-                return Some((child, 0));
-            }
+        if let Some(child) = node.children().nth(*offset as usize) &&
+            !child.is_empty() &&
+            child.is_inline_node()
+        {
+            return Some((child, 0));
         }
 
         // Step 6.
@@ -196,14 +198,16 @@ impl Selection {
         {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(cx).is_err() {
-                    unreachable!("Should be able to collapse to start");
-                }
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
             } else {
                 // Step 6.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(cx).is_err() {
-                    unreachable!("Should be able to collapse to end");
-                }
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
             }
             // Step 6.3. Abort these steps.
             return;
@@ -226,35 +230,27 @@ impl Selection {
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
-        if self.Collapse(cx, Some(&start_node), start_offset).is_err() {
-            unreachable!("Must always be able to collapse");
-        }
+        self.collapse_current_range(&start_node, start_offset);
 
         // Step 10. Call extend(end node, end offset) on the context object's selection.
-        if self.Extend(cx, &end_node, end_offset).is_err() {
-            unreachable!("Must always be able to extend");
-        }
+        self.extend_current_range(&end_node, end_offset);
 
         // Step 11.
         //
         // This step does not exist in the spec
 
         // Step 12. Let start block be the active range's start node.
-        let Some(active_range) = self.active_range() else {
-            return;
-        };
         let mut start_block = active_range.start_container();
 
         // Step 13. While start block's parent is in the same editing host and start block is an inline node,
         // set start block to its parent.
         loop {
-            if start_block.is_inline_node() {
-                if let Some(parent) = start_block.GetParentNode() {
-                    if parent.same_editing_host(&start_node) {
-                        start_block = parent;
-                        continue;
-                    }
-                }
+            if start_block.is_inline_node() &&
+                let Some(parent) = start_block.GetParentNode() &&
+                parent.same_editing_host(&start_node)
+            {
+                start_block = parent;
+                continue;
             }
             break;
         }
@@ -279,13 +275,12 @@ impl Selection {
 
         // Step 16. While end block's parent is in the same editing host and end block is an inline node, set end block to its parent.
         loop {
-            if end_block.is_inline_node() {
-                if let Some(parent) = end_block.GetParentNode() {
-                    if parent.same_editing_host(&end_block) {
-                        end_block = parent;
-                        continue;
-                    }
-                }
+            if end_block.is_inline_node() &&
+                let Some(parent) = end_block.GetParentNode() &&
+                parent.same_editing_host(&end_block)
+            {
+                end_block = parent;
+                continue;
             }
             break;
         }
@@ -316,49 +311,50 @@ impl Selection {
         // This step does not exist in the spec
 
         // Step 21. If start node and end node are the same, and start node is an editable Text node:
-        if start_node == end_node && start_node.is_editable() {
-            if let Some(start_text) = start_node.downcast::<Text>() {
-                // Step 21.1. Call deleteData(start offset, end offset − start offset) on start node.
-                if start_text
-                    .upcast::<CharacterData>()
-                    .DeleteData(start_offset, end_offset - start_offset)
-                    .is_err()
-                {
-                    unreachable!("Must always be able to delete");
-                }
-                // Step 21.2. Canonicalize whitespace at (start node, start offset), with fix collapsed space false.
-                start_node.canonicalize_whitespace(start_offset, false);
-                // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
-                if direction == SelectionDeleteDirection::Forward {
-                    if self.CollapseToStart(cx).is_err() {
-                        unreachable!("Should be able to collapse to start");
-                    }
-                } else {
-                    // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
-                    if self.CollapseToEnd(cx).is_err() {
-                        unreachable!("Should be able to collapse to end");
-                    }
-                }
-                // Step 21.5. Restore states and values from overrides.
-                active_range.restore_states_and_values(cx, self, context_object, overrides);
-
-                // Step 21.6. Abort these steps.
-                return;
+        if start_node == end_node &&
+            start_node.is_editable() &&
+            let Some(start_text) = start_node.downcast::<Text>()
+        {
+            // Step 21.1. Call deleteData(start offset, end offset − start offset) on start node.
+            if start_text
+                .upcast::<CharacterData>()
+                .DeleteData(start_offset, end_offset - start_offset)
+                .is_err()
+            {
+                unreachable!("Must always be able to delete");
             }
+            // Step 21.2. Canonicalize whitespace at (start node, start offset), with fix collapsed space false.
+            start_node.canonicalize_whitespace(start_offset, false);
+            // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
+            if direction == SelectionDeleteDirection::Forward {
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
+            } else {
+                // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
+            }
+            // Step 21.5. Restore states and values from overrides.
+            active_range.restore_states_and_values(cx, self, context_object, overrides);
+
+            // Step 21.6. Abort these steps.
+            return;
         }
 
         // Step 22. If start node is an editable Text node, call deleteData() on it, with start offset as
         // the first argument and (length of start node − start offset) as the second argument.
-        if start_node.is_editable() {
-            if let Some(start_text) = start_node.downcast::<Text>() {
-                if start_text
-                    .upcast::<CharacterData>()
-                    .DeleteData(start_offset, start_node.len() - start_offset)
-                    .is_err()
-                {
-                    unreachable!("Must always be able to delete");
-                }
-            }
+        if start_node.is_editable() &&
+            let Some(start_text) = start_node.downcast::<Text>() &&
+            start_text
+                .upcast::<CharacterData>()
+                .DeleteData(start_offset, start_node.len() - start_offset)
+                .is_err()
+        {
+            unreachable!("Must always be able to delete");
         }
 
         // Step 23. Let node list be a list of nodes, initially empty.
@@ -434,16 +430,14 @@ impl Selection {
         }
 
         // Step 26. If end node is an editable Text node, call deleteData(0, end offset) on it.
-        if end_node.is_editable() {
-            if let Some(end_text) = end_node.downcast::<Text>() {
-                if end_text
-                    .upcast::<CharacterData>()
-                    .DeleteData(0, end_offset)
-                    .is_err()
-                {
-                    unreachable!("Must always be able to delete");
-                }
-            }
+        if end_node.is_editable() &&
+            let Some(end_text) = end_node.downcast::<Text>() &&
+            end_text
+                .upcast::<CharacterData>()
+                .DeleteData(0, end_offset)
+                .is_err()
+        {
+            unreachable!("Must always be able to delete");
         }
 
         // Step 27. Canonicalize whitespace at the active range's start, with fix collapsed space false.
@@ -471,14 +465,16 @@ impl Selection {
         {
             // Step 30.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(cx).is_err() {
-                    unreachable!("Should be able to collapse to start");
-                }
+                self.collapse_current_range(
+                    &active_range.start_container(),
+                    active_range.start_offset(),
+                );
             } else {
                 // Step 30.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(cx).is_err() {
-                    unreachable!("Should be able to collapse to end");
-                }
+                self.collapse_current_range(
+                    &active_range.end_container(),
+                    active_range.end_offset(),
+                );
             }
             // Step 30.3. Restore states and values from overrides.
             active_range.restore_states_and_values(cx, self, context_object, overrides);
@@ -519,12 +515,7 @@ impl Selection {
             }
             // Step 32.3. Call collapse() on the context object's selection,
             // with first argument start block and second argument the index of reference node.
-            if self
-                .Collapse(cx, Some(&start_block), reference_node.index())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, reference_node.index());
             // Step 32.4. If end block has no children:
             if end_block.children_count() == 0 {
                 let mut end_block = end_block;
@@ -532,16 +523,14 @@ impl Selection {
                 // let parent equal end block, then remove end block from parent, then set end block to parent.
                 loop {
                     if end_block.is_editable() &&
-                        start_block.children().all(|child| child != end_block)
+                        start_block.children().all(|child| child != end_block) &&
+                        let Some(parent) = end_block.GetParentNode() &&
+                        parent.children_count() == 1
                     {
-                        if let Some(parent) = end_block.GetParentNode() {
-                            if parent.children_count() == 1 {
-                                assert!(end_block.has_parent());
-                                end_block.remove_self(cx);
-                                end_block = parent;
-                                continue;
-                            }
-                        }
+                        assert!(end_block.has_parent());
+                        end_block.remove_self(cx);
+                        end_block = parent;
+                        continue;
                     }
                     break;
                 }
@@ -552,21 +541,19 @@ impl Selection {
                     !end_block.is_inline_node() &&
                     end_block
                         .GetPreviousSibling()
-                        .is_some_and(|previous| previous.is_inline_node())
+                        .is_some_and(|previous| previous.is_inline_node()) &&
+                    let Some(next_of_end_block) = end_block.GetNextSibling() &&
+                    next_of_end_block.is_inline_node()
                 {
-                    if let Some(next_of_end_block) = end_block.GetNextSibling() {
-                        if next_of_end_block.is_inline_node() {
-                            let br = context_object.create_element(cx, "br");
-                            let parent = end_block
-                                .GetParentNode()
-                                .expect("Must always have a parent");
-                            if parent
-                                .InsertBefore(cx, br.upcast(), Some(&next_of_end_block))
-                                .is_err()
-                            {
-                                unreachable!("Must always be able to insert into parent");
-                            }
-                        }
+                    let br = context_object.create_element(cx, "br");
+                    let parent = end_block
+                        .GetParentNode()
+                        .expect("Must always have a parent");
+                    if parent
+                        .InsertBefore(cx, br.upcast(), Some(&next_of_end_block))
+                        .is_err()
+                    {
+                        unreachable!("Must always be able to insert into parent");
                     }
                 }
                 // Step 32.4.3. If end block is editable, remove it from its parent.
@@ -628,13 +615,13 @@ impl Selection {
             }
             // Step 32.11. If children's first member's previousSibling is an editable br,
             // remove that br from its parent.
-            if let Some(first) = children.first() {
-                if let Some(previous_of_first) = first.GetPreviousSibling() {
-                    if previous_of_first.is_editable() && previous_of_first.is::<HTMLBRElement>() {
-                        assert!(previous_of_first.has_parent());
-                        previous_of_first.remove_self(cx);
-                    }
-                }
+            if let Some(first) = children.first() &&
+                let Some(previous_of_first) = first.GetPreviousSibling() &&
+                previous_of_first.is_editable() &&
+                previous_of_first.is::<HTMLBRElement>()
+            {
+                assert!(previous_of_first.has_parent());
+                previous_of_first.remove_self(cx);
             }
 
             values
@@ -642,21 +629,16 @@ impl Selection {
         } else if end_block.is_ancestor_of(&start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            if self
-                .Collapse(cx, Some(&start_block), start_block.len())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, start_block.len());
             // Step 33.2. Let reference node be start block.
             let mut reference_node = start_block.clone();
             // Step 33.3. While reference node is not a child of end block, set reference node to its parent.
             loop {
-                if end_block.children().all(|child| child != reference_node) {
-                    if let Some(parent) = reference_node.GetParentNode() {
-                        reference_node = parent;
-                        continue;
-                    }
+                if end_block.children().all(|child| child != reference_node) &&
+                    let Some(parent) = reference_node.GetParentNode()
+                {
+                    reference_node = parent;
+                    continue;
                 }
                 break;
             }
@@ -664,37 +646,33 @@ impl Selection {
             // remove start block's lastChild from it.
             if reference_node
                 .GetNextSibling()
-                .is_some_and(|next| next.is_inline_node())
+                .is_some_and(|next| next.is_inline_node()) &&
+                let Some(last) = start_block.children().last() &&
+                last.is::<HTMLBRElement>()
             {
-                if let Some(last) = start_block.children().last() {
-                    if last.is::<HTMLBRElement>() {
-                        assert!(last.has_parent());
-                        last.remove_self(cx);
-                    }
-                }
+                assert!(last.has_parent());
+                last.remove_self(cx);
             }
             // Step 33.5. Let nodes to move be a list of nodes, initially empty.
             rooted_vec!(let mut nodes_to_move);
             // Step 33.6. If reference node's nextSibling is neither null nor a block node,
             // append it to nodes to move.
-            if let Some(next) = reference_node.GetNextSibling() {
-                if !next.is_block_node() {
-                    nodes_to_move.push(next);
-                }
+            if let Some(next) = reference_node.GetNextSibling() &&
+                !next.is_block_node()
+            {
+                nodes_to_move.push(next);
             }
             // Step 33.7. While nodes to move is nonempty and its last member isn't a br
             // and its last member's nextSibling is neither null nor a block node,
             // append its last member's nextSibling to nodes to move.
             loop {
-                if let Some(last) = nodes_to_move.last() {
-                    if !last.is::<HTMLBRElement>() {
-                        if let Some(next_of_last) = last.GetNextSibling() {
-                            if !next_of_last.is_block_node() {
-                                nodes_to_move.push(next_of_last);
-                                continue;
-                            }
-                        }
-                    }
+                if let Some(last) = nodes_to_move.last() &&
+                    !last.is::<HTMLBRElement>() &&
+                    let Some(next_of_last) = last.GetNextSibling() &&
+                    !next_of_last.is_block_node()
+                {
+                    nodes_to_move.push(next_of_last);
+                    continue;
                 }
                 break;
             }
@@ -712,25 +690,18 @@ impl Selection {
         } else {
             // Step 34.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            if self
-                .Collapse(cx, Some(&start_block), start_block.len())
-                .is_err()
-            {
-                unreachable!("Must always be able to collapse");
-            }
+            self.collapse_current_range(&start_block, start_block.len());
             // Step 34.2. If end block's firstChild is an inline node and start block's lastChild is a br,
             // remove start block's lastChild from it.
             if end_block
                 .children()
                 .nth(0)
-                .is_some_and(|next| next.is_inline_node())
+                .is_some_and(|next| next.is_inline_node()) &&
+                let Some(last) = start_block.children().last() &&
+                last.is::<HTMLBRElement>()
             {
-                if let Some(last) = start_block.children().last() {
-                    if last.is::<HTMLBRElement>() {
-                        assert!(last.has_parent());
-                        last.remove_self(cx);
-                    }
-                }
+                assert!(last.has_parent());
+                last.remove_self(cx);
             }
             // Step 34.3. Record the values of end block's children, and let values be the result.
             let values = record_the_values(end_block.children().collect());
@@ -751,13 +722,13 @@ impl Selection {
             // then set end block to parent.
             let mut end_block = end_block;
             loop {
-                if end_block.children_count() == 0 {
-                    if let Some(parent) = end_block.GetParentNode() {
-                        assert!(end_block.has_parent());
-                        end_block.remove_self(cx);
-                        end_block = parent;
-                        continue;
-                    }
+                if end_block.children_count() == 0 &&
+                    let Some(parent) = end_block.GetParentNode()
+                {
+                    assert!(end_block.has_parent());
+                    end_block.remove_self(cx);
+                    end_block = parent;
+                    continue;
                 }
                 break;
             }
@@ -845,13 +816,15 @@ impl Selection {
         // Then set the active range's start node to the result, and its start offset to zero.
         let start_node = active_range.start_container();
         let start_offset = active_range.start_offset();
-        if start_node.is_editable() && start_offset != 0 && start_offset != start_node.len() {
-            if let Some(start_text) = start_node.downcast::<Text>() {
-                let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
-                    unreachable!("Must always be able to split");
-                };
-                active_range.set_start(start_text.upcast(), 0);
-            }
+        if start_node.is_editable() &&
+            start_offset != 0 &&
+            start_offset != start_node.len() &&
+            let Some(start_text) = start_node.downcast::<Text>()
+        {
+            let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
+                unreachable!("Must always be able to split");
+            };
+            active_range.set_start(start_text.upcast(), 0);
         }
         // Step 4. If the active range's end node is an editable Text node,
         // and its end offset is neither zero nor its end node's length,
@@ -859,20 +832,21 @@ impl Selection {
         // with argument equal to the active range's end offset.
         let end_node = active_range.end_container();
         let end_offset = active_range.end_offset();
-        if end_node.is_editable() && end_offset != 0 && end_offset != end_node.len() {
-            if let Some(end_text) = end_node.downcast::<Text>() {
-                if end_text.SplitText(cx, end_offset).is_err() {
-                    unreachable!("Must always be able to split");
-                };
-            }
-        }
+        if end_node.is_editable() &&
+            end_offset != 0 &&
+            end_offset != end_node.len() &&
+            let Some(end_text) = end_node.downcast::<Text>() &&
+            end_text.SplitText(cx, end_offset).is_err()
+        {
+            unreachable!("Must always be able to split");
+        };
         // Step 5. Let element list be all editable Elements effectively contained in the active range.
         // Step 6. For each element in element list, clear the value of element.
         active_range.for_each_effectively_contained_child(|child| {
-            if child.is_editable() {
-                if let Some(element_child) = child.downcast::<HTMLElement>() {
-                    element_child.clear_the_value(cx, &command);
-                }
+            if child.is_editable() &&
+                let Some(element_child) = child.downcast::<HTMLElement>()
+            {
+                element_child.clear_the_value(cx, &command);
             }
         });
         // Step 7. Let node list be all editable nodes effectively contained in the active range.

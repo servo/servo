@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>attr() with SVG attributes</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="/css/css-content/attr-case-sensitivity-ref-004.html">
+<meta name="assert" content="This test checks that SVG attribute names specified in the attr() function are case-sensitive.">
+<style>
+    svg { width: 100px; height: 100px; }
+    #casematch { background-color: attr(testCase type(<color>), white); }
+    #lowercase { background-color: attr(testcase type(<color>), white); }
+</style>
+<svg id="casematch"></svg>
+<svg id="lowercase"></svg>
+<script>
+    document.getElementById("casematch").setAttribute("testCase", "red");
+    document.getElementById("lowercase").setAttribute("testCase", "green");
+</script>

@@ -21,6 +21,7 @@ pub use self::android::font_list;
 
 #[cfg(any(target_env = "ohos", ohos_mock))]
 mod ohos {
+    mod font_cache;
     pub mod font_list;
 }
 #[cfg(any(target_env = "ohos", ohos_mock))]

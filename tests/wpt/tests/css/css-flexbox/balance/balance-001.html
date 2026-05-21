@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-balance">
+<link rel="match" href="balance-001-ref.html">
+<meta name="assert" content="Tests balancing of four items, which would typically wrap 3,1">
+<style>
+body {
+  width: 120px;
+  border: solid 3px;
+}
+#flex {
+  display: flex;
+  flex-wrap: balance;
+  padding: 10px;
+  gap: 10px;
+}
+#flex > div {
+  width: 25px;
+  height: 25px;
+  background: green;
+}
+</style>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

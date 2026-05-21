@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_constellation_traits::BroadcastChannelMsg;
 use uuid::Uuid;
 
@@ -19,7 +19,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct BroadcastChannel {
@@ -32,16 +31,16 @@ pub(crate) struct BroadcastChannel {
 
 impl BroadcastChannel {
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         name: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<BroadcastChannel> {
-        let channel = reflect_dom_object_with_proto(
+        let channel = reflect_dom_object_with_proto_and_cx(
             Box::new(BroadcastChannel::new_inherited(name)),
             global,
             proto,
-            can_gc,
+            cx,
         );
         global.track_broadcast_channel(&channel);
         channel
@@ -71,12 +70,12 @@ impl BroadcastChannel {
 impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
     /// <https://html.spec.whatwg.org/multipage/#broadcastchannel>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         name: DOMString,
     ) -> DomRoot<BroadcastChannel> {
-        BroadcastChannel::new(global, proto, name, can_gc)
+        BroadcastChannel::new(cx, global, proto, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -87,7 +86,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
         }
 
         // Step 6, StructuredSerialize(message).
-        let data = structuredclone::write(cx.into(), message, None)?;
+        let data = structuredclone::write(cx, message, None)?;
 
         let global = self.global();
 

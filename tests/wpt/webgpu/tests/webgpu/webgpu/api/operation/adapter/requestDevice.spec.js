@@ -8,7 +8,7 @@ potentially limited native resources.
 `;import { Fixture } from '../../../../common/framework/fixture.js';
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
-import { assert, assertReject, typedEntries } from '../../../../common/util/util.js';
+import { assert, assertReject, hasFeature, typedEntries } from '../../../../common/util/util.js';
 import {
   getDefaultLimitsForCTS,
   kFeatureNames,
@@ -44,7 +44,7 @@ fn(async (t) => {
 
   if (device.features.size === 1) {
     t.expect(
-      device.features.has('core-features-and-limits'),
+      hasFeature(device.features, 'core-features-and-limits'),
       'Default device should not have any features other than "core-features-and-limits"'
     );
   } else {
@@ -204,9 +204,9 @@ fn(async (t) => {
   assert(adapter !== null);
 
   const promise = t.requestDeviceTracked(adapter, { requiredFeatures: [feature] });
-  if (adapter.features.has(feature)) {
+  if (hasFeature(adapter.features, feature)) {
     const device = await promise;
-    t.expect(device.features.has(feature), 'Device should include the required feature');
+    t.expect(hasFeature(device.features, feature), 'Device should include the required feature');
   } else {
     t.shouldReject('TypeError', promise);
   }
@@ -258,8 +258,6 @@ fn(async (t) => {
   assert(adapter !== null);
 
   const limitInfo = getDefaultLimitsForCTS()[limit];
-  // MAINTENANCE_TODO: Remove this skip when compatibility limits are merged into spec.
-  t.skipIf(limitInfo === undefined, 'limit is currently compatibility only');
   let value = -1;
   let result = -1;
   switch (limitValue) {
@@ -278,6 +276,20 @@ fn(async (t) => {
   }
 
   const requiredLimits = { [limit]: value };
+
+  if (
+  limit === 'maxStorageBuffersInFragmentStage' ||
+  limit === 'maxStorageBuffersInVertexStage')
+  {
+    requiredLimits['maxStorageBuffersPerShaderStage'] = value;
+  }
+
+  if (
+  limit === 'maxStorageTexturesInFragmentStage' ||
+  limit === 'maxStorageTexturesInVertexStage')
+  {
+    requiredLimits['maxStorageTexturesPerShaderStage'] = value;
+  }
 
   const device = await t.requestDeviceTracked(adapter, { requiredLimits });
   assert(device !== null);
@@ -323,8 +335,6 @@ fn(async (t) => {
   assert(adapter !== null);
 
   const limitInfo = getDefaultLimitsForCTS();
-  // MAINTENANCE_TODO: Remove this skip when compatibility limits are merged into spec.
-  t.skipIf(limitInfo[limit] === undefined, 'limit is currently compatibility only');
   const value = adapter.limits[limit] * mul + add;
   const requiredLimits = {
     [limit]: clamp(value, { min: 0, max: limitInfo[limit].maximumValue })
@@ -371,9 +381,6 @@ fn(async (t) => {
   const adapter = await gpu.requestAdapter();
   assert(adapter !== null);
   const limitInfo = getDefaultLimitsForCTS()[limit];
-  // MAINTENANCE_TODO: Remove this skip when compatibility limits are merged into spec.
-  t.skipIf(limitInfo === undefined, 'limit is currently compatibility only');
-
   const requiredLimits = {
     [limit]: value
   };
@@ -431,9 +438,6 @@ fn(async (t) => {
   assert(adapter !== null);
 
   const limitInfo = getDefaultLimitsForCTS()[limit];
-  // MAINTENANCE_TODO: Remove this skip when compatibility limits are merged into spec.
-  t.skipIf(limitInfo === undefined, 'limit is currently compatibility only');
-
   const value = limitInfo.default * mul + add;
   const requiredLimits = {
     [limit]: clamp(value, { min: 0, max: limitInfo.maximumValue })
@@ -496,12 +500,12 @@ fn(async (t) => {
     const device = await t.requestDeviceTracked(adapter);
     assert(device instanceof GPUDevice, 'requestDevice must return a device or throw');
 
-    if (featureLevel === 'core' && adapter.features.has('core-features-and-limits')) {
+    if (featureLevel === 'core' && hasFeature(adapter.features, 'core-features-and-limits')) {
       // Check if the device supports core, when featureLevel is core and adapter supports core.
       // This check is to make sure something lower-level is not forcing compatibility mode.
 
       t.expect(
-        device.features.has('core-features-and-limits'),
+        hasFeature(device.features, 'core-features-and-limits'),
         'must not get a Compatibility adapter if not requested'
       );
     }

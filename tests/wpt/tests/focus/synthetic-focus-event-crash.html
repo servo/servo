@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="assert" href="Synthetic focus events sent to form controls should not cause a crash">
+<link rel="help" href="https://github.com/servo/servo/issues/44865">
+
+<input id="input">
+<textarea id="textarea"></textarea>
+
+<script>
+  let event = document.createEvent("FocusEvent");
+  event.initEvent('', true);
+  input.dispatchEvent(event);
+
+  let event2 = document.createEvent("FocusEvent");
+  event2.initEvent('', true);
+  textarea.dispatchEvent(event2);
+</script>
+

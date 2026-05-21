@@ -1,12 +1,12 @@
 // Some user agents only offer app installation if there is a SW and it handles
 // offline requests.
 
-const cacheVersion = "1.2";
+const cacheVersion = "1.3";
 const CACHE_NAME = `cache-v${cacheVersion}`;
 
 // The resources cached by this service worker.
 const resources = [
-  "display-override-member-app-region-window-controls-overlay-manual.tentative.html",
+  "display-override-member-window-drag-window-controls-overlay-manual.tentative.html",
   "display-override-member-css-environment-variables-window-controls-overlay-manual.tentative.html",
   "display-override-member-media-feature-browser-manual.tentative.html",
   "display-override-member-media-feature-fullscreen-manual.tentative.html",

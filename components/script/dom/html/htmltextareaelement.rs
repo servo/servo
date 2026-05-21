@@ -191,8 +191,6 @@ impl HTMLTextAreaElement {
                     }),
                     None,
                 );
-        } else {
-            unreachable!("Got unexpected FocusEvent {event_type:?}");
         }
 
         // Focus changes can activate or deactivate a selection.

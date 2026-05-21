@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<title>:active pseudo-class works properly when triggering a layout that changes the target's position</title>
+<link rel="help" href="https://github.com/servo/servo/issues/43862">
+<meta name="author" title="Martin Robinson" href="mailto:martin@abandonedwig.info">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+    #target {
+        width: 100px;
+        height: 100px;
+        position: relative;
+        background: black;
+    }
+
+    #target:active {
+        left: 100px;
+        height: 100px;
+        background: green;
+    }
+</style>
+
+<div id="target"></div>
+
+<script>
+promise_test(async t => {
+    const target = document.getElementById("target");
+
+    const event_watcher = new EventWatcher(t, document.body, ["mousedown", "mouseup"]);
+    let eventPromise1 = event_watcher.wait_for(["mousedown"]);
+    await new test_driver.Actions()
+        .pointerMove(5, 5, { origin: target })
+        .pointerDown()
+        .send();
+    await eventPromise1;
+    assert_true(target.matches(":active"));
+
+    const eventPromise2 = event_watcher.wait_for(["mouseup"]);
+    await new test_driver.Actions()
+        .pointerUp()
+        .send();
+    await eventPromise2;
+    assert_false(target.matches(":active"));
+});
+</script>

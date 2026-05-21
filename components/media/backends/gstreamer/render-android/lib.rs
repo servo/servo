@@ -51,14 +51,11 @@ impl RenderAndroid {
     ///
     /// # Arguments
     ///
-    /// * `context` - is the PlayerContext trait object from
-    /// application.
+    /// * `context` - is the PlayerContext trait object from application.
     pub fn new(app_gl_context: Box<dyn PlayerGLContext>) -> Option<RenderAndroid> {
         // Check that we actually have the elements that we
         // need to make this work.
-        if gstreamer::ElementFactory::find("glsinkbin").is_none() {
-            return None;
-        }
+        gstreamer::ElementFactory::find("glsinkbin")?;
 
         let display_native = app_gl_context.get_native_display();
         let gl_context = app_gl_context.get_gl_context();
@@ -75,7 +72,7 @@ impl RenderAndroid {
                 let display = match display_native {
                     NativeDisplay::Egl(display_native) => {
                         unsafe { gstreamer_gl_egl::GLDisplayEGL::with_egl_display(display_native) }
-                            .and_then(|display| Ok(display.upcast()))
+                            .map(|display| display.upcast())
                             .ok()
                     },
                     _ => None,
@@ -99,15 +96,12 @@ impl RenderAndroid {
             _ => (None, None),
         };
 
-        match wrapped_context {
-            Some(app_context) => Some(RenderAndroid {
-                display: display.unwrap(),
-                app_context,
-                gst_context: Arc::new(Mutex::new(None)),
-                gl_upload: Arc::new(Mutex::new(None)),
-            }),
-            _ => None,
-        }
+        wrapped_context.map(|app_context| RenderAndroid {
+            display: display.unwrap(),
+            app_context,
+            gst_context: Arc::new(Mutex::new(None)),
+            gl_upload: Arc::new(Mutex::new(None)),
+        })
     }
 }
 
@@ -118,10 +112,12 @@ impl Render for RenderAndroid {
 
     fn build_frame(&self, sample: gstreamer::Sample) -> Option<VideoFrame> {
         if self.gst_context.lock().unwrap().is_none() && self.gl_upload.lock().unwrap().is_some() {
-            *self.gst_context.lock().unwrap() = match self.gl_upload.lock().unwrap().as_ref() {
-                Some(glupload) => Some(glupload.property::<gstreamer_gl::GLContext>("context")),
-                _ => None,
-            };
+            *self.gst_context.lock().unwrap() = self
+                .gl_upload
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map(|glupload| glupload.property::<gstreamer_gl::GLContext>("context"));
         }
 
         let buffer = sample.buffer_owned()?;
@@ -142,24 +138,24 @@ impl Render for RenderAndroid {
 
         let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
 
-        if self.gst_context.lock().unwrap().is_some() {
-            if let Some(sync_meta) = buffer.meta::<gstreamer_gl::GLSyncMeta>() {
-                sync_meta.set_sync_point(self.gst_context.lock().unwrap().as_ref().unwrap());
-            }
+        if self.gst_context.lock().unwrap().is_some() &&
+            let Some(sync_meta) = buffer.meta::<gstreamer_gl::GLSyncMeta>()
+        {
+            sync_meta.set_sync_point(self.gst_context.lock().unwrap().as_ref().unwrap());
         }
 
         let frame = gstreamer_gl::GLVideoFrame::from_buffer_readable(buffer, &info).ok()?;
 
-        if self.gst_context.lock().unwrap().is_some() {
-            if let Some(sync_meta) = frame.buffer().meta::<gstreamer_gl::GLSyncMeta>() {
-                // This should possibly be
-                // sync_meta.wait(&self.app_context);
-                // since we want the main app thread to sync it's GPU pipeline too,
-                // but the main thread and the app context aren't managed by gstreamer,
-                // so we can't do that directly.
-                // https://github.com/servo/media/issues/309
-                sync_meta.wait(self.gst_context.lock().unwrap().as_ref().unwrap());
-            }
+        if self.gst_context.lock().unwrap().is_some() &&
+            let Some(sync_meta) = frame.buffer().meta::<gstreamer_gl::GLSyncMeta>()
+        {
+            // This should possibly be
+            // sync_meta.wait(&self.app_context);
+            // since we want the main app thread to sync it's GPU pipeline too,
+            // but the main thread and the app context aren't managed by gstreamer,
+            // so we can't do that directly.
+            // https://github.com/servo/media/issues/309
+            sync_meta.wait(self.gst_context.lock().unwrap().as_ref().unwrap());
         }
 
         VideoFrame::new(
@@ -195,7 +191,7 @@ impl Render for RenderAndroid {
 
         let vsinkbin = gstreamer::ElementFactory::make("glsinkbin")
             .name("servo-media-vsink")
-            .property("sink", &appsink)
+            .property("sink", appsink)
             .build()
             .map_err(|error| {
                 PlayerError::Backend(format!("glupload creation failed: {error:?}"))
@@ -207,28 +203,24 @@ impl Render for RenderAndroid {
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
-            match msg.view() {
-                gstreamer::MessageView::NeedContext(ctxt) => {
-                    if let Some(el) = msg
-                        .src()
-                        .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
+            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view() &&
+                let Some(el) = msg
+                    .src()
+                    .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
+            {
+                let context_type = ctxt.context_type();
+                if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
+                    let ctxt = gstreamer::Context::new(context_type, true);
+                    ctxt.set_gl_display(&display_);
+                    el.set_context(&ctxt);
+                } else if context_type == "gst.gl.app_context" {
+                    let mut ctxt = gstreamer::Context::new(context_type, true);
                     {
-                        let context_type = ctxt.context_type();
-                        if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
-                            let ctxt = gstreamer::Context::new(context_type, true);
-                            ctxt.set_gl_display(&display_);
-                            el.set_context(&ctxt);
-                        } else if context_type == "gst.gl.app_context" {
-                            let mut ctxt = gstreamer::Context::new(context_type, true);
-                            {
-                                let s = ctxt.get_mut().unwrap().structure_mut();
-                                s.set_value("context", context_.to_send_value());
-                            }
-                            el.set_context(&ctxt);
-                        }
+                        let s = ctxt.get_mut().unwrap().structure_mut();
+                        s.set_value("context", context_.to_send_value());
                     }
-                },
-                _ => (),
+                    el.set_context(&ctxt);
+                }
             }
 
             gstreamer::BusSyncReply::Pass

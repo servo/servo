@@ -189,10 +189,10 @@ impl IDBObjectStore {
 
         let result = (|| {
             // Step 3. Let serialized be ? StructuredSerializeForStorage(value).
-            let serialized = structuredclone::write(cx.into(), value, None)?;
+            let serialized = structuredclone::write(cx, value, None)?;
 
             // Step 4. Let clone be ? StructuredDeserialize(serialized, targetRealm).
-            let _ = structuredclone::read(&self.global(), serialized, clone, CanGc::from_cx(cx))?;
+            let _ = structuredclone::read(cx, &self.global(), serialized, clone)?;
             Ok(())
         })();
 
@@ -399,9 +399,9 @@ impl IDBObjectStore {
                     },
                 }
 
-                structuredclone::write(cx.into(), cloned_js_value.handle(), None)?
+                structuredclone::write(cx, cloned_js_value.handle(), None)?
             },
-            None => structuredclone::write(cx.into(), cloned_js_value.handle(), None)?,
+            None => structuredclone::write(cx, cloned_js_value.handle(), None)?,
         };
         let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
             return Err(Error::InvalidState(None));

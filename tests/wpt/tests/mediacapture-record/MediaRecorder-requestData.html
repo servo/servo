@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder requestData</title>
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-requestdata">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+
+promise_test(async t => {
+    const {stream} = createVideoStream(t);
+    const recorder = new MediaRecorder(stream);
+    recorder.start();
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_equals(event.data.size, 0,
+        "requestData() immediately after start() should produce empty blob");
+    assert_false(Number.isNaN(event.timecode), "timecode should not be NaN");
+}, "requestData() immediately after start() fires dataavailable with empty data for video");
+
+promise_test(async t => {
+    const {stream} = createAudioStream(t);
+    const recorder = new MediaRecorder(stream);
+    recorder.start();
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_equals(event.data.size, 0,
+        "requestData() immediately after start() should produce empty blob");
+    assert_false(Number.isNaN(event.timecode), "timecode should not be NaN");
+}, "requestData() immediately after start() fires dataavailable with empty data for audio");
+
+promise_test(async t => {
+    const {stream} = createAudioVideoStream(t);
+    const recorder = new MediaRecorder(stream);
+    recorder.start();
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_equals(event.data.size, 0,
+        "requestData() immediately after start() should produce empty blob");
+    assert_false(Number.isNaN(event.timecode), "timecode should not be NaN");
+}, "requestData() immediately after start() fires dataavailable with empty data for audio/video");
+
+promise_test(async t => {
+    const {stream} = createFlowingVideoStream(t);
+    const recorder = new MediaRecorder(stream);
+
+    const onstartPromise = new Promise(r => recorder.onstart = r);
+    recorder.start();
+    await onstartPromise;
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_greater_than(event.data.size, 0,
+        "requestData() after onstart should produce non-empty blob");
+    assert_equals(event.data.type, recorder.mimeType,
+        "blob type should match recorder mimeType");
+}, "requestData() after onstart fires dataavailable with non-empty data for video");
+
+promise_test(async t => {
+    const {stream} = createFlowingAudioStream(t);
+    const recorder = new MediaRecorder(stream);
+
+    const onstartPromise = new Promise(r => recorder.onstart = r);
+    recorder.start();
+    await onstartPromise;
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_greater_than(event.data.size, 0,
+        "requestData() after onstart should produce non-empty blob");
+    assert_equals(event.data.type, recorder.mimeType,
+        "blob type should match recorder mimeType");
+}, "requestData() after onstart fires dataavailable with non-empty data for audio");
+
+promise_test(async t => {
+    const {stream} = createFlowingAudioVideoStream(t);
+    const recorder = new MediaRecorder(stream);
+
+    const onstartPromise = new Promise(r => recorder.onstart = r);
+    recorder.start();
+    await onstartPromise;
+
+    const event = await new Promise(resolve => {
+        recorder.ondataavailable = resolve;
+        recorder.requestData();
+    });
+    assert_greater_than(event.data.size, 0,
+        "requestData() after onstart should produce non-empty blob");
+    assert_equals(event.data.type, recorder.mimeType,
+        "blob type should match recorder mimeType");
+}, "requestData() after onstart fires dataavailable with non-empty data for audio/video");
+
+</script>
+</body>
+</html>

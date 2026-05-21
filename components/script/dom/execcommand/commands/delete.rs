@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::local_name;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::document::Document;
-use crate::dom::execcommand::contenteditable::node::split_the_parent;
+use crate::dom::element::Element;
+use crate::dom::execcommand::contenteditable::node::{
+    node_matches_local_name, record_the_values, restore_the_values, split_the_parent,
+};
 use crate::dom::execcommand::contenteditable::selection::SelectionDeleteDirection;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
@@ -52,13 +54,13 @@ pub(crate) fn execute_delete_command(
     loop {
         // Step 4.1. If offset is zero and node's previousSibling is an editable invisible node,
         // remove node's previousSibling from its parent.
-        if offset == 0 {
-            if let Some(sibling) = node.GetPreviousSibling() {
-                if sibling.is_editable() && sibling.is_invisible() {
-                    sibling.remove_self(cx);
-                    continue;
-                }
-            }
+        if offset == 0 &&
+            let Some(sibling) = node.GetPreviousSibling() &&
+            sibling.is_editable() &&
+            sibling.is_invisible()
+        {
+            sibling.remove_self(cx);
+            continue;
         }
         // Step 4.2. Otherwise, if node has a child with index offset − 1 and that child is an editable invisible node,
         // remove that child from node, then subtract one from offset.
@@ -67,12 +69,13 @@ pub(crate) fn execute_delete_command(
                 .children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
-            if let Some(child) = child {
-                if child.is_editable() && child.is_invisible() {
-                    child.remove_self(cx);
-                    offset -= 1;
-                    continue;
-                }
+            if let Some(child) = child &&
+                child.is_editable() &&
+                child.is_invisible()
+            {
+                child.remove_self(cx);
+                offset -= 1;
+                continue;
             }
         }
         // Step 4.3. Otherwise, if offset is zero and node is an inline node, or if node is an invisible node,
@@ -124,13 +127,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 5.1. Call collapse(node, offset) on the context object's selection.
-        if selection.Collapse(cx, Some(&node), offset).is_err() {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&node, offset);
         // Step 5.2. Call extend(node, offset − 1) on the context object's selection.
-        if selection.Extend(cx, &node, offset - 1).is_err() {
-            unreachable!("Must not fail to extend");
-        }
+        selection.extend_current_range(&node, offset - 1);
         // Step 5.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -149,31 +148,39 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 7. If node is an li or dt or dd and is the first child of its parent, and offset is zero:
-    //
-    // TODO: Handle dt or dd
-    if offset == 0 &&
-        node.is::<HTMLLIElement>() &&
-        node.GetParentNode()
-            .and_then(|parent| parent.children().next())
-            .is_some_and(|first| first == node)
+    if node_matches_local_name!(
+        node,
+        local_name!("li") | local_name!("dt") | local_name!("dd")
+    ) && node
+        .GetParentNode()
+        .and_then(|parent| parent.children_unrooted(cx.no_gc()).next())
+        .is_some_and(|first| first == &node) &&
+        offset == 0
     {
         // Step 7.1. Let items be a list of all lis that are ancestors of node.
         // TODO
         // Step 7.2. Normalize sublists of each item in items.
         // TODO
         // Step 7.3. Record the values of the one-node list consisting of node, and let values be the result.
-        // TODO
+        let values = record_the_values(vec![node.clone()]);
         // Step 7.4. Split the parent of the one-node list consisting of node.
         split_the_parent(cx, &[&node]);
         // Step 7.5. Restore the values from values.
-        // TODO
+        restore_the_values(cx, values);
         // Step 7.6. If node is a dd or dt, and it is not an allowed child of
         // any of its ancestors in the same editing host,
         // set the tag name of node to the default single-line container name
         // and let node be the result.
-        // TODO
+        if node_matches_local_name!(node, local_name!("dd") | local_name!("dt")) &&
+            node.is_no_allowed_child_in_same_editing_host()
+        {
+            node = node
+                .downcast::<Element>()
+                .expect("Must always be an element")
+                .set_the_tag_name(cx, document.default_single_line_container_name().str());
+        }
         // Step 7.7. Fix disallowed ancestors of node.
-        // TODO
+        node.fix_disallowed_ancestors(cx, document);
         // Step 7.8. Return true.
         return true;
     }
@@ -208,12 +215,13 @@ pub(crate) fn execute_delete_command(
             .children_unrooted(cx.no_gc())
             .nth(start_offset as usize - 1)
             .map(|node| node.as_rooted());
-        if let Some(child) = child {
-            if child.is_editable() && child.is_invisible() {
-                child.remove_self(cx);
-                start_offset -= 1;
-                continue;
-            }
+        if let Some(child) = child &&
+            child.is_editable() &&
+            child.is_invisible()
+        {
+            child.remove_self(cx);
+            start_offset -= 1;
+            continue;
         }
         // Step 9.3. Otherwise, break from this loop.
         break;
@@ -250,16 +258,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
-        if selection
-            .Collapse(cx, Some(&start_node), start_offset - 1)
-            .is_err()
-        {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&start_node, start_offset - 1);
         // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        if selection.Extend(cx, &start_node, start_offset).is_err() {
-            unreachable!("Must not fail to extend");
-        }
+        selection.extend_current_range(&start_node, start_offset);
         // Step 13.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -269,9 +270,7 @@ pub(crate) fn execute_delete_command(
             Default::default(),
         );
         // Step 13.4. Call collapse(node, offset) on the selection.
-        if selection.Collapse(cx, Some(&node), offset).is_err() {
-            unreachable!("Must not fail to collapse");
-        }
+        selection.collapse_current_range(&node, offset);
         // Step 13.5. Return true.
         return true;
     }
@@ -310,17 +309,10 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 17. Call collapse(start node, start offset) on the context object's selection.
-    if selection
-        .Collapse(cx, Some(&start_node), start_offset)
-        .is_err()
-    {
-        unreachable!("Must not fail to collapse");
-    }
+    selection.collapse_current_range(&start_node, start_offset);
 
     // Step 18. Call extend(node, offset) on the context object's selection.
-    if selection.Extend(cx, &node, offset).is_err() {
-        unreachable!("Must not fail to extend");
-    }
+    selection.extend_current_range(&node, offset);
 
     // Step 19. Delete the selection, with direction "backward".
     selection.delete_the_selection(

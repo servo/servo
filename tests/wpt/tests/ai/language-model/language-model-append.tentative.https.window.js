@@ -66,3 +66,12 @@ promise_test(async (t) => {
   await model.append([{ role: 'user', content: [] }]);
   await model.append([{role: 'user', content: [{type: 'text', value: ''}]}]);
 }, 'LanguageModel.append() allows empty and coerced inputs');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel(
+      {initialPrompts: [{role: 'user', content: 'initial user prompt'}]});
+  await promise_rejects_js(
+      t, TypeError,
+      session.append([{role: 'system', content: 'append system prompt'}]));
+}, 'append() after initializing with user prompt should reject system role');

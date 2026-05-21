@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-3;totalPixels=0-1">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-forms-1/#picker-icon">
+<link rel=help href="https://drafts.csswg.org/css-forms-1/#selectordef-checkmark">
+<link rel=help href="https://issues.chromium.org/issues/506923953">
+<link rel=match href="select-pseudo-ordering-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+select::after {
+  content: '::after';
+}
+option::before {
+  content: '::before';
+}
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
+</style>
+
+<select>
+  <option>option</option>
+</select>
+
+<script>
+(async () => {
+  await new Promise(requestAnimationFrame);
+  await test_driver.bless();
+  document.querySelector('select').showPicker();
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

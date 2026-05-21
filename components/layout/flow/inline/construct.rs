@@ -416,32 +416,31 @@ impl InlineFormattingContextBuilder {
 
         let current_inline_styles = self.shared_inline_styles();
 
-        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() {
-            if text_run
+        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() &&
+            text_run
                 .borrow()
                 .inline_styles
                 .ptr_eq(&current_inline_styles)
+        {
+            let box_slot = info.node.box_slot();
+            let old_text_run = box_slot.take_layout_box_as_text_run();
+
             {
-                let box_slot = info.node.box_slot();
-                let old_text_run = box_slot.take_layout_box_as_text_run();
+                let mut text_run = text_run.borrow_mut();
+                text_run.text_range.end = new_range.end;
+                text_run.character_range.end = new_character_range.end;
 
-                {
-                    let mut text_run = text_run.borrow_mut();
-                    text_run.text_range.end = new_range.end;
-                    text_run.character_range.end = new_character_range.end;
-
-                    // If this text node does not have a `TextRun` in the box slot, this means that
-                    // it is either new or dirty, which means that the entire `TextRun` just extended
-                    // is dirty as well. In this case, never reuse existing shaping results. Clear
-                    // all old items to ensure this.
-                    if old_text_run.is_none() {
-                        text_run.items.clear();
-                    }
+                // If this text node does not have a `TextRun` in the box slot, this means that
+                // it is either new or dirty, which means that the entire `TextRun` just extended
+                // is dirty as well. In this case, never reuse existing shaping results. Clear
+                // all old items to ensure this.
+                if old_text_run.is_none() {
+                    text_run.items.clear();
                 }
-
-                box_slot.set(LayoutBox::Text(text_run.clone()));
-                return;
             }
+
+            box_slot.set(LayoutBox::Text(text_run.clone()));
+            return;
         }
 
         let box_slot = info.node.box_slot();
@@ -803,14 +802,14 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some(next_index) = bounds.peek() {
-            if *next_index == current_byte_index {
-                bounds.next();
+        if let Some(next_index) = bounds.peek() &&
+            *next_index == current_byte_index
+        {
+            bounds.next();
 
-                if current_byte_index != 0 || allow_word_at_start {
-                    output_string.extend(character.to_uppercase());
-                    continue;
-                }
+            if current_byte_index != 0 || allow_word_at_start {
+                output_string.extend(character.to_uppercase());
+                continue;
             }
         }
 

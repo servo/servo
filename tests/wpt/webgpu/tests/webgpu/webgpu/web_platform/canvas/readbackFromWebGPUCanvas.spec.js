@@ -519,14 +519,8 @@ fn((t) => {
     return;
   }
 
-  // Since there isn't a configuration we expect the ImageBitmap to have the default alphaMode of "opaque".
+  // Since there isn't a configuration we expect the ImageBitmap to be transparent black.
   const expected = new Uint8ClampedArray(kWidth * kHeight * 4);
-  for (let i = 0; i < expected.byteLength; i += 4) {
-    expected[i + 0] = 0;
-    expected[i + 1] = 0;
-    expected[i + 2] = 0;
-    expected[i + 3] = 255;
-  }
 
   readbackContext.drawImage(ib, 0, 0);
   readPixelsFrom2DCanvasAndCompare(t, readbackContext, expected);

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>MathML autofocus attribute</title>
+<link rel="help" content="https://w3c.github.io/mathml-core/#dfn-autofocus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<math>
+  <mrow id="element" autofocus tabindex="1"><mtext>tabindex=1</mtext><mrow>
+</math>
+<input id="input" autofocus value="some input">
+<script>
+  let t = async_test("MathML autofocus on <mrow tabindex='1'> element");
+  input.addEventListener("focus",
+                         t.unreached_func("focus() shouldn't be called on `<input>`"));
+  element.addEventListener("focus", t.step_func_done(function(e) {
+    assert_equals(document.activeElement, element, "<mrow> element is focused");
+    assert_true(element.autofocus, "autofocus IDL attribute");
+  }, "focus() called on <mrow> element"));
+</script>

@@ -161,11 +161,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         if global
             .storage_threads()
             .persisted(global.origin().immutable().clone(), callback.clone())
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager persisted error: {error}");
-            }
+            error!("Failed to deliver StorageManager persisted error: {error}");
         }
 
         // Step 6. Return promise.
@@ -218,11 +217,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
                 permission == PermissionState::Granted,
                 callback.clone(),
             )
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager persist error: {error}");
-            }
+            error!("Failed to deliver StorageManager persist error: {error}");
         }
 
         // Step 6. Return promise.
@@ -267,11 +265,10 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         if global
             .storage_threads()
             .estimate(global.origin().immutable().clone(), callback.clone())
-            .is_err()
+            .is_err() &&
+            let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
         {
-            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
-                error!("Failed to deliver StorageManager estimate error: {error}");
-            }
+            error!("Failed to deliver StorageManager estimate error: {error}");
         }
 
         // Step 6. Return promise.

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
@@ -89,10 +90,10 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         }
         // If this’s quota is not null, this’s requested is not null, and this’s requested
         // is less than this’s quota, then throw a RangeError.
-        if let (Some(quota), Some(requested)) = (options.quota, options.requested) {
-            if *requested < *quota {
-                return Err(Error::Range(c"requested is less than quota".to_owned()));
-            }
+        if let (Some(quota), Some(requested)) = (options.quota, options.requested) &&
+            *requested < *quota
+        {
+            return Err(Error::Range(c"requested is less than quota".to_owned()));
         }
         Ok(reflect_dom_object_with_proto(
             Box::new(QuotaExceededError::new_inherited(
@@ -136,9 +137,9 @@ impl Serializable for QuotaExceededError {
 
     /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -154,7 +155,7 @@ impl Serializable for QuotaExceededError {
                 .requested
                 .map(|val| Finite::new(val).ok_or(()))
                 .transpose()?,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

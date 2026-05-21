@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>The selection should not change when the focused element becomes non-focusable</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2034851">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <button id="button1">button1</button>
+  <button id="button2">button2</button>
+  <button id="button3">button3</button>
+  <script>
+    const kTab = '\uE004';
+    async function doTest(func, description) {
+      let selectionChanged = false;
+      document.addEventListener('selectionchange', () => {
+        selectionChanged = true;
+      });
+      button1.focus();
+      assert_false(selectionChanged, "Selection should not change when button is focused");
+      await test_driver.send_keys(button1, kTab);
+      assert_equals(document.activeElement, button2, "button2 should be focused");
+      assert_false(selectionChanged, "Selection should not change when focus moves to button2");
+      await func();
+      assert_equals(document.activeElement, document.body, "body should be focused after " + description);
+      assert_false(selectionChanged, "Selection should not change after " + description);
+      await test_driver.send_keys(document.body, kTab);
+      assert_equals(document.activeElement, button3, "button3 should be focused when pressing tab after " + description);
+      assert_false(selectionChanged, "Selection should not change after focus moves to button3");
+    }
+    promise_test(async t => {
+      let button2 = document.getElementById('button2');
+      t.add_cleanup(() => {
+        document.body.insertBefore(button2, button3);
+      });
+      await doTest(async () => {
+        button2.remove();
+      }, "button2 is removed");
+    }, "Focused element is removed");
+    promise_test(async t => {
+      t.add_cleanup(() => {
+        button2.disabled = false;
+      });
+      await doTest(async () => {
+        let waitForBlur = new Promise(r => button2.addEventListener('blur', r));
+        button2.disabled = true;
+        await waitForBlur;
+      }, "button2 is disabled");
+    }, "Focused element is disabled");
+  </script>
+</body>
+</html>

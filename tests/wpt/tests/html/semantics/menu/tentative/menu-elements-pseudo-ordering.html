@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/13430">
+<link rel=match href="menu-elements-pseudo-ordering-ref.html">
+
+<menubar>
+  <menuitem id=menuitem1 command=toggle-menu commandfor=menulist1>open submenu</menuitem>
+</menubar>
+
+<menulist id=menulist1>
+  <menuitem id=menuitem2 command=toggle-menu commandfor=menulist2>open submenu</menuitem>
+</menulist>
+
+<menulist id=menulist2>
+  <menuitem>menuitem</menuitem>
+</menulist>
+
+<style>
+#menuitem2::after {
+  content: '::after';
+}
+</style>
+
+<script>
+const menuitem1 = document.getElementById('menuitem1');
+const menulist1 = document.getElementById('menulist1');
+menulist1.showPopover({source: menuitem1});
+</script>

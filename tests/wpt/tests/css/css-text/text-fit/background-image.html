@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="background-image-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grow-consistent {
+  font: 20px/2 Ahem;
+  width: 160px;
+  text-fit: grow consistent;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.grow-line {
+  font: 20px/2 Ahem;
+  width: 160px;
+  text-fit: grow per-line-all;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.gradient {
+  background-image: linear-gradient(to bottom, lime, green);
+}
+.image {
+  background-image: url(/images/background.png);
+}
+</style>
+
+<!-- linear-gradient -->
+<div class="grow-consistent"><span class="gradient">ÉpÉ
+pÉpÉ</span></div>
+<div class="grow-line"><span class="gradient">ÉpÉp</span>
+<span class="gradient">pÉpÉpÉpÉ</span></div>
+
+<!-- image repeat -->
+<div class="grow-consistent"><span class="image">ÉpÉ
+pÉpÉ</span></div>
+<div class="grow-line"><span class="image">ÉpÉp</span>
+<span class="image">pÉpÉpÉpÉ</span></div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

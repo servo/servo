@@ -196,42 +196,40 @@ impl TokenSink for PrefetchSink {
                 TokenSinkResult::Continue
             },
             (TagKind::StartTag, &local_name!("link")) if self.prefetching.get() => {
-                if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
-                    if rel.value.eq_ignore_ascii_case("stylesheet") {
-                        if let Some(url) = self.get_url(tag, local_name!("href")) {
-                            debug!("Prefetch {} {}", tag.name, url);
-                            let cors_setting =
-                                self.get_cors_settings(tag, local_name!("crossorigin"));
-                            let referrer_policy =
-                                self.get_referrer_policy(tag, local_name!("referrerpolicy"));
-                            let integrity_metadata = self
-                                .get_attr(tag, local_name!("integrity"))
-                                .map(|attr| String::from(&attr.value))
-                                .unwrap_or_default();
+                if let Some(rel) = self.get_attr(tag, local_name!("rel")) &&
+                    rel.value.eq_ignore_ascii_case("stylesheet") &&
+                    let Some(url) = self.get_url(tag, local_name!("href"))
+                {
+                    debug!("Prefetch {} {}", tag.name, url);
+                    let cors_setting = self.get_cors_settings(tag, local_name!("crossorigin"));
+                    let referrer_policy =
+                        self.get_referrer_policy(tag, local_name!("referrerpolicy"));
+                    let integrity_metadata = self
+                        .get_attr(tag, local_name!("integrity"))
+                        .map(|attr| String::from(&attr.value))
+                        .unwrap_or_default();
 
-                            // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
-                            let request = create_a_potential_cors_request(
-                                Some(self.webview_id),
-                                url,
-                                Destination::Style,
-                                cors_setting,
-                                None,
-                                self.referrer.clone(),
-                            )
-                            .insecure_requests_policy(self.insecure_requests_policy)
-                            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
-                            .policy_container(self.policy_container.clone())
-                            .client(self.request_client.clone())
-                            .origin(self.origin.clone())
-                            .pipeline_id(Some(self.pipeline_id))
-                            .referrer_policy(referrer_policy)
-                            .integrity_metadata(integrity_metadata);
+                    // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+                    let request = create_a_potential_cors_request(
+                        Some(self.webview_id),
+                        url,
+                        Destination::Style,
+                        cors_setting,
+                        None,
+                        self.referrer.clone(),
+                    )
+                    .insecure_requests_policy(self.insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
+                    .policy_container(self.policy_container.clone())
+                    .client(self.request_client.clone())
+                    .origin(self.origin.clone())
+                    .pipeline_id(Some(self.pipeline_id))
+                    .referrer_policy(referrer_policy)
+                    .integrity_metadata(integrity_metadata);
 
-                            let _ = self
-                                .resource_threads
-                                .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
-                        }
-                    }
+                    let _ = self
+                        .resource_threads
+                        .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
                 }
                 TokenSinkResult::Continue
             },
@@ -244,11 +242,11 @@ impl TokenSink for PrefetchSink {
                 TokenSinkResult::Script(PrefetchHandle)
             },
             (TagKind::StartTag, &local_name!("base")) => {
-                if let Some(url) = self.get_url(tag, local_name!("href")) {
-                    if self.base_url.borrow().is_none() {
-                        debug!("Setting base {}", url);
-                        *self.base_url.borrow_mut() = Some(url);
-                    }
+                if let Some(url) = self.get_url(tag, local_name!("href")) &&
+                    self.base_url.borrow().is_none()
+                {
+                    debug!("Setting base {}", url);
+                    *self.base_url.borrow_mut() = Some(url);
                 }
                 TokenSinkResult::Continue
             },

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("flex-line-count", "1");
+test_computed_value("flex-line-count", "2");
+test_computed_value("flex-line-count", "round(up, calc(7/2))", "4");
+</script>
+</body>
+</html>

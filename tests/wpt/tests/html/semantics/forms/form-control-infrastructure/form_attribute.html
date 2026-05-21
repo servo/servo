@@ -229,5 +229,19 @@
 
       });
     </script>
+
+    <form id="form3">
+    </form>
+    <input id="form3" form="form3">Same ID as form</input>
+
+    <script>
+        test(function() {
+          var form3 = document.getElementById("form3");
+          var button = form3.nextElementSibling;
+
+          assert_equals(button.form, form3,
+            "button should be associated with form3 even though it has the same ID");
+        }, "Test for button with same ID as form");
+    </script>
   </body>
 </html>

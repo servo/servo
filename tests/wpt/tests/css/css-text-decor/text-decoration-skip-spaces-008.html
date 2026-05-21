@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Decoration skipping spaces: skip preserved when selected (start end)</title>
+<meta name="assert" content="text-decoration-skip-spaces: start end skips leading/trailing spaces even when selected.">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<link rel="match" href="reference/text-decoration-skip-spaces-008-ref.html">
+<meta name="fuzzy" content="maxDifference=0-128;totalPixels=0-6">
+<style>
+div {
+    text-decoration: underline;
+    text-decoration-color: blue;
+
+    text-decoration-skip-spaces: start end;
+    color: orange;
+    font-size: 2em;
+    white-space: pre;
+}
+::selection {
+    background: transparent;
+    color: red;
+}
+</style>
+
+<p>Test passes if the blue underline appears only under ABCDEF, not under the surrounding spaces, even when selected.
+
+<div>   ABCDEF   </div>
+<script>
+  const div = document.querySelector('div');
+  const range = document.createRange();
+  range.selectNodeContents(div);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+</script>

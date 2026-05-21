@@ -10,8 +10,7 @@ from urllib.parse import urljoin
 from .wptmanifest.parser import atoms
 
 atom_reset = atoms["Reset"]
-enabled_tests = {"testharness", "reftest", "wdspec", "crashtest", "print-reftest", "test262"}
-
+enabled_tests = {"testharness", "reftest", "wdspec", "crashtest", "print-reftest", "test262", "aamtest"}
 
 class Result(ABC):
     default_expected: ClassVar[str]
@@ -75,7 +74,17 @@ class WdspecResult(Result):
 
 class WdspecSubtestResult(SubtestResult):
     default_expected = "PASS"
-    statuses = {"PASS", "FAIL", "ERROR"}
+    statuses = {"PASS", "FAIL", "ERROR", "PRECONDITION_FAILED"}
+
+
+class AamSpecResult(Result):
+    default_expected = "OK"
+    statuses = {"OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"}
+
+
+class AamSpecSubtestResult(SubtestResult):
+    default_expected = "PASS"
+    statuses = {"PASS", "FAIL", "ERROR", "PRECONDITION_FAILED"}
 
 
 class CrashtestResult(Result):
@@ -736,6 +745,15 @@ class WdspecTest(Test):
     long_timeout = 180  # 3 minutes
 
 
+class AamSpecTest(Test):
+    result_cls = AamSpecResult
+    subtest_result_cls = AamSpecSubtestResult
+    test_type = "aamtest"
+
+    default_timeout = 25
+    long_timeout = 180  # 3 minutes
+
+
 class CrashTest(Test):
     result_cls = CrashtestResult
     test_type = "crashtest"
@@ -765,6 +783,7 @@ manifest_test_cls = {"reftest": ReftestTest,
                      "print-reftest": PrintReftestTest,
                      "testharness": TestharnessTest,
                      "wdspec": WdspecTest,
+                     "aamtest": AamSpecTest,
                      "crashtest": CrashTest,
                      "test262": Test262Test}
 

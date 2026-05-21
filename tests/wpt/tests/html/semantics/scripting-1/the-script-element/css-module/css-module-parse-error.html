@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS module import: parse errors produce empty stylesheet</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // A CSS module with parse errors should still import successfully,
+    // producing a CSSStyleSheet with no valid rules.
+    const sheet = await import("./resources/parse-error.css",
+                               { with: { type: "css" } });
+    assert_equals(sheet.default.cssRules.length, 0,
+      "Parse-error CSS module should have no valid rules.");
+  }, "CSS module with parse errors imports successfully with empty rules.");
+
+  promise_test(async (t) => {
+    // A second import of the same parse-error module should return the
+    // same result — not a stale pre-created sheet or a different object.
+    const sheet1 = await import("./resources/parse-error.css",
+                                { with: { type: "css" } });
+    const sheet2 = await import("./resources/parse-error.css",
+                                { with: { type: "css" } });
+    assert_equals(sheet1.default, sheet2.default,
+      "Repeated imports should return the same CSSStyleSheet.");
+    assert_equals(sheet1.default.cssRules.length, 0,
+      "Sheet should still have no valid rules on second import.");
+  }, "Repeated import of parse-error CSS module returns same sheet.");
+
+  promise_test(async (t) => {
+    // A CSS module with some malformed and some valid rules should import
+    // successfully, with only the valid rules present.
+    const sheet = await import("./resources/malformed.css",
+                               { with: { type: "css" } });
+    assert_true(sheet.default.cssRules.length > 0,
+      "Malformed CSS module should have at least one valid rule.");
+  }, "CSS module with partially malformed CSS imports with valid rules.");
+</script>
+</body>

@@ -13,6 +13,7 @@ use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use net_traits::CustomResponseMediator;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
@@ -54,7 +55,7 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
@@ -457,8 +458,7 @@ impl ServiceWorkerGlobalScope {
                         true,
                     );
                     _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
-                    let in_realm_proof = (&mut realm).into();
-                    global.dispatch_activate(&mut realm, InRealm::Already(&in_realm_proof));
+                    global.dispatch_activate(&mut realm);
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -512,14 +512,14 @@ impl ServiceWorkerGlobalScope {
             CommonWorker(WorkerScriptMsg::DOMMessage(msg)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = enter_realm(scope);
+
+                let mut realm = enter_auto_realm(cx, scope);
+                let cx = &mut realm.current_realm();
+
                 rooted!(&in(cx) let mut message = UndefinedValue());
-                if let Ok(ports) = structuredclone::read(
-                    scope.upcast(),
-                    *msg.data,
-                    message.handle_mut(),
-                    CanGc::from_cx(cx),
-                ) {
+                if let Ok(ports) =
+                    structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
+                {
                     ExtendableMessageEvent::dispatch_jsval(
                         cx,
                         target,
@@ -549,10 +549,10 @@ impl ServiceWorkerGlobalScope {
         ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
-    fn dispatch_activate(&self, cx: &mut js::context::JSContext, _realm: InRealm) {
+    fn dispatch_activate(&self, cx: &mut CurrentRealm) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false, CanGc::from_cx(cx));
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(cx, event);
+        event.dispatch(cx, self.upcast(), false);
     }
 }
 

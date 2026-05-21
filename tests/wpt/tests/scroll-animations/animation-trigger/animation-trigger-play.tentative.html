@@ -61,12 +61,16 @@
         return runAndWaitForFrameUpdate(async () => {
           scroller.scrollTop =
               (ACTIVATION_RANGE_START_PX + ACTIVATION_RANGE_END_PX) / 2;
+        }).then(() => {
+          return waitForCompositorCommit();
         });
       }
 
       const exit = () => {
         return runAndWaitForFrameUpdate(async () => {
           scroller.scrollTop = ACTIVATION_RANGE_END_PX + 100;
+        }).then(() => {
+          return waitForCompositorCommit();
         });
       }
 
@@ -79,27 +83,29 @@
 
       promise_test(async (test) => {
         const animation = target.getAnimations()[0];
-        assert_equals(animation.playState, "paused");
+        assert_equals(animation.playState, "paused", "initial state");
 
         // Entering the activation range should result in playing.
         await enter();
-        assert_equals(animation.playState, "running");
+
+        assert_equals(animation.playState, "running", "triggered after enter");
 
         animation.pause();
         animation.currentTime = CSS_ANIMATION_DURATION / 2;
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION / 2);
-        assert_equals(animation.playState, "paused");
+        assert_equals(animation.playState, "paused", "paused after pause()");
 
         // Exiting the active range should have no effect.
         await exit();
-        assert_equals(animation.playState, "paused");
+        assert_equals(animation.playState, "paused", "still paused after exit");
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION / 2);
 
         // Re-entering the activation range should resume playing from where it
         // left off.
         await enter();
         await waitForAnimationFrames(2);
-        assert_equals(animation.playState, "running");
+        assert_equals(animation.playState, "running",
+            "triggered after re-enter");
         assert_greater_than(animation.currentTime,
                                  CSS_ANIMATION_DURATION / 2);
       }, "play behavior resumes a paused animation");
@@ -107,25 +113,28 @@
       promise_test(async (test) => {
         reset();
         const animation = target.getAnimations()[0];
-        assert_equals(animation.playState, "paused");
+        assert_equals(animation.playState, "paused", "initial state");
 
         // Entering the activation range should result in playing.
         await enter();
-        assert_equals(animation.playState, "running");
+        assert_equals(animation.playState, "running", "triggered after enter");
 
         animation.finish();
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
-        assert_equals(animation.playState, "finished");
+        assert_equals(animation.playState, "finished",
+            "finished after finish()");
 
         // Exiting the active range should have no effect.
         await exit();
-        assert_equals(animation.playState, "finished");
+        assert_equals(animation.playState, "finished",
+            "still finished after exit");
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
 
         // Re-entering the activation range should restart the animation.
         await enter();
         await waitForAnimationFrames(2);
-        assert_equals(animation.playState, "running");
+        assert_equals(animation.playState, "running",
+            "triggered after re-enter");
         assert_greater_than(animation.currentTime, 0);
       }, "play behavior restarts a finished animation");
 </script>

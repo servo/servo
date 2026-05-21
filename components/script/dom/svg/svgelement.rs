@@ -169,6 +169,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
                 requirement: ScrollRequirement::IfNotVisible,
             };
             self.upcast::<Element>().scroll_into_view_with_options(
+                cx,
                 ScrollBehavior::Smooth,
                 scroll_axis,
                 scroll_axis,
@@ -199,6 +200,6 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
+            .set_attribute(cx, &local_name!("tabindex"), tab_index.into());
     }
 }

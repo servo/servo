@@ -202,10 +202,10 @@ impl EventLoop {
         &self,
         message: &BackgroundHangMonitorControlMsg,
     ) {
-        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender {
-            if let Err(error) = background_hang_monitor_sender.send(message.clone()) {
-                error!("Could not send message ({message:?}) to BHM: {error}");
-            }
+        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender &&
+            let Err(error) = background_hang_monitor_sender.send(message.clone())
+        {
+            error!("Could not send message ({message:?}) to BHM: {error}");
         }
     }
 }

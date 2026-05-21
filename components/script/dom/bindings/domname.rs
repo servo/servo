@@ -100,6 +100,19 @@ pub(crate) fn is_valid_doctype_name(name: &DOMString) -> bool {
         .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{003E}'))
 }
 
+/// <https://html.spec.whatwg.org/multipage/#custom-data-attribute>
+pub(crate) fn is_custom_data_attribute(name: &str, namespace: Option<&str>) -> bool {
+    // A custom data attribute is an attribute in no namespace whose name starts with the string
+    // "data-", has at least one character after the hyphen, is a valid attribute local name, and
+    // contains no ASCII upper alphas.
+    namespace.is_none() &&
+        name.strip_prefix("data-")
+            .is_some_and(|substring| !substring.is_empty()) &&
+        is_valid_attribute_local_name(name) &&
+        name.chars()
+            .all(|code_point| !code_point.is_ascii_uppercase())
+}
+
 /// Convert a possibly-null URL to a namespace.
 ///
 /// If the URL is None, returns the empty namespace.

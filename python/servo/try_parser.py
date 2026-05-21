@@ -114,7 +114,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             "WebGPU CTS",
             Workflow.LINUX,
             wpt=True,
-            wpt_args="_webgpu",  # run only webgpu cts
+            wpt_args="_webgpu --processes 1",  # run only webgpu cts
             profile="production",  # WebGPU works to slow with debug assert
             unit_tests=False,
             number_of_wpt_chunks=20,

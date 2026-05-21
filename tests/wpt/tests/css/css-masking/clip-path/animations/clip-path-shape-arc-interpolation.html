@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+<link rel="match" href="clip-path-shape-arc-interpolation-ref.html">
+<meta name="assert" content="shape() arcs with different radii should
+      interpolate smoothly rather than snapping discretely, even when the
+      resulting SkPath conic weights differ between keyframes.">
+<style>
+  .container {
+    width: 200px;
+    height: 200px;
+    background-color: green;
+    animation: eye 20s steps(2, jump-end) -9.999s;
+  }
+
+  @keyframes eye {
+    0% {
+      clip-path: shape(from 0% 50%, arc to 100% 50% of 100%, arc to 0% 50% of 100%);
+    }
+    100% {
+      clip-path: shape(from 0% 50%, arc to 100% 50% of 63%, arc to 0% 50% of 63%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container"></div>
+
+  <script>
+    waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+  </script>
+</body>
+</html>

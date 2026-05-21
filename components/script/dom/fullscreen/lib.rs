@@ -229,10 +229,10 @@ impl DocumentOrShadowRoot {
         fullscreen_element: Option<DomRoot<Element>>,
     ) -> Option<DomRoot<Element>> {
         // Step 1. If this is a shadow root and its host is not connected, then return null.
-        if let Some(shadow_root) = node.downcast::<ShadowRoot>() {
-            if !shadow_root.Host().is_connected() {
-                return None;
-            }
+        if let Some(shadow_root) = node.downcast::<ShadowRoot>() &&
+            !shadow_root.Host().is_connected()
+        {
+            return None;
         }
 
         // Step 2. Let candidate be the result of retargeting fullscreen element against this.

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Borders Test: border-shape outline invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-outline-invalidation-ref.html">
+<style>
+  .test {
+    margin: 100px;
+    width: 100px;
+    height: 100px;
+    border-shape: circle(100%);
+    border: 15px solid blue;
+    outline: 5px solid green;
+  }
+</style>
+<div id="target" class="test"></div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('target').style.borderShape = 'circle(0%)';
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+</script>
+</html>

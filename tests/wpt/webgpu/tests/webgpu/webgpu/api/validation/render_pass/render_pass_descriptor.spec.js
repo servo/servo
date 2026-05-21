@@ -242,7 +242,7 @@ fn((t) => {
     colorAttachments.push(t.getColorAttachment(colorTexture));
   }
   const shouldError =
-  !isTextureFormatColorRenderable(t.device, format) ||
+  !isTextureFormatColorRenderable(t.device.features, format) ||
   computeBytesPerSampleFromFormats(range(attachmentCount, () => format)) >
   t.device.limits.maxColorAttachmentBytesPerSample;
 
@@ -718,6 +718,53 @@ fn((t) => {
   }
 });
 
+g.test('color_attachments,loadOp_storeOp').
+desc(
+  `
+  Test GPURenderPassColorAttachment Usage:
+    - if usage includes TRANSIENT_ATTACHMENT
+      - loadOp must be clear
+      - storeOp must be discard
+  `
+).
+params((u) =>
+u.
+combine('format', kPossibleColorRenderableTextureFormats).
+beginSubcases().
+combine('transientTexture', [true, false]).
+combine('loadOp', ['clear', 'load']).
+combine('storeOp', ['discard', 'store'])
+).
+fn((t) => {
+  const { format, transientTexture, loadOp, storeOp } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
+
+  // MAINTENANCE_TODO(#4509): Remove this after all implementations have TRANSIENT_ATTACHMENT.
+  if (transientTexture) {
+    t.skipIfTransientAttachmentNotSupported();
+  }
+
+  const usage = transientTexture ?
+  GPUConst.TextureUsage.RENDER_ATTACHMENT | GPUConst.TextureUsage.TRANSIENT_ATTACHMENT :
+  GPUConst.TextureUsage.RENDER_ATTACHMENT;
+
+  const texture = t.createTestTexture({ usage });
+
+  const colorAttachment = t.getColorAttachment(texture);
+  colorAttachment.loadOp = loadOp;
+  colorAttachment.storeOp = storeOp;
+
+  const passDescriptor = {
+    colorAttachments: [colorAttachment]
+  };
+
+  const success = !transientTexture || loadOp === 'clear' && storeOp === 'discard';
+
+  t.tryRenderPass(success, passDescriptor);
+});
+
 g.test('color_attachments,non_multisampled').
 desc(
   `
@@ -847,7 +894,7 @@ desc(
 paramsSimple([
 { usage: GPUConst.TextureUsage.COPY_SRC | GPUConst.TextureUsage.COPY_DST },
 { usage: GPUConst.TextureUsage.STORAGE_BINDING | GPUConst.TextureUsage.TEXTURE_BINDING },
-{ usage: GPUConst.TextureUsage.STORAGE_BINDING | GPUConst.TextureUsage.STORAGE },
+{ usage: GPUConst.TextureUsage.STORAGE_BINDING | GPUConst.TextureUsage.STORAGE_BINDING },
 { usage: GPUConst.TextureUsage.RENDER_ATTACHMENT | GPUConst.TextureUsage.TEXTURE_BINDING }]
 ).
 fn((t) => {
@@ -1039,23 +1086,29 @@ g.test('depth_stencil_attachment,loadOp_storeOp_match_depthReadOnly_stencilReadO
 desc(
   `
   Test GPURenderPassDepthStencilAttachment Usage:
-    - if the format has a depth aspect:
-      - if depthReadOnly is true
-        - depthLoadOp and depthStoreOp must not be provided
-      - else:
-        - depthLoadOp and depthStoreOp must be provided
-    - if the format has a stencil aspect:
-      - if stencilReadOnly is true
-        - stencilLoadOp and stencilStoreOp must not be provided
-      - else:
-        - stencilLoadOp and stencilStoreOp must be provided
+    - if the format has a depth aspect and depthReadOnly is false
+      - depthLoadOp and depthStoreOp must be provided
+    - else:
+      - depthLoadOp and depthStoreOp must not be provided
+    - if the format has a stencil aspect and stencilReadOnly is false
+      - stencilLoadOp and stencilStoreOp must be provided
+    - else:
+      - stencilLoadOp and stencilStoreOp must not be provided
+    - if usage includes TRANSIENT_ATTACHMENT
+      - if the format has a depth aspect:
+        - depthLoadOp must be clear
+        - depthStoreOp must be discard
+      - if the format has a stencil aspect:
+        - stencilLoadOp must be clear
+        - stencilStoreOp must be discard
   `
 ).
 params((u) =>
 u.
 combine('format', kDepthStencilFormats).
 beginSubcases() // Note: It's easier to debug if you comment this line out as you can then run an individual case.
-.combine('depthReadOnly', [undefined, true, false]).
+.combine('transientTexture', [true, false]).
+combine('depthReadOnly', [undefined, true, false]).
 combine('depthLoadOp', [undefined, 'clear', 'load']).
 combine('depthStoreOp', [undefined, 'discard', 'store']).
 combine('stencilReadOnly', [undefined, true, false]).
@@ -1065,6 +1118,7 @@ combine('stencilStoreOp', [undefined, 'discard', 'store'])
 fn((t) => {
   const {
     format,
+    transientTexture,
     depthReadOnly,
     depthLoadOp,
     depthStoreOp,
@@ -1075,10 +1129,18 @@ fn((t) => {
 
   t.skipIfTextureFormatNotSupported(format);
 
+  // MAINTENANCE_TODO(#4509): Remove this after all implementations have TRANSIENT_ATTACHMENT.
+  if (transientTexture) {
+    t.skipIfTransientAttachmentNotSupported();
+  }
+
+  const usage = transientTexture ?
+  GPUConst.TextureUsage.RENDER_ATTACHMENT | GPUConst.TextureUsage.TRANSIENT_ATTACHMENT :
+  GPUConst.TextureUsage.RENDER_ATTACHMENT;
   const depthAttachment = t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-    usage: GPUTextureUsage.RENDER_ATTACHMENT
+    usage
   });
   const depthAttachmentView = depthAttachment.createView();
 
@@ -1120,7 +1182,13 @@ fn((t) => {
   const goodStencilCombo =
   hasStencil && !stencilReadOnly ? hasBothStencilOps : hasNeitherStencilOps;
 
-  const shouldError = !goodAspectSettingsPresent || !goodDepthCombo || !goodStencilCombo;
+  const goodTransient =
+  !transientTexture ||
+  (!hasDepth || depthLoadOp === 'clear' && depthStoreOp === 'discard') && (
+  !hasStencil || stencilLoadOp === 'clear' && stencilStoreOp === 'discard');
+
+  const shouldError =
+  !goodAspectSettingsPresent || !goodDepthCombo || !goodStencilCombo || !goodTransient;
 
   t.expectValidationError(() => {
     encoder.finish();
@@ -1184,7 +1252,7 @@ fn((t) => {
   const colorAttachment = t.getColorAttachment(multisampledColorTexture);
   colorAttachment.resolveTarget = resolveTarget.createView();
 
-  t.tryRenderPass(isTextureFormatResolvable(t.device, format), {
+  t.tryRenderPass(isTextureFormatResolvable(t.device.features, format), {
     colorAttachments: [colorAttachment]
   });
 });

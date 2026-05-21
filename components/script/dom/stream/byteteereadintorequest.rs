@@ -10,10 +10,12 @@ use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::trace::RootedTraceableBox;
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{ErrorToJsval, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -24,17 +26,17 @@ use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct ByteTeeReadIntoRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
-    chunk: HeapBufferSource<ArrayBufferViewU8>,
-    tee_read_request: Dom<ByteTeeReadIntoRequest>,
+    chunk: RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>,
+    tee_read_request: Trusted<ByteTeeReadIntoRequest>,
 }
 
 impl ByteTeeReadIntoRequestMicrotask {
     pub(crate) fn microtask_chunk_steps(&self, cx: &mut JSContext) {
         self.tee_read_request
-            .chunk_steps(self.chunk.clone(), cx)
+            .root()
+            .chunk_steps(&self.chunk, cx)
             .expect("Failed to enqueue chunk");
     }
 }
@@ -97,11 +99,14 @@ impl ByteTeeReadIntoRequest {
         )
     }
 
-    pub(crate) fn enqueue_chunk_steps(&self, chunk: HeapBufferSource<ArrayBufferViewU8>) {
+    pub(crate) fn enqueue_chunk_steps(
+        &self,
+        chunk: RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>,
+    ) {
         // Queue a microtask to perform the following steps:
         let byte_tee_read_request_chunk = ByteTeeReadIntoRequestMicrotask {
             chunk,
-            tee_read_request: Dom::from_ref(self),
+            tee_read_request: Trusted::new(self),
         };
 
         self.global()
@@ -114,7 +119,7 @@ impl ByteTeeReadIntoRequest {
     #[allow(clippy::borrowed_box)]
     pub(crate) fn chunk_steps(
         &self,
-        chunk: HeapBufferSource<ArrayBufferViewU8>,
+        chunk: &HeapBufferSource<ArrayBufferViewU8>,
         cx: &mut JSContext,
     ) -> Fallible<()> {
         // Set readAgainForBranch1 to false.
@@ -210,7 +215,7 @@ impl ByteTeeReadIntoRequest {
     pub(crate) fn close_steps(
         &self,
         cx: &mut JSContext,
-        chunk: Option<HeapBufferSource<ArrayBufferViewU8>>,
+        chunk: Option<RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>>,
     ) -> Fallible<()> {
         // Set reading to false.
         self.reading.set(false);
@@ -255,7 +260,7 @@ impl ByteTeeReadIntoRequest {
                 // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
                 if !byob_canceled {
                     let byob_branch_controller = self.byob_branch.get_byte_controller();
-                    byob_branch_controller.respond_with_new_view(cx, chunk)?;
+                    byob_branch_controller.respond_with_new_view(cx, &chunk)?;
                 }
 
                 // If otherCanceled is false and otherBranch.[[controller]].[[pendingPullIntos]] is not empty,

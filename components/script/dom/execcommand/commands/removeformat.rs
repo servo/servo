@@ -69,10 +69,10 @@ pub(crate) fn execute_removeformat_command(
         .expect("Must always have an active range");
     let mut elements = vec![];
     active_range.for_each_effectively_contained_child(|node| {
-        if let Some(html_element) = node.downcast::<HTMLElement>() {
-            if is_remove_format_candidate(html_element.upcast()) {
-                elements.push(DomRoot::from_ref(node));
-            }
+        if let Some(html_element) = node.downcast::<HTMLElement>() &&
+            is_remove_format_candidate(html_element.upcast())
+        {
+            elements.push(DomRoot::from_ref(node));
         }
     });
     // Step 2. For each element in elements to remove:
@@ -95,13 +95,15 @@ pub(crate) fn execute_removeformat_command(
     // to the result, and its start offset to zero.
     let start_node = active_range.start_container();
     let start_offset = active_range.start_offset();
-    if start_node.is_editable() && start_offset != 0 && start_offset != start_node.len() {
-        if let Some(start_text) = start_node.downcast::<Text>() {
-            let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
-                unreachable!("Must always be able to split");
-            };
-            active_range.set_start(start_text.upcast(), 0);
-        }
+    if start_node.is_editable() &&
+        start_offset != 0 &&
+        start_offset != start_node.len() &&
+        let Some(start_text) = start_node.downcast::<Text>()
+    {
+        let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
+            unreachable!("Must always be able to split");
+        };
+        active_range.set_start(start_text.upcast(), 0);
     }
     // Step 4. If the active range's end node is an editable Text node,
     // and its end offset is neither zero nor its end node's length,
@@ -109,13 +111,14 @@ pub(crate) fn execute_removeformat_command(
     // equal to the active range's end offset.
     let end_node = active_range.end_container();
     let end_offset = active_range.end_offset();
-    if end_node.is_editable() && end_offset != 0 && end_offset != end_node.len() {
-        if let Some(end_text) = end_node.downcast::<Text>() {
-            if end_text.SplitText(cx, end_offset).is_err() {
-                unreachable!("Must always be able to split");
-            };
-        }
-    }
+    if end_node.is_editable() &&
+        end_offset != 0 &&
+        end_offset != end_node.len() &&
+        let Some(end_text) = end_node.downcast::<Text>() &&
+        end_text.SplitText(cx, end_offset).is_err()
+    {
+        unreachable!("Must always be able to split");
+    };
     // Step 5. Let node list consist of all editable nodes effectively contained in the active range.
     let mut node_list = vec![];
     active_range.for_each_effectively_contained_child(|node| {

@@ -24,12 +24,12 @@ glib-sys = { workspace = true }
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
 gstreamer-audio = { workspace = true }
-gstreamer-video = { workspace = true }
 gstreamer-base = { workspace = true }
 gstreamer-play = { workspace = true }
-gstreamer-webrtc = { workspace = true }
 gstreamer-sdp = { workspace = true }
 gstreamer-sys = { workspace = true }
+gstreamer-video = { workspace = true }
+gstreamer-webrtc = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 mime = { workspace = true }

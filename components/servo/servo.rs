@@ -147,6 +147,69 @@ enum Message {
     FromUnknown(EmbedderMsg),
 }
 
+/// Holds a prebuilt `crossbeam_channel::Select` over the crossbeam
+/// receivers so our [`spin_event_loop`] loop doesn't rebuild it on every
+/// iteration.
+///
+/// [`spin_event_loop`]: ServoInner::spin_event_loop
+struct EmbedderMessageSelector<'a> {
+    select: crossbeam_channel::Select<'a>,
+    receivers: (
+        &'a Receiver<EmbedderMsg>,
+        &'a Receiver<NetToEmbedderMsg>,
+        &'a Receiver<ConstellationToEmbedderMsg>,
+    ),
+}
+
+impl<'a> EmbedderMessageSelector<'a> {
+    fn new(
+        embedder_receiver: &'a Receiver<EmbedderMsg>,
+        net_embedder_receiver: &'a Receiver<NetToEmbedderMsg>,
+        constellation_embedder_receiver: &'a Receiver<ConstellationToEmbedderMsg>,
+    ) -> Self {
+        let mut select = crossbeam_channel::Select::new();
+        // The order of `.recv()` calls **must** match the order of fields in `receivers`.
+        // In `try_recv()` we assume the `select` index matches the order of receivers in the tuple.
+        let embedder_index = select.recv(embedder_receiver);
+        debug_assert_eq!(embedder_index, 0);
+        let net_embedder_index = select.recv(net_embedder_receiver);
+        debug_assert_eq!(net_embedder_index, 1);
+        let constellation_embedder_index = select.recv(constellation_embedder_receiver);
+        debug_assert_eq!(constellation_embedder_index, 2);
+        Self {
+            select,
+            receivers: (
+                embedder_receiver,
+                net_embedder_receiver,
+                constellation_embedder_receiver,
+            ),
+        }
+    }
+
+    #[servo_tracing::instrument(
+        level = "debug",
+        name = "EmbedderMessageSelector::try_recv_one_message",
+        skip_all
+    )]
+    fn try_recv_one_message(&mut self) -> Option<Message> {
+        let operation = self.select.try_select().ok()?;
+        let index = operation.index();
+        if index == 0 {
+            let message = operation.recv(self.receivers.0).ok()?;
+            Some(Message::FromUnknown(message))
+        } else if index == 1 {
+            let message = operation.recv(self.receivers.1).ok()?;
+            Some(Message::FromNet(message))
+        } else if index == 2 {
+            let message = operation.recv(self.receivers.2).ok()?;
+            Some(Message::FromConstellation(message))
+        } else {
+            log::error!("No select operation registered for {index:?}");
+            None
+        }
+    }
+}
+
 pub struct PendingHandledInputEvent {
     pub event_id: InputEventId,
     pub webview_id: WebViewId,
@@ -212,8 +275,13 @@ impl ServoInner {
             paint.handle_messages(messages);
         }
 
+        let mut selector = EmbedderMessageSelector::new(
+            &self.embedder_receiver,
+            &self.net_embedder_receiver,
+            &self.constellation_embedder_receiver,
+        );
         // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
-        while let Some(message) = self.receive_one_message() {
+        while let Some(message) = selector.try_recv_one_message() {
             match message {
                 Message::FromUnknown(message) => self.handle_embedder_message(message),
                 Message::FromNet(message) => self.handle_net_embedder_message(message),
@@ -262,38 +330,6 @@ impl ServoInner {
         }
 
         true
-    }
-
-    #[servo_tracing::instrument(level = "debug", skip_all)]
-    fn receive_one_message(&self) -> Option<Message> {
-        let mut select = crossbeam_channel::Select::new();
-        let embedder_receiver_index = select.recv(&self.embedder_receiver);
-        let net_embedder_receiver_index = select.recv(&self.net_embedder_receiver);
-        let constellation_embedder_receiver_index =
-            select.recv(&self.constellation_embedder_receiver);
-        let Ok(operation) = select.try_select() else {
-            return None;
-        };
-        let index = operation.index();
-        if index == embedder_receiver_index {
-            let Ok(message) = operation.recv(&self.embedder_receiver) else {
-                return None;
-            };
-            Some(Message::FromUnknown(message))
-        } else if index == net_embedder_receiver_index {
-            let Ok(message) = operation.recv(&self.net_embedder_receiver) else {
-                return None;
-            };
-            Some(Message::FromNet(message))
-        } else if index == constellation_embedder_receiver_index {
-            let Ok(message) = operation.recv(&self.constellation_embedder_receiver) else {
-                return None;
-            };
-            Some(Message::FromConstellation(message))
-        } else {
-            log::error!("No select operation registered for {index:?}");
-            None
-        }
     }
 
     fn send_new_frame_ready_messages(&self) {
@@ -390,13 +426,13 @@ impl ServoInner {
                         .request_authentication(webview, authentication_request);
                 }
             },
-            NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(operation_id, cookies) => {
+            NetToEmbedderMsg::EmbedderCookieOperationResponseWithCookies(operation_id, cookies) => {
                 self.site_data_manager.handle_cookie_response(
                     operation_id,
                     CookieOperationResponse::Cookies(cookies),
                 );
             },
-            NetToEmbedderMsg::EmbedderSetCookieForUrlResponse(operation_id) => {
+            NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id) => {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },

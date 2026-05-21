@@ -216,33 +216,12 @@ h4 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; font-weight: 
 h5 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; font-weight: bold; }
 h6 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; font-weight: bold; }
 
-:matches(article, aside, nav, section) h1 { margin-top: 0.83em; margin-bottom: 0.83em; font-size: 1.50em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
-
-:matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
-
-:matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
-
-:matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
-:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
-
-:matches(article, aside, nav, section) hgroup > h1 ~ h5 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
-
-
 dir, dd, dl, dt, menu, ol, ul { display: block; }
 li { display: list-item; text-align: match-parent; }
 
 dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
 
-:matches(dir, dl, menu, ol, ul) :matches(dir, dl, menu, ol, ul) {
+:is(dir, dl, menu, ol, ul) :is(dir, dl, menu, ol, ul) {
   margin-top: 0; margin-bottom: 0;
 }
 
@@ -253,11 +232,11 @@ ol { list-style-type: decimal; }
 
 dir, menu, ul { list-style-type: disc; }
 
-:matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+:is(dir, menu, ol, ul) :is(dir, menu, ul) {
   list-style-type: circle;
 }
 
-:matches(dir, menu, ol, ul) :matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+:is(dir, menu, ol, ul) :is(dir, menu, ol, ul) :is(dir, menu, ul) {
   list-style-type: square;
 }
 
@@ -298,27 +277,22 @@ tr, td, th { vertical-align: inherit; }
 
 table, td, th { border-color: gray; }
 thead, tbody, tfoot, tr { border-color: inherit; }
-table:matches(
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i],
   [frame=void i], [frame=above i], [frame=below i],
   [frame=hsides i], [frame=lhs i], [frame=rhs i],
   [frame=vsides i], [frame=box i], [frame=border i]
 ),
-table:matches(
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i]
-) > tr > :matches(td, th),
-table:matches(
+) > tr > :is(td, th),
+table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
   [rules=cols i], [rules=all i]
-) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+) > :is(thead, tbody, tfoot) > tr > :is(td, th) {
   border-color: black;
-}
-
-
-:matches(table, thead, tbody, tfoot, tr) > form {
-  display: none !important;
 }
 
 input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {

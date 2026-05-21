@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<style type="text/css">
+    iframe {
+        border: none;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the cross-origin frame in the same-origin frame.
+    </div>
+    <br />
+    <div>
+        <iframe width="100px" height="100px" src="/svg/styling/support/svg-filter-render-cross-origin-iframe.sub.html"></iframe>
+    </div>
+</body>
+</html>

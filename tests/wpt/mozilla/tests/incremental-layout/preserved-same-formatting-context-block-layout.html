@@ -24,7 +24,7 @@ window.onload = () => {
         assert_equals(result.rebuiltFragmentCount, 5, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
         // p2 + p3 + p4 + p5
-        assert_equals(result.possiblyMovedFragmentCount, 4, "possiblyMovedFragmentCount");
+        assert_equals(result.onlyDescendantsChangedCount, 0, "onlyDescendantsChangedCount");
 
     }, "Updating a sibling should not cause fragments to be rebuilt");
 

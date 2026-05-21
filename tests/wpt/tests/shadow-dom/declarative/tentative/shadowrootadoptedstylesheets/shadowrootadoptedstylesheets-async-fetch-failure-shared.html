@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets failed fetches are sticky across consumers</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  // Verifies that a CSS module fetch failure originating from
+  // `shadowrootadoptedstylesheets` leaves a sticky failed entry in the module
+  // map, so subsequent declarative or imperative consumers of the same URL
+  // observe the failure consistently rather than seeing a stale populated
+  // sheet from the failed attempt.
+  //
+  // The first declarative consumer keeps its synchronously-adopted empty
+  // placeholder sheet after failure (no cleanup runs). Later consumers that
+  // observe the URL only after the entry has reached the finished-failed
+  // state get nothing, since there is no pre-created sheet to adopt.
+
+  promise_test(async (t) => {
+    const url = "./support/nonexistent-shared-1.css";
+
+    // First consumer: declarative shadow root initiates the fetch.
+    const { shadowRoot: first } = createStylesheetHost(url, "first_host");
+    // Synchronous empty sheet while fetching.
+    assert_equals(first.adoptedStyleSheets.length, 1,
+      "First consumer: empty sheet present synchronously.");
+
+    await fetchAndWait(url);
+
+    assert_equals(first.adoptedStyleSheets.length, 1,
+      "First consumer: empty sheet remains after failed fetch.");
+    assert_equals(first.adoptedStyleSheets[0].cssRules.length, 0,
+      "First consumer: sheet remains empty after failed fetch.");
+
+    // Second consumer: another declarative shadow root for the same URL.
+    // The module map already holds a finished failed entry; with no
+    // pre-created sheet to adopt, the second shadow root contributes
+    // nothing for this specifier.
+    const { shadowRoot: second } = createStylesheetHost(url, "second_host");
+    assert_equals(second.adoptedStyleSheets.length, 0,
+      "Second declarative consumer of an already-failed URL: no sheet.");
+  }, "Failed fetch initiated by shadowrootadoptedstylesheets stays failed for later declarative consumers.");
+
+  promise_test(async (t) => {
+    const url = "./support/nonexistent-shared-2.css";
+
+    // Declarative consumer initiates the fetch and waits for it to fail.
+    const { shadowRoot } = createStylesheetHost(url, "decl_then_imp_host");
+    await fetchAndWait(url);
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Declarative consumer: empty sheet remains after failed fetch.");
+
+    // Imperative `import` of the same URL must reject from the cached
+    // failure — same as if the original fetch had been imperative — even
+    // though the declarative consumer still holds an empty placeholder.
+    await promise_rejects_js(t, TypeError,
+      import(url, { with: { type: "css" } }),
+      "import() of an already-failed CSS module should reject.");
+  }, "Declarative failure: subsequent import() of the same URL rejects (consistent with imperative-first failure).");
+
+  promise_test(async (t) => {
+    const url = "./support/nonexistent-shared-3.css";
+
+    // Imperative consumer fails first.
+    await promise_rejects_js(t, TypeError,
+      import(url, { with: { type: "css" } }),
+      "import() of a 404 CSS module should reject.");
+
+    // A subsequent declarative consumer must observe nothing — the sticky
+    // failed entry has no pre-created sheet to adopt.
+    const { shadowRoot } = createStylesheetHost(url, "imp_then_decl_host");
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Declarative consumer after imperative failure: no sheet.");
+  }, "Failed import() is observed by subsequent shadowrootadoptedstylesheets.");
+</script>
+</body>

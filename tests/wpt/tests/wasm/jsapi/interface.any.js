@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,jsshell,shadowrealm
+// META: global=window,dedicatedworker,jsshell
 // META: script=/wasm/jsapi/assertions.js
 
 function test_operations(object, object_name, operations) {

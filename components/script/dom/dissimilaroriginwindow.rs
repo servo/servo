@@ -7,7 +7,6 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use net_traits::response::HttpsState;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
@@ -72,7 +71,6 @@ impl DissimilarOriginWindow {
                 Some(global_to_clone_from.is_secure_context()),
                 false,
                 global_to_clone_from.font_context().cloned(),
-                HttpsState::None,
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
@@ -220,7 +218,7 @@ impl DissimilarOriginWindow {
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 6-7.
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(cx, message, Some(transfer))?;
 
         self.post_message(target_origin, data)
     }

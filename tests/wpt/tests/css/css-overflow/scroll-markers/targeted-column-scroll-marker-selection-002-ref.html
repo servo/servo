@@ -51,9 +51,8 @@
         display: inline-block;
       }
 
-      /* Item 3 is child 4. Starting from scrollLeft=0, calling
-      box4.scrollIntoView ends up in a position that aligns box 3. */
-      & > :nth-child(4){
+      /* item4 is child 5. item4.scrollIntoView aligns to its center. */
+      & > :nth-child(5){
         scroll-snap-align: center;
       }
 

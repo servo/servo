@@ -462,17 +462,16 @@ fn initialize_response(
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
-        if let Some(content_type_contents) = &body.content_type {
-            if !response
+        if let Some(content_type_contents) = &body.content_type &&
+            !response
                 .Headers(CanGc::from_cx(cx))
                 .Has(ByteString::new(b"Content-Type".to_vec()))
                 .unwrap()
-            {
-                response.Headers(CanGc::from_cx(cx)).Append(
-                    ByteString::new(b"Content-Type".to_vec()),
-                    ByteString::new(content_type_contents.as_bytes().to_vec()),
-                )?;
-            }
+        {
+            response.Headers(CanGc::from_cx(cx)).Append(
+                ByteString::new(b"Content-Type".to_vec()),
+                ByteString::new(content_type_contents.as_bytes().to_vec()),
+            )?;
         };
     } else {
         // Reset FetchResponse to an in-memory stream with empty byte sequence here for

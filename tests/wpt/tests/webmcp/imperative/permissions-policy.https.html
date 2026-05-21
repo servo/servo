@@ -45,7 +45,7 @@ promise_test(async t => {
       if (e.data.startsWith('tool registration failed:')) {
         resolve(e.data);
       }
-    });
+    }, {once: true});
   });
 
   iframe.contentWindow.postMessage({
@@ -56,6 +56,60 @@ promise_test(async t => {
 
   assert_true(failure_msg.includes('SecurityError'), `Expected SecurityError in navigated iframe, got: ${failure_msg}`);
 }, 'registerTool() throws in iframe, after navigation to an origin not covered by permissions policy');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+
+  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  // No `allow` attribute.
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const failure_promise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (typeof e.data === 'string' && e.data.startsWith('getTools promise rejected:')) {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+
+  iframe.contentWindow.postMessage('getTools', '*');
+  const failure_msg = await failure_promise;
+
+  assert_true(failure_msg.includes('SecurityError'), `Expected SecurityError in iframe, got: ${failure_msg}`);
+}, 'getTools() throws SecurityError in iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+
+  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  // No `allow` attribute.
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const failure_promise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.data.action === 'executeFakeToolResponse') {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+
+  // Direct the iframe to construct a conceivable `RegisteredTool` and call
+  // `executeTool()` on it.
+  iframe.contentWindow.postMessage({ action: 'execute_fake_tool', name: 'dummy_tool' }, '*');
+  const response = await failure_promise;
+
+  assert_equals(response.error_name, 'SecurityError', 'Should reject with SecurityError');
+}, 'executeTool() throws SecurityError in iframe when permissions policy is disabled');
 </script>
 </body>
 </html>

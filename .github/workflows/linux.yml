@@ -166,6 +166,8 @@ jobs:
         run: cargo install --path support/crown
 
       - name: Build (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: "-D warnings"
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-linux
@@ -179,7 +181,9 @@ jobs:
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
           LANG: en-US
-        run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
+        run: |
+          ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
+          ./mach test-unit --profile ${{ inputs.profile }} --doc
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
         # Upload test results to Codecov, also for failed unit-tests, but only

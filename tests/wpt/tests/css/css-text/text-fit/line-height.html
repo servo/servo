@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  width: 8em;
+}
+
+#normal-ref {
+  line-height: normal;
+}
+#normal {
+  line-height: normal;
+  text-fit: grow per-line-all;
+}
+
+#number-ref {
+  line-height: 1.6;
+}
+#number {
+  line-height: 1.6;
+  text-fit: grow per-line-all;
+}
+
+#percentage-ref {
+  line-height: 150%;
+}
+#percentage {
+  line-height: 150%;
+  text-fit: grow per-line-all;
+}
+
+#fixed-ref {
+  line-height: 2em;
+}
+#fixed {
+  line-height: 2em;
+  text-fit: grow per-line-all;
+}
+</style>
+<body>
+
+<div id="normal-ref">xxxx</div>
+<div id="normal">xxxx</div>
+<div id="number-ref">xxxx</div>
+<div id="number">xxxx</div>
+<div id="percentage-ref">xxxx</div>
+<div id="percentage">xxxx</div>
+<div id="length-ref">xxxx</div>
+<div id="length">xxxx</div>
+
+<script>
+test(() => {
+  const target = document.querySelector('#normal');
+  const reference = document.querySelector('#normal-ref');
+  assert_greater_than(target.offsetHeight, reference.offsetHeight);
+  assert_equals(getComputedStyle(target).lineHeight,
+                getComputedStyle(reference).lineHeight);
+}, 'line-height:normal should be scaled');
+
+test(() => {
+  const target = document.querySelector('#number');
+  const reference = document.querySelector('#number-ref');
+  assert_greater_than(target.offsetHeight, reference.offsetHeight);
+  assert_equals(getComputedStyle(target).lineHeight,
+                getComputedStyle(reference).lineHeight);
+}, 'line-height:<number> should be scaled');
+
+test(() => {
+  const target = document.querySelector('#percentage');
+  const reference = document.querySelector('#percentage-ref');
+  assert_equals(target.offsetHeight, reference.offsetHeight);
+  assert_equals(getComputedStyle(target).lineHeight,
+                getComputedStyle(reference).lineHeight);
+}, 'line-height:<percentage> should not be scaled');
+
+test(() => {
+  const target = document.querySelector('#length');
+  const reference = document.querySelector('#length-ref');
+  assert_equals(target.offsetHeight, reference.offsetHeight);
+  assert_equals(getComputedStyle(target).lineHeight,
+                getComputedStyle(reference).lineHeight);
+}, 'line-height:<length> should not be scaled');
+</script>
+</body>
+</html>

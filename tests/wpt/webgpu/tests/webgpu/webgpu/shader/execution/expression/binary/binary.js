@@ -25,3 +25,6 @@ export function abstractFloatBinary(op) {
 export function abstractIntBinary(op) {
   return abstractIntShaderBuilder((values) => `(${values.map((v) => `(${v})`).join(op)})`);
 }
+
+// See issue #4603 for why using 1 instead of the default
+export const kAbstractFloatMatrixBinaryOpBatchSize = 1;

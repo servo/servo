@@ -208,18 +208,17 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = global.origin().immutable();
 
-        if let Ok(url) = ServoUrl::parse(&url.str()) {
-            if url.fragment().is_none() && *origin == url.origin() {
-                if let Ok((id, _)) = parse_blob_url(&url) {
-                    let resource_threads = global.resource_threads();
-                    let (tx, rx) =
-                        generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
-                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
-                    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+        if let Ok(url) = ServoUrl::parse(&url.str()) &&
+            url.fragment().is_none() &&
+            *origin == url.origin() &&
+            let Ok((id, _)) = parse_blob_url(&url)
+        {
+            let resource_threads = global.resource_threads();
+            let (tx, rx) = generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
+            let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
+            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
-                    let _ = rx.recv().unwrap();
-                }
-            }
+            let _ = rx.recv().unwrap();
         }
     }
 

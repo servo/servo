@@ -58,7 +58,7 @@ promise_test(async (t) => {
   // the `focusin` event.
   dialog.close();
   await new Promise(resolve => {
-    document.defaultView.requestIdleCallback(() => {
+    requestAnimationFrame(() => {
       dialog.close();
       resolve();
     });

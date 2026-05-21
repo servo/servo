@@ -129,14 +129,20 @@ function addTwoElements(source1, source2) {
   }, `${type}: Text caret is shorter than the placeholder`);
 
   test(() => {
-     const container = document.querySelector('#container');
-     container.innerHTML = `<input type=${type}>`;
-     const element = container.firstChild;
-     const w = element.offsetWidth;
-     element.classList.add('disable-default');
-     assert_less_than(element.offsetWidth, w);
+    const container = document.querySelector('#container');
+    container.innerHTML = `<input type=${type}>`;
+    const element = container.firstChild;
+    const w = element.offsetWidth;
+    element.classList.add('disable-default');
+    assert_less_than(element.offsetWidth, w);
   }, `${type}: Update field-sizing property dynamically`);
 
+  test(() => {
+    const container = document.querySelector('#container');
+    container.innerHTML = `<input type=${type} class=disable-default value="${LONG_TEXT}">`;
+    const element = container.firstChild;
+    assert_equals(element.clientWidth, element.scrollWidth, "Shouldn't scroll");
+  }, `${type}: all content is visible`);
 });
 </script>
 </body>

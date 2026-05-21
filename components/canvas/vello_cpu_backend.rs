@@ -48,7 +48,7 @@ pub(crate) struct VelloCPUDrawTarget {
     /// so it's cheaper to always reset it after use.
     ctx: vello_cpu::RenderContext,
     pixmap: vello_cpu::Pixmap,
-    clips: Vec<Path>,
+    clips: Vec<(Path, kurbo::Affine)>,
     state: State,
 }
 
@@ -76,7 +76,8 @@ impl VelloCPUDrawTarget {
         }
         f(self);
         // push all clip layers back
-        for path in &self.clips {
+        for (path, affine) in &self.clips {
+            self.ctx.set_transform(*affine);
             self.ctx.push_clip_layer(&path.0);
         }
     }
@@ -129,8 +130,10 @@ impl VelloCPUDrawTarget {
             return false;
         }
         let viewport: Rect<f64> = Rect::from_size(self.get_size().cast());
-        let Some(clip) = self.clips.iter().try_fold(viewport, |acc, e| {
-            acc.intersection(&e.0.bounding_box().into())
+        let Some(clip) = self.clips.iter().try_fold(viewport, |acc, (path, affine)| {
+            let mut bez = path.0.clone();
+            bez.apply_affine(*affine);
+            acc.intersection(&bez.bounding_box().into())
         }) else {
             // clip makes no visible side effects
             return false;
@@ -355,12 +358,11 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     }
 
     fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>) {
-        self.ctx.set_transform(transform.cast().into());
-        let mut path = path.clone();
-        path.transform(transform.cast());
+        let affine = transform.cast().into();
+        self.ctx.set_transform(affine);
         self.ctx.set_fill_rule(fill_rule.convert());
         self.ctx.push_clip_layer(&path.0);
-        self.clips.push(path);
+        self.clips.push((path.clone(), affine));
         self.ctx.set_fill_rule(peniko::Fill::NonZero);
     }
 

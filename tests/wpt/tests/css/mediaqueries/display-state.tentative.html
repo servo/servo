@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/explainers-by-googlers/additional-windowing-controls/blob/main/README.md" />
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<script type="text/javascript" src="/css/mediaqueries/resources/matchmedia-utils.js"></script>
+<script>
+  query_should_be_known("(display-state: normal)");
+  query_should_be_known("(display-state: minimized)");
+  query_should_be_known("(display-state: maximized)");
+  query_should_be_known("(display-state: fullscreen)");
+  query_should_be_known("(display-state)");
+
+  query_should_be_unknown("(display-state: 0)");
+  query_should_be_unknown("(display-state: none)");
+  query_should_be_unknown("(display-state: random)");
+  query_should_be_unknown("(display-state: 10px)");
+  query_should_be_unknown("(display-state: 1%)");
+
+  test(() => {
+    let booleanContext = window.matchMedia("(display-state)");
+    assert_true(booleanContext.matches);
+  }, "Check that display-state evaluates to true in the boolean context");
+</script>

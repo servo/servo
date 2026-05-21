@@ -150,8 +150,8 @@ impl HTMLCanvasElement {
         } else {
             value
         };
-        let element = self.upcast::<Element>();
-        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
+        self.upcast::<Element>()
+            .set_attribute(cx, &html5ever::local_name!("width"), value.into());
     }
 
     pub(crate) fn set_natural_height(&self, cx: &mut js::context::JSContext, value: u32) {
@@ -160,8 +160,8 @@ impl HTMLCanvasElement {
         } else {
             value
         };
-        let element = self.upcast::<Element>();
-        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
+        self.upcast::<Element>()
+            .set_attribute(cx, &html5ever::local_name!("height"), value.into());
     }
 }
 
@@ -453,8 +453,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         } else {
             value
         };
-        let element = self.upcast::<Element>();
-        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
+        self.upcast::<Element>()
+            .set_attribute(cx, &html5ever::local_name!("width"), value.into());
         Ok(())
     }
 
@@ -475,8 +475,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         } else {
             value
         };
-        let element = self.upcast::<Element>();
-        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
+        self.upcast::<Element>()
+            .set_attribute(cx, &html5ever::local_name!("height"), value.into());
         Ok(())
     }
 

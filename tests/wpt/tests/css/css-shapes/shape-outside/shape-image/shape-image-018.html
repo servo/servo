@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
     <title>CSS Test: right float, url(jpg), real image + shape-margin (%)</title>
     <link rel="author" title="Hans Muller" href="mailto:hmuller@adobe.com"/>
@@ -44,5 +44,13 @@
             X<br>X<br>X<br><span style="margin-left: 120px">X
         </div>
     </div>
+<script>
+// A workaround of a Chromium content_shell issue. Without it, content_shell
+// generates a pixel dump before the image finishes loading. See
+// crbug.com/372756068
+document.getElementById('image').addEventListener('load', () => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
 </body>
 </html>

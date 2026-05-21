@@ -155,7 +155,7 @@ arboard = { workspace = true, optional = true }
 webxr = { workspace = true, features = ["glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
-gaol = "0.2.1"
+gaol = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 webxr = { workspace = true, features = ["glwindow", "headless", "openxr-api"] }
@@ -164,17 +164,17 @@ webxr = { workspace = true, features = ["glwindow", "headless", "openxr-api"] }
 servo-media-ohos = { workspace = true }
 
 [dev-dependencies]
-accesskit_consumer = "0.35.0"
+accesskit_consumer = { workspace = true }
 content-security-policy = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
 itertools = { workspace = true }
 net = { workspace = true, features = ["test-util"] }
-rustls = { version = "0.23", default-features = false }
+rustls = { workspace = true, default-features = false }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
-servo = { path = ".", features = ["tracing"] }
+servo = { path = ".", features = ["testbinding", "tracing"] }
 tracing = { workspace = true }
 winit = { workspace = true }
 

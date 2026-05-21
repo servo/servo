@@ -210,18 +210,18 @@ impl BlockContainer {
     ) -> BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
-        if is_list_item {
-            if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
-                match marker_info.style.clone_list_style_position() {
-                    ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(&marker_info, marker_contents)
-                    },
-                    ListStylePosition::Outside => builder.handle_list_item_marker_outside(
-                        &marker_info,
-                        marker_contents,
-                        info.style.clone(),
-                    ),
-                }
+        if is_list_item &&
+            let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info)
+        {
+            match marker_info.style.clone_list_style_position() {
+                ListStylePosition::Inside => {
+                    builder.handle_list_item_marker_inside(&marker_info, marker_contents)
+                },
+                ListStylePosition::Outside => builder.handle_list_item_marker_outside(
+                    &marker_info,
+                    marker_contents,
+                    info.style.clone(),
+                ),
             }
         }
 
@@ -552,15 +552,14 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         );
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
-        if is_list_item {
-            if let Some((marker_info, marker_contents)) =
+        if is_list_item &&
+            let Some((marker_info, marker_contents)) =
                 crate::lists::make_marker(self.context, info)
-            {
-                // Ignore `list-style-position` here:
-                // “If the list item is an inline box: this value is equivalent to `inside`.”
-                // https://drafts.csswg.org/css-lists/#list-style-position-outside
-                self.handle_list_item_marker_inside(&marker_info, marker_contents)
-            }
+        {
+            // Ignore `list-style-position` here:
+            // “If the list item is an inline box: this value is equivalent to `inside`.”
+            // https://drafts.csswg.org/css-lists/#list-style-position-outside
+            self.handle_list_item_marker_inside(&marker_info, marker_contents)
         }
 
         // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
@@ -666,22 +665,22 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
-            if !builder.is_empty {
-                let constructor = || {
-                    ArcRefCell::new(FloatBox::construct(
-                        self.context,
-                        info,
-                        display_inside,
-                        contents,
-                        self.propagated_data,
-                    ))
-                };
-                let old_layout_box = box_slot.take_layout_box();
-                let inline_level_box = builder.push_float_box(constructor, old_layout_box);
-                box_slot.set(LayoutBox::InlineLevel(inline_level_box));
-                return;
-            }
+        if let Some(builder) = self.inline_formatting_context_builder.as_mut() &&
+            !builder.is_empty
+        {
+            let constructor = || {
+                ArcRefCell::new(FloatBox::construct(
+                    self.context,
+                    info,
+                    display_inside,
+                    contents,
+                    self.propagated_data,
+                ))
+            };
+            let old_layout_box = box_slot.take_layout_box();
+            let inline_level_box = builder.push_float_box(constructor, old_layout_box);
+            box_slot.set(LayoutBox::InlineLevel(inline_level_box));
+            return;
         }
 
         let kind = BlockLevelCreator::OutOfFlowFloatBox {

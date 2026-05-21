@@ -24,6 +24,7 @@
   .none, .all-initial, .initial {
     /* allows testing border-related properties */
     border-style: solid;
+    border-color: gray;
   }
 
   #container {
@@ -40,6 +41,18 @@
   <div class="none zoomed"></div>
   <div class="initial zoomed"></div>
   <div class="all-initial zoomed"></div>
+
+  <div class="zoomed">
+    <div class="none"></div>
+    <div class="initial"></div>
+    <div class="all-initial"></div>
+  </div>
+
+  <div class="zoomed">
+    <div class="none zoomed"></div>
+    <div class="initial zoomed"></div>
+    <div class="all-initial zoomed"></div>
+  </div>
 </div>
 
 <script>
@@ -87,19 +100,27 @@
   for (let t = 0; t < testClasses.length; t++) {
     const el = document.querySelector(`.${testClasses[t]}`);
     const elZoomed = document.querySelector(`.${testClasses[t]}.zoomed`);
+    const elParentZoomed = document.querySelector(`.zoomed .${testClasses[t]}`);
+    const elDoubleZoomed = document.querySelector(`.zoomed .${testClasses[t]}.zoomed`);
 
     const cs = getComputedStyle(el);
     const csZoomed = getComputedStyle(elZoomed);
+    const csParentZoomed = getComputedStyle(elParentZoomed);
+    const csDoubleZoomed = getComputedStyle(elDoubleZoomed);
 
     for (let i = 0; i < cs.length; i++) {
       const prop = cs.item(i);
       const value = cs[prop];
       const valueZoomed = csZoomed[prop];
+      const valueParentZoomed = csParentZoomed[prop];
+      const valueDoubleZoomed = csDoubleZoomed[prop];
 
       if (isExcludedProp(prop, value) && isExcludedProp(prop, valueZoomed)) continue;
 
       test(() => {
         assert_equals(valueZoomed, value);
+        assert_equals(valueParentZoomed, value);
+        assert_equals(valueDoubleZoomed, value);
       }, prop + testNameSuffixes[t]);
     }
   }

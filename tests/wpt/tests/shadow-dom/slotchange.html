@@ -43,6 +43,21 @@ async_test((test) => {
   let d1 = document.createElement('div');
   d1.setAttribute('slot', 'slot1');
 
+  n.host1.shadowRoot.onslotchange = test.step_func(() => {
+    arraysEqual(n.s1.assignedNodes(), [n.c1, d1]);
+    test.done()
+  });
+
+  n.host1.appendChild(d1);
+}, 'slotchange event: Append a child to a host (onslotchange).');
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  let d1 = document.createElement('div');
+  d1.setAttribute('slot', 'slot1');
+
   doneIfSlotChange([n.s1], [[n.c1, d1]], test);
 
   n.host1.appendChild(d1);

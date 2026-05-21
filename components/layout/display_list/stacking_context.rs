@@ -41,14 +41,15 @@ use wr::units::{LayoutPixel, LayoutSize};
 
 use super::ClipId;
 use super::clip::StackingContextTreeClipStore;
-use crate::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder, offset_radii};
 use crate::fragment_tree::{
-    BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
-    PositioningFragment, SpecificLayoutInfo,
+    BoxFragment, ContainingBlockCalculation, ContainingBlockManager, Fragment, FragmentFlags,
+    FragmentTree, PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides};
+use crate::geom::{
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalVec,
+};
 use crate::style_ext::{ComputedValuesExt, TransformExt};
 
 #[derive(Clone)]
@@ -67,6 +68,13 @@ pub(crate) struct ContainingBlock {
 
     /// The physical rect of this containing block.
     rect: PhysicalRect<Au>,
+
+    /// Normally containing block offsets and display list items are positioned relative
+    /// to their parent reference frame, but cumulative containing block boundaries on
+    /// fragments need to disregard reference frames entirely. This value tracks the
+    /// accumulated offset from the origin of the parent reference frame of this
+    /// containing block.
+    accumulated_reference_frame_offset: PhysicalVec<Au>,
 }
 
 impl ContainingBlock {
@@ -75,12 +83,14 @@ impl ContainingBlock {
         scroll_node_id: ScrollTreeNodeId,
         scroll_frame_size: Option<LayoutSize>,
         clip_id: ClipId,
+        accumulated_reference_frame_offset: PhysicalVec<Au>,
     ) -> Self {
         ContainingBlock {
             scroll_node_id,
             scroll_frame_size,
             clip_id,
             rect,
+            accumulated_reference_frame_offset,
         }
     }
 
@@ -152,12 +162,14 @@ impl StackingContextTree {
             root_scroll_node_id,
             Some(viewport_size),
             ClipId::INVALID,
+            PhysicalVec::zero(),
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
             paint_info.root_reference_frame_id,
             None,
             ClipId::INVALID,
+            PhysicalVec::zero(),
         );
 
         // We need to specify all three containing blocks here, because absolute
@@ -278,7 +290,6 @@ impl StackingContextTree {
             return None;
         };
 
-        let fragment = fragment.borrow();
         let spatial_tree_node = fragment.spatial_tree_node()?;
         let transform = self
             .paint_info
@@ -295,8 +306,12 @@ impl StackingContextTree {
             .scroll_tree
             .reference_frame_offset(spatial_tree_node)
             .map(Au::from_f32_px);
-        let fragment_origin =
-            fragment.cumulative_content_box_rect().origin - reference_frame_origin.cast_unit();
+        let fragment_origin = fragment
+            .cumulative_content_box_rect(
+                ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+            )
+            .origin -
+            reference_frame_origin.cast_unit();
 
         // Use that to find the offset from the fragment origin.
         Some(transformed_point - fragment_origin)
@@ -393,7 +408,6 @@ impl StackingContextContent {
         match self {
             StackingContextContent::Fragment { fragment, .. } => match fragment {
                 Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                    let box_fragment = box_fragment.borrow();
                     let style = box_fragment.style();
                     let outline = style.get_outline();
                     !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
@@ -429,7 +443,8 @@ pub struct StackingContext {
 
     /// The [`BoxFragment`] that established this stacking context. We store the fragment here
     /// rather than just the style, so that incremental layout can automatically update the style.
-    initializing_fragment: Option<ArcRefCell<BoxFragment>>,
+    #[conditional_malloc_size_of]
+    initializing_fragment: Option<Arc<BoxFragment>>,
 
     /// The type of this stacking context. Used for collecting and sorting.
     context_type: StackingContextType,
@@ -487,7 +502,7 @@ impl StackingContext {
         &self,
         spatial_id: ScrollTreeNodeId,
         clip_id: ClipId,
-        initializing_fragment: ArcRefCell<BoxFragment>,
+        initializing_fragment: Arc<BoxFragment>,
         context_type: StackingContextType,
     ) -> Self {
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID should be
@@ -546,7 +561,6 @@ impl StackingContext {
 
     pub(crate) fn z_index(&self) -> i32 {
         self.initializing_fragment.as_ref().map_or(0, |fragment| {
-            let fragment = fragment.borrow();
             fragment.style().effective_z_index(fragment.base.flags)
         })
     }
@@ -587,9 +601,8 @@ impl StackingContext {
         &self,
         builder: &mut DisplayListBuilder,
     ) -> bool {
-        let fragment = match self.initializing_fragment.as_ref() {
-            Some(fragment) => fragment.borrow(),
-            None => return false,
+        let Some(fragment) = self.initializing_fragment.as_ref() else {
+            return false;
         };
 
         // WebRender only uses the stacking context to apply certain effects. If we don't
@@ -601,7 +614,7 @@ impl StackingContext {
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
             !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-            style.clone_clip_path() == ClipPath::None &&
+            style.get_svg().clip_path == ClipPath::None &&
             transform_style == TransformStyle::Flat
         {
             return false;
@@ -666,8 +679,7 @@ impl StackingContext {
         let root_fragment = match root_fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
             _ => return,
-        }
-        .borrow();
+        };
 
         let source_style = {
             // > For documents whose root element is an HTML HTML element or an XHTML html element
@@ -680,7 +692,7 @@ impl StackingContext {
                 let body_fragment = fragment_tree.body_fragment();
                 builder.paint_body_background = body_fragment.is_none();
                 body_fragment
-                    .map(|body_fragment| body_fragment.borrow().style().clone())
+                    .map(|body_fragment| body_fragment.style().clone())
                     .unwrap_or(root_fragment.style().clone())
             } else {
                 root_fragment_style.clone()
@@ -729,7 +741,7 @@ impl StackingContext {
         }
 
         let mut fragment_builder = BuilderForBoxFragment::new(
-            &root_fragment,
+            root_fragment,
             &fragment_tree.initial_containing_block,
             false, /* is_hit_test_for_scrollable_overflow */
             false, /* is_collapsed_table_borders */
@@ -929,6 +941,12 @@ impl Fragment {
         mode: StackingContextBuildMode,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
+        let containing_block = containing_block_info.get_containing_block_for_fragment(self);
+        let cumulative_containing_block = containing_block
+            .rect
+            .translate(containing_block.accumulated_reference_frame_offset);
+        self.set_containing_block(&cumulative_containing_block);
+
         if self
             .base()
             .is_some_and(|base| base.flags.contains(FragmentFlags::IS_COLLAPSED))
@@ -936,11 +954,9 @@ impl Fragment {
             return;
         }
 
-        let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let fragment_clone = self.clone();
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
                 if mode == StackingContextBuildMode::SkipHoisted &&
                     fragment.style().clone_position().is_absolutely_positioned()
                 {
@@ -977,7 +993,6 @@ impl Fragment {
                 );
             },
             Fragment::Positioning(fragment) => {
-                let fragment = fragment.borrow();
                 fragment.build_stacking_context_tree(
                     stacking_context_tree,
                     containing_block,
@@ -1113,7 +1128,12 @@ impl BoxFragment {
         }
 
         let style = self.style();
-        let frame_origin_for_query = self.cumulative_border_box_rect().origin.to_webrender();
+        let frame_origin_for_query = self
+            .cumulative_border_box_rect(
+                ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+            )
+            .origin
+            .to_webrender();
         let new_spatial_id = stacking_context_tree.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
             frame_origin_for_query,
@@ -1133,13 +1153,13 @@ impl BoxFragment {
         // containing blocks for absolute and fixed descendants, so those
         // properties will be replaced before recursing into children.
         assert!(style.establishes_containing_block_for_all_descendants(self.base.flags));
+        let reference_frame_offset = reference_frame_data.origin.to_vector();
         let adjusted_containing_block = ContainingBlock::new(
-            containing_block
-                .rect
-                .translate(-reference_frame_data.origin.to_vector()),
+            containing_block.rect.translate(-reference_frame_offset),
             new_spatial_id,
             None,
             containing_block.clip_id,
+            containing_block.accumulated_reference_frame_offset + reference_frame_offset,
         );
         let new_containing_block_info =
             containing_block_info.new_for_non_absolute_descendants(&adjusted_containing_block);
@@ -1195,7 +1215,7 @@ impl BoxFragment {
         let stacking_context_clip_id = stacking_context_tree
             .clip_store
             .add_for_clip_path(
-                self.style().clone_clip_path(),
+                &self.style().get_svg().clip_path,
                 containing_block.scroll_node_id,
                 containing_block.clip_id,
                 BuilderForBoxFragment::new(
@@ -1280,7 +1300,7 @@ impl BoxFragment {
 
         let style = self.style();
         if let Some(clip_id) = stacking_context_tree.clip_store.add_for_clip_path(
-            style.clone_clip_path(),
+            &style.get_svg().clip_path,
             new_scroll_node_id,
             new_clip_id,
             BuilderForBoxFragment::new(
@@ -1372,12 +1392,14 @@ impl BoxFragment {
             new_scroll_node_id,
             new_scroll_frame_size,
             new_clip_id,
+            containing_block.accumulated_reference_frame_offset,
         );
         let for_non_absolute_descendants = ContainingBlock::new(
             content_rect,
             new_scroll_node_id,
             new_scroll_frame_size,
             new_clip_id,
+            containing_block.accumulated_reference_frame_offset,
         );
 
         // Create a new `ContainingBlockInfo` for descendants depending on
@@ -1883,14 +1905,10 @@ impl BoxFragment {
             for fragment in fragments.iter() {
                 match fragment {
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        box_fragment
-                            .borrow()
-                            .clear_spatial_tree_node_including_descendants();
+                        box_fragment.clear_spatial_tree_node_including_descendants();
                     },
                     Fragment::Positioning(positioning_fragment) => {
-                        assign_spatial_tree_node_on_fragments(
-                            &positioning_fragment.borrow().children,
-                        );
+                        assign_spatial_tree_node_on_fragments(&positioning_fragment.children);
                     },
                     _ => {},
                 }
@@ -1913,7 +1931,7 @@ impl PositioningFragment {
     ) {
         let rect = self
             .base
-            .rect
+            .rect()
             .translate(containing_block.rect.origin.to_vector());
         let new_containing_block = containing_block.new_replacing_rect(&rect);
         let new_containing_block_info =

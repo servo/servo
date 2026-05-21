@@ -337,10 +337,10 @@ impl WebGLFramebuffer {
             }
         }
 
-        if let Some(format) = format {
-            if constraints.all(|c| *c != format) {
-                return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
-            }
+        if let Some(format) = format &&
+            constraints.all(|c| *c != format)
+        {
+            return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
         }
 
         Ok(())
@@ -572,19 +572,19 @@ impl WebGLFramebuffer {
             ];
             let mut clear_bits = 0;
             for &(attachment, bits) in &attachments {
-                if let Some(ref att) = *attachment.borrow() {
-                    if att.needs_initialization() {
-                        att.mark_initialized();
-                        clear_bits |= bits;
-                    }
+                if let Some(ref att) = *attachment.borrow() &&
+                    att.needs_initialization()
+                {
+                    att.mark_initialized();
+                    clear_bits |= bits;
                 }
             }
             for attachment in self.colors.iter() {
-                if let Some(ref att) = *attachment.borrow() {
-                    if att.needs_initialization() {
-                        att.mark_initialized();
-                        clear_bits |= constants::COLOR_BUFFER_BIT;
-                    }
+                if let Some(ref att) = *attachment.borrow() &&
+                    att.needs_initialization()
+                {
+                    att.mark_initialized();
+                    clear_bits |= constants::COLOR_BUFFER_BIT;
                 }
             }
 

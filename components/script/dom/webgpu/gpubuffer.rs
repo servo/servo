@@ -196,7 +196,6 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let promise = self.pending_map.borrow_mut().take();
         if let Some(promise) = promise {
             promise.reject_error(Error::Abort(None), CanGc::deprecated_note());
-            *self.pending_map.borrow_mut() = Some(promise);
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
@@ -317,7 +316,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .take()
             .ok_or(Error::Operation(None))?;
 
-        let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
+        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;

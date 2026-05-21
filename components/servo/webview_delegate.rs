@@ -307,13 +307,12 @@ impl InterceptedWebResourceLoad {
 
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
-        if !self.finished {
-            if let Err(error) = self
+        if !self.finished &&
+            let Err(error) = self
                 .response_sender
                 .send(WebResourceResponseMsg::FinishLoad)
-            {
-                self.error_sender.raise_response_send_error(error);
-            }
+        {
+            self.error_sender.raise_response_send_error(error);
         }
     }
 }
@@ -967,7 +966,7 @@ pub trait WebViewDelegate {
     /// ignored, no new `WebView` will be opened. Embedders can handle this method by
     /// using the provided [`CreateNewWebViewRequest`] to build a new `WebView`.
     ///
-    /// ```rust
+    /// ```ignore
     /// fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
     ///     let webview = request
     ///         .builder(self.rendering_context())
