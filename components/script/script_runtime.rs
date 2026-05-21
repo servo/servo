@@ -95,7 +95,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -1455,11 +1455,11 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     // SAFETY: always safe from a JS engine hook.
     let mut cx = unsafe { temp_cx() };
     let global = unsafe { GlobalScope::from_object(global.get()) };
-    let ar = enter_realm(&*global);
+    let mut realm = enter_auto_realm(&mut cx, &*global);
 
     run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(cx.raw_cx(), closure) } {
-            report_pending_exception(&mut cx, InRealm::Entered(&ar));
+        if unsafe { !RunScriptEnvironmentPreparerClosure(realm.raw_cx(), closure) } {
+            report_pending_exception(&mut realm.current_realm());
         };
     });
 }

@@ -2931,9 +2931,6 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let in_realm_proof = cx.into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-
         run_a_script::<DomTypeHolder, _>(self, || {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
@@ -2953,7 +2950,7 @@ impl GlobalScope {
 
             let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx, in_realm);
+                report_pending_exception(cx);
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             };
 

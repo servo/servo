@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
@@ -50,7 +51,7 @@ use crate::dom::rtcrtptransceiver::RTCRtpTransceiver;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
@@ -148,8 +149,8 @@ impl WebRtcSignaller for RTCSignaller {
             .queue(task!(on_data_channel_event: move |cx| {
                 let this = this.root();
                 let global = this.global();
-                let _ac = enter_realm(&*global);
-                this.on_data_channel_event(cx, channel, event);
+                let mut realm = enter_auto_realm(cx, &*global);
+                this.on_data_channel_event(&mut realm.current_realm(), channel, event);
             }));
     }
 
@@ -285,7 +286,7 @@ impl RTCPeerConnection {
 
     fn on_data_channel_event(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         channel_id: DataChannelId,
         event: DataChannelEvent,
     ) {

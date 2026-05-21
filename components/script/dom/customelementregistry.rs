@@ -942,11 +942,8 @@ pub(crate) fn upgrade_element(
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
 
-        let in_realm_proof = cx.into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-
         throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
-        report_pending_exception(cx, in_realm);
+        report_pending_exception(cx);
 
         return;
     }

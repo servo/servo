@@ -902,7 +902,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global, CanGc::from_cx(cx));
+        let p = Promise::new2(cx, &global);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises

@@ -18,6 +18,7 @@ use js::jsapi::{
     JS_ValueToFunction, PropertyDescriptor,
 };
 use js::jsval::{Int32Value, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById,
     JS_GetPropertyById, JS_IdToValue, JS_Stringify, JS_ValueToSource,
@@ -34,7 +35,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 
 /// The maximum object depth logged by console methods.
@@ -230,8 +230,7 @@ fn console_argument_from_handle_value(
     match inner(cx, handle_value, seen) {
         Ok(arg) => arg,
         Err(()) => {
-            let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
-            report_pending_exception(cx, InRealm::Already(&in_realm_proof));
+            report_pending_exception(&mut CurrentRealm::assert(cx));
             DebuggerValue::StringValue("<error>".into())
         },
     }

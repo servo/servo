@@ -7,12 +7,13 @@ use std::ptr;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
@@ -39,7 +40,6 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::dom::rtcpeerconnection::RTCPeerConnection;
-use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -175,11 +175,9 @@ impl RTCDataChannel {
             .unregister_data_channel(&self.get_servo_media_id());
     }
 
-    pub(crate) fn on_error(&self, cx: &mut JSContext, error: WebRtcError) {
+    pub(crate) fn on_error(&self, cx: &mut CurrentRealm, error: WebRtcError) {
         let global = self.global();
         let window = global.as_window();
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm;
         let init = RTCErrorInit {
             errorDetail: RTCErrorDetailType::Data_channel_failure,
             httpRequestStatusCode: None,
@@ -204,15 +202,13 @@ impl RTCDataChannel {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn on_message(&self, cx: &mut JSContext, channel_message: DataChannelMessage) {
+    pub(crate) fn on_message(&self, cx: &mut CurrentRealm, channel_message: DataChannelMessage) {
         let global = self.global();
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut message = UndefinedValue());
 
         match channel_message {
             DataChannelMessage::Text(text) => {
-                text.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx));
+                text.safe_to_jsval(cx, message.handle_mut());
             },
             DataChannelMessage::Binary(data) => {
                 let binary_type = self.binary_type.borrow();
@@ -223,7 +219,7 @@ impl RTCDataChannel {
                             BlobImpl::new_from_bytes(data, "".to_owned()),
                             CanGc::from_cx(cx),
                         );
-                        blob.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx));
+                        blob.safe_to_jsval(cx, message.handle_mut());
                     },
                     "arraybuffer" => {
                         rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -237,7 +233,7 @@ impl RTCDataChannel {
                                 .is_ok()
                             )
                         };
-                        (*array_buffer).safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx));
+                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                 },
             _ => unreachable!(),)
             },
