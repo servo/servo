@@ -563,7 +563,7 @@ impl AccessibilityUpdate {
                     }
                 },
                 TreeChange::PendingMove => {
-                    panic!(
+                    unreachable!(
                         "Pending move found for node id {id:?} when draining tree state changes"
                     );
                 },
