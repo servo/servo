@@ -589,12 +589,9 @@ impl GenericDrawTarget for VelloDrawTarget {
                 flags: ImageDescriptorFlags::empty(),
             };
             let data = SerializableImageData::Raw(if let Some(data) = data {
-                let mut data = GenericSharedMemory::from_bytes(data);
-                #[expect(unsafe_code, reason = "comply with Safety contract of deref_mut")]
-                unsafe {
-                    pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
-                }
-                data
+                GenericSharedMemory::from_bytes_with_mutator(data, |bytes| {
+                    pixels::generic_transform_inplace::<1, false, false>(bytes);
+                })
             } else {
                 GenericSharedMemory::from_byte(0, size.area() as usize * 4)
             });
