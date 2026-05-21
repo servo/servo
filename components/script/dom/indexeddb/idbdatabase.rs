@@ -400,7 +400,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
-            name.to_string(),
+            String::from(name),
         );
 
         self.get_idb_thread()

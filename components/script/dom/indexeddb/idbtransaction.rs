@@ -182,7 +182,7 @@ impl IDBTransaction {
         };
         let scope: Vec<String> = (0..scope.Length())
             .filter_map(|i| scope.Item(i))
-            .map(|name| name.to_string())
+            .map(String::from)
             .collect();
         let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
 
@@ -191,7 +191,7 @@ impl IDBTransaction {
             .send(IndexedDBThreadMsg::Sync(SyncOperation::CreateTransaction {
                 sender,
                 origin: global.origin().immutable().clone(),
-                db_name: db_name.to_string(),
+                db_name: String::from(db_name),
                 mode: backend_mode,
                 scope,
             }))
@@ -343,7 +343,7 @@ impl IDBTransaction {
         let commit_operation = SyncOperation::Commit(
             callback,
             global.origin().immutable().clone(),
-            self.db.get_name().to_string(),
+            String::from(self.db.get_name()),
             self.serial_number,
         );
 
@@ -534,7 +534,7 @@ impl IDBTransaction {
         let operation = SyncOperation::Abort(
             callback,
             global.origin().immutable().clone(),
-            self.db.get_name().to_string(),
+            String::from(self.db.get_name()),
             self.serial_number,
         );
         let _ = self
@@ -547,7 +547,7 @@ impl IDBTransaction {
         let _ = self.get_idb_thread().send(IndexedDBThreadMsg::Sync(
             SyncOperation::TransactionFinished {
                 origin: global.origin().immutable().clone(),
-                db_name: self.db.get_name().to_string(),
+                db_name: String::from(self.db.get_name()),
                 txn: self.serial_number,
             },
         ));
@@ -590,7 +590,7 @@ impl IDBTransaction {
                         .get_indexeddb()
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
-                    let db_name = this.db.get_name().to_string();
+                    let db_name = String::from(this.db.get_name());
                     let txn = this.serial_number;
                     let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
                         SyncOperation::UpgradeTransactionFinished {
@@ -660,7 +660,7 @@ impl IDBTransaction {
                         .get_indexeddb()
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
-                    let db_name = this.db.get_name().to_string();
+                    let db_name = String::from(this.db.get_name());
                     let txn = this.serial_number;
                     let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
                         SyncOperation::UpgradeTransactionFinished {
@@ -693,7 +693,7 @@ impl IDBTransaction {
             channel(global.time_profiler_chan().clone()).expect("failed to create channel");
 
         let origin = global.origin().immutable().clone();
-        let db_name = self.db.get_name().to_string();
+        let db_name = String::from(self.db.get_name());
         let object_store_name = object_store_name.to_string();
 
         let operation = SyncOperation::GetObjectStore(sender, origin, db_name, object_store_name);

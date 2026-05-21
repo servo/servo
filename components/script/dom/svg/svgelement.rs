@@ -129,7 +129,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(value.to_string())
+            .update_nonce_internal_slot(String::from(value))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>

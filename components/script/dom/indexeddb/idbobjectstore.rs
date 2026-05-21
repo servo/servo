@@ -77,9 +77,9 @@ impl From<indexeddb::KeyPath> for KeyPath {
 impl From<KeyPath> for indexeddb::KeyPath {
     fn from(item: KeyPath) -> Self {
         match item {
-            KeyPath::String(s) => Self::String(s.to_string()),
+            KeyPath::String(s) => Self::String(String::from(s)),
             KeyPath::StringSequence(ss) => {
-                Self::Sequence(ss.into_iter().map(|s| s.to_string()).collect())
+                Self::Sequence(ss.into_iter().map(String::from).collect())
             },
         }
     }
@@ -1031,7 +1031,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),
             self.name.borrow().to_string(),
-            name.to_string(),
+            String::from(name),
         );
         self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(delete_index_operation))

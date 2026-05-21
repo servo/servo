@@ -92,7 +92,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
 
         let msg = BroadcastChannelMsg {
             origin: global.origin().immutable().clone(),
-            channel_name: self.Name().to_string(),
+            channel_name: String::from(self.Name()),
             data,
         };
 

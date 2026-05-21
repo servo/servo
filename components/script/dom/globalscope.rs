@@ -1741,7 +1741,7 @@ impl GlobalScope {
                 let _ = self.script_to_constellation_chan().send(
                     ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                         *router_id,
-                        dom_channel.Name().to_string(),
+                        String::from(dom_channel.Name()),
                         self.origin().immutable().clone(),
                     ),
                 );

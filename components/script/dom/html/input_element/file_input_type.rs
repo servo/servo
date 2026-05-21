@@ -157,7 +157,7 @@ impl SpecificInputType for FileInputType {
             }
             return DEFAULT_FILE_INPUT_VALUE.into();
         };
-        first_item.name().to_string().into()
+        first_item.name().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>

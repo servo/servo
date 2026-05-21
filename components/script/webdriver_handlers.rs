@@ -1378,12 +1378,12 @@ pub(crate) fn handle_get_page_source(
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| match document.GetDocumentElement() {
                     Some(element) => match element.outer_html(cx) {
-                        Ok(source) => Ok(source.to_string()),
+                        Ok(source) => Ok(String::from(source)),
                         Err(_) => {
                             match XMLSerializer::new(document.window(), None, CanGc::from_cx(cx))
                                 .SerializeToString(element.upcast::<Node>())
                             {
-                                Ok(source) => Ok(source.to_string()),
+                                Ok(source) => Ok(String::from(source)),
                                 Err(_) => Err(ErrorStatus::UnknownError),
                             }
                         },
@@ -1649,7 +1649,7 @@ pub(crate) fn handle_get_text(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 element
                     .downcast::<HTMLElement>()
-                    .map(|htmlelement| htmlelement.InnerText().to_string())
+                    .map(|htmlelement| String::from(htmlelement.InnerText()))
                     .unwrap_or_else(|| {
                         element
                             .upcast::<Node>()

@@ -365,7 +365,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
         policy_name: DOMString,
         options: &TrustedTypePolicyOptions,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
-        self.create_trusted_type_policy(cx, policy_name.to_string(), options, &self.global())
+        self.create_trusted_type_policy(cx, String::from(policy_name), options, &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {

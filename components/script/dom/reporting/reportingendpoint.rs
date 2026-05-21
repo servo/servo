@@ -288,13 +288,13 @@ pub(crate) struct CSPReportingEndpointBody {
 impl From<CSPViolationReportBody> for CSPReportingEndpointBody {
     fn from(value: CSPViolationReportBody) -> Self {
         CSPReportingEndpointBody {
-            sample: value.sample.map(|s| s.to_string()),
+            sample: value.sample.map(String::from),
             blocked_url: value.blockedURL.map(|s| s.to_string()),
             referrer: value.referrer.map(|s| s.to_string()),
             status_code: value.statusCode,
             document_url: value.documentURL.to_string(),
             source_file: value.sourceFile.map(|s| s.to_string()),
-            effective_directive: value.effectiveDirective.to_string(),
+            effective_directive: String::from(value.effectiveDirective),
             line_number: value.lineNumber,
             column_number: value.columnNumber,
             original_policy: value.originalPolicy.into(),

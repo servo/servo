@@ -493,7 +493,7 @@ pub(crate) fn stringify_handle_value(message: HandleValue) -> DOMString {
                     };
                     props.push(format!("{}: {}", key, value_string,));
                 } else {
-                    props.push(value_string.to_string());
+                    props.push(String::from(value_string));
                 }
             }
             if truncate {
@@ -612,7 +612,7 @@ fn apply_sprintf_substitutions(cx: JSContext, messages: &[HandleValue]) -> (Stri
             Some('s') => {
                 chars.next();
                 if arg_index < messages.len() {
-                    result.push_str(&stringify_handle_value(messages[arg_index]).to_string());
+                    result.push_str(&stringify_handle_value(messages[arg_index]).str());
                     arg_index += 1;
                 } else {
                     result.push_str("%s");
@@ -648,7 +648,7 @@ fn apply_sprintf_substitutions(cx: JSContext, messages: &[HandleValue]) -> (Stri
             Some('o') | Some('O') => {
                 let spec = chars.next().unwrap();
                 if arg_index < messages.len() {
-                    result.push_str(&stringify_handle_value(messages[arg_index]).to_string());
+                    result.push_str(&stringify_handle_value(messages[arg_index]).str());
                     arg_index += 1;
                 } else {
                     result.push('%');

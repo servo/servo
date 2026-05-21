@@ -71,7 +71,7 @@ impl IDBFactory {
     }
 
     pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        let db_name = DBName(txn.get_db_name().to_string());
+        let db_name = DBName(String::from(txn.get_db_name()));
         let mut map = self.indexeddb_transactions.borrow_mut();
         let bucket = map.entry(db_name).or_default();
         if !bucket.iter().any(|entry| &**entry == txn) {
@@ -81,7 +81,7 @@ impl IDBFactory {
     }
 
     pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        let db_name = DBName(txn.get_db_name().to_string());
+        let db_name = DBName(String::from(txn.get_db_name()));
         let mut map = self.indexeddb_transactions.borrow_mut();
         if let Some(bucket) = map.get_mut(&db_name) {
             bucket.retain(|entry| &**entry != txn);
@@ -470,7 +470,7 @@ impl IDBFactory {
         let open_operation = SyncOperation::OpenDatabase(
             callback,
             storage_key,
-            name.to_string(),
+            String::from(name),
             version,
             request.get_id(),
             proxy_map,
@@ -603,7 +603,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 4: Runs in parallel
         if request
-            .delete_database(storage_key, name.to_string(), proxy_map)
+            .delete_database(storage_key, String::from(name), proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));
