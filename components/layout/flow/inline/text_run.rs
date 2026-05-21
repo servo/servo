@@ -24,7 +24,8 @@ use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
 use style::values::computed::{
-    FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, OverflowWrap,
+    FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
+    OverflowWrap,
 };
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
@@ -80,6 +81,8 @@ pub(crate) struct FontAndScriptInfo {
     pub numeric: FontVariantNumeric,
     /// The value of the `font-variant-east-asian` property from the original style.
     pub east_asian: FontVariantEastAsian,
+    /// The value of the `font-feature-settings` property from the original style.
+    pub feature_settings: FontFeatureSettings,
 }
 
 impl FontAndScriptInfo {
@@ -99,6 +102,7 @@ impl FontAndScriptInfo {
             ligatures: FontVariantLigatures::NORMAL,
             numeric: FontVariantNumeric::NORMAL,
             east_asian: FontVariantEastAsian::NORMAL,
+            feature_settings: FontFeatureSettings::normal(),
         }
     }
 }
@@ -138,6 +142,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             ligatures,
             numeric: info.numeric,
             east_asian: info.east_asian,
+            feature_settings: info.feature_settings.clone(),
             flags,
         }
     }
@@ -505,6 +510,7 @@ impl TextRun {
         let ligatures = font_style.font_variant_ligatures;
         let numeric = font_style.font_variant_numeric;
         let east_asian = font_style.font_variant_east_asian;
+        let feature_settings = font_style.font_feature_settings.clone();
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -593,6 +599,7 @@ impl TextRun {
                 ligatures,
                 numeric,
                 east_asian,
+                feature_settings: feature_settings.clone(),
             };
 
             finish_current_segment(&mut current, &mut results);
