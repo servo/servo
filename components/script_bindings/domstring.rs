@@ -94,10 +94,12 @@ impl EncodedBytes<'_> {
     }
 }
 
+#[derive(Zeroize)]
 enum DOMStringType {
     /// A simple rust string
     Rust(String),
     /// A JS String stored in mozjs.
+    #[zeroize(skip)]
     JSString(RootedTraceableBox<Heap<*mut JSString>>),
     #[cfg(test)]
     /// This is used for testing of the bindings to give
@@ -108,12 +110,6 @@ enum DOMStringType {
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
-    }
-}
-
-impl Zeroize for DOMStringType {
-    fn zeroize(&mut self) {
-        self.ensure_rust_string().zeroize()
     }
 }
 
@@ -913,13 +909,27 @@ impl From<DOMString> for Atom {
 
 impl From<DOMString> for String {
     fn from(val: DOMString) -> Self {
-        val.str().to_owned()
+        val.ensure_rust_string();
+        let inner = val.0.take();
+        match inner {
+            DOMStringType::Rust(s) => s,
+            DOMStringType::JSString(_) => unreachable!(),
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => String::from_utf8(items).expect("Not valid latin1"),
+        }
     }
 }
 
 impl From<DOMString> for Vec<u8> {
     fn from(value: DOMString) -> Self {
-        value.str().as_bytes().to_vec()
+        value.ensure_rust_string();
+        let inner = value.0.take();
+        match inner {
+            DOMStringType::Rust(s) => s.into_bytes(),
+            DOMStringType::JSString(_) => unreachable!(),
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => items,
+        }
     }
 }
 
@@ -931,7 +941,7 @@ impl From<Cow<'_, str>> for DOMString {
 
 impl Zeroize for DOMString {
     fn zeroize(&mut self) {
-        self.0.borrow_mut().zeroize()
+        self.0.get_mut().zeroize();
     }
 }
 
