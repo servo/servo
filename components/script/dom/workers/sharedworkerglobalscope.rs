@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
@@ -23,9 +24,10 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::ScriptEventLoopId;
 use servo_constellation_traits::{MessagePortImpl, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
@@ -53,7 +55,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -74,6 +76,16 @@ pub(crate) enum MixedMessage {
     Devtools(DevtoolScriptControlMsg),
     Control(SharedWorkerControlMsg),
     Timer,
+}
+
+struct SharedWorkerRegistrationCleanup {
+    registration_id: Uuid,
+}
+
+impl Drop for SharedWorkerRegistrationCleanup {
+    fn drop(&mut self) {
+        SharedWorker::unregister_shared_worker(self.registration_id);
+    }
 }
 
 impl QueuedTaskConversion for SharedWorkerScriptMsg {
@@ -148,10 +160,23 @@ pub(crate) struct SharedWorkerGlobalScope {
     own_sender: Sender<SharedWorkerScriptMsg>,
     worker: DomRefCell<Option<TrustedSharedWorkerAddress>>,
     parent_event_loop_sender: ScriptEventLoopSender,
-    pending_connect: DomRefCell<Option<Dom<MessagePort>>>,
+    // Shared workers receive message ports through `connect` events on their `SharedWorkerGlobalScope` object for each connection.
+    pending_connect: DomRefCell<VecDeque<Dom<MessagePort>>>,
     #[no_trace]
     control_receiver: Receiver<SharedWorkerControlMsg>,
     debugger_global: Dom<DebuggerGlobalScope>,
+    // A `SharedWorkerGlobalScope` object has associated constructor origin (an origin), constructor URL (a URL record), and credentials (a credentials mode), and extended lifetime (a boolean).
+    #[no_trace]
+    storage_key: ImmutableOrigin,
+    #[no_trace]
+    constructor_origin: ImmutableOrigin,
+    #[no_trace]
+    constructor_url: ServoUrl,
+    #[no_trace]
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+    #[no_trace]
+    registration_id: Uuid,
 }
 
 impl WorkerEventLoopMethods for SharedWorkerGlobalScope {
@@ -215,6 +240,12 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
         debugger_global: &DebuggerGlobalScope,
+        storage_key: ImmutableOrigin,
+        constructor_origin: ImmutableOrigin,
+        constructor_url: ServoUrl,
+        credentials: CredentialsMode,
+        extended_lifetime: bool,
+        registration_id: Uuid,
     ) -> SharedWorkerGlobalScope {
         SharedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -234,9 +265,15 @@ impl SharedWorkerGlobalScope {
             own_sender,
             worker: DomRefCell::new(Some(worker)),
             parent_event_loop_sender,
-            pending_connect: DomRefCell::new(None),
+            pending_connect: DomRefCell::new(VecDeque::new()),
             control_receiver,
             debugger_global: Dom::from_ref(debugger_global),
+            storage_key,
+            constructor_origin,
+            constructor_url,
+            credentials,
+            extended_lifetime,
+            registration_id,
         }
     }
 
@@ -259,6 +296,12 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
         debugger_global: &DebuggerGlobalScope,
+        storage_key: ImmutableOrigin,
+        constructor_origin: ImmutableOrigin,
+        constructor_url: ServoUrl,
+        credentials: CredentialsMode,
+        extended_lifetime: bool,
+        registration_id: Uuid,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<SharedWorkerGlobalScope> {
         let scope = Box::new(SharedWorkerGlobalScope::new_inherited(
@@ -279,6 +322,12 @@ impl SharedWorkerGlobalScope {
             insecure_requests_policy,
             font_context,
             debugger_global,
+            storage_key,
+            constructor_origin,
+            constructor_url,
+            credentials,
+            extended_lifetime,
+            registration_id,
         ));
         SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
@@ -288,7 +337,7 @@ impl SharedWorkerGlobalScope {
     #[allow(dead_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn run_shared_worker_scope(
-        init: WorkerGlobalScopeInit,
+        mut init: WorkerGlobalScopeInit,
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: UrlWithBlobClaim,
@@ -301,8 +350,14 @@ impl SharedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<SharedWorkerControlMsg>,
-        context_sender: Sender<ThreadSafeJSContext>,
+        setup_sender: Sender<bool>,
+        registration_receiver: Receiver<()>,
+        registration_id: Uuid,
         credentials: CredentialsMode,
+        extended_lifetime: bool,
+        constructor_origin: ImmutableOrigin,
+        constructor_url: ServoUrl,
+        storage_key: ImmutableOrigin,
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
@@ -313,6 +368,7 @@ impl SharedWorkerGlobalScope {
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
+        let is_secure_context = current_global.is_secure_context();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
         let webview_id = current_global.webview_id();
@@ -321,6 +377,8 @@ impl SharedWorkerGlobalScope {
         thread::Builder::new()
             .name(format!("SWW:{}", worker_url.debug_compact()))
             .spawn(move || {
+                let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
+
                 // Step 4. Let agent be the result of obtaining a dedicated/shared worker agent
                 // given outside settings and is shared. Run the rest of these steps in that
                 // agent.
@@ -373,15 +431,20 @@ impl SharedWorkerGlobalScope {
                 );
                 debugger_global.execute(cx);
 
-                let context_for_interrupt = runtime.thread_safe_js_context();
-                let _ = context_sender.send(context_for_interrupt);
-
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
                 let worker_id = init.worker_id;
                 let devtools_enabled = init.to_devtools_sender.is_some();
-                // Creating the worker global scope initializes its name (step 8)
-                // and, for shared workers, its type (step 10.3 of run a worker).
+                // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
+                if worker_url.scheme() == "data" {
+                    if is_secure_context {
+                        init.origin = ImmutableOrigin::new_opaque_data_url_worker();
+                    } else {
+                        init.origin = ImmutableOrigin::new_opaque();
+                    }
+                }
+                // Step 8. Set worker global scope's name to options["name"].
+                // Step 10.3. Set worker global scope's type to options["type"].
                 let global = SharedWorkerGlobalScope::new(
                     init,
                     worker_name.into(),
@@ -400,10 +463,18 @@ impl SharedWorkerGlobalScope {
                     insecure_requests_policy,
                     font_context,
                     &debugger_global,
+                    storage_key,
+                    constructor_origin,
+                    constructor_url,
+                    credentials,
+                    extended_lifetime,
+                    registration_id,
                     cx,
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
+                // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
+                let worker_is_secure_context = global_scope.is_secure_context();
                 if devtools_enabled {
                     debugger_global.fire_add_debuggee(
                         cx,
@@ -411,6 +482,16 @@ impl SharedWorkerGlobalScope {
                         pipeline_id,
                         Some(worker_id),
                     );
+                }
+
+                if setup_sender.send(worker_is_secure_context).is_err() {
+                    scope.clear_js_runtime();
+                    return;
+                }
+
+                if registration_receiver.recv().is_err() {
+                    scope.clear_js_runtime();
+                    return;
                 }
 
                 let fetch_client = ModuleFetchClient {
@@ -488,8 +569,10 @@ impl SharedWorkerGlobalScope {
 
     /// Step 1.1 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn forward_simple_error_at_worker(&self) {
+        SharedWorker::unregister_shared_worker(self.registration_id);
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let worker = self.worker.borrow().clone().expect("worker must be set");
+        // Step 1.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
         self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
@@ -536,7 +619,7 @@ impl SharedWorkerGlobalScope {
         inside_port
     }
 
-    // Step 13. Queue a global task to fire a connect event.
+    // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
     fn dispatch_connect_event(&self, inside_port: &MessagePort) {
         let worker_global = Trusted::new(self);
         let inside_port = Trusted::new(inside_port);
@@ -579,15 +662,19 @@ impl SharedWorkerGlobalScope {
     }
 
     pub(crate) fn fire_pending_connect(&self, _cx: &mut JSContext) {
-        let inside_port = self
-            .pending_connect
-            .borrow_mut()
-            .take()
-            .map(|inside_port| inside_port.as_rooted());
-        if let Some(inside_port) = inside_port {
+        loop {
+            let inside_port = self
+                .pending_connect
+                .borrow_mut()
+                .pop_front()
+                .map(|inside_port| inside_port.as_rooted());
+            let Some(inside_port) = inside_port else {
+                break;
+            };
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
             }
+            // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
             self.dispatch_connect_event(&inside_port);
         }
     }
@@ -600,14 +687,13 @@ impl SharedWorkerGlobalScope {
             SharedWorkerScriptMsg::Connect(port_impl) => {
                 let inside_port = self.handle_connect(port_impl, cx);
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
+                    // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
                     self.dispatch_connect_event(&inside_port);
                 } else {
-                    let mut pending_connect = self.pending_connect.borrow_mut();
-                    debug_assert!(
-                        pending_connect.is_none(),
-                        "SharedWorkerGlobalScope only expects one pre-ready connect in the current implementation"
-                    );
-                    pending_connect.replace(Dom::from_ref(&*inside_port));
+                    // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
+                    self.pending_connect
+                        .borrow_mut()
+                        .push_back(Dom::from_ref(&*inside_port));
                 }
             },
             SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(_)) => {
