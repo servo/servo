@@ -4068,7 +4068,7 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let key = match JsonWebKey::new(cx.into(), result.handle(), CanGc::from_cx(cx)) {
+        let key = match JsonWebKey::new(cx, result.handle()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
                 return Err(Error::Type(error.into_owned()));

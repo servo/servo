@@ -236,7 +236,7 @@ impl PermissionAlgorithm for Permissions {
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match PermissionDescriptor::new(cx.into(), property.handle(), CanGc::from_cx(cx)) {
+        match PermissionDescriptor::new(cx, property.handle()) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::JSFailed),

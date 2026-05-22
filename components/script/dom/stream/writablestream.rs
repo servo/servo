@@ -1024,7 +1024,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // converted to an IDL value of type UnderlyingSink.
         let underlying_sink_dict = if !underlying_sink_obj.is_null() {
             rooted!(&in(cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
-            match UnderlyingSink::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
+            match UnderlyingSink::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));

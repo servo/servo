@@ -955,7 +955,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         // converted to an IDL value of type UnderlyingSink.
         let transformer_dict = if !transformer_obj.is_null() {
             rooted!(&in(cx) let obj_val = ObjectValue(transformer_obj.get()));
-            match Transformer::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
+            match Transformer::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
