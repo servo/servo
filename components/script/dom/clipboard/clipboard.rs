@@ -155,9 +155,9 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 // Step 3.3.2 Let textBlob be a new Blob created with: type attribute set to "text/plain;charset=utf-8",
                 // and its underlying byte sequence set to the UTF-8 encoding of data.
                 let text_blob = Blob::new(
+                    cx,
                     &global,
                     BlobImpl::new_from_bytes(bytes, "text/plain;charset=utf-8".into()),
-                    CanGc::from_cx(cx),
                 );
 
                 // Step 3.3.3 Add textBlob to itemList.

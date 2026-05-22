@@ -891,9 +891,9 @@ fn run_blob_data_algorithm(
         "".to_string()
     };
     let blob = Blob::new(
+        cx,
         root,
         BlobImpl::new_from_bytes(bytes, normalize_type_string(&mime_string)),
-        CanGc::from_cx(cx),
     );
     Ok(FetchedData::BlobData(blob))
 }

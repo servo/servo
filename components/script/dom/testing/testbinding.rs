@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
@@ -72,7 +73,7 @@ impl TestBinding {
     }
 
     fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestBinding> {
@@ -87,7 +88,7 @@ impl TestBinding {
 
 impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> Fallible<DomRoot<TestBinding>> {
@@ -96,7 +97,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     #[expect(unused_variables)]
     fn Constructor_(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         nums: Vec<f64>,
@@ -106,7 +107,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     #[expect(unused_variables)]
     fn Constructor__(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         num: f64,
@@ -182,11 +183,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         TestEnum::_empty
     }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self, can_gc: CanGc) -> DomRoot<Blob> {
+    fn InterfaceAttribute(&self, cx: &mut JSContext) -> DomRoot<Blob> {
         Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -326,11 +327,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn GetInterfaceAttributeNullable(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
+    fn GetInterfaceAttributeNullable(&self, cx: &mut JSContext) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -421,11 +422,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveEnum(&self) -> TestEnum {
         TestEnum::_empty
     }
-    fn ReceiveInterface(&self, can_gc: CanGc) -> DomRoot<Blob> {
+    fn ReceiveInterface(&self, cx: &mut JSContext) -> DomRoot<Blob> {
         Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext, _: MutableHandleValue) {}
@@ -468,11 +469,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveSequence(&self) -> Vec<i32> {
         vec![1]
     }
-    fn ReceiveInterfaceSequence(&self, can_gc: CanGc) -> Vec<DomRoot<Blob>> {
+    fn ReceiveInterfaceSequence(&self, cx: &mut JSContext) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )]
     }
     fn ReceiveUnionIdentity(
@@ -534,11 +535,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn ReceiveNullableInterface(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
+    fn ReceiveNullableInterface(&self, cx: &mut JSContext) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         ))
     }
     fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {

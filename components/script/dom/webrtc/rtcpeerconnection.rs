@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
@@ -263,12 +264,7 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
-    fn on_add_stream(
-        &self,
-        cx: &mut js::context::JSContext,
-        id: MediaStreamId,
-        ty: MediaStreamType,
-    ) {
+    fn on_add_stream(&self, cx: &mut JSContext, id: MediaStreamId, ty: MediaStreamType) {
         if self.closed.get() {
             return;
         }
@@ -397,11 +393,7 @@ impl RTCPeerConnection {
     }
 
     /// <https://www.w3.org/TR/webrtc/#update-ice-connection-state>
-    fn update_ice_connection_state(
-        &self,
-        cx: &mut js::context::JSContext,
-        state: IceConnectionState,
-    ) {
+    fn update_ice_connection_state(&self, cx: &mut JSContext, state: IceConnectionState) {
         // step 1
         if self.closed.get() {
             return;

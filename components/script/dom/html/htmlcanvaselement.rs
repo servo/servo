@@ -617,7 +617,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
+                       blob = Blob::new(cx, &this.global(), blob_impl);
                        Some(&*blob)
                    }
                    Err(..) => None,
