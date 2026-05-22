@@ -3436,7 +3436,7 @@ impl Document {
 
             let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
             // SAFETY: This is called immediately following layout, during which no GC occurs.
-            //.This ensures that the opaque nodes can't be GCed before we try to
+            // This ensures that the opaque nodes can't be GCed before we try to
             // interact with them.
             unsafe {
                 let node_to_root = from_untrusted_node_address(address);

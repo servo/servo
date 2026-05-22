@@ -230,13 +230,14 @@ pub struct LayoutThread {
     needs_accessibility_update: Cell<bool>,
 
     /// Nodes which newly have a corresponding node in the accessibility tree.
-    /// These should be drained and rooted immediately after reflow.
-    /// See [Layout::drain_new_nodes_for_accessibility]
+    /// These should be taken and rooted before any DOM mutations can occur
+    /// after a reflow.
+    /// See [Layout::take_new_nodes_for_accessibility()]
     new_nodes_for_accessibility: Vec<OpaqueNode>,
 
-    /// Nodes which no longer have a corresponding node in the accessibility.
-    /// These should be drained and unrooted at some point.
-    /// See [Layout::drain_stale_nodes_for_accessibility]
+    /// Nodes which no longer have a corresponding node in the accessibility
+    /// tree. These should be taken and unrooted at some point.
+    /// See [Layout::take_removed_nodes_for_accessibility()]
     removed_nodes_for_accessibility: Vec<OpaqueNode>,
 }
 
