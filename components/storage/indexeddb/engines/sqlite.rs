@@ -240,7 +240,7 @@ impl SqliteEngine {
         key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
-        key_generator_current_number: Option<i32>,
+        key_generator_current_number: Option<i64>,
     ) -> Result<PutItemResult, Error> {
         let no_overwrite = !should_overwrite;
         let serialized_key: Vec<u8> = encoding::serialize(&key);
@@ -574,7 +574,7 @@ impl KvsEngine for SqliteEngine {
         });
     }
 
-    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i64> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -586,6 +586,32 @@ impl KvsEngine for SqliteEngine {
             .optional()
             .unwrap()
             .and_then(|current_number| (current_number != 0).then_some(current_number))
+    }
+
+    fn set_key_generator_current_number(
+        &self,
+        store_name: &str,
+        current_number: i64,
+    ) -> Result<(), Self::Error> {
+        // Ensure missing store is reported as QueryReturnedNoRows even when an
+        // UPDATE might affect zero rows due to no-op assignment.
+        let store_exists: bool = self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM object_store WHERE name = ?)",
+            params![store_name],
+            |row| row.get(0),
+        )?;
+        if !store_exists {
+            return Err(Error::QueryReturnedNoRows);
+        }
+
+        let rows_affected = self.connection.execute(
+            "UPDATE object_store SET auto_increment = ? WHERE name = ?",
+            params![current_number, store_name],
+        )?;
+        if rows_affected > 1 {
+            return Err(Error::QueryReturnedMoreThanOneRow);
+        }
+        Ok(())
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
