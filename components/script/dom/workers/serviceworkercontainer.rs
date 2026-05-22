@@ -205,22 +205,22 @@ impl ServiceWorkerContainer {
                 // in deserializeRecord.[[TransferredValues]], if any.
                 rooted!(&in(cx) let mut message_val = UndefinedValue());
                 if let Ok(ports) = structuredclone::read(
+                    cx,
                     &global,
                     message,
                     message_val.handle_mut(),
-                    CanGc::from_cx(cx),
                 ) {
                     // Step 4.5.6: Dispatch an event named message at destination, using MessageEvent, with its origin initialized to origin,
                     // the source attribute initialized to source,
                     // the data attribute initialized to messageClone, and the ports attribute initialized to newPorts.
                     MessageEvent::dispatch_jsval(
+                        cx,
                         self.upcast(),
                         &global,
                         message_val.handle(),
                         Some(&origin.ascii_serialization()),
                         None,
                         ports,
-                        CanGc::from_cx(cx),
                     );
                 } else {
                     error!("Failed to deserialize message ports in message from service worker.");
