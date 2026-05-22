@@ -1943,6 +1943,16 @@ impl Document {
         }
     }
 
+    pub(crate) fn finish_load_for_dropped_blocker(&self, load: LoadType) {
+        let this = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(check_finished_load: move |cx| {
+                this.root().finish_load(load, cx);
+            }));
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub(crate) fn finish_load(&self, load: LoadType, cx: &mut js::context::JSContext) {
