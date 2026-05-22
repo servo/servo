@@ -406,7 +406,6 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
-        println!("Accessing navigator.serviceWorker");
         self.service_worker
             .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::deprecated_note()))
     }
