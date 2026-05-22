@@ -469,7 +469,7 @@ impl ContextMenuNodes {
                     .full_href_url_for_user_interface()
                     .as_ref()
                     .map(ServoUrl::to_string)
-                    .unwrap_or_else(|| anchor_element.Href().to_string());
+                    .unwrap_or_else(|| String::from(anchor_element.Href()));
                 set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenLinkInNewWebView => {
@@ -488,7 +488,7 @@ impl ContextMenuNodes {
                     .full_image_url_for_user_interface()
                     .as_ref()
                     .map(ServoUrl::to_string)
-                    .unwrap_or_else(|| image_element.CurrentSrc().to_string());
+                    .unwrap_or_else(|| String::from(image_element.CurrentSrc()));
                 set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenImageInNewView => {

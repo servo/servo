@@ -289,11 +289,11 @@ impl From<CSPViolationReportBody> for CSPReportingEndpointBody {
     fn from(value: CSPViolationReportBody) -> Self {
         CSPReportingEndpointBody {
             sample: value.sample.map(String::from),
-            blocked_url: value.blockedURL.map(|s| s.to_string()),
-            referrer: value.referrer.map(|s| s.to_string()),
+            blocked_url: value.blockedURL.map(String::from),
+            referrer: value.referrer.map(String::from),
             status_code: value.statusCode,
-            document_url: value.documentURL.to_string(),
-            source_file: value.sourceFile.map(|s| s.to_string()),
+            document_url: String::from(value.documentURL),
+            source_file: value.sourceFile.map(String::from),
             effective_directive: String::from(value.effectiveDirective),
             line_number: value.lineNumber,
             column_number: value.columnNumber,
