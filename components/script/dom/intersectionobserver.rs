@@ -337,31 +337,29 @@ impl IntersectionObserver {
         let bounding_client_rect = rect_to_domrectreadonly(bounding_client_rect);
         let intersection_rect = rect_to_domrectreadonly(intersection_rect);
 
-        // Step 1-2
-        // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
+        // Step 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
-        // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
-        self.queued_entries.borrow_mut().push(
-            IntersectionObserverEntry::new(
-                cx,
-                self.owner_doc.window(),
-                None,
-                document
-                    .owner_global()
-                    .performance()
-                    .to_dom_high_res_time_stamp(time),
-                Some(&root_bounds),
-                &bounding_client_rect,
-                &intersection_rect,
-                is_intersecting,
-                is_visible,
-                Finite::wrap(intersection_ratio),
-                target,
-            )
-            .as_traced(),
+        let entry = IntersectionObserverEntry::new(
+            cx,
+            self.owner_doc.window(),
+            None,
+            document
+                .owner_global()
+                .performance()
+                .to_dom_high_res_time_stamp(time),
+            Some(&root_bounds),
+            &bounding_client_rect,
+            &intersection_rect,
+            is_intersecting,
+            is_visible,
+            Finite::wrap(intersection_ratio),
+            target,
         );
-        // > Step 3
-        // Queue an intersection observer task for document.
+
+        // Step 2. Append it to observer's internal [[QueuedEntries]] slot.
+        self.queued_entries.borrow_mut().push(entry.as_traced());
+
+        // Step 3. Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
     }
 
