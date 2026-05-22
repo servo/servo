@@ -2068,7 +2068,7 @@ pub(crate) fn encode_multipart_form_data(
                 result.extend(content_type.as_ref().as_bytes());
                 result.extend(b"\r\n\r\n");
 
-                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or_else(|_| vec![]);
+                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or_default();
 
                 result.append(&mut bytes);
                 result.extend(b"\r\n");
