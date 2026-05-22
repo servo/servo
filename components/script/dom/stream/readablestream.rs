@@ -12,6 +12,7 @@ use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -21,7 +22,6 @@ use js::rust::{
 };
 use js::typedarray::ArrayBufferViewU8;
 use rustc_hash::FxHashMap;
-use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -37,7 +37,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::stream::writablestream::WritableStream;
@@ -63,7 +63,7 @@ use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -1571,8 +1571,7 @@ impl ReadableStream {
         if self.is_errored() {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            self.stored_error
-                .safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
             promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             return promise;
         }
@@ -2294,13 +2293,8 @@ pub(crate) fn get_type_and_value_from_message(
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result = DOMString::safe_from_jsval(
-        cx.into(),
-        type_.handle(),
-        StringificationBehavior::Empty,
-        CanGc::from_cx(cx),
-    )
-    .expect("The type of the message should be a string");
+    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
+        .expect("The type of the message should be a string");
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
     };
@@ -2371,7 +2365,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, CanGc::from_cx(cx));
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(cx, rooted_error.handle());
@@ -2396,7 +2390,7 @@ pub(crate) fn get_read_promise_done(
     rooted!(&in(cx) let object = v.to_object());
     rooted!(&in(cx) let mut done = UndefinedValue());
     match get_dictionary_property(cx, object.handle(), c"done", done.handle_mut()) {
-        Ok(true) => match bool::safe_from_jsval(cx.into(), done.handle(), (), CanGc::from_cx(cx)) {
+        Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
             Ok(ConversionResult::Success(val)) => Ok(val),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
@@ -2421,12 +2415,7 @@ pub(crate) fn get_read_promise_bytes(
     rooted!(&in(cx) let mut bytes = UndefinedValue());
     match get_dictionary_property(cx, object.handle(), c"value", bytes.handle_mut()) {
         Ok(true) => {
-            match Vec::<u8>::safe_from_jsval(
-                cx.into(),
-                bytes.handle(),
-                ConversionBehavior::EnforceRange,
-                CanGc::from_cx(cx),
-            ) {
+            match Vec::<u8>::safe_from_jsval(cx, bytes.handle(), ConversionBehavior::EnforceRange) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
                 _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
@@ -2441,11 +2430,10 @@ pub(crate) fn get_read_promise_bytes(
 /// This mirrors the conversion used inside `get_read_promise_bytes`,
 /// but operates on the raw chunk (no `{ value, done }` wrapper).
 pub(crate) fn bytes_from_chunk_jsval(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     chunk: &RootedTraceableBox<Heap<JSVal>>,
-    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
-    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
+    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
