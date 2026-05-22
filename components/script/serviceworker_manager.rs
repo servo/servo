@@ -612,7 +612,10 @@ impl ServiceWorkerManager {
         };
 
         // Step 4: Run the Update Registration State algorithm passing registration, "installing" and worker as the arguments.
-        registration.update_registration_state(RegistrationUpdateTarget::Installing, Some(new_worker.clone()));
+        registration.update_registration_state(
+            RegistrationUpdateTarget::Installing,
+            Some(new_worker.clone()),
+        );
 
         // Step 7: Invoke Resolve Job Promise with job and registration
         let client = job.client.clone();
@@ -647,7 +650,7 @@ impl ServiceWorkerManager {
 
         // Step 18: Run the Update Registration State algorithm passing registration, "installing" and null as the arguments.
         // TODO: registration.update_registration_state(RegistrationUpdateTarget::Installing, None);
-        // Note: commenting out for now, because it causes errors in tests, 
+        // Note: commenting out for now, because it causes errors in tests,
         // probably because we are still lacking functionality elsewhere.
 
         // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.

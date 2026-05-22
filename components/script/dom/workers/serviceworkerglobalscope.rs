@@ -536,12 +536,9 @@ impl ServiceWorkerGlobalScope {
                     self.worker_id,
                     CanGc::from_cx(cx),
                 );
-                if let Ok(ports) = structuredclone::read(
-                    cx,
-                    scope.upcast(),
-                    *msg.data,
-                    message.handle_mut(),
-                ) {
+                if let Ok(ports) =
+                    structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
+                {
                     ExtendableMessageEvent::dispatch_jsval(
                         cx,
                         target,

@@ -98,7 +98,6 @@ impl ServiceWorkerContainer {
                 match value {
                     JobResultValue::Unregister(success) => {
                         promise.resolve_native(&success, CanGc::from_cx(cx));
-                        return;
                     },
                     JobResultValue::Register(value) => {
                         let ServiceWorkerRegistrationInfo {
@@ -204,12 +203,9 @@ impl ServiceWorkerContainer {
                 // Step 4.5.5: Let newPorts be a new frozen array consisting of all MessagePort objects
                 // in deserializeRecord.[[TransferredValues]], if any.
                 rooted!(&in(cx) let mut message_val = UndefinedValue());
-                if let Ok(ports) = structuredclone::read(
-                    cx,
-                    &global,
-                    message,
-                    message_val.handle_mut(),
-                ) {
+                if let Ok(ports) =
+                    structuredclone::read(cx, &global, message, message_val.handle_mut())
+                {
                     // Step 4.5.6: Dispatch an event named message at destination, using MessageEvent, with its origin initialized to origin,
                     // the source attribute initialized to source,
                     // the data attribute initialized to messageClone, and the ports attribute initialized to newPorts.
@@ -290,7 +286,7 @@ impl ServiceWorkerContainer {
         let job = Job::create_job(
             JobType::Unregister,
             scope,
-            script_url.clone(),
+            script_url,
             result_handler,
             global.creation_url(),
             None,

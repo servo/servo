@@ -329,7 +329,6 @@ pub struct ServiceWorkerRegistrationInfo {
 
 /// <https://w3c.github.io/ServiceWorker/#algorithms>
 #[derive(Debug, Deserialize, Serialize)]
-#[expect(clippy::large_enum_variant)]
 pub enum ServiceWorkerAlgorithm {
     /// <https://w3c.github.io/ServiceWorker/#start-register>
     StartRegister(Job),
