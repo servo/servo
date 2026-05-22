@@ -337,8 +337,7 @@ impl IntersectionObserver {
         let bounding_client_rect = rect_to_domrectreadonly(bounding_client_rect);
         let intersection_rect = rect_to_domrectreadonly(intersection_rect);
 
-        // Step 1
-        // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
+        // Step 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
         let entry = IntersectionObserverEntry::new(
             cx,
