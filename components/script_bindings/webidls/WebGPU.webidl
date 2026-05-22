@@ -81,7 +81,6 @@ WorkerNavigator includes NavigatorGPU;
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 interface GPU {
-    [NewObject]
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
     [SameObject] readonly attribute WGSLLanguageFeatures wgslLanguageFeatures;
@@ -103,7 +102,6 @@ interface GPUAdapter {
     [SameObject] readonly attribute GPUSupportedLimits limits;
     [SameObject] readonly attribute GPUAdapterInfo info;
 
-    [NewObject]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
 };
 
@@ -141,11 +139,10 @@ interface GPUDevice: EventTarget {
 
     undefined destroy();
 
-    [NewObject, Throws]
+    [Throws]
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
-    [NewObject, Throws]
+    [Throws]
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
-    [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
     [Throws]
@@ -158,16 +155,13 @@ interface GPUDevice: EventTarget {
     [Throws]
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
-    [NewObject]
     Promise<GPUComputePipeline> createComputePipelineAsync(GPUComputePipelineDescriptor descriptor);
-    [Throws, NewObject]
+    [Throws]
     Promise<GPURenderPipeline> createRenderPipelineAsync(GPURenderPipelineDescriptor descriptor);
 
-    [NewObject]
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
-    [Throws, NewObject]
+    [Throws]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
-    //[NewObject]
     //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
 };
 GPUDevice includes GPUObjectBase;
@@ -179,9 +173,8 @@ interface GPUBuffer {
 
     readonly attribute GPUBufferMapState mapState;
 
-    [NewObject]
     Promise<undefined> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);
-    [NewObject, Throws]
+    [Throws]
     ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
     undefined unmap();
 
@@ -226,7 +219,7 @@ namespace GPUMapMode {
 
 [Exposed=(Window, Worker), SecureContext, /*Serializable,*/ Pref="dom_webgpu_enabled"]
 interface GPUTexture {
-    [Throws, NewObject]
+    [Throws]
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();
@@ -629,7 +622,7 @@ dictionary GPUPipelineDescriptorBase : GPUObjectDescriptorBase {
 };
 
 interface mixin GPUPipelineBase {
-    [Throws] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
+    [NewObject, Throws] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
 };
 
 dictionary GPUProgrammableStage {
@@ -885,9 +878,8 @@ dictionary GPUCommandBufferDescriptor : GPUObjectDescriptorBase {
 
 [Exposed=(Window, Worker), SecureContext, /*Serializable,*/ Pref="dom_webgpu_enabled"]
 interface GPUCommandEncoder {
-    [NewObject]
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
-    [NewObject, Throws]
+    [Throws]
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
 
     undefined copyBufferToBuffer(
@@ -926,7 +918,6 @@ interface GPUCommandEncoder {
     //undefined popDebugGroup();
     //undefined insertDebugMarker(USVString markerLabel);
 
-    [NewObject]
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
 GPUCommandEncoder includes GPUObjectBase;
@@ -1216,7 +1207,6 @@ enum GPUErrorFilter {
 
 partial interface GPUDevice {
     undefined pushErrorScope(GPUErrorFilter filter);
-    [NewObject]
     Promise<GPUError?> popErrorScope();
 };
 
