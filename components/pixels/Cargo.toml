@@ -24,7 +24,7 @@ servo-base = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { workspace = true, features = ["html_reports"] }
 
 [[bench]]
 name = "benches"

@@ -10,10 +10,10 @@ repository.workspace = true
 description.workspace = true
 
 [dependencies]
+prettyplease = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true, features = ["extra-traits", "full", "parsing", "printing", "proc-macro"] }
-prettyplease = "0.2"
 
 [lib]
 path = "lib.rs"

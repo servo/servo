@@ -37,5 +37,5 @@ time = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
-warp = { version = "0.4.2", features = ["server"] }
+warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
