@@ -141,7 +141,6 @@ impl ServiceWorkerContainer {
         registration_info: Option<ServiceWorkerRegistrationInfo>,
         promise: Rc<Promise>,
     ) {
-        println!("ServiceWorkerContainer handle_match_registration_result called with registration_info: {:?}", registration_info);
         // Step 8.1 Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
         // Note: the `registration_info` argument is the result from the parallel algorithm run.
 
