@@ -1155,7 +1155,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Default => self
                 .upcast::<Element>()
                 .get_attribute_string_value(&local_name!("value"))
-                .map_or_default(|value| value.into()),
+                .map(|value| value.into())
+                .unwrap_or_default(),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
                 .get_attribute_string_value(&local_name!("value"))
