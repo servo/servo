@@ -358,8 +358,8 @@ impl IntersectionObserver {
         // Step 2
         // > 2. Append it to observer's internal [[QueuedEntries]] slot.
         self.queued_entries.borrow_mut().push(entry.as_traced());
-        // > Step 3
-        // Queue an intersection observer task for document.
+
+        // Step 3. Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
     }
 
