@@ -7903,9 +7903,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         conversion = (
             "{\n"
             "    rooted!(&in(cx) let mut rval = UndefinedValue());\n"
-            "    if get_dictionary_property(cx.raw_cx(), object.handle(), "
-            f'c"{member.identifier.name}", '
-            "rval.handle_mut(), CanGc::deprecated_note())? && !rval.is_undefined() {\n"
+            f'    if get_dictionary_property(cx, object.handle(), c"{member.identifier.name}", '
+            "rval.handle_mut())? && !rval.is_undefined() {\n"
             f"{indent(conversion)}\n"
             "    } else {\n"
             f"{indent(default)}\n"

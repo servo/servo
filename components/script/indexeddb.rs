@@ -37,7 +37,6 @@ use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
-use crate::script_runtime::CanGc;
 
 // https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
 #[expect(unsafe_code)]
@@ -615,43 +614,39 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // Otherwise
-                unsafe {
-                    // If Type(value) is not Object, return failure.
-                    if !current_value.is_object() {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If Type(value) is not Object, return failure.
+                if !current_value.is_object() {
+                    return Ok(EvaluationResult::Failure);
+                }
 
-                    rooted!(&in(cx) let object = current_value.to_object());
-                    let identifier_name =
-                        CString::new(identifier).expect("Failed to convert str to CString");
+                rooted!(&in(cx) let object = current_value.to_object());
+                let identifier_name =
+                    CString::new(identifier).expect("Failed to convert str to CString");
 
-                    // Let hop be ! HasOwnProperty(value, identifier).
-                    let hop =
-                        has_own_property(cx.into(), object.handle(), identifier_name.as_c_str())
-                            .map_err(|_| Error::JSFailed)?;
+                // Let hop be ! HasOwnProperty(value, identifier).
+                let hop = has_own_property(cx.into(), object.handle(), identifier_name.as_c_str())
+                    .map_err(|_| Error::JSFailed)?;
 
-                    // If hop is false, return failure.
-                    if !hop {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If hop is false, return failure.
+                if !hop {
+                    return Ok(EvaluationResult::Failure);
+                }
 
-                    // Let value be ! Get(value, identifier).
-                    match get_dictionary_property(
-                        cx.raw_cx(),
-                        object.handle(),
-                        identifier_name.as_c_str(),
-                        current_value.handle_mut(),
-                        CanGc::deprecated_note(),
-                    ) {
-                        Ok(true) => {},
-                        Ok(false) => return Ok(EvaluationResult::Failure),
-                        Err(()) => return Err(Error::JSFailed),
-                    }
+                // Let value be ! Get(value, identifier).
+                match get_dictionary_property(
+                    cx,
+                    object.handle(),
+                    identifier_name.as_c_str(),
+                    current_value.handle_mut(),
+                ) {
+                    Ok(true) => {},
+                    Ok(false) => return Ok(EvaluationResult::Failure),
+                    Err(()) => return Err(Error::JSFailed),
+                }
 
-                    // If value is undefined, return failure.
-                    if current_value.get().is_undefined() {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If value is undefined, return failure.
+                if current_value.get().is_undefined() {
+                    return Ok(EvaluationResult::Failure);
                 }
             }
 
@@ -674,7 +669,6 @@ pub(crate) enum ExtractionResult {
 }
 
 /// <https://w3c.github.io/IndexedDB/#check-that-a-key-could-be-injected-into-a-value>
-#[expect(unsafe_code)]
 pub(crate) fn can_inject_key_into_value(
     cx: &mut JSContext,
     value: HandleValue,
@@ -720,15 +714,12 @@ pub(crate) fn can_inject_key_into_value(
         }
 
         // Step 3.4. Set value to ? Get(value, identifier).
-        match unsafe {
-            get_dictionary_property(
-                cx.raw_cx(),
-                current_object.handle(),
-                identifier_name.as_c_str(),
-                current_value.handle_mut(),
-                CanGc::deprecated_note(),
-            )
-        } {
+        match get_dictionary_property(
+            cx,
+            current_object.handle(),
+            identifier_name.as_c_str(),
+            current_value.handle_mut(),
+        ) {
             Ok(true) => {},
             Ok(false) => return Ok(false),
             Err(()) => return Err(Error::JSFailed),
@@ -800,15 +791,12 @@ pub(crate) fn inject_key_into_value(
         }
 
         // Step 4.3 Let value be ! Get(value, identifier).
-        match unsafe {
-            get_dictionary_property(
-                cx.raw_cx(),
-                current_object.handle(),
-                identifier_name.as_c_str(),
-                current_value.handle_mut(),
-                CanGc::deprecated_note(),
-            )
-        } {
+        match get_dictionary_property(
+            cx,
+            current_object.handle(),
+            identifier_name.as_c_str(),
+            current_value.handle_mut(),
+        ) {
             Ok(true) => {},
             Ok(false) => return Ok(false),
             Err(()) => return Err(Error::JSFailed),
