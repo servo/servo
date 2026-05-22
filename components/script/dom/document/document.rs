@@ -30,6 +30,7 @@ use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::context::NoGC;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
@@ -317,7 +318,7 @@ struct AccessibilityData {
     /// until their corresponding nodes removed from the accessibility tree.
     /// This allows the lifetime of nodes to be guaranteed to be at least as long as the lifetime
     /// of their corresponding accessibility nodes.
-    rooted_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
+    rooted_nodes: FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>,
 }
 
 /// Reasons why a [`Document`] might need a rendering update that is otherwise
@@ -673,7 +674,7 @@ pub(crate) struct Document {
     css_styling_flag: Cell<bool>,
 
     /// Data necessary for maintaining the accessibility tree.
-    accessibility_data: DomRefCell<Option<AccessibilityData>>,
+    accessibility_data: DomRefCell<AccessibilityData>,
 }
 
 impl Document {
@@ -3412,26 +3413,31 @@ impl Document {
         )
     }
 
-    fn accessibility_data(&self) -> RefMut<'_, AccessibilityData> {
+    fn accessibility_data_mut(&self) -> RefMut<'_, AccessibilityData> {
         assert!(pref!(accessibility_enabled));
 
-        RefMut::map(self.accessibility_data.borrow_mut(), |accessibility_data| {
-            accessibility_data.get_or_insert_default()
-        })
+        self.accessibility_data.borrow_mut()
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn root_nodes_for_accessibility(&self, opaque_nodes: Vec<OpaqueNode>) {
+    pub(crate) fn root_nodes_for_accessibility(
+        &self,
+        _no_gc: &NoGC,
+        opaque_nodes: Vec<OpaqueNode>,
+    ) {
         assert!(pref!(accessibility_enabled));
 
-        let accessibility_data = self.accessibility_data();
-        let mut rooted_nodes = accessibility_data.rooted_nodes.borrow_mut();
+        let mut accessibility_data = self.accessibility_data_mut();
+        let rooted_nodes = &mut accessibility_data.rooted_nodes;
         for opaque_node in opaque_nodes {
             if rooted_nodes.contains_key(&NoTrace(opaque_node)) {
                 continue;
             }
 
             let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
+            // SAFETY: This is called immediately following layout, during which no GC occurs.
+            //.This ensures that the opaque nodes can't be GCed before we try to
+            // interact with them.
             unsafe {
                 let node_to_root = from_untrusted_node_address(address);
                 rooted_nodes.insert(NoTrace(opaque_node), Dom::from_ref(&*node_to_root))
@@ -3442,8 +3448,8 @@ impl Document {
     pub(crate) fn unroot_nodes_for_accessibility(&self, opaque_nodes: Vec<OpaqueNode>) {
         assert!(pref!(accessibility_enabled));
 
-        let accessibility_data = self.accessibility_data();
-        let mut rooted_nodes = accessibility_data.rooted_nodes.borrow_mut();
+        let mut accessibility_data = self.accessibility_data_mut();
+        let rooted_nodes = &mut accessibility_data.rooted_nodes;
         for opaque_node in opaque_nodes {
             rooted_nodes.remove(&NoTrace(opaque_node));
         }
