@@ -231,14 +231,6 @@ impl HTMLLinkElement {
     }
 }
 
-fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
-    let elem = element.get_attribute(local_name);
-    elem.map(|e| {
-        let value = e.value();
-        (**value).to_owned()
-    })
-}
-
 impl VirtualMethods for HTMLLinkElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
@@ -446,38 +438,38 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(cx, context);
         }
 
-        if context.tree_connected {
-            let element = self.upcast();
+        if context.tree_connected &&
+            let Some(href) = self
+                .upcast::<Element>()
+                .get_attribute_string_value(&local_name!("href"))
+        {
+            let relations = self.relations.get();
+            // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
+            // > When the external resource link's link element becomes browsing-context connected.
+            if relations.contains(LinkRelations::STYLESHEET) {
+                self.handle_stylesheet_url(cx);
+            }
 
-            if let Some(href) = get_attr(element, &local_name!("href")) {
-                let relations = self.relations.get();
-                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
-                // > When the external resource link's link element becomes browsing-context connected.
-                if relations.contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url(cx);
-                }
+            if relations.contains(LinkRelations::ICON) {
+                self.handle_favicon_url(&href);
+            }
 
-                if relations.contains(LinkRelations::ICON) {
-                    self.handle_favicon_url(&href);
-                }
+            if relations.contains(LinkRelations::PREFETCH) {
+                self.fetch_and_process_prefetch_link(&href);
+            }
 
-                if relations.contains(LinkRelations::PREFETCH) {
-                    self.fetch_and_process_prefetch_link(&href);
-                }
+            if relations.contains(LinkRelations::PRELOAD) {
+                self.handle_preload_url();
+            }
 
-                if relations.contains(LinkRelations::PRELOAD) {
-                    self.handle_preload_url();
-                }
-
-                // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
-                if relations.contains(LinkRelations::MODULE_PRELOAD) {
-                    let link = DomRoot::from_ref(self);
-                    self.owner_document().add_delayed_task(
-                        task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
-                            link.fetch_and_process_modulepreload(cx);
-                        }),
-                    );
-                }
+            // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
+            if relations.contains(LinkRelations::MODULE_PRELOAD) {
+                let link = DomRoot::from_ref(self);
+                self.owner_document().add_delayed_task(
+                    task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
+                        link.fetch_and_process_modulepreload(cx);
+                    }),
+                );
             }
         }
     }
@@ -497,8 +489,8 @@ impl HTMLLinkElement {
         // representing the state of el's as attribute.
         let element = self.upcast::<Element>();
         element
-            .get_attribute(&local_name!("as"))
-            .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr.value()))
+            .get_attribute_string_value(&local_name!("as"))
+            .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-link-options-from-element>
@@ -529,19 +521,21 @@ impl HTMLLinkElement {
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
-        if let Some(href_attribute) = element.get_attribute(&local_name!("href")) {
-            options.href = (**href_attribute.value()).to_owned();
+        if let Some(href_attribute) = element.get_attribute_string_value(&local_name!("href")) {
+            options.href = href_attribute;
         }
 
         // Step 4. If el has an integrity attribute, then set options's integrity
         //         to the value of el's integrity content attribute.
-        if let Some(integrity_attribute) = element.get_attribute(&local_name!("integrity")) {
-            options.integrity = (**integrity_attribute.value()).to_owned();
+        if let Some(integrity_attribute) =
+            element.get_attribute_string_value(&local_name!("integrity"))
+        {
+            options.integrity = integrity_attribute;
         }
 
         // Step 5. If el has a type attribute, then set options's type to the value of el's type attribute.
-        if let Some(type_attribute) = element.get_attribute(&local_name!("type")) {
-            options.link_type = (**type_attribute.value()).to_owned();
+        if let Some(type_attribute) = element.get_attribute_string_value(&local_name!("type")) {
+            options.link_type = type_attribute;
         }
 
         // Step 6. Assert: options's href is not the empty string, or options's source set is not null.
@@ -697,22 +691,15 @@ impl HTMLLinkElement {
         // Step 3
         let cors_setting = cors_setting_for_element(element);
 
-        let mq_attribute = element.get_attribute(&local_name!("media"));
-        let value = mq_attribute.as_ref().map(|a| a.value());
-        let mq_str = match value {
-            Some(ref value) => &***value,
-            None => "",
-        };
-
-        let media = MediaList::parse_media_list(mq_str, document.window());
+        let mq_str = element
+            .get_attribute_string_value(&local_name!("media"))
+            .unwrap_or_default();
+        let media = MediaList::parse_media_list(&mq_str, document.window());
         let media = Arc::new(document.style_shared_author_lock().wrap(media));
 
-        let im_attribute = element.get_attribute(&local_name!("integrity"));
-        let integrity_val = im_attribute.as_ref().map(|a| a.value());
-        let integrity_metadata = match integrity_val {
-            Some(ref value) => &***value,
-            None => "",
-        };
+        let integrity_metadata = element
+            .get_attribute_string_value(&local_name!("integrity"))
+            .unwrap_or_default();
 
         self.request_generation_id
             .set(self.request_generation_id.get().increment());
@@ -725,7 +712,7 @@ impl HTMLLinkElement {
             media,
             link_url,
             cors_setting,
-            integrity_metadata.to_owned(),
+            integrity_metadata,
         );
     }
 
@@ -958,8 +945,8 @@ impl HTMLLinkElement {
 
         // Step 2. Let destination be the current state of el's as attribute (a destination), or "script" if it is in no state.
         let destination = el
-            .get_attribute(&local_name!("as"))
-            .map(|attr| attr.value().to_ascii_lowercase())
+            .get_attribute_string_value(&local_name!("as"))
+            .map(|value| value.to_ascii_lowercase())
             .and_then(|value| match value.as_str() {
                 // `Destination::from_str` will map an empty string to `Destination::None`
                 "" => None,
@@ -1005,16 +992,15 @@ impl HTMLLinkElement {
         let cryptographic_nonce = el.nonce_value();
 
         // Step 9. Let integrity metadata be the value of el's integrity attribute, if it is specified, or the empty string otherwise.
-        let integrity_attribute = el.get_attribute(&local_name!("integrity"));
-        let integrity_value = integrity_attribute.as_ref().map(|attr| attr.value());
-        let integrity_metadata = match integrity_value {
-            Some(ref value) => (***value).to_owned(),
-            // Step 10. If el does not have an integrity attribute, then set integrity metadata to
-            // the result of resolving a module integrity metadata with url and settings object.
-            None => global
-                .import_map()
-                .resolve_a_module_integrity_metadata(&url),
-        };
+        // Step 10. If el does not have an integrity attribute, then set integrity metadata to
+        // the result of resolving a module integrity metadata with url and settings object.
+        let integrity_metadata = el
+            .get_attribute_string_value(&local_name!("integrity"))
+            .unwrap_or_else(|| {
+                global
+                    .import_map()
+                    .resolve_a_module_integrity_metadata(&url)
+            });
 
         // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.
         let referrer_policy = referrer_policy_for_element(el);

@@ -1111,11 +1111,13 @@ impl HTMLMediaElement {
         let mode = if self.src_object.borrow().is_some() {
             // If the media element has an assigned media provider object, then let mode be object.
             Mode::Object
-        } else if let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("src"))
+        } else if let Some(src) = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("src"))
         {
             // Otherwise, if the media element has no assigned media provider object but has a src
             // attribute, then let mode be attribute.
-            Mode::Attribute((**attribute.value()).to_owned())
+            Mode::Attribute(src)
         } else if let Some(source) = self
             .upcast::<Node>()
             .children_unrooted(cx.no_gc())
@@ -1230,8 +1232,8 @@ impl HTMLMediaElement {
         // its src attribute's value is the empty string, then end the synchronous section, and jump
         // down to the failed with elements step below.
         let Some(src) = element
-            .get_attribute(&local_name!("src"))
-            .filter(|attribute| !attribute.value().is_empty())
+            .get_attribute_string_value(&local_name!("src"))
+            .filter(|value| !value.is_empty())
         else {
             self.load_from_source_child_failure_steps(source);
             return;
@@ -1240,8 +1242,8 @@ impl HTMLMediaElement {
         // Step 9.children.3. If candidate has a media attribute whose value does not match the
         // environment, then end the synchronous section, and jump down to the failed with elements
         // step below.
-        if let Some(media) = element.get_attribute(&local_name!("media")) &&
-            !MediaList::matches_environment(&element.owner_document(), &media.value())
+        if let Some(media) = element.get_attribute_string_value(&local_name!("media")) &&
+            !MediaList::matches_environment(&element.owner_document(), &media)
         {
             self.load_from_source_child_failure_steps(source);
             return;
@@ -1250,7 +1252,7 @@ impl HTMLMediaElement {
         // Step 9.children.4. Let urlRecord be the result of encoding-parsing a URL given
         // candidate's src attribute's value, relative to candidate's node document when the src
         // attribute was last changed.
-        let Ok(url_record) = source.owner_document().base_url().join(&src.value()) else {
+        let Ok(url_record) = source.owner_document().base_url().join(&src) else {
             // Step 9.children.5. If urlRecord is failure, then end the synchronous section,
             // and jump down to the failed with elements step below.
             self.load_from_source_child_failure_steps(source);
@@ -1261,8 +1263,8 @@ impl HTMLMediaElement {
         // type (including any codecs described by the codecs parameter, for types that define that
         // parameter), represents a type that the user agent knows it cannot render, then end the
         // synchronous section, and jump down to the failed with elements step below.
-        if let Some(type_) = element.get_attribute(&local_name!("type")) &&
-            ServoMedia::get().can_play_type(&type_.value()) == SupportsMediaType::No
+        if let Some(type_) = element.get_attribute_string_value(&local_name!("type")) &&
+            ServoMedia::get().can_play_type(&type_) == SupportsMediaType::No
         {
             self.load_from_source_child_failure_steps(source);
             return;

@@ -51,14 +51,13 @@ impl Element {
     }
 
     pub(crate) fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
-        let Some(attribute) = self.get_attribute(local_name) else {
+        let Some(value) = self.get_attribute_string_value(local_name) else {
             return Default::default();
         };
-        let value = &**attribute.value();
         self.owner_document()
-            .encoding_parse_a_url(value)
+            .encoding_parse_a_url(&value)
             .map(|parsed| USVString(parsed.into_string()))
-            .unwrap_or_else(|_| USVString(value.to_owned()))
+            .unwrap_or_else(|_| USVString(value))
     }
 
     pub(crate) fn set_url_attribute(
@@ -74,14 +73,13 @@ impl Element {
         &self,
         local_name: &LocalName,
     ) -> TrustedScriptURLOrUSVString {
-        let Some(attribute) = self.get_attribute(local_name) else {
+        let Some(value) = self.get_attribute_string_value(local_name) else {
             return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
-        let value = &**attribute.value();
         self.owner_document()
-            .encoding_parse_a_url(value)
+            .encoding_parse_a_url(&value)
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
-            .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
+            .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value)))
     }
 
     pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {

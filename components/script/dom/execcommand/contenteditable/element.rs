@@ -45,8 +45,8 @@ impl Element {
                 if let Some(anchor) = self.downcast::<HTMLAnchorElement>() {
                     return anchor
                         .upcast::<Element>()
-                        .get_attribute(&local_name!("href"))
-                        .map(|attr| DOMString::from(&**attr.value()));
+                        .get_attribute_string_value(&local_name!("href"))
+                        .map(|value| value.into());
                 }
 
                 // Step 2.2. Return null.
