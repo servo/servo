@@ -3406,7 +3406,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
     name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: DigestAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: u32,
@@ -3418,7 +3418,7 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             name: self.name.as_str().into(),
         };
         let hash = KeyAlgorithm {
-            name: self.hash.name.as_str().into(),
+            name: self.hash.name().as_str().into(),
         };
         let dictionary = HmacKeyAlgorithm {
             parent,
