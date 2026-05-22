@@ -7887,6 +7887,7 @@ dependencies = [
 name = "servo-dom-struct"
 version = "0.2.0"
 dependencies = [
+ "prettyplease",
  "proc-macro2",
  "quote",
  "syn",

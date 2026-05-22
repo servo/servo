@@ -81,17 +81,84 @@ fn test_valid_dom_struct_generation() {
         }
     };
 
-    let output = dom_struct_impl(args, input);
-    let output_str = output.to_string();
+    let result = dom_struct_impl(args, input);
 
-    println!("{}", output_str);
+    let output =
+        syn::parse2(result).expect("Macro output failed to parse into a valid Rust file structure");
+    let formatted_output = prettyplease::unparse(&output);
 
-    assert!(output_str.contains("DenyPublicFields"));
-    assert!(output_str.contains("repr (C)"));
+    let expected_output = quote! {
+        #[derive(deny_public_fields::DenyPublicFields, JSTraceable, MallocSizeOf)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+        #[repr(C)]
+        struct DomElement {
+            reflector: Reflector,
+        }
+        #[expect(non_upper_case_globals)]
+        const _IMPL_DOMOBJECT_FOR_DomElement: () = {
+            trait NoDomObjectInDomObject<A> {
+                fn some_item() {}
+            }
+            impl<T: ?Sized> NoDomObjectInDomObject<()> for T {}
+            #[expect(dead_code)]
+            struct Invalid;
+            impl<T> NoDomObjectInDomObject<Invalid> for T
+            where
+                T: ?Sized + crate::DomObject,
+            {}
+        };
+        impl ::js::conversions::ToJSValConvertible for DomElement {
+            #[expect(unsafe_code)]
+            unsafe fn to_jsval(
+                &self,
+                cx: *mut js::jsapi::JSContext,
+                rval: js::rust::MutableHandleValue,
+            ) {
+                let object = crate::DomObject::reflector(self).get_jsobject();
+                object.to_jsval(cx, rval)
+            }
+        }
+        impl crate::DomObject for DomElement {
+            type ReflectorType = crate::AssociatedMemory;
+            #[inline]
+            fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
+                self.reflector.reflector()
+            }
+        }
+        impl crate::MutDomObject for DomElement {
+            unsafe fn init_reflector<Actual>(&self, obj: *mut js::jsapi::JSObject) {
+                self.reflector.init_reflector::<Actual>(obj);
+            }
+            unsafe fn init_reflector_without_associated_memory(
+                &self,
+                obj: *mut js::jsapi::JSObject,
+            ) {
+                self.reflector.init_reflector_without_associated_memory(obj);
+            }
+        }
+        impl Eq for DomElement {}
+        impl PartialEq for DomElement {
+            fn eq(&self, other: &Self) -> bool {
+                crate::DomObject::reflector(self) == crate::DomObject::reflector(other)
+            }
+        }
+        impl crate::HasParent for DomElement {
+            type Parent = Reflector;
+            /// This is used in a type assertion to ensure that
+            /// the source and webidls agree as to what the parent type is
+            fn as_parent(&self) -> &Reflector {
+                &self.reflector
+            }
+        }
+    };
+    let expected_output_parsed: syn::File = syn::parse2(expected_output)
+        .expect("Macro output failed to parse into a valid Rust file structure");
+    let expected_formatted_output = prettyplease::unparse(&expected_output_parsed);
 
-    assert!(output_str.contains("impl crate :: HasParent for DomElement"));
-    assert!(output_str.contains("type Parent = Reflector"));
-    assert!(output_str.contains("& self . reflector"));
+    assert_eq!(
+        formatted_output.to_string(),
+        expected_formatted_output.to_string()
+    )
 }
 
 #[test]
@@ -104,10 +171,10 @@ fn test_invalid_arguments_panic() {
 }
 
 #[test]
-#[should_panic]
-fn test_tuple_struct_panic() {
+#[should_panic(expected = "#[dom_struct] should not be applied on empty structs")]
+fn test_empty_struct_panic() {
     let args = quote! {};
-    let input = quote! { struct UnnamedFields{}; };
+    let input = quote! { struct EmptyStruct{} };
 
     dom_struct_impl(args, input);
 }
