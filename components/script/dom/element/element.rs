@@ -2030,28 +2030,22 @@ impl Element {
         self.handle_attribute_changes(cx, AttrRef::Dom(attr), None, Some(&*attr.value()), reason);
     }
 
-    pub(crate) fn get_attribute_string_value(&self, local_name: &LocalName) -> Option<String> {
-        debug_assert_eq!(
-            *local_name,
-            local_name.to_ascii_lowercase(),
-            "All namespace-less attribute accesses should use a lowercase ASCII name"
-        );
-
-        self.get_attribute_string_value_with_namespace(&ns!(), local_name)
-    }
-
-    pub(crate) fn get_attribute_string_value_with_namespace(
+    pub(crate) fn with_attribute<R, F>(
         &self,
         namespace: &Namespace,
         local_name: &LocalName,
-    ) -> Option<String> {
+        map_func: F,
+    ) -> Option<R>
+    where
+        F: FnOnce(AttrRef<'_>) -> R,
+    {
         self.attrs
             .borrow()
             .iter()
             .find(|attribute| {
                 attribute.local_name() == local_name && attribute.namespace() == namespace
             })
-            .map(|attribute| String::from(&**attribute.value()))
+            .map(map_func)
     }
 
     /// This is the inner logic for:
@@ -2071,24 +2065,6 @@ impl Element {
             .iter()
             .position(|a| a.local_name() == local_name && a.namespace() == namespace)?;
         Some(self.attrs.ensure_dom(cx, idx, self))
-    }
-
-    /// This is the inner logic for:
-    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
-    ///
-    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
-    #[expect(unsafe_code)]
-    pub(crate) fn get_attribute(&self, local_name: &LocalName) -> Option<DomRoot<Attr>> {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
-        debug_assert_eq!(
-            *local_name,
-            local_name.to_ascii_lowercase(),
-            "All namespace-less attribute accesses should use a lowercase ASCII name"
-        );
-        self.get_attribute_with_namespace(cx, &ns!(), local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
@@ -2292,13 +2268,9 @@ impl Element {
     }
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&local_name!("class"))
-            .is_some_and(|attr| {
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom| case_sensitivity.eq_atom(name, atom))
-            })
+        self.get_tokenlist_attribute(&local_name!("class"))
+            .iter()
+            .any(|atom| case_sensitivity.eq_atom(name, atom))
     }
 
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {

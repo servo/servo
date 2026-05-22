@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{LocalName, local_name, ns};
+use html5ever::{LocalName, Namespace, local_name, ns};
 use js::context::JSContext;
 use servo_arc::Arc as ServoArc;
 use style::attr::AttrValue;
@@ -15,14 +15,39 @@ use crate::dom::element::{AttributeMutationReason, Element};
 use crate::dom::node::NodeTraits;
 
 impl Element {
+    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
+    pub(crate) fn get_attribute_string_value(&self, local_name: &LocalName) -> Option<String> {
+        // Step 1. If element is in the HTML namespace and its node document is an HTML document,
+        // then set qualifiedName to qualifiedName in ASCII lowercase.
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+
+        self.get_attribute_string_value_with_namespace(&ns!(), local_name)
+    }
+
+    pub(crate) fn get_attribute_string_value_with_namespace(
+        &self,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> Option<String> {
+        self.with_attribute(namespace, local_name, |attribute| {
+            String::from(&**attribute.value())
+        })
+    }
+
     pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
-        match self.get_attribute(local_name) {
-            Some(ref attribute) => match *attribute.value() {
-                AttrValue::Int(_, value) => value,
-                _ => unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute"),
-            },
-            None => default,
-        }
+        self.with_attribute(&ns!(), local_name, |attribute| {
+            if let AttrValue::Int(_, value) = *attribute.value() {
+                value
+            } else {
+                unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute")
+            }
+        })
+        .unwrap_or(default)
     }
 
     pub(crate) fn set_atomic_attribute(
@@ -133,9 +158,10 @@ impl Element {
     }
 
     pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
-        self.get_attribute(local_name)
-            .map(|attribute| attribute.value().as_tokens().to_vec())
-            .unwrap_or_default()
+        self.with_attribute(&ns!(), local_name, |attribute| {
+            attribute.value().as_tokens().to_vec()
+        })
+        .unwrap_or_default()
     }
 
     pub(crate) fn set_tokenlist_attribute(
@@ -152,13 +178,14 @@ impl Element {
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        match self.get_attribute(local_name) {
-            Some(ref attribute) => match *attribute.value() {
-                AttrValue::UInt(_, value) => value,
-                _ => unreachable!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
-            },
-            None => default,
-        }
+        self.with_attribute(&ns!(), local_name, |attribute| {
+            if let AttrValue::UInt(_, value) = *attribute.value() {
+                value
+            } else {
+                unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute")
+            }
+        })
+        .unwrap_or(default)
     }
 
     /// Ensure that for styles, we clone the already-parsed property declaration block.
