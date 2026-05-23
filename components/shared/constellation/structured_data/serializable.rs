@@ -552,3 +552,36 @@ impl BroadcastClone for SerializableImageData {
         Some(self.clone())
     }
 }
+
+/// A serializable version of the `Algorithm` dictionary, used by the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableAlgorithm {
+    pub name: String,
+}
+
+/// A serializable version of the `CShakeParams` dictionary, used by the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableCShakeParams {
+    pub name: String,
+    pub output_length: u32,
+    pub function_name: Option<Vec<u8>>,
+    pub customization: Option<Vec<u8>>,
+}
+
+/// A serializable version of the `TurboShakeParams` dictionary, used by the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableTurboShakeParams {
+    pub name: String,
+    pub output_length: u32,
+    pub domain_separation: Option<u8>,
+}
+
+/// A serializable version of the `DigestAlgorithm` type, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum SerializableDigestAlgorithm {
+    Sha(SerializableAlgorithm),
+    Sha3(SerializableAlgorithm),
+    CShake(SerializableCShakeParams),
+    TurboShake(SerializableTurboShakeParams),
+}

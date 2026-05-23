@@ -44,6 +44,10 @@ use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use servo_constellation_traits::{
+    SerializableAlgorithm, SerializableCShakeParams, SerializableDigestAlgorithm,
+    SerializableTurboShakeParams,
+};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
@@ -2860,6 +2864,24 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAlgorithm {
     }
 }
 
+impl TryFrom<SerializableAlgorithm> for SubtleAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+        })
+    }
+}
+
+impl From<&SubtleAlgorithm> for SerializableAlgorithm {
+    fn from(value: &SubtleAlgorithm) -> Self {
+        SerializableAlgorithm {
+            name: value.name.as_str().into(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-KeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleKeyAlgorithm {
@@ -3641,6 +3663,30 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     }
 }
 
+impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
+    type Error = ();
+
+    fn try_from(value: SerializableCShakeParams) -> Result<Self, Self::Error> {
+        Ok(SubtleCShakeParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            function_name: value.function_name,
+            customization: value.customization,
+        })
+    }
+}
+
+impl From<&SubtleCShakeParams> for SerializableCShakeParams {
+    fn from(value: &SubtleCShakeParams) -> Self {
+        SerializableCShakeParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            function_name: value.function_name.clone(),
+            customization: value.customization.clone(),
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleTurboShakeParams {
@@ -3677,6 +3723,28 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
                 ConversionBehavior::EnforceRange,
             )?,
         })
+    }
+}
+
+impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
+    type Error = ();
+
+    fn try_from(value: SerializableTurboShakeParams) -> Result<Self, Self::Error> {
+        Ok(SubtleTurboShakeParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            domain_separation: value.domain_separation,
+        })
+    }
+}
+
+impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
+    fn from(value: &SubtleTurboShakeParams) -> Self {
+        SerializableTurboShakeParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            domain_separation: value.domain_separation,
+        }
     }
 }
 
@@ -4836,6 +4904,42 @@ impl DigestAlgorithm {
             DigestAlgorithm::CShake(algorithm) => cshake_operation::digest(algorithm, message),
             DigestAlgorithm::TurboShake(algorithm) => {
                 turboshake_operation::digest(algorithm, message)
+            },
+        }
+    }
+}
+
+impl TryFrom<SerializableDigestAlgorithm> for DigestAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableDigestAlgorithm) -> Result<Self, Self::Error> {
+        match value {
+            SerializableDigestAlgorithm::Sha(algorithm) => {
+                Ok(DigestAlgorithm::Sha(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::Sha3(algorithm) => {
+                Ok(DigestAlgorithm::Sha3(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::CShake(algorithm) => {
+                Ok(DigestAlgorithm::CShake(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::TurboShake(algorithm) => {
+                Ok(DigestAlgorithm::TurboShake(algorithm.try_into()?))
+            },
+        }
+    }
+}
+
+impl From<&DigestAlgorithm> for SerializableDigestAlgorithm {
+    fn from(value: &DigestAlgorithm) -> Self {
+        match value {
+            DigestAlgorithm::Sha(algorithm) => SerializableDigestAlgorithm::Sha(algorithm.into()),
+            DigestAlgorithm::Sha3(algorithm) => SerializableDigestAlgorithm::Sha3(algorithm.into()),
+            DigestAlgorithm::CShake(algorithm) => {
+                SerializableDigestAlgorithm::CShake(algorithm.into())
+            },
+            DigestAlgorithm::TurboShake(algorithm) => {
+                SerializableDigestAlgorithm::TurboShake(algorithm.into())
             },
         }
     }
