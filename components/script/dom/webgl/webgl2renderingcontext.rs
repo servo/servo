@@ -3826,26 +3826,23 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
         if let Some(query) = query {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
 
             if let Some(query_target) = query.target() {
                 let slot = match query_target {
-                    constants::ANY_SAMPLES_PASSED |
-                    constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                    constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                         &self.occlusion_query
                     },
-                    constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                        &self.primitives_query
-                    },
+                    constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => &self.primitives_query,
                     _ => unreachable!(),
                 };
-                if let Some(stored_query) = slot.get()
-                    && stored_query.target() == query.target() {
-                        slot.set(None);
-                    }
+                if let Some(stored_query) = slot.get() &&
+                    stored_query.target() == query.target()
+                {
+                    slot.set(None);
+                }
             }
 
             query.delete(Operation::Infallible);
@@ -3887,18 +3884,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
 
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 &self.occlusion_query
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                &self.primitives_query
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => &self.primitives_query,
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 return;
@@ -3916,16 +3909,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn EndQuery(&self, target: u32) {
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 self.occlusion_query.take()
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                self.primitives_query.take()
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => self.primitives_query.take(),
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 return;
@@ -3943,35 +3932,37 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn GetQuery(&self, target: u32, pname: u32) -> Option<DomRoot<WebGLQuery>> {
         if pname != constants::CURRENT_QUERY {
             self.base.webgl_error(InvalidEnum);
             return None;
         }
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 self.occlusion_query.get()
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                self.primitives_query.get()
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => self.primitives_query.get(),
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 None
             },
         };
-        if let Some(query) = active_query.as_ref()
-            && query.target() != Some(target) {
-                return None;
-            }
+        if let Some(query) = active_query.as_ref() &&
+            query.target() != Some(target)
+        {
+            return None;
+        }
         active_query
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
-    fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32, mut retval: MutableHandleValue) {
+    fn GetQueryParameter(
+        &self,
+        _cx: JSContext,
+        query: &WebGLQuery,
+        pname: u32,
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(query),

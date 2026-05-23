@@ -589,17 +589,13 @@ impl GlWindowDevice {
         let viewport_size = self.viewport_size();
         let aspect = viewport_size.width as f32 / viewport_size.height as f32;
 
-        // Dear rustfmt, This is a 4x4 matrix, please leave it alone. Best, ajeffrey.
-        {
-            #[rustfmt::skip]
-            // Sigh, row-major vs column-major
-            return Transform3D::new(
-                f / aspect, 0.0, 0.0,                   0.0,
-                0.0,        f,   0.0,                   0.0,
-                0.0,        0.0, (far + near) * nf,     -1.0,
-                0.0,        0.0, 2.0 * far * near * nf, 0.0,
-            );
-        }
+        // Sigh, row-major vs column-major
+        Transform3D::from_arrays([
+            [f / aspect, 0.0, 0.0, 0.0],
+            [0.0, f, 0.0, 0.0],
+            [0.0, 0.0, (far + near) * nf, -1.0],
+            [0.0, 0.0, 2.0 * far * near * nf, 0.0],
+        ])
     }
 }
 
