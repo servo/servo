@@ -144,7 +144,7 @@ impl ReadRequest {
                 // Spec: chunk steps, given chunk
                 let global = reader.global();
 
-                match bytes_from_chunk_jsval(cx.into(), &chunk, CanGc::from_cx(cx)) {
+                match bytes_from_chunk_jsval(cx, &chunk) {
                     Ok(vec) => {
                         // Step 2. Append the bytes represented by chunk to bytes.
                         bytes.borrow_mut().extend_from_slice(&vec);

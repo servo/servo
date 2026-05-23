@@ -7752,7 +7752,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             assert isinstance(d.parent, IDLDictionary)
             initParent = (
                 "{\n"
-                f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val, can_gc)? {{\n"
+                f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
                 "        ConversionResult::Success(v) => v,\n"
                 "        ConversionResult::Failure(error) => {\n"
                 "            throw_type_error(cx.raw_cx(), error.as_ref());\n"
@@ -7811,7 +7811,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return (
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
             f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
-            "    pub fn new(cx: SafeJSContext, val: HandleValue, can_gc: CanGc) \n"
+            "    pub fn new(cx: &mut JSContext, val: HandleValue) \n"
             f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {unsafe_if_necessary} {{\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
@@ -7835,7 +7835,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value, CanGc::deprecated_note())\n"
+            "         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+            f"        {selfName}::new(&mut cx, value)\n"
             "    }\n"
             "}\n"
             "\n"
@@ -7902,9 +7903,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         conversion = (
             "{\n"
             "    rooted!(&in(cx) let mut rval = UndefinedValue());\n"
-            "    if get_dictionary_property(cx.raw_cx(), object.handle(), "
-            f'c"{member.identifier.name}", '
-            "rval.handle_mut(), can_gc)? && !rval.is_undefined() {\n"
+            f'    if get_dictionary_property(cx, object.handle(), c"{member.identifier.name}", '
+            "rval.handle_mut())? && !rval.is_undefined() {\n"
             f"{indent(conversion)}\n"
             "    } else {\n"
             f"{indent(default)}\n"

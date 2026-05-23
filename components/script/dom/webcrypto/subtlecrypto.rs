@@ -3804,7 +3804,6 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
 }
 
 /// Helper to retrieve an optional paramter from WebIDL dictionary.
-#[expect(unsafe_code)]
 fn get_optional_parameter<T: SafeFromJSValConvertible>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
@@ -3812,16 +3811,9 @@ fn get_optional_parameter<T: SafeFromJSValConvertible>(
     option: T::Config,
 ) -> Fallible<Option<T>> {
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    if unsafe {
-        get_dictionary_property(
-            cx.raw_cx(),
-            object,
-            parameter,
-            rval.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?
-    } && !rval.is_undefined()
+    if get_dictionary_property(cx, object, parameter, rval.handle_mut())
+        .map_err(|_| Error::JSFailed)? &&
+        !rval.is_undefined()
     {
         let conversion_result =
             T::safe_from_jsval(cx.into(), rval.handle(), option, CanGc::from_cx(cx))
@@ -3847,7 +3839,6 @@ fn get_required_parameter<T: SafeFromJSValConvertible>(
 }
 
 /// Helper to retrieve an optional paramter, in RootedTraceableBox, from WebIDL dictionary.
-#[expect(unsafe_code)]
 fn get_optional_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
@@ -3855,16 +3846,9 @@ fn get_optional_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
     option: T::Config,
 ) -> Fallible<Option<RootedTraceableBox<T>>> {
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    if unsafe {
-        get_dictionary_property(
-            cx.raw_cx(),
-            object,
-            parameter,
-            rval.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?
-    } && !rval.is_undefined()
+    if get_dictionary_property(cx, object, parameter, rval.handle_mut())
+        .map_err(|_| Error::JSFailed)? &&
+        !rval.is_undefined()
     {
         let conversion_result: ConversionResult<T> = SafeFromJSValConvertible::safe_from_jsval(
             cx.into(),
@@ -4068,7 +4052,7 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let key = match JsonWebKey::new(cx.into(), result.handle(), CanGc::from_cx(cx)) {
+        let key = match JsonWebKey::new(cx, result.handle()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
                 return Err(Error::Type(error.into_owned()));

@@ -28,9 +28,10 @@ use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
     CallOriginalPromiseReject, JS_DefineProperty, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
-    JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty,
-    JS_HasPropertyById, JS_SetPendingException, JS_SetProperty,
+    JS_GetPendingException, JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById,
+    JS_SetPendingException, JS_SetProperty,
 };
+use js::rust::wrappers2::{JS_GetProperty, JS_HasProperty};
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
 };
@@ -240,40 +241,19 @@ pub(crate) unsafe fn find_enum_value<'a, T>(
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn get_dictionary_property(
-    cx: *mut JSContext,
+pub fn get_dictionary_property(
+    cx: &mut js::context::JSContext,
     object: HandleObject,
     property: &CStr,
     rval: MutableHandleValue,
-    _can_gc: CanGc,
 ) -> Result<bool, ()> {
-    unsafe fn has_property(
-        cx: *mut JSContext,
-        object: HandleObject,
-        property: &CStr,
-        found: &mut bool,
-    ) -> bool {
-        JS_HasProperty(cx, object, property.as_ptr(), found)
-    }
-    unsafe fn get_property(
-        cx: *mut JSContext,
-        object: HandleObject,
-        property: &CStr,
-        value: MutableHandleValue,
-    ) -> bool {
-        JS_GetProperty(cx, object, property.as_ptr(), value)
-    }
-
     if object.get().is_null() {
         return Ok(false);
     }
 
     let mut found = false;
-    if !has_property(cx, object, property, &mut found) {
+    if unsafe { !JS_HasProperty(cx, object, property.as_ptr(), &mut found) } {
         return Err(());
     }
 
@@ -281,7 +261,7 @@ pub unsafe fn get_dictionary_property(
         return Ok(false);
     }
 
-    if !get_property(cx, object, property, rval) {
+    if unsafe { !JS_GetProperty(cx, object, property.as_ptr(), rval) } {
         return Err(());
     }
 
