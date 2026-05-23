@@ -7833,6 +7833,7 @@ dependencies = [
  "uuid",
  "webrender_api",
  "wgpu-core 29.0.3",
+ "zeroize",
 ]
 
 [[package]]

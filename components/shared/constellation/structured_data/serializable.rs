@@ -23,6 +23,7 @@ use servo_base::id::{
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
 use uuid::Uuid;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use super::StructuredSerializedData;
 
@@ -633,4 +634,41 @@ pub enum SerializableKeyAlgorithmAndDerivatives {
     EcKeyAlgorithm(SerializableEcKeyAlgorithm),
     AesKeyAlgorithm(SerializableAesKeyAlgorithm),
     HmacKeyAlgorithm(SerializableHmacKeyAlgorithm),
+}
+
+/// A serializable version of the `Handle` type, used by the `CryptoKey` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, Zeroize, ZeroizeOnDrop)]
+pub enum SerializableCryptoKeyHandle {
+    RsaPrivateKey(Vec<u8>),
+    RsaPublicKey(Vec<u8>),
+    P256PrivateKey(Vec<u8>),
+    P384PrivateKey(Vec<u8>),
+    P521PrivateKey(Vec<u8>),
+    P256PublicKey(Vec<u8>),
+    P384PublicKey(Vec<u8>),
+    P521PublicKey(Vec<u8>),
+    Ed25519PrivateKey(Vec<u8>),
+    Ed25519PublicKey(Vec<u8>),
+    X25519PrivateKey([u8; 32]),
+    X25519PublicKey([u8; 32]),
+    Aes128Key(Vec<u8>),
+    Aes192Key(Vec<u8>),
+    Aes256Key(Vec<u8>),
+    HkdfSecret(Vec<u8>),
+    Pbkdf2(Vec<u8>),
+    Hmac(Vec<u8>),
+    MlKem512PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem768PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem1024PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem512PublicKey(Vec<u8>),
+    MlKem768PublicKey(Vec<u8>),
+    MlKem1024PublicKey(Vec<u8>),
+    MlDsa44PrivateKey(Vec<u8>),
+    MlDsa65PrivateKey(Vec<u8>),
+    MlDsa87PrivateKey(Vec<u8>),
+    MlDsa44PublicKey(Vec<u8>),
+    MlDsa65PublicKey(Vec<u8>),
+    MlDsa87PublicKey(Vec<u8>),
+    ChaCha20Poly1305Key(Vec<u8>),
+    Argon2Password(Vec<u8>),
 }
