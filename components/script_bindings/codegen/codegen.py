@@ -882,7 +882,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
     # A helper function for types that implement FromJSValConvertible trait
     def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str) -> str:
-        return f"""match FromJSValConvertible::from_jsval(cx.raw_cx(), ${{val}}, {config}) {{
+        return f"""match FromJSValConvertible::safe_from_jsval(cx, ${{val}}, {config}) {{
     Ok(ConversionResult::Success(value)) => value,
     Ok(ConversionResult::Failure(error)) => {{
         {errorHandler}
@@ -5632,7 +5632,7 @@ class CGUnionConversionStruct(CGThing):
         def get_match(name: str) -> str:
             generic = "::<D>" if containsDomInterface(self.type) else ""
             return (
-                f"match {self.type}{generic}::TryConvertTo{name}(SafeJSContext::from_ptr(cx), value) {{\n"
+                f"match {self.type}{generic}::TryConvertTo{name}(&mut cx, value) {{\n"
                 "    Err(_) => return Err(()),\n"
                 f"    Ok(Some(value)) => return Ok(ConversionResult::Success({self.type}::{name}(value))),\n"
                 "    Ok(None) => (),\n"
@@ -5766,7 +5766,8 @@ class CGUnionConversionStruct(CGThing):
             pre="unsafe fn from_jsval(cx: *mut RawJSContext,\n"
                 "                     value: HandleValue,\n"
                 "                     _option: ())\n"
-                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n",
+                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n"
+                "   let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n",
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -5792,7 +5793,7 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre=f"unsafe fn TryConvertTo{t.name}(cx: SafeJSContext, value: HandleValue) -> {returnType} {{\n",
+            pre=f"unsafe fn TryConvertTo{t.name}(cx: &mut JSContext, value: HandleValue) -> {returnType} {{\n",
             post="\n}")
 
     def define(self) -> str:
