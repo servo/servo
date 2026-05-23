@@ -70,14 +70,7 @@ struct SharedWorkerRegistration {
     worker_is_secure_context: bool,
     closing: Arc<AtomicBool>,
     sender: Sender<SharedWorkerScriptMsg>,
-    control_sender: Sender<SharedWorkerControlMsg>,
-}
-
-enum SharedWorkerLookup {
-    Match(SharedWorkerRegistration),
-    MismatchedOptions,
-    MismatchedSecureContext,
-    None,
+    _control_sender: Sender<SharedWorkerControlMsg>,
 }
 
 // A user agent has an associated shared worker manager which is the result of starting a new parallel queue.
@@ -85,23 +78,20 @@ enum SharedWorkerLookup {
 static SHARED_WORKERS: LazyLock<Mutex<Vec<SharedWorkerRegistration>>> =
     LazyLock::new(|| Mutex::new(Vec::new()));
 
-#[allow(clippy::too_many_arguments)]
+/// Implements the existing shared worker lookup from:
+/// <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
+/// <https://html.spec.whatwg.org/multipage/#shared-worker-manager>
 fn find_shared_worker(
     storage_key: &ImmutableOrigin,
     constructor_origin: &ImmutableOrigin,
     constructor_url: &ServoUrl,
     name: &str,
-    worker_type: WorkerType,
-    credentials: CredentialsMode,
-    extended_lifetime: bool,
-    caller_is_secure_context: bool,
-) -> SharedWorkerLookup {
+) -> Option<SharedWorkerRegistration> {
     let mut workers = SHARED_WORKERS
         .lock()
         .expect("SharedWorker registry poisoned");
     workers.retain(|worker| !worker.closing.load(Ordering::SeqCst));
 
-    // Step 11.1. Let workerGlobalScope be null.
     // Step 11.2. For each scope in the list of all `SharedWorkerGlobalScope` objects:
     // Step 11.2.1. Let workerStorageKey be the result of running obtain a storage key for non-storage purposes given scope's relevant settings object.
     // Step 11.2.2. If all of the following are true:
@@ -110,7 +100,7 @@ fn find_shared_worker(
     // scope's constructor URL equals urlRecord; and
     // scope's name equals options["name"],
     // `data:` URLs create a worker with an opaque origin. Both the constructor origin and constructor URL are compared so the same `data:` URL can be used within an origin to get to the same `SharedWorkerGlobalScope` object, but cannot be used to bypass the same origin restriction.
-    let Some(worker) = workers
+    workers
         .iter()
         .find(|worker| {
             worker.storage_key == *storage_key &&
@@ -119,32 +109,6 @@ fn find_shared_worker(
                 worker.name == name
         })
         .cloned()
-    else {
-        return SharedWorkerLookup::None;
-    };
-
-    // Step 11.2.2.1. Set workerGlobalScope to scope.
-    // Step 11.2.2.2. Break.
-    // Step 11.4. If workerGlobalScope is not null, and any of the following are true:
-    // workerGlobalScope's type is not equal to options["type"];
-    // workerGlobalScope's credentials is not equal to options["credentials"]; or
-    // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
-    if worker.worker_type != worker_type ||
-        worker.credentials != credentials ||
-        worker.extended_lifetime != extended_lifetime
-    {
-        return SharedWorkerLookup::MismatchedOptions;
-    }
-
-    // Step 11.5.1. Let insideSettings be workerGlobalScope's relevant settings object.
-    // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
-    // Step 11.5.3. If workerIsSecureContext is not callerIsSecureContext:
-    if worker.worker_is_secure_context != caller_is_secure_context {
-        return SharedWorkerLookup::MismatchedSecureContext;
-    }
-
-    // Step 11.5.4. Associate worker with workerGlobalScope.
-    SharedWorkerLookup::Match(worker)
 }
 
 fn register_shared_worker(worker: SharedWorkerRegistration) {
@@ -261,11 +225,8 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             StringOrSharedWorkerOptions::SharedWorkerOptions(options) => options,
         };
         let worker_name = worker_options.parent.name.clone();
-        // Set worker global scope's type to options["type"].
         let worker_type = worker_options.parent.type_;
-        // Set worker global scope's credentials to options["credentials"].
         let credentials = worker_options.parent.credentials.convert();
-        // Set worker global scope's extended lifetime to options["extendedLifetime"].
         let extended_lifetime = worker_options.extendedLifetime;
 
         // Step 3. Let outsideSettings be this's relevant settings object.
@@ -279,9 +240,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         else {
             return Err(Error::Syntax(None));
         };
-        // Set worker global scope's constructor origin to outside settings's origin.
         let constructor_origin = global.origin().immutable().clone();
-        // Set worker global scope's constructor URL to url.
         let constructor_url = worker_url.url();
 
         // Step 6. Let outsidePort be a new MessagePort in outsideSettings's realm.
@@ -297,67 +256,68 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let outside_storage_key = global.obtain_storage_key_for_non_storage_purposes();
 
         let worker_name_string = worker_name.to_string();
-        let shared_worker = find_shared_worker(
-            &outside_storage_key,
-            &constructor_origin,
-            &constructor_url,
-            &worker_name_string,
-            worker_type,
-            credentials,
-            extended_lifetime,
-            caller_is_secure_context,
-        );
-        // Step 11.3. If workerGlobalScope is not null, but the user agent has been configured to disallow communication between the worker represented by the workerGlobalScope and the scripts whose settings object is outsideSettings, then set workerGlobalScope to null.
-        // TODO Step 11.3.
-
-        let (control_sender, control_receiver) = match &shared_worker {
-            SharedWorkerLookup::Match(worker) => (worker.control_sender.clone(), None),
-            SharedWorkerLookup::MismatchedOptions | SharedWorkerLookup::MismatchedSecureContext => {
-                let (control_sender, _control_receiver) = unbounded();
-                (control_sender, None)
-            },
-            SharedWorkerLookup::None => {
-                let (control_sender, control_receiver) = unbounded();
-                (control_sender, Some(control_receiver))
-            },
-        };
+        let (control_sender, control_receiver) = unbounded();
 
         // Step 10. Let worker be this.
         let worker = SharedWorker::new(global, proto, &outside_port, control_sender.clone(), cx);
         let worker_addr = Trusted::new(&*worker);
 
-        match shared_worker {
-            SharedWorkerLookup::Match(registration) => {
-                // Step 11.5.5. Let insidePort be a new MessagePort in insideSettings's realm.
-                // Step 11.5.6. Entangle outsidePort and insidePort.
-                let inside_port_impl =
-                    SharedWorker::create_entangled_inside_port(cx, global, &outside_port)?;
-                // Step 11.5.7. Queue a global task on the DOM manipulation task source given workerGlobalScope to fire an event named connect at workerGlobalScope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing only insidePort, and the source attribute initialized to insidePort.
-                if registration
-                    .sender
-                    .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
-                    .is_err()
-                {
-                    SharedWorker::queue_simple_error(global, worker_addr);
-                }
-                // Step 11.5.8. Append the relevant owner to add given outsideSettings to workerGlobalScope's owner set.
-                // TODO Step 11.5.8.
-                return Ok(worker);
-            },
-            SharedWorkerLookup::MismatchedOptions => {
+        // Step 11.1. Let workerGlobalScope be null.
+        let shared_worker = find_shared_worker(
+            &outside_storage_key,
+            &constructor_origin,
+            &constructor_url,
+            &worker_name_string,
+        );
+
+        if let Some(registration) = shared_worker {
+            // Step 11.2.2.1. Set workerGlobalScope to scope.
+            // Step 11.2.2.2. Break.
+            // Step 11.3. If workerGlobalScope is not null, but the user agent has been configured to disallow communication between the worker represented by the workerGlobalScope and the scripts whose settings object is outsideSettings, then set workerGlobalScope to null.
+            // TODO Step 11.3.
+            // Step 11.4. If workerGlobalScope is not null, and any of the following are true:
+            // workerGlobalScope's type is not equal to options["type"];
+            // workerGlobalScope's credentials is not equal to options["credentials"]; or
+            // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
+            if registration.worker_type != worker_type ||
+                registration.credentials != credentials ||
+                registration.extended_lifetime != extended_lifetime
+            {
                 // Step 11.4.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
                 SharedWorker::queue_simple_error(global, worker_addr);
+                // Step 11.4.2. Abort these steps.
                 return Ok(worker);
-            },
-            SharedWorkerLookup::MismatchedSecureContext => {
+            }
+
+            // Step 11.5. If workerGlobalScope is not null:
+            // Step 11.5.1. Let insideSettings be workerGlobalScope's relevant settings object.
+            // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
+            // Step 11.5.3. If workerIsSecureContext is not callerIsSecureContext:
+            if registration.worker_is_secure_context != caller_is_secure_context {
                 // Step 11.5.3.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
                 SharedWorker::queue_simple_error(global, worker_addr);
+                // Step 11.5.3.2. Abort these steps.
                 return Ok(worker);
-            },
-            SharedWorkerLookup::None => {},
+            }
+
+            // Step 11.5.4. Associate worker with workerGlobalScope.
+            // Step 11.5.5. Let insidePort be a new MessagePort in insideSettings's realm.
+            // Step 11.5.6. Entangle outsidePort and insidePort.
+            let inside_port_impl =
+                SharedWorker::create_entangled_inside_port(cx, global, &outside_port)?;
+            // Step 11.5.7. Queue a global task on the DOM manipulation task source given workerGlobalScope to fire an event named connect at workerGlobalScope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing only insidePort, and the source attribute initialized to insidePort.
+            if registration
+                .sender
+                .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
+                .is_err()
+            {
+                SharedWorker::queue_simple_error(global, worker_addr);
+            }
+            // Step 11.5.8. Append the relevant owner to add given outsideSettings to workerGlobalScope's owner set.
+            // TODO Step 11.5.8.
+            return Ok(worker);
         }
 
-        let control_receiver = control_receiver.expect("Fresh SharedWorker must have a receiver");
         let parent_event_loop_sender = global
             .event_loop_sender()
             .expect("Window global must have an event loop sender");
@@ -460,7 +420,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             worker_is_secure_context,
             closing: closing.clone(),
             sender: sender.clone(),
-            control_sender: control_sender.clone(),
+            _control_sender: control_sender.clone(),
         });
 
         if registered_sender.send(()).is_err() {
