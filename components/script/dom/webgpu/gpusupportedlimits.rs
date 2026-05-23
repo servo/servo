@@ -13,6 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
+/// <https://gpuweb.github.io/gpuweb/#gpusupportedlimits>
 #[dom_struct]
 pub(crate) struct GPUSupportedLimits {
     reflector_: Reflector,
@@ -63,7 +64,7 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindgroupsplusvertexbuffers>
     fn MaxBindGroupsPlusVertexBuffers(&self) -> u32 {
-        // Not on wgpu yet, so we craft it manually
+        // Not in published wgpu yet (https://github.com/gfx-rs/wgpu/issues/8832), so we craft it manually
         self.limits.max_bind_groups + self.limits.max_vertex_buffers
     }
 
@@ -104,13 +105,13 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinvertexstage>
     fn MaxStorageBuffersInVertexStage(&self) -> u32 {
-        // Not in wgpu yet, report per stage limit instead
+        // Not in wgpu yet (https://github.com/gfx-rs/wgpu/issues/8748), report per stage limit instead
         self.limits.max_storage_buffers_per_shader_stage
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinfragmentstage>
     fn MaxStorageBuffersInFragmentStage(&self) -> u32 {
-        // Not in wgpu yet, report per stage limit instead
+        // Not in wgpu yet (https://github.com/gfx-rs/wgpu/issues/8748), report per stage limit instead
         self.limits.max_storage_buffers_per_shader_stage
     }
 
@@ -121,13 +122,13 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinvertexstage>
     fn MaxStorageTexturesInVertexStage(&self) -> u32 {
-        // Not in wgpu yet, report per stage limit instead
+        // Not in wgpu yet (https://github.com/gfx-rs/wgpu/issues/8748), report per stage limit instead
         self.limits.max_storage_textures_per_shader_stage
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinfragmentstage>
     fn MaxStorageTexturesInFragmentStage(&self) -> u32 {
-        // Not in wgpu yet, report per stage limit instead
+        // Not in wgpu yet (https://github.com/gfx-rs/wgpu/issues/8748), report per stage limit instead
         self.limits.max_storage_textures_per_shader_stage
     }
 
@@ -265,7 +266,8 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
         "maxTextureArrayLayers" => set_maximum(&mut limits.max_texture_array_layers, value),
         "maxBindGroups" => set_maximum(&mut limits.max_bind_groups, value),
         "maxBindGroupsPlusVertexBuffers" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
+            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8832)
+            // but we're allowed to give back better limits than requested.
             // we use dummy value to still produce value verification
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
@@ -290,13 +292,15 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
             set_maximum(&mut limits.max_storage_buffers_per_shader_stage, value)
         },
         "maxStorageBuffersInVertexStage" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
+            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8748)
+            // but we're allowed to give back better limits than requested.
             // we use dummy value to still produce value verification
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
         },
         "maxStorageBuffersInFragmentStage" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
+            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8748)
+            // but we're allowed to give back better limits than requested.
             // we use dummy value to still produce value verification
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
@@ -305,13 +309,15 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
             set_maximum(&mut limits.max_storage_textures_per_shader_stage, value)
         },
         "maxStorageTexturesInVertexStage" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
+            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8748)
+            // but we're allowed to give back better limits than requested.
             // we use dummy value to still produce value verification
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
         },
         "maxStorageTexturesInFragmentStage" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
+            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8748)
+            // but we're allowed to give back better limits than requested.
             // we use dummy value to still produce value verification
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
