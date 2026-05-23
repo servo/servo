@@ -34,6 +34,7 @@ impl GPUSupportedLimits {
     }
 }
 
+// Limits are ordered by their declaration in the spec.
 impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxtexturedimension1d>
     fn MaxTextureDimension1D(&self) -> u32 {
@@ -58,6 +59,17 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindgroups>
     fn MaxBindGroups(&self) -> u32 {
         self.limits.max_bind_groups
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindgroupsplusvertexbuffers>
+    fn MaxBindGroupsPlusVertexBuffers(&self) -> u32 {
+        // Not on wgpu yet, so we craft it manually
+        self.limits.max_bind_groups + self.limits.max_vertex_buffers
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maximmediatesize>
+    fn MaxImmediateSize(&self) -> u32 {
+        self.limits.max_immediate_size
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindingsperbindgroup>
@@ -90,8 +102,32 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
         self.limits.max_storage_buffers_per_shader_stage
     }
 
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinvertexstage>
+    fn MaxStorageBuffersInVertexStage(&self) -> u32 {
+        // Not in wgpu yet, report per stage limit instead
+        self.limits.max_storage_buffers_per_shader_stage
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinfragmentstage>
+    fn MaxStorageBuffersInFragmentStage(&self) -> u32 {
+        // Not in wgpu yet, report per stage limit instead
+        self.limits.max_storage_buffers_per_shader_stage
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturespershaderstage>
     fn MaxStorageTexturesPerShaderStage(&self) -> u32 {
+        self.limits.max_storage_textures_per_shader_stage
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinvertexstage>
+    fn MaxStorageTexturesInVertexStage(&self) -> u32 {
+        // Not in wgpu yet, report per stage limit instead
+        self.limits.max_storage_textures_per_shader_stage
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinfragmentstage>
+    fn MaxStorageTexturesInFragmentStage(&self) -> u32 {
+        // Not in wgpu yet, report per stage limit instead
         self.limits.max_storage_textures_per_shader_stage
     }
 
@@ -140,9 +176,19 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
         self.limits.max_vertex_buffer_array_stride
     }
 
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxinterstageshadercomponents>
-    fn MaxInterStageShaderComponents(&self) -> u32 {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxinterstageshadervariables>
+    fn MaxInterStageShaderVariables(&self) -> u32 {
         self.limits.max_inter_stage_shader_variables
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcolorattachments>
+    fn MaxColorAttachments(&self) -> u32 {
+        self.limits.max_color_attachments
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcolorattachmentbytespersample>
+    fn MaxColorAttachmentBytesPerSample(&self) -> u32 {
+        self.limits.max_color_attachment_bytes_per_sample
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcomputeworkgroupstoragesize>
@@ -173,28 +219,6 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcomputeworkgroupsperdimension>
     fn MaxComputeWorkgroupsPerDimension(&self) -> u32 {
         self.limits.max_compute_workgroups_per_dimension
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindgroupsplusvertexbuffers>
-    fn MaxBindGroupsPlusVertexBuffers(&self) -> u32 {
-        // Not on wgpu yet, so we craft it manually
-        self.limits.max_bind_groups + self.limits.max_vertex_buffers
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxinterstageshadervariables>
-    fn MaxInterStageShaderVariables(&self) -> u32 {
-        // Not in wgpu yet, so we use default value from spec
-        16
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcolorattachments>
-    fn MaxColorAttachments(&self) -> u32 {
-        self.limits.max_color_attachments
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxcolorattachmentbytespersample>
-    fn MaxColorAttachmentBytesPerSample(&self) -> u32 {
-        self.limits.max_color_attachment_bytes_per_sample
     }
 }
 
@@ -233,6 +257,7 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
         }
     }
 
+    // Limits are ordered by their declaration in the spec.
     match limit {
         "maxTextureDimension1D" => set_maximum(&mut limits.max_texture_dimension_1d, value),
         "maxTextureDimension2D" => set_maximum(&mut limits.max_texture_dimension_2d, value),
@@ -245,6 +270,7 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
             let mut v: u32 = 0;
             set_maximum(&mut v, value)
         },
+        "maxImmediateSize" => set_maximum(&mut limits.max_immediate_size, value),
         "maxBindingsPerBindGroup" => set_maximum(&mut limits.max_bindings_per_bind_group, value),
         "maxDynamicUniformBuffersPerPipelineLayout" => set_maximum(
             &mut limits.max_dynamic_uniform_buffers_per_pipeline_layout,
@@ -263,8 +289,32 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
         "maxStorageBuffersPerShaderStage" => {
             set_maximum(&mut limits.max_storage_buffers_per_shader_stage, value)
         },
+        "maxStorageBuffersInVertexStage" => {
+            // not in wgpu but we're allowed to give back better limits than requested.
+            // we use dummy value to still produce value verification
+            let mut v: u32 = 0;
+            set_maximum(&mut v, value)
+        },
+        "maxStorageBuffersInFragmentStage" => {
+            // not in wgpu but we're allowed to give back better limits than requested.
+            // we use dummy value to still produce value verification
+            let mut v: u32 = 0;
+            set_maximum(&mut v, value)
+        },
         "maxStorageTexturesPerShaderStage" => {
             set_maximum(&mut limits.max_storage_textures_per_shader_stage, value)
+        },
+        "maxStorageTexturesInVertexStage" => {
+            // not in wgpu but we're allowed to give back better limits than requested.
+            // we use dummy value to still produce value verification
+            let mut v: u32 = 0;
+            set_maximum(&mut v, value)
+        },
+        "maxStorageTexturesInFragmentStage" => {
+            // not in wgpu but we're allowed to give back better limits than requested.
+            // we use dummy value to still produce value verification
+            let mut v: u32 = 0;
+            set_maximum(&mut v, value)
         },
         "maxUniformBuffersPerShaderStage" => {
             set_maximum(&mut limits.max_uniform_buffers_per_shader_stage, value)
@@ -287,14 +337,8 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
         "maxVertexBufferArrayStride" => {
             set_maximum(&mut limits.max_vertex_buffer_array_stride, value)
         },
-        "maxInterStageShaderComponents" => {
-            set_maximum(&mut limits.max_inter_stage_shader_variables, value)
-        },
         "maxInterStageShaderVariables" => {
-            // not in wgpu but we're allowed to give back better limits than requested.
-            // we use dummy value to still produce value verification
-            let mut v: u32 = 0;
-            set_maximum(&mut v, value)
+            set_maximum(&mut limits.max_inter_stage_shader_variables, value)
         },
         "maxColorAttachments" => set_maximum(&mut limits.max_color_attachments, value),
         "maxColorAttachmentBytesPerSample" => {
