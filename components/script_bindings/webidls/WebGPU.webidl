@@ -75,7 +75,6 @@ interface GPUAdapterInfo {
 interface mixin NavigatorGPU {
     [SameObject, SecureContext, Pref="dom_webgpu_enabled"] readonly attribute GPU gpu;
 };
-
 Navigator includes NavigatorGPU;
 WorkerNavigator includes NavigatorGPU;
 
@@ -93,7 +92,7 @@ dictionary GPURequestAdapterOptions {
 
 enum GPUPowerPreference {
     "low-power",
-    "high-performance"
+    "high-performance",
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -105,7 +104,7 @@ interface GPUAdapter {
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
 };
 
-dictionary GPUDeviceDescriptor: GPUObjectDescriptorBase {
+dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
     record<DOMString, GPUSize64> requiredLimits;// = {};
 };
@@ -129,7 +128,7 @@ enum GPUFeatureName {
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUDevice: EventTarget {
+interface GPUDevice : EventTarget {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
     [SameObject] readonly attribute GPUAdapterInfo adapterInfo;
@@ -181,7 +180,6 @@ interface GPUBuffer {
     undefined destroy();
 };
 GPUBuffer includes GPUObjectBase;
-
 
 enum GPUBufferMapState {
     "unmapped",
@@ -283,13 +281,13 @@ enum GPUTextureViewDimension {
     "2d-array",
     "cube",
     "cube-array",
-    "3d"
+    "3d",
 };
 
 enum GPUTextureAspect {
     "all",
     "stencil-only",
-    "depth-only"
+    "depth-only",
 };
 
 enum GPUTextureFormat {
@@ -434,7 +432,7 @@ dictionary GPUSamplerDescriptor : GPUObjectDescriptorBase {
 enum GPUAddressMode {
     "clamp-to-edge",
     "repeat",
-    "mirror-repeat"
+    "mirror-repeat",
 };
 
 enum GPUFilterMode {
@@ -450,7 +448,7 @@ enum GPUCompareFunction {
     "greater",
     "not-equal",
     "greater-equal",
-    "always"
+    "always",
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -579,7 +577,7 @@ dictionary GPUShaderModuleDescriptor : GPUObjectDescriptorBase {
 enum GPUCompilationMessageType {
     "error",
     "warning",
-    "info"
+    "info",
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -614,7 +612,7 @@ enum GPUPipelineErrorReason {
 };
 
 enum GPUAutoLayoutMode {
-    "auto"
+    "auto",
 };
 
 dictionary GPUPipelineDescriptorBase : GPUObjectDescriptorBase {
@@ -671,18 +669,18 @@ enum GPUPrimitiveTopology {
     "line-list",
     "line-strip",
     "triangle-list",
-    "triangle-strip"
+    "triangle-strip",
 };
 
 enum GPUFrontFace {
     "ccw",
-    "cw"
+    "cw",
 };
 
 enum GPUCullMode {
     "none",
     "front",
-    "back"
+    "back",
 };
 
 dictionary GPUMultisampleState {
@@ -691,7 +689,7 @@ dictionary GPUMultisampleState {
     boolean alphaToCoverageEnabled = false;
 };
 
-dictionary GPUFragmentState: GPUProgrammableStage {
+dictionary GPUFragmentState : GPUProgrammableStage {
     required sequence<GPUColorTargetState> targets;
 };
 
@@ -743,7 +741,7 @@ enum GPUBlendOperation {
     "subtract",
     "reverse-subtract",
     "min",
-    "max"
+    "max",
 };
 
 dictionary GPUDepthStencilState {
@@ -778,7 +776,7 @@ enum GPUStencilOperation {
     "increment-clamp",
     "decrement-clamp",
     "increment-wrap",
-    "decrement-wrap"
+    "decrement-wrap",
 };
 
 enum GPUIndexFormat {
@@ -824,7 +822,7 @@ enum GPUVertexStepMode {
     "instance",
 };
 
-dictionary GPUVertexState: GPUProgrammableStage {
+dictionary GPUVertexState : GPUProgrammableStage {
     sequence<GPUVertexBufferLayout?> buffers = [];
 };
 
@@ -1017,15 +1015,15 @@ dictionary GPURenderPassDepthStencilAttachment {
 
 enum GPULoadOp {
     "load",
-    "clear"
+    "clear",
 };
 
 enum GPUStoreOp {
     "store",
-    "discard"
+    "discard",
 };
 
-dictionary GPURenderPassLayout: GPUObjectDescriptorBase {
+dictionary GPURenderPassLayout : GPUObjectDescriptorBase {
     // TODO: We don't support nullable enumerated arguments yet
     required sequence<GPUTextureFormat> colorFormats;
     GPUTextureFormat depthStencilFormat;
@@ -1135,7 +1133,7 @@ enum GPUPipelineStatisticName {
 enum GPUQueryType {
     "occlusion",
     "pipeline-statistics",
-    "timestamp"
+    "timestamp",
 };
 
 
@@ -1182,20 +1180,17 @@ interface GPUError {
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUValidationError
-        : GPUError {
+interface GPUValidationError : GPUError {
     constructor(DOMString message);
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUOutOfMemoryError
-        : GPUError {
+interface GPUOutOfMemoryError : GPUError {
     constructor(DOMString message);
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUInternalError
-        : GPUError {
+interface GPUInternalError : GPUError {
     constructor(DOMString message);
 };
 
@@ -1271,5 +1266,4 @@ dictionary GPUExtent3DDict {
     GPUIntegerCoordinate height = 1;
     GPUIntegerCoordinate depthOrArrayLayers = 1;
 };
-
 typedef (sequence<GPUIntegerCoordinate> or GPUExtent3DDict) GPUExtent3D;
