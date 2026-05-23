@@ -45,8 +45,10 @@ use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::{
-    SerializableAlgorithm, SerializableCShakeParams, SerializableDigestAlgorithm,
-    SerializableTurboShakeParams,
+    SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
+    SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
+    SerializableKeyAlgorithm, SerializableKeyAlgorithmAndDerivatives,
+    SerializableRsaHashedKeyAlgorithm, SerializableTurboShakeParams,
 };
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
@@ -2898,6 +2900,24 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+impl TryFrom<SerializableKeyAlgorithm> for SubtleKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+        })
+    }
+}
+
+impl From<&SubtleKeyAlgorithm> for SerializableKeyAlgorithm {
+    fn from(value: &SubtleKeyAlgorithm) -> Self {
+        SerializableKeyAlgorithm {
+            name: value.name.as_str().into(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleRsaHashedKeyGenParams {
@@ -2981,6 +3001,30 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
             },
         });
         rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableRsaHashedKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleRsaHashedKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            modulus_length: value.modulus_length,
+            public_exponent: value.public_exponent,
+            hash: value.hash.try_into()?,
+        })
+    }
+}
+
+impl From<&SubtleRsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
+    fn from(value: &SubtleRsaHashedKeyAlgorithm) -> Self {
+        SerializableRsaHashedKeyAlgorithm {
+            name: value.name.as_str().into(),
+            modulus_length: value.modulus_length,
+            public_exponent: value.public_exponent.clone(),
+            hash: (&value.hash).into(),
+        }
     }
 }
 
@@ -3147,6 +3191,26 @@ impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
     }
 }
 
+impl TryFrom<SerializableEcKeyAlgorithm> for SubtleEcKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableEcKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleEcKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            named_curve: value.named_curve,
+        })
+    }
+}
+
+impl From<&SubtleEcKeyAlgorithm> for SerializableEcKeyAlgorithm {
+    fn from(value: &SubtleEcKeyAlgorithm) -> Self {
+        SerializableEcKeyAlgorithm {
+            name: value.name.as_str().into(),
+            named_curve: value.named_curve.clone(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleEcKeyImportParams {
@@ -3259,6 +3323,26 @@ impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
             length: self.length,
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableAesKeyAlgorithm> for SubtleAesKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableAesKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleAesKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            length: value.length,
+        })
+    }
+}
+
+impl From<&SubtleAesKeyAlgorithm> for SerializableAesKeyAlgorithm {
+    fn from(value: &SubtleAesKeyAlgorithm) -> Self {
+        SerializableAesKeyAlgorithm {
+            name: value.name.as_str().into(),
+            length: value.length,
+        }
     }
 }
 
@@ -3448,6 +3532,28 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             length: self.length,
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableHmacKeyAlgorithm> for SubtleHmacKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableHmacKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleHmacKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            hash: value.hash.try_into()?,
+            length: value.length,
+        })
+    }
+}
+
+impl From<&SubtleHmacKeyAlgorithm> for SerializableHmacKeyAlgorithm {
+    fn from(value: &SubtleHmacKeyAlgorithm) -> Self {
+        SerializableHmacKeyAlgorithm {
+            name: value.name.as_str().into(),
+            hash: (&value.hash).into(),
+            length: value.length,
+        }
     }
 }
 
@@ -4032,6 +4138,52 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
             },
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => {
                 algo.safe_to_jsval(cx, rval, can_gc)
+            },
+        }
+    }
+}
+
+impl TryFrom<SerializableKeyAlgorithmAndDerivatives> for KeyAlgorithmAndDerivatives {
+    type Error = ();
+
+    fn try_from(value: SerializableKeyAlgorithmAndDerivatives) -> Result<Self, Self::Error> {
+        match value {
+            SerializableKeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.try_into()?),
+            ),
+        }
+    }
+}
+
+impl From<&KeyAlgorithmAndDerivatives> for SerializableKeyAlgorithmAndDerivatives {
+    fn from(value: &KeyAlgorithmAndDerivatives) -> Self {
+        match value {
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.into())
             },
         }
     }

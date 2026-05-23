@@ -585,3 +585,52 @@ pub enum SerializableDigestAlgorithm {
     CShake(SerializableCShakeParams),
     TurboShake(SerializableTurboShakeParams),
 }
+
+/// A serializable version of the `KeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableKeyAlgorithm {
+    pub name: String,
+}
+
+/// A serializable version of the `RsaHashedKeyAlgorithm` dictionary, used the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableRsaHashedKeyAlgorithm {
+    pub name: String,
+    pub modulus_length: u32,
+    pub public_exponent: Vec<u8>,
+    pub hash: SerializableDigestAlgorithm,
+}
+
+/// A serializable version of the `EcKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableEcKeyAlgorithm {
+    pub name: String,
+    pub named_curve: String,
+}
+
+/// A serializable version of the `AesKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableAesKeyAlgorithm {
+    pub name: String,
+    pub length: u16,
+}
+
+/// A serializable version of the `HmacKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableHmacKeyAlgorithm {
+    pub name: String,
+    pub hash: SerializableDigestAlgorithm,
+    pub length: u32,
+}
+
+/// A serializable version of the `KeyAlgorithmAndDerivatives` type, used by the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum SerializableKeyAlgorithmAndDerivatives {
+    KeyAlgorithm(SerializableKeyAlgorithm),
+    RsaHashedKeyAlgorithm(SerializableRsaHashedKeyAlgorithm),
+    EcKeyAlgorithm(SerializableEcKeyAlgorithm),
+    AesKeyAlgorithm(SerializableAesKeyAlgorithm),
+    HmacKeyAlgorithm(SerializableHmacKeyAlgorithm),
+}
