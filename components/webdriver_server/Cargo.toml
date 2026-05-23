@@ -21,7 +21,7 @@ crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-http02 = { package = "http", version = "0.2" }
+http02 = { workspace = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
@@ -37,5 +37,5 @@ time = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
-warp = { version = "0.4.2", features = ["server"] }
+warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
