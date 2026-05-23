@@ -5344,6 +5344,7 @@ use crate::cformat;
 use js::conversions::ConversionResult;
 use js::conversions::FromJSValConvertible;
 use js::conversions::ToJSValConvertible;
+use js::context::JSContext;
 use js::context::RawJSContext;
 use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
@@ -5386,6 +5387,13 @@ impl ToJSValConvertible for super::{ident} {{
 impl FromJSValConvertible for super::{ident} {{
     type Config = ();
     unsafe fn from_jsval(cx: *mut RawJSContext, value: HandleValue, _option: ())
+                         -> Result<ConversionResult<super::{ident}>, ()> {{
+        let mut cx = JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap());
+        let cx = &mut cx;
+        Self::safe_from_jsval(cx, value, _option)
+    }}
+
+    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
                          -> Result<ConversionResult<super::{ident}>, ()> {{
         match find_enum_value(cx, value, pairs) {{
             Err(_) => Err(()),
@@ -7838,6 +7846,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
             "         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
             f"        {selfName}::new(&mut cx, value)\n"
+            "    }\n"
+            "    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
+            f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
+            f"        {selfName}::new(cx, value)\n"
             "    }\n"
             "}\n"
             "\n"
