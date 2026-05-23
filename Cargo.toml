@@ -76,6 +76,7 @@ encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
+fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 fontsan = "0.6.1"
 freetype-sys = "0.20"
 fst = "0.4"
@@ -110,6 +111,7 @@ hkdf = "0.12"
 html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
+http02 = { package = "http", version = "0.2" }
 httparse = "1.9"
 hyper = "1.9"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
