@@ -18,7 +18,7 @@ use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, U
 use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -30,7 +30,7 @@ use url::Host;
 use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
-use crate::canvas_context::CanvasContext;
+use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -44,7 +44,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webxr")]
@@ -95,10 +95,9 @@ impl IndexedBinding {
     }
 }
 
-#[dom_struct] // no need to report size here as it is reported as part of WebGLRenderingContext
+#[dom_struct(associated_memory)] // no need to report size here as it is reported as part of WebGLRenderingContext
 pub(crate) struct WebGL2RenderingContext {
-    reflector_: Reflector,
-    base: Dom<WebGLRenderingContext>,
+    base: WebGLRenderingContext,
     occlusion_query: MutNullableDom<WebGLQuery>,
     primitives_query: MutNullableDom<WebGLQuery>,
     samplers: Box<[MutNullableDom<WebGLSampler>]>,
@@ -132,32 +131,37 @@ struct ReadPixelsSizes {
 
 impl WebGL2RenderingContext {
     fn new_inherited(
-        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
-        let base =
-            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
+        let ctx_data =
+            WebGLRenderingContext::create_context_data(window, WebGLVersion::WebGL2, size, attrs)
+                .ok()?;
 
-        let samplers = (0..base.limits().max_combined_texture_image_units)
+        let limits = &ctx_data.limits;
+        let samplers = (0..limits.max_combined_texture_image_units)
             .map(|_| Default::default())
             .collect::<Vec<_>>()
             .into();
-        let indexed_uniform_buffer_bindings = (0..base.limits().max_uniform_buffer_bindings)
+        let indexed_uniform_buffer_bindings = (0..limits.max_uniform_buffer_bindings)
             .map(|_| IndexedBinding::new())
             .collect::<Vec<_>>()
             .into();
-        let indexed_transform_feedback_buffer_bindings =
-            (0..base.limits().max_transform_feedback_separate_attribs)
-                .map(|_| IndexedBinding::new())
-                .collect::<Vec<_>>()
-                .into();
+        let indexed_transform_feedback_buffer_bindings = (0..limits
+            .max_transform_feedback_separate_attribs)
+            .map(|_| IndexedBinding::new())
+            .collect::<Vec<_>>()
+            .into();
 
         Some(WebGL2RenderingContext {
-            reflector_: Reflector::new(),
-            base: Dom::from_ref(&*base),
+            base: WebGLRenderingContext::new_inherited(
+                canvas,
+                WebGLVersion::WebGL2,
+                size,
+                ctx_data,
+            ),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
             samplers,
@@ -186,7 +190,7 @@ impl WebGL2RenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
+        WebGL2RenderingContext::new_inherited(window, canvas, size, attrs)
             .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
     }
 
@@ -321,7 +325,7 @@ impl WebGL2RenderingContext {
     }
 
     pub(crate) fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
-        DomRoot::from_ref(&*self.base)
+        DomRoot::from_ref(&self.base)
     }
 
     fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
@@ -2891,7 +2895,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return retval.set(NullValue())
         );
 
-        let triple = (&*self.base, program.id(), location.id());
+        let triple = (&self.base, program.id(), location.id());
 
         match location.type_() {
             constants::UNSIGNED_INT => retval.set(UInt32Value(uniform_get(

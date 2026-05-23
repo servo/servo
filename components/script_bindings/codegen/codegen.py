@@ -2708,6 +2708,8 @@ class CGAssertInheritance(CGThing):
             #
             # FIXME *RenderingContext2D should use Inline
             parentName = "crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D"
+        if selfName == "WebGL2RenderingContext":
+            parentName = "crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext"
         args = {
             "parentName": parentName,
             "selfName": selfName,
