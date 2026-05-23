@@ -17,8 +17,8 @@ use pixels::SharedSnapshot;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId, FileListId,
-    ImageBitmapId, ImageDataId, QuotaExceededErrorId,
+    BlobId, CryptoKeyId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId,
+    FileListId, ImageBitmapId, ImageDataId, QuotaExceededErrorId,
 };
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
@@ -76,6 +76,8 @@ pub enum Serializable {
     ImageBitmap,
     /// The `ImageData` interface.
     ImageData,
+    /// The `CryptoKey` interface.
+    CryptoKey,
 }
 
 impl Serializable {
@@ -110,6 +112,9 @@ impl Serializable {
             },
             Serializable::ImageData => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageData>
+            },
+            Serializable::CryptoKey => {
+                StructuredSerializedData::clone_all_of_type::<SerializableCryptoKey>
             },
         }
     }
@@ -671,4 +676,30 @@ pub enum SerializableCryptoKeyHandle {
     MlDsa87PublicKey(Vec<u8>),
     ChaCha20Poly1305Key(Vec<u8>),
     Argon2Password(Vec<u8>),
+}
+
+/// A serializable version of the `CryptoKey` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableCryptoKey {
+    pub key_type: String,
+    pub extractable: bool,
+    pub algorithm: SerializableKeyAlgorithmAndDerivatives,
+    pub usages: Vec<String>,
+    pub handle: SerializableCryptoKeyHandle,
+}
+
+impl BroadcastClone for SerializableCryptoKey {
+    type Id = CryptoKeyId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.crypto_key
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.crypto_key
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
 }

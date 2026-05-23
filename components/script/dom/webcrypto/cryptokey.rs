@@ -4,20 +4,25 @@
 
 use std::cell::Cell;
 use std::ptr::NonNull;
+use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
 use malloc_size_of::MallocSizeOf;
+use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use servo_constellation_traits::SerializableCryptoKeyHandle;
+use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
+use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
 use crate::script_runtime::{CanGc, JSContext};
@@ -226,6 +231,73 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
         // Returns the cached ECMAScript object associated with the [[usages]] internal slot, which
         // indicates which cryptographic operations are permissible to be used with this key.
         NonNull::new(self.usages_cached.get()).unwrap()
+    }
+}
+
+impl Serializable for CryptoKey {
+    type Index = CryptoKeyIndex;
+    type Data = SerializableCryptoKey;
+
+    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-serializable>
+    fn serialize(&self) -> Result<(CryptoKeyId, Self::Data), ()> {
+        // Step 1. Set serialized.[[Type]] to the [[type]] internal slot of value.
+        // Step 2. Set serialized.[[Extractable]] to the [[extractable]] internal slot of value.
+        // Step 3. Set serialized.[[Algorithm]] to the sub-serialization of the [[algorithm]]
+        // internal slot of value.
+        // Step 4. Set serialized.[[Usages]] to the sub-serialization of the [[usages]] internal
+        // slot of value.
+        // Step 5. Set serialized.[[Handle]] to the [[handle]] internal slot of value.
+        let serialized = SerializableCryptoKey {
+            key_type: self.key_type.as_str().into(),
+            extractable: self.extractable.get(),
+            algorithm: (&self.algorithm).into(),
+            usages: self
+                .usages
+                .borrow()
+                .iter()
+                .map(|usage| usage.as_str().into())
+                .collect(),
+            handle: (&self.handle).try_into()?,
+        };
+        Ok((CryptoKeyId::new(), serialized))
+    }
+
+    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-serializable>
+    fn deserialize(
+        cx: &mut js::context::JSContext,
+        owner: &GlobalScope,
+        serialized: Self::Data,
+    ) -> Result<DomRoot<Self>, ()> {
+        // Step 1. Initialize the [[type]] internal slot of value to serialized.[[Type]].
+        // Step 2. Initialize the [[extractable]] internal slot of value to
+        // serialized.[[Extractable]].
+        // Step 3. Initialize the [[algorithm]] internal slot of value to the sub-deserialization of
+        // serialized.[[Algorithm]].
+        // Step 4. Initialize the [[usages]] internal slot of value to the sub-deserialization of
+        // serialized.[[Usages]].
+        // Step 5. Initialize the [[handle]] internal slot of value to serialized.[[Handle]].
+        Ok(CryptoKey::new(
+            cx,
+            owner,
+            KeyType::from_str(&serialized.key_type)?,
+            serialized.extractable,
+            serialized.algorithm.try_into()?,
+            serialized
+                .usages
+                .iter()
+                .map(|usage| KeyUsage::from_str(usage))
+                .collect::<Result<Vec<_>, _>>()?,
+            serialized.handle.try_into()?,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a, '_>,
+    ) -> &'a mut Option<FxHashMap<CryptoKeyId, Self::Data>> {
+        match reader {
+            StructuredData::Reader(r) => &mut r.crypto_key,
+            StructuredData::Writer(w) => &mut w.crypto_key,
+        }
     }
 }
 
