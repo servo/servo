@@ -1,8 +1,8 @@
-diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
-index fbc193eac6..40e118e378 100644
---- a/third_party/WebIDL/WebIDL.py
-+++ b/third_party/WebIDL/WebIDL.py
-@@ -2549,6 +2549,17 @@ class IDLType(IDLObject):
+diff --git a/WebIDL.py b/WebIDL.py
+index 90bf12396ab..c474a7ba227 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
+@@ -2597,6 +2597,17 @@ class IDLType(IDLObject):
          "object",
          # Funny stuff
          "interface",
@@ -20,10 +20,21 @@ index fbc193eac6..40e118e378 100644
          "dictionary",
          "enum",
          "callback",
-@@ -3832,6 +3843,17 @@ class IDLBuiltinType(IDLType):
+@@ -3913,17 +3924,17 @@ class IDLBuiltinType(IDLType):
          Types.utf8string: IDLType.Tags.utf8string,
          Types.jsstring: IDLType.Tags.jsstring,
          Types.object: IDLType.Tags.object,
+-        Types.ArrayBuffer: IDLType.Tags.interface,
+-        Types.ArrayBufferView: IDLType.Tags.interface,
+-        Types.Int8Array: IDLType.Tags.interface,
+-        Types.Uint8Array: IDLType.Tags.interface,
+-        Types.Uint8ClampedArray: IDLType.Tags.interface,
+-        Types.Int16Array: IDLType.Tags.interface,
+-        Types.Uint16Array: IDLType.Tags.interface,
+-        Types.Int32Array: IDLType.Tags.interface,
+-        Types.Uint32Array: IDLType.Tags.interface,
+-        Types.Float32Array: IDLType.Tags.interface,
+-        Types.Float64Array: IDLType.Tags.interface,
 +        Types.ArrayBuffer: IDLType.Tags.arrayBuffer,
 +        Types.ArrayBufferView: IDLType.Tags.arrayBufferView,
 +        Types.Int8Array: IDLType.Tags.int8array,
@@ -35,6 +46,9 @@ index fbc193eac6..40e118e378 100644
 +        Types.Uint32Array: IDLType.Tags.uint32array,
 +        Types.Float32Array: IDLType.Tags.float32array,
 +        Types.Float64Array: IDLType.Tags.float64array,
+         Types.BigInt64Array: IDLType.Tags.interface,
+         Types.BigUint64Array: IDLType.Tags.interface,
      }
- 
-     PrettyNames = {
+-- 
+2.51.0
+

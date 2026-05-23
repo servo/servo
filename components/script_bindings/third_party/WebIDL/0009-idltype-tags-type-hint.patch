@@ -1,7 +1,7 @@
-diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
-index b742a06bddd..babad83322f 100644
---- a/third_party/WebIDL/WebIDL.py
-+++ b/third_party/WebIDL/WebIDL.py
+diff --git a/WebIDL.py b/WebIDL.py
+index a107248ef1f..2d707757ca0 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
 @@ -12,6 +12,7 @@ import string
  import traceback
  from collections import OrderedDict, defaultdict
@@ -10,7 +10,7 @@ index b742a06bddd..babad83322f 100644
  
  from ply import lex, yacc
  
-@@ -2527,7 +2528,7 @@ class IDLEnum(IDLObjectWithIdentifier):
+@@ -2570,7 +2571,7 @@ class IDLEnum(IDLObjectWithIdentifier):
  
  
  class IDLType(IDLObject):
@@ -19,3 +19,6 @@ index b742a06bddd..babad83322f 100644
          # The integer types
          "int8",
          "uint8",
+-- 
+2.51.0
+

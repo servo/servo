@@ -1,0 +1,274 @@
+diff --git a/WebIDL.py b/WebIDL.py
+index be32abc754e..90bf12396ab 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
+@@ -9548,6 +9548,67 @@ class Parser(Tokenizer):
+                     itr_iface.asyncIterableInterface = iface
+                 self._productions.append(itr_iface)
+                 iterable.iteratorType = IDLWrapperType(iface.location, itr_iface)
++            if not iterable:
++                # We haven't run finish() on the interface yet, so we don't know
++                # whether our interface is maplike/setlike/iterable or not. This
++                # means we have to loop through the members to see if we have an
++                # iterable member.
++                for m in iface.members:
++                    if isinstance(m, IDLMaplikeOrSetlike):
++                        iterable = m
++                        break
++                if iterable and (iterable.isSetlike() or iterable.isMaplike()):
++
++                    def simpleExtendedAttr(str):
++                        return IDLExtendedAttribute(iface.location, (str,))
++
++                    if isinstance(iterable, IDLAsyncIterable):
++                        nextReturnType = IDLPromiseType(
++                            iterable.location, BuiltinTypes[IDLBuiltinType.Types.any]
++                        )
++                    else:
++                        nextReturnType = BuiltinTypes[IDLBuiltinType.Types.object]
++                    nextMethod = IDLMethod(
++                        iterable.location,
++                        IDLUnresolvedIdentifier(iterable.location, "next"),
++                        nextReturnType,
++                        [],
++                    )
++                    nextMethod.addExtendedAttributes([simpleExtendedAttr("Throws")])
++
++                    methods = [nextMethod]
++
++                    if iterable.isSetlike():
++                        itr_suffix = "Setlike"
++                    else:
++                        itr_suffix = "Maplike"
++                    itr_ident = IDLUnresolvedIdentifier(
++                        iface.location, iface.identifier.name + itr_suffix
++                    )
++                    classNameOverride = iface.identifier.name + " " + itr_suffix
++                    itr_iface = IDLInterface(
++                        iface.location,
++                        self.globalScope(),
++                        itr_ident,
++                        None,
++                        methods,
++                        isKnownNonPartial=True,
++                        classNameOverride=classNameOverride,
++                    )
++                    itr_iface.addExtendedAttributes(
++                        [simpleExtendedAttr("LegacyNoInterfaceObject")]
++                    )
++                    # Make sure the exposure set for the iterator interface is the
++                    # same as the exposure set for the iterable interface, because
++                    # we're going to generate methods on the iterable that return
++                    # instances of the iterator.
++                    itr_iface._exposureGlobalNames = set(iface._exposureGlobalNames)
++                    # Always append generated iterable interfaces after the
++                    # interface they're a member of, otherwise nativeType generation
++                    # won't work correctly.
++                    itr_iface.iterableInterface = iface
++                    self._productions.append(itr_iface)
++                    iterable.iteratorType = IDLWrapperType(iface.location, itr_iface)
+ 
+         # Make sure we finish IDLIncludesStatements before we finish the
+         # IDLInterfaces.
+diff --git a/tests/test_interface_maplikesetlikeiterable.py b/tests/test_interface_maplikesetlikeiterable.py
+index 70fa8a88b9a..8c8ff319690 100644
+--- a/tests/test_interface_maplikesetlikeiterable.py
++++ b/tests/test_interface_maplikesetlikeiterable.py
+@@ -278,6 +278,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers + unrelatedMembers,
++        numProductions=2,
+     )
+ 
+     shouldPass(
+@@ -292,7 +293,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -305,6 +306,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers + unrelatedMembers,
++        numProductions=2,
+     )
+ 
+     shouldPass(
+@@ -319,7 +321,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -332,6 +334,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapROMembers + unrelatedMembers,
++        numProductions=2,
+     )
+ 
+     shouldPass(
+@@ -346,7 +349,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapROMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -359,6 +362,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         setRWMembers + unrelatedMembers,
++        numProductions=2,
+     )
+ 
+     shouldPass(
+@@ -373,7 +377,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         setRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -386,6 +390,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         setROMembers + unrelatedMembers,
++        numProductions=2,
+     )
+ 
+     shouldPass(
+@@ -400,7 +405,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         setROMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -413,7 +418,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldFail(
+@@ -595,6 +600,7 @@ def WebIDLTest(parser, harness):
+                        }};
+                        """,
+                 expectedMembers,
++                numProductions=numProductions,
+             )
+         else:
+             shouldFail(
+@@ -674,13 +680,21 @@ def WebIDLTest(parser, harness):
+             "iterable<long, long>", member, iterableMembers, False, numProductions=2
+         )
+     for member in mapDisallowedMemberNames:
+-        testConflictingMembers("maplike<long, long>", member, mapRWMembers, False)
++        testConflictingMembers(
++            "maplike<long, long>", member, mapRWMembers, False, numProductions=2
++        )
+     for member in disallowedMemberNames:
+-        testConflictingMembers("setlike<long>", member, setRWMembers, False)
++        testConflictingMembers(
++            "setlike<long>", member, setRWMembers, False, numProductions=2
++        )
+     for member in mapDisallowedNonMethodNames:
+-        testConflictingMembers("maplike<long, long>", member, mapRWMembers, True)
++        testConflictingMembers(
++            "maplike<long, long>", member, mapRWMembers, True, numProductions=2
++        )
+     for member in setDisallowedNonMethodNames:
+-        testConflictingMembers("setlike<long>", member, setRWMembers, True)
++        testConflictingMembers(
++            "setlike<long>", member, setRWMembers, True, numProductions=2
++        )
+ 
+     shouldPass(
+         "Inheritance of maplike/setlike with child member collision",
+@@ -693,7 +707,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -709,7 +723,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=3,
++        numProductions=4,
+     )
+ 
+     shouldFail(
+@@ -739,7 +753,7 @@ def WebIDLTest(parser, harness):
+                Foo3 includes Foo2;
+                """,
+         mapRWMembers,
+-        numProductions=4,
++        numProductions=5,
+     )
+ 
+     shouldFail(
+@@ -779,7 +793,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldPass(
+@@ -795,7 +809,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=3,
++        numProductions=4,
+     )
+ 
+     shouldFail(
+@@ -859,7 +873,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         mapRWMembers,
+-        numProductions=2,
++        numProductions=3,
+     )
+ 
+     shouldFail(
+@@ -899,6 +913,7 @@ def WebIDLTest(parser, harness):
+                };
+                """,
+         setROMembers + [("clear", WebIDL.IDLAttribute)],
++        numProductions=2,
+     )
+ 
+     r = shouldPass(
+@@ -912,6 +927,7 @@ def WebIDLTest(parser, harness):
+                    };
+                    """,
+         mapRWMembers,
++        numProductions=2,
+     )
+ 
+     for m in r[0].members:

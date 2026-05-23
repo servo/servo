@@ -1,6 +1,8 @@
---- WebIDL.py
-+++ WebIDL.py
-@@ -8827,6 +8827,7 @@ class Parser(Tokenizer):
+diff --git a/WebIDL.py b/WebIDL.py
+index d8f87bc332d..c8bf9857434 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
+@@ -9389,6 +9389,7 @@ class Parser(Tokenizer):
                  module=self,
                  outputdir=outputdir,
                  errorlog=logger,
@@ -8,3 +10,6 @@
                  write_tables=False,
                  # Pickling the grammar is a speedup in
                  # some cases (older Python?) but a
+-- 
+2.51.0
+
