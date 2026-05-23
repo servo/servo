@@ -410,17 +410,17 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
 
         register_shared_worker(SharedWorkerRegistration {
             id: registration_id,
-            storage_key: outside_storage_key.clone(),
-            constructor_origin: constructor_origin.clone(),
-            constructor_url: constructor_url.clone(),
+            storage_key: outside_storage_key,
+            constructor_origin,
+            constructor_url,
             name: worker_name_string,
             worker_type,
             credentials,
             extended_lifetime,
             worker_is_secure_context,
-            closing: closing.clone(),
+            closing,
             sender: sender.clone(),
-            _control_sender: control_sender.clone(),
+            _control_sender: control_sender,
         });
 
         if registered_sender.send(()).is_err() {
