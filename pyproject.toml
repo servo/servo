@@ -59,7 +59,7 @@ search-path = [
     "tests/wpt/tests/tools/wptserve",
     "python/mach",
     "python/wpt",
-    "components/script_bindings/third_party/WebIDL",
+    "components/script_bindings/third_party/WebIDL/parser",
     "components/script_bindings/codegen",
 ]
 project-includes = [
