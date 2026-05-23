@@ -1,6 +1,6 @@
 [package]
 name = "servo"
-version.workspace = true
+version = "0.1.1"
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
