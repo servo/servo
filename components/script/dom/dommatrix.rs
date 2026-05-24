@@ -100,7 +100,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
                 if s.is_empty() {
                     return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
                 }
-                transform_to_matrix(s.to_string())
+                transform_to_matrix(&s.str())
                     .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
@@ -484,7 +484,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         // 1. Parse transformList into an abstract matrix, and let
         // matrix and 2dTransform be the result. If the result is failure,
         // then throw a "SyntaxError" DOMException.
-        match transform_to_matrix(String::from(transformList)) {
+        match transform_to_matrix(&transformList.str()) {
             Ok(tuple) => {
                 // 2. Set is 2D to the value of 2dTransform.
                 self.parent.set_is2D(tuple.0);
