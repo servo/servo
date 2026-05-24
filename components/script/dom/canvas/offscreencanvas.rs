@@ -550,7 +550,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         let trusted_this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
 
-        let image_type = EncodedImageType::from(options.type_.to_string());
+        let image_type = EncodedImageType::from(options.type_.encoded_bytes().bytes());
         let quality = options.quality;
 
         self.global()

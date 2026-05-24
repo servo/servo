@@ -259,6 +259,18 @@ impl From<String> for EncodedImageType {
     }
 }
 
+impl From<&[u8]> for EncodedImageType {
+    fn from(mime_string: &[u8]) -> Self {
+        if mime_string.eq_ignore_ascii_case("image/jpeg".as_bytes()) {
+            Self::Jpeg
+        } else if mime_string.eq_ignore_ascii_case("image/webp".as_bytes()) {
+            Self::Webp
+        } else {
+            Self::Png
+        }
+    }
+}
+
 impl EncodedImageType {
     pub fn as_mime_type(&self) -> String {
         match self {
