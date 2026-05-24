@@ -700,24 +700,6 @@ impl HTMLFormElement {
         self.owner_document().encoding()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
-    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
-        // Step 1
-        let mut result = String::new();
-
-        // Step 2
-        for entry in form_data.iter() {
-            let value = match &entry.value {
-                FormDatumValue::File(f) => f.name(),
-                FormDatumValue::String(s) => s,
-            };
-            result.push_str(&format!("{}={}\r\n", entry.name, value));
-        }
-
-        // Step 3
-        result
-    }
-
     pub(crate) fn update_validity(&self, can_gc: CanGc) {
         let is_any_invalid = self
             .controls
@@ -1020,7 +1002,20 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::TEXT_PLAIN));
-                self.encode_plaintext(form_data).into_bytes()
+                // Step 1: Let pairs be the result of converting to a list
+                // of name-value pairs with entry list.
+                // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
+                let pairs = form_data.iter().map(|field| {
+                    (
+                        field.name.normalize_crlf(),
+                        field.replace_value().normalize_crlf(),
+                    )
+                });
+                // Step 2: Let body be the result of running the text/plain
+                // encoding algorithm with pairs.
+                let body = encode_plaintext(pairs);
+                // Step 3: Set body to the result of encoding body using encoding.
+                encoding.encode(&body).0.into_owned()
             },
         };
 
@@ -1967,6 +1962,30 @@ impl FormControlElementHelpers for Element {
             }),
         }
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
+///
+/// The text/plain encoding algorithm, given a list of name-value pairs pairs,
+/// is as follows:
+///
+///   1. Let result be the empty string.
+///   2. For each pair in pairs:
+///       2.1. Append pair's name to result.
+///       2.2. Append a single U+003D EQUALS SIGN character (=) to result.
+///       2.3. Append pair's value to result.
+///       2.4. Append a U+000D CARRIAGE RETURN (CR) U+000A LINE FEED (LF)
+///            character pair to result.
+///   3. Return result.
+fn encode_plaintext(pairs: impl Iterator<Item = (String, String)>) -> String {
+    let mut result = String::new();
+    for (name, value) in pairs {
+        result.push_str(&name);
+        result.push('=');
+        result.push_str(&value);
+        result.push_str("\r\n");
+    }
+    result
 }
 
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
