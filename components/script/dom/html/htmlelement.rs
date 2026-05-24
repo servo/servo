@@ -1211,32 +1211,6 @@ impl VirtualMethods for HTMLElement {
             .attribute_mutated(cx, attr, mutation);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
-            // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
-            (name, mutation)
-                if name.starts_with("on") && EventTarget::is_content_event_handler(name) =>
-            {
-                let evtarget = self.upcast::<EventTarget>();
-                let event_name = &name[2..];
-                match mutation {
-                    // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
-                    AttributeMutation::Set(..) => {
-                        let source = &**attr.value();
-                        let source_line = 1; // TODO(#9604) get current JS execution line
-                        evtarget.set_event_handler_uncompiled(
-                            self.owner_window().get_url(),
-                            source_line,
-                            event_name,
-                            source,
-                        );
-                    },
-                    // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
-                    AttributeMutation::Removed => {
-                        evtarget
-                            .set_event_handler_common::<EventHandlerNonNull>(cx, event_name, None);
-                    },
-                }
-            },
-
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
             },
