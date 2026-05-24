@@ -832,7 +832,8 @@ impl ImageAnimationState {
 
             // only check once on start of new loop.
             if let Some(Repeat::Finite(repeat_times)) = image.loop_count &&
-                let Some(current_loop_count) = self.current_loop_count && will_loop_animation
+                let Some(current_loop_count) = self.current_loop_count &&
+                will_loop_animation
             {
                 will_loop_animation = false;
                 let new_loop_count = current_loop_count + 1;
