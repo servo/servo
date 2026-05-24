@@ -13,11 +13,11 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject,
+    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN, JSContext, JSObject,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers::IsArrayObject;
+use js::rust::wrappers2::{JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength};
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
@@ -107,14 +107,24 @@ impl<T: FromJSValConvertible> SafeFromJSValConvertible for T {
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
+        value: HandleValue,
+        null_behavior: StringificationBehavior,
+    ) -> Result<ConversionResult<DOMString>, ()> {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, null_behavior)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
         value: HandleValue,
         null_behavior: StringificationBehavior,
     ) -> Result<ConversionResult<DOMString>, ()> {
         if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
-            match DOMString::from_js_string(unsafe { SafeJSContext::from_ptr(cx) }, value) {
+            match DOMString::from_js_string(cx, value) {
                 Ok(domstring) => Ok(ConversionResult::Success(domstring)),
                 Err(_) => Err(()),
             }
@@ -126,25 +136,35 @@ impl FromJSValConvertible for DOMString {
 impl FromJSValConvertible for USVString {
     type Config = ();
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _: (),
     ) -> Result<ConversionResult<USVString>, ()> {
-        let Some(jsstr) = ptr::NonNull::new(ToString(cx, value)) else {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _: (),
+    ) -> Result<ConversionResult<USVString>, ()> {
+        let Some(jsstr) = ptr::NonNull::new(unsafe { ToString(cx.raw_cx(), value) }) else {
             debug!("ToString failed");
             return Err(());
         };
-        let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr());
+        let latin1 = unsafe { JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) };
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
-            return Ok(ConversionResult::Success(USVString(jsstr_to_string(
-                cx, jsstr,
-            ))));
+            return Ok(ConversionResult::Success(USVString(unsafe {
+                jsstr_to_string(cx.raw_cx(), jsstr)
+            })));
         }
         let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr.as_ptr(), &mut length);
+        let chars = unsafe { JS_GetTwoByteStringCharsAndLength(cx, jsstr.as_ptr(), &mut length) };
         assert!(!chars.is_null());
-        let char_vec = slice::from_raw_parts(chars, length);
+        let char_vec = unsafe { slice::from_raw_parts(chars, length) };
         Ok(ConversionResult::Success(USVString(
             String::from_utf16_lossy(char_vec),
         )))
@@ -170,39 +190,51 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible for ByteString {
     type Config = ();
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _option: (),
     ) -> Result<ConversionResult<ByteString>, ()> {
-        let string = ToString(cx, value);
-        if string.is_null() {
-            debug!("ToString failed");
-            return Err(());
-        }
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
 
-        let latin1 = JS_DeprecatedStringHasLatin1Chars(string);
-        if latin1 {
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _option: (),
+    ) -> Result<ConversionResult<ByteString>, ()> {
+        unsafe {
+            let string = ToString(cx.raw_cx(), value);
+            if string.is_null() {
+                debug!("ToString failed");
+                return Err(());
+            }
+
+            let latin1 = JS_DeprecatedStringHasLatin1Chars(string);
+            if latin1 {
+                let mut length = 0;
+                let chars = JS_GetLatin1StringCharsAndLength(cx, string, &mut length);
+                assert!(!chars.is_null());
+
+                let char_slice = slice::from_raw_parts(chars as *mut u8, length);
+                return Ok(ConversionResult::Success(ByteString::new(
+                    char_slice.to_vec(),
+                )));
+            }
+
             let mut length = 0;
-            let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
-            assert!(!chars.is_null());
+            let chars = JS_GetTwoByteStringCharsAndLength(cx, string, &mut length);
+            let char_vec = slice::from_raw_parts(chars, length);
 
-            let char_slice = slice::from_raw_parts(chars as *mut u8, length);
-            return Ok(ConversionResult::Success(ByteString::new(
-                char_slice.to_vec(),
-            )));
-        }
-
-        let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), string, &mut length);
-        let char_vec = slice::from_raw_parts(chars, length);
-
-        if char_vec.iter().any(|&c| c > 0xFF) {
-            throw_type_error(cx, c"Invalid ByteString");
-            Err(())
-        } else {
-            Ok(ConversionResult::Success(ByteString::new(
-                char_vec.iter().map(|&c| c as u8).collect(),
-            )))
+            if char_vec.iter().any(|&c| c > 0xFF) {
+                throw_type_error(cx.raw_cx(), c"Invalid ByteString");
+                Err(())
+            } else {
+                Ok(ConversionResult::Success(ByteString::new(
+                    char_vec.iter().map(|&c| c as u8).collect(),
+                )))
+            }
         }
     }
 }
