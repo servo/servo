@@ -446,11 +446,11 @@ where
 ///
 /// # Safety
 /// - cx must point to a non-null, valid JSContext instance.
-pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+pub fn jsid_to_string(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
-        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(jsstr_to_string(cx, jsstr).into());
+        let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();
+        return Some(unsafe { jsstr_to_string(cx.raw_cx(), jsstr) }.into());
     }
 
     if id_raw.is_int() {
