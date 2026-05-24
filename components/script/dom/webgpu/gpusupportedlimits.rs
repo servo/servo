@@ -68,10 +68,12 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
         self.limits.max_bind_groups + self.limits.max_vertex_buffers
     }
 
+    /*
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maximmediatesize>
     fn MaxImmediateSize(&self) -> u32 {
         self.limits.max_immediate_size
     }
+    */
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindingsperbindgroup>
     fn MaxBindingsPerBindGroup(&self) -> u32 {

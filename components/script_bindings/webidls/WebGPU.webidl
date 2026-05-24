@@ -23,7 +23,8 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureArrayLayers;
     readonly attribute unsigned long maxBindGroups;
     readonly attribute unsigned long maxBindGroupsPlusVertexBuffers;
-    readonly attribute unsigned long maxImmediateSize;
+    // disabled as we do not have actual implementation yet
+    // readonly attribute unsigned long maxImmediateSize;
     readonly attribute unsigned long maxBindingsPerBindGroup;
     readonly attribute unsigned long maxDynamicUniformBuffersPerPipelineLayout;
     readonly attribute unsigned long maxDynamicStorageBuffersPerPipelineLayout;
