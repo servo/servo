@@ -218,14 +218,14 @@ pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub(crate) unsafe fn find_enum_value<'a, T>(
-    cx: *mut JSContext,
+pub(crate) fn find_enum_value<'a, T>(
+    cx: &mut js::context::JSContext,
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match ptr::NonNull::new(ToString(cx, v)) {
+    match ptr::NonNull::new(unsafe { ToString(cx.raw_cx(), v) }) {
         Some(jsstr) => {
-            let search = jsstr_to_string(cx, jsstr).into();
+            let search = unsafe { jsstr_to_string(cx.raw_cx(), jsstr).into() };
             Ok((
                 pairs
                     .iter()
