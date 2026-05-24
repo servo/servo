@@ -23,8 +23,7 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureArrayLayers;
     readonly attribute unsigned long maxBindGroups;
     readonly attribute unsigned long maxBindGroupsPlusVertexBuffers;
-    // disabled as we do not have actual implementation yet
-    // readonly attribute unsigned long maxImmediateSize;
+    readonly attribute unsigned long maxImmediateSize;
     readonly attribute unsigned long maxBindingsPerBindGroup;
     readonly attribute unsigned long maxDynamicUniformBuffersPerPipelineLayout;
     readonly attribute unsigned long maxDynamicStorageBuffersPerPipelineLayout;
@@ -565,6 +564,7 @@ GPUPipelineLayout includes GPUObjectBase;
 
 dictionary GPUPipelineLayoutDescriptor : GPUObjectDescriptorBase {
     required sequence<GPUBindGroupLayout> bindGroupLayouts;
+    GPUSize32 immediateSize = 0;
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -983,6 +983,10 @@ GPURenderPassEncoder includes GPURenderEncoderBase;
 interface mixin GPUProgrammablePassEncoder {
     undefined setBindGroup(GPUIndex32 index, GPUBindGroup bindGroup,
                            optional sequence<GPUBufferDynamicOffset> dynamicOffsets = []);
+
+    [Throws]
+    undefined setImmediates(GPUSize32 rangeOffset, /*AllowShared*/ BufferSource data,
+                            optional GPUSize64 dataOffset = 0, optional GPUSize64 dataSize);
 
     //undefined pushDebugGroup(USVString groupLabel);
     //undefined popDebugGroup();

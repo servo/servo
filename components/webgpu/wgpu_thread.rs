@@ -627,7 +627,9 @@ impl WGPU {
                     } => {
                         let desc = DeviceDescriptor {
                             label: descriptor.label.as_ref().map(crate::Cow::from),
-                            required_features: descriptor.required_features,
+                            // wgpu does not consider IMMEDIATES as part of the specs yet
+                            required_features: descriptor.required_features |
+                                wgt::Features::IMMEDIATES,
                             required_limits: descriptor.required_limits.clone(),
                             memory_hints: MemoryHints::MemoryUsage,
                             trace: wgpu_types::Trace::Off,
@@ -736,6 +738,19 @@ impl WGPU {
                             Some(bind_group_id),
                             &offsets,
                         );
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::ComputePassSetImmediates {
+                        compute_pass_id,
+                        offset,
+                        data,
+                        device_id,
+                    } => {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        let result = self.global.compute_pass_set_immediates(pass, offset, &data);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::ComputePassDispatchWorkgroups {
