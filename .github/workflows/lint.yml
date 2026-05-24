@@ -44,6 +44,8 @@ jobs:
     steps:
       - id: choose-fetch-depth
         shell: bash
+        # For non-PR events, GitHub Actions evaluates `${{ github.event.pull_request.commits }}`
+        # to the empty string, then bash evaluates `$((  + 2 ))` to 2
         run: |
           echo fetch-depth=$(( ${{ github.event.pull_request.commits }} + 2 )) | tee -a $GITHUB_OUTPUT
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
@@ -82,5 +84,5 @@ jobs:
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         env:
-          CI_PULL_REQUEST_BODY: ${{ github.event.issue.pull_request.body }}
+          CI_PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: ./mach test-tidy --no-progress --all --github-annotations
