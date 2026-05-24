@@ -4515,6 +4515,10 @@ impl Document {
             } else {
                 // 11.12 If urlRecord is failure, then return.
                 return;
+            };
+            // 11.13 If urlRecord's scheme is "javascript", then return.
+            if url_record.scheme() == "javascript" {
+                return;
             }
         }
         // 12. Set document's will declaratively refresh to true.
