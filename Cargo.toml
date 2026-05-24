@@ -77,7 +77,7 @@ dwrote = "0.11.5"
 ecdsa = "0.16"
 egui = "0.34.2"
 egui-file-dialog = "0.13.0"
-egui-winit = "0.34.2"
+egui-winit = { version = "0.34.2", default-features = false }
 egui_glow = "0.34.2"
 elliptic-curve = "0.13"
 encoding_rs = { version = "0.8", features = ["serde"] }
@@ -162,11 +162,11 @@ num-derive = "0.4.2"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 objc2 = "0.6.4"
-objc2-app-kit = "0.3.2"
+objc2-app-kit = { version = "0.3.2", default-features = false }
 objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
-objc2-foundation = "0.3.1"
+objc2-foundation = { version = "0.3.1", default-features = false }
 ocb3 = "0.1.0"
 ohos-abilitykit-sys = "0.1.5"
 ohos-deviceinfo = "0.1.0"

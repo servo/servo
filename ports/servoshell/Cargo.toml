@@ -117,7 +117,7 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 dirs = { workspace = true }
 egui = { workspace = true }
 egui-file-dialog = { workspace = true }
-egui-winit = { workspace = true, default-features = false, features = ["accesskit", "clipboard", "wayland"] }
+egui-winit = { workspace = true, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { workspace = true, features = ["winit"] }
 gilrs = { workspace = true }
 glow = { workspace = true }
@@ -136,13 +136,13 @@ servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-app-kit = { workspace = true, default-features = false, features = [
+objc2-app-kit = { workspace = true, features = [
     "std",
     "NSColorSpace",
     "NSResponder",
     "NSView",
     "NSWindow",
 ] }
-objc2-foundation = { workspace = true, default-features = false, features = [
+objc2-foundation = { workspace = true, features = [
     "std",
 ] }
