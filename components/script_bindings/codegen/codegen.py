@@ -5386,11 +5386,11 @@ impl ToJSValConvertible for super::{ident} {{
 
 impl FromJSValConvertible for super::{ident} {{
     type Config = ();
-    unsafe fn from_jsval(cx: *mut RawJSContext, value: HandleValue, _option: ())
+    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())
                          -> Result<ConversionResult<super::{ident}>, ()> {{
-        let mut cx = JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap());
-        let cx = &mut cx;
-        Self::safe_from_jsval(cx, value, _option)
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = crate::script_runtime::temp_cx();
+        Self::safe_from_jsval(&mut cx, value, _option)
     }}
 
     fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
@@ -5771,11 +5771,12 @@ class CGUnionConversionStruct(CGThing):
         generic, genericSuffix = genericsForType(self.type)
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="unsafe fn from_jsval(cx: *mut RawJSContext,\n"
+            pre="unsafe fn from_jsval(_cx: *mut RawJSContext,\n"
                 "                     value: HandleValue,\n"
                 "                     _option: ())\n"
                 f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n"
-                "   let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n",
+                "   // TODO https://github.com/servo/mozjs/issues/749\n"
+                "   let mut cx = crate::script_runtime::temp_cx();\n",
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -7842,9 +7843,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} FromJSValConvertible for {actualType} {{\n"
             "    type Config = ();\n"
-            "    unsafe fn from_jsval(cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
+            "    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            "         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+            "         // TODO https://github.com/servo/mozjs/issues/749\n"
+            "         let mut cx = crate::script_runtime::temp_cx();\n"
             f"        {selfName}::new(&mut cx, value)\n"
             "    }\n"
             "    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
