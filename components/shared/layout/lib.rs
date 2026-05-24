@@ -823,12 +823,30 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
-        let mut advance_loop = 0;
+        let mut will_loop_animation = false;
         while remain_time_interval > 0.0 {
             next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
             if next_active_frame_id == 0 {
-                advance_loop += 1;
+                will_loop_animation = true;
             }
+
+            // only check once on start of new loop.
+            if let Some(Repeat::Finite(repeat_times)) = image.loop_count &&
+                let Some(current_loop_count) = self.current_loop_count && will_loop_animation
+            {
+                will_loop_animation = false;
+                let new_loop_count = current_loop_count + 1;
+                self.current_loop_count = Some(new_loop_count);
+                if new_loop_count >= repeat_times.get() {
+                    if self.active_frame != image.frames.len() - 1 {
+                        self.active_frame = image.frames.len() - 1;
+                        self.frame_start_time = now;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
             remain_time_interval -= image
                 .frames
                 .get(next_active_frame_id)
@@ -836,22 +854,6 @@ impl ImageAnimationState {
                 .delay()
                 .unwrap()
                 .as_secs_f64();
-        }
-        if let Some(Repeat::Finite(repeat_times)) = self.image.loop_count &&
-            let Some(current_loop_count) = self.current_loop_count
-        {
-            let new_loop_cnt = current_loop_count + advance_loop;
-            self.current_loop_count = Some(new_loop_cnt);
-            // the "now" time value exceed the time value after iterating through loop_cnt times.
-            if new_loop_cnt >= repeat_times.get() {
-                // should freeze at last frame
-                if self.active_frame != (self.image.frames.len() - 1) {
-                    self.active_frame = self.image.frames.len() - 1;
-                    self.frame_start_time = now;
-                    return true;
-                } // at this point, we can know the animation has finished, and potentially can set the flag here.
-                return false;
-            }
         }
         if self.active_frame == next_active_frame_id {
             return false;
@@ -976,7 +978,7 @@ pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
 
 #[cfg(test)]
 mod test {
-    use std::num::{NonZero, NonZeroU32};
+    use std::num::NonZeroU32;
     use std::sync::Arc;
     use std::time::Duration;
 
