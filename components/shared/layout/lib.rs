@@ -788,7 +788,10 @@ impl ImageAnimationState {
         self.image.id
     }
 
-    pub fn duration_to_next_frame(&self, now: f64) -> Duration {
+    pub fn duration_to_next_frame(&self, now: f64) -> Option<Duration> {
+        if self.is_finished() {
+            return None;
+        }
         let frame_delay = self
             .image
             .frames
@@ -799,21 +802,14 @@ impl ImageAnimationState {
 
         let time_since_frame_start = (now - self.frame_start_time).max(0.0) * 1000.0;
         let time_since_frame_start = Duration::from_secs_f64(time_since_frame_start);
-        frame_delay - time_since_frame_start.min(frame_delay)
+        Some(frame_delay - time_since_frame_start.min(frame_delay))
     }
 
     /// check whether image active frame need to be updated given current time,
     /// return true if there are image that need to be updated.
     /// false otherwise.
     pub fn update_frame_for_animation_timeline_value(&mut self, now: f64) -> bool {
-        if self.image.frames.len() <= 1 {
-            return false;
-        }
-        if let Some(repeat) = &self.image.loop_count &&
-            let Repeat::Finite(loop_times) = repeat &&
-            let Some(current_loop_count) = self.current_loop_count &&
-            current_loop_count >= loop_times.get()
-        {
+        if self.image.frames.len() <= 1 || self.is_finished() {
             return false;
         }
         let image = &self.image;
@@ -849,7 +845,12 @@ impl ImageAnimationState {
             // the "now" time value exceed the time value after iterating through loop_cnt times.
             if new_loop_cnt >= repeat_times.get() {
                 // should freeze at last frame
-                return self.active_frame != (self.image.frames.len() - 1);
+                if self.active_frame != (self.image.frames.len() - 1) {
+                    self.active_frame = self.image.frames.len() - 1;
+                    self.frame_start_time = now;
+                    return true;
+                } // at this point, we can know the animation has finished, and potentially can set the flag here.
+                return false;
             }
         }
         if self.active_frame == next_active_frame_id {
@@ -858,6 +859,17 @@ impl ImageAnimationState {
         self.active_frame = next_active_frame_id;
         self.frame_start_time = now;
         true
+    }
+
+    fn is_finished(&self) -> bool {
+        let Some(Repeat::Finite(loop_times)) = self.image.loop_count.as_ref() else {
+            return false;
+        };
+        let Some(current_loop_count) = self.current_loop_count else {
+            return false;
+        };
+        current_loop_count >= loop_times.get() &&
+            self.active_frame == self.image.frames.len().saturating_sub(1)
     }
 }
 
