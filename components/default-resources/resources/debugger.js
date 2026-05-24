@@ -7,7 +7,9 @@ const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
+const environmentActorsToEnvironments = new Map;
 const environmentsToEnvironmentActors = new Map;
+const blackboxing = new Map;
 let suspendedFrame = null;
 let lastPauseLocation = null;
 
@@ -357,6 +359,11 @@ function handlePauseAndRespond(frame, pauseReason) {
     };
     lastPauseLocation = { line: offsetMetadata.lineNumber, column: offsetMetadata.columnNumber };
 
+    const source = frame.script.source;
+    if (source != null && isBlackBoxed(source.id, frameOffset.line, frameOffset.column)) {
+        return undefined;
+    }
+
     // Notify devtools and enter pause loop. This blocks until Resume.
     pauseAndRespond(
         pipelineId,
@@ -623,3 +630,68 @@ addEventListener("getEnvironment", event => {
     const actor = createEnvironmentActor(frame.environment);
     getEnvironmentResult(actor);
 });
+
+addEventListener("blackbox", event => {
+    if (event.coversFullSource) {
+        // Blackbox the entire source
+        blackboxing.set(event.spidermonkeyId, []);
+    } else {
+        // Blackbox only a part of the source
+        let blackbox = blackboxing.get(event.spidermonkeyId);
+        if (blackbox == undefined) {
+            blackbox = [];
+        }
+
+        blackbox.push({
+            start: event.start(),
+            end: event.end()
+        });
+
+        blackboxing.set(event.spidermonkeyId, blackbox);
+    }
+});
+
+addEventListener("unblackbox", event => {
+    if (event.coversFullSource) {
+        // Unblackbox the entire source
+        blackboxing.delete(event.spidermonkeyId);
+    } else {
+        // Unblackbox an earlier range of the source
+        const array = blackboxing.get(event.spidermonkeyId);
+
+        const start = event.start();
+        const end = event.end();
+        const index = array.findIndex(range => range.start.line === start.line
+                && range.start.column === start.column
+                && range.end.line === end.line
+                && range.end.column === end.column
+        );
+        if (index !== -1) {
+            array.splice(index, 1);
+
+            // Empty arrays represent a fully blackboxed file
+            // Therefore, if we just made the array empty we will need to remove it from the map
+            if (array.length === 0) {
+                blackboxing.delete(event.spidermonkeyId);
+            }
+        }
+    }
+});
+
+function isBlackBoxed(spidermonkeyId, line, column) {
+    const sourceBlackboxing = blackboxing.get(spidermonkeyId);
+
+    if (sourceBlackboxing == undefined) {
+        return false;
+    } else if (sourceBlackboxing.length === 0) {
+        // An empty array represents a fully ignored source
+        return true;
+    }
+
+    for (const range of sourceBlackboxing) {
+        return (range.start.line < line || (range.start.line === line && range.start.column <= column))
+                && (range.end.line > line || (range.end.line === line && range.end.column >= column))
+    }
+
+    return false;
+}
