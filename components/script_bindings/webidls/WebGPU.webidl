@@ -15,7 +15,7 @@ dictionary GPUObjectDescriptorBase {
     USVString label = "";
 };
 
-[Exposed=(Window, Worker), SecureContext]
+[Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureDimension1D;
     readonly attribute unsigned long maxTextureDimension2D;
