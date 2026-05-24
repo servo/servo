@@ -9,7 +9,7 @@
 async_test(t => {
   const iframe = document.createElement('iframe');
   iframe.src = 'resources/blank.html';
-  
+
   iframe.onload = t.step_func(() => {
     if (!iframe.contentWindow.location.href.includes('test=')) {
       iframe.contentWindow.location.replace(
@@ -24,7 +24,7 @@ async_test(t => {
       t.done();
     }
   });
-  
+
   document.body.appendChild(iframe);
 }, 'location.replace() should use document encoding (windows-1252)');
 
@@ -32,7 +32,7 @@ async_test(t => {
 async_test(t => {
   const iframe = document.createElement('iframe');
   iframe.src = 'resources/blank.html';
-  
+
   iframe.onload = t.step_func(() => {
     if (!iframe.contentWindow.location.href.includes('assign=')) {
       iframe.contentWindow.location.assign(
@@ -47,7 +47,7 @@ async_test(t => {
       t.done();
     }
   });
-  
+
   document.body.appendChild(iframe);
 }, 'location.assign() should use document encoding (windows-1252)');
 
@@ -55,10 +55,10 @@ async_test(t => {
 async_test(t => {
   const iframe = document.createElement('iframe');
   iframe.src = 'resources/blank.html';
-  
+
   iframe.onload = t.step_func(() => {
     if (!iframe.contentWindow.location.href.includes('href=')) {
-      iframe.contentWindow.location.href = 
+      iframe.contentWindow.location.href =
         iframe.contentWindow.location.href + '?href=\u00DF';
     } else {
       assert_equals(
@@ -69,7 +69,7 @@ async_test(t => {
       t.done();
     }
   });
-  
+
   document.body.appendChild(iframe);
 }, 'location.href setter should use document encoding (windows-1252)');
 </script>
