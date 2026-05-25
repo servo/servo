@@ -1262,11 +1262,11 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .in_memory(),
-            _ => {
-                unreachable!(
-                    "Checking if source is in memory for a stream with a non-default controller"
-                )
-            },
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .in_memory(),
+            _ => unreachable!("Checking if source is in memory for a stream without a controller"),
         }
     }
 
@@ -1280,9 +1280,13 @@ impl ReadableStream {
                 .get_in_memory_bytes()
                 .as_deref()
                 .map(GenericSharedMemory::from_bytes),
-            _ => {
-                unreachable!("Getting in-memory bytes for a stream with a non-default controller")
-            },
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .get_in_memory_bytes()
+                .as_deref()
+                .map(GenericSharedMemory::from_bytes),
+            _ => unreachable!("Getting in-memory bytes for a stream without a controller"),
         }
     }
 
