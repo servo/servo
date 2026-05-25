@@ -115,8 +115,6 @@ skip = [
 
     # Duplicated by egui-file-dialog
     "windows",
-    "windows-implement",
-    "windows-interface",
     "windows-link",
     "windows-result",
 
@@ -168,12 +166,6 @@ skip = [
     # and bindgen updates the cexpr version
     "nom",
 
-    # duplicated by core-graphics
-    "core-graphics-types",
-
-    # usvg depends on svgtypes, which depends on old version of kurbo
-    "kurbo",
-
     # Dependency by quick_cache and other
     "hashbrown",
 
@@ -191,35 +183,18 @@ skip = [
     "libloading",
 
     # Duplicated by wgpu/egui+dependencies
-    "font-types",
-    "glow",
     "objc2-ui-kit",
-    "peniko",
     "read-fonts",
     "skrifa",
     "vello_common",
     "vello_cpu",
+    "fearless_simd",
 
     # Duplicated by resvg/image
     "pastey",
-    "png",
     "roxmltree",
     "tiny-skia",
     "tiny-skia-path",
-
-    # wgpu-core stuff gets duplicated by vello (which is disabled by default)
-    "bit-set",
-    "bit-vec",
-    "codespan-reporting",
-    "gpu-allocator",
-    "naga",
-    "spirv",
-    "wgpu-core",
-    "wgpu-core-deps-apple",
-    "wgpu-core-deps-emscripten",
-    "wgpu-core-deps-windows-linux-android",
-    "wgpu-hal",
-    "wgpu-types",
 ]
 
 # github.com organizations to allow git sources for
