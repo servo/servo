@@ -20,7 +20,7 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           sparse-checkout: |
