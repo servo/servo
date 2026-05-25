@@ -5,6 +5,9 @@
 use std::borrow::Cow;
 use std::num::NonZeroU64;
 
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUTextureMethods as _, GPUTextureViewDescriptor,
+};
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command as wgpu_com;
 use wgpu_core::pipeline::ProgrammableStageDescriptor;
@@ -673,6 +676,12 @@ impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
             resource: match self.resource {
                 GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
                 GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
+                GPUBindingResource::GPUTexture(ref t) => BindingResource::TextureView(
+                    t.CreateView(&GPUTextureViewDescriptor::default())
+                        .expect("Default descriptor should always be valid.")
+                        .id()
+                        .0,
+                ),
                 GPUBindingResource::GPUBufferBinding(ref b) => {
                     BindingResource::Buffer(BufferBinding {
                         buffer: b.buffer.id().0,
@@ -680,6 +689,11 @@ impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
                         size: b.size,
                     })
                 },
+                GPUBindingResource::GPUBuffer(ref b) => BindingResource::Buffer(BufferBinding {
+                    buffer: b.id().0,
+                    offset: 0,
+                    size: None,
+                }),
             },
         }
     }
