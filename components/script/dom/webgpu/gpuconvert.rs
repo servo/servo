@@ -16,10 +16,10 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
     GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
-    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUProgrammableStage,
-    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
-    GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
+    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
+    GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
+    GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
+    GPUStoreOp, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
 use crate::dom::bindings::error::{Error, Fallible};
@@ -348,12 +348,11 @@ impl Convert<wgpu_types::FilterMode> for GPUFilterMode {
     }
 }
 
-// TODO(sagudev): this will become GPUMipmapFilterMode once the webidl is updated
-impl Convert<wgpu_types::MipmapFilterMode> for GPUFilterMode {
+impl Convert<wgpu_types::MipmapFilterMode> for GPUMipmapFilterMode {
     fn convert(self) -> wgpu_types::MipmapFilterMode {
         match self {
-            GPUFilterMode::Nearest => wgpu_types::MipmapFilterMode::Nearest,
-            GPUFilterMode::Linear => wgpu_types::MipmapFilterMode::Linear,
+            GPUMipmapFilterMode::Nearest => wgpu_types::MipmapFilterMode::Nearest,
+            GPUMipmapFilterMode::Linear => wgpu_types::MipmapFilterMode::Linear,
         }
     }
 }
