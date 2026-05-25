@@ -1015,7 +1015,7 @@ impl HTMLFormElement {
                 // encoding algorithm with pairs.
                 let body = encode_plaintext(pairs);
                 // Step 3: Set body to the result of encoding body using encoding.
-                encoding.encode(&body).0.into_owned()
+                encode_with_html_fallback(&body, encoding).into_owned()
             },
         };
 
@@ -1041,7 +1041,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
         url.as_mut_url()
             .query_pairs_mut()
-            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .encoding_override(Some(&|s| encode_with_html_fallback(s, encoding)))
             .clear()
             .extend_pairs(pairs);
     }
@@ -1964,28 +1964,33 @@ impl FormControlElementHelpers for Element {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-///
-/// The text/plain encoding algorithm, given a list of name-value pairs pairs,
-/// is as follows:
-///
-///   1. Let result be the empty string.
-///   2. For each pair in pairs:
-///       2.1. Append pair's name to result.
-///       2.2. Append a single U+003D EQUALS SIGN character (=) to result.
-///       2.3. Append pair's value to result.
-///       2.4. Append a U+000D CARRIAGE RETURN (CR) U+000A LINE FEED (LF)
-///            character pair to result.
-///   3. Return result.
+/// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
 fn encode_plaintext(pairs: impl Iterator<Item = (String, String)>) -> String {
+    // Step 1. Let result be the empty string.
     let mut result = String::new();
+    // Step 2. For each pair in pairs:
     for (name, value) in pairs {
+        // Step 2.1. Append pair's name to result.
         result.push_str(&name);
+        // Step 2.2. Append a single U+003D EQUALS SIGN character (=) to result.
         result.push('=');
+        // Step 2.3. Append pair's value to result.
         result.push_str(&value);
+        // Step 2.4. Append a U+000D CARRIAGE RETURN (CR) U+000A LINE FEED (LF)
+        // character pair to result.
         result.push_str("\r\n");
     }
+    // Step 3. Return result.
     result
+}
+
+/// Encode a string with the form's encoding, converted to a byte sequence.
+/// <https://encoding.spec.whatwg.org/#encode>
+///
+/// Characters that can't be encoded in the given charset are replaced
+/// with HTML decimal numeric character references (e.g. 😂 → &#128514;).
+fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
+    encoding.encode(input).0
 }
 
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
@@ -1995,14 +2000,6 @@ pub(crate) fn encode_multipart_form_data(
     encoding: &'static Encoding,
 ) -> Vec<u8> {
     let mut result = vec![];
-
-    /// Step 2.3: Encode a string with the form's encoding.
-    /// <https://encoding.spec.whatwg.org/#encode>
-    /// Characters that can't be encoded in the given charset
-    /// are replaced with NCRs (e.g. 😂 → &#128514;).
-    fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
-        encoding.encode(input).0
-    }
 
     // Step 2.4: For field names and filenames for file fields, the result
     // of the encoding must be escaped by replacing:
