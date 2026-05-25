@@ -532,23 +532,21 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is an Array and identifier is "length"
                 if identifier == "length" {
-                    unsafe {
-                        let mut is_array = false;
-                        if !IsArrayObject(cx, current_value.handle(), &mut is_array) {
-                            return Err(Error::JSFailed);
-                        }
-                        if is_array {
-                            // Let value be ! ToLength(! Get(value, "length")).
-                            rooted!(&in(cx) let object = current_value.to_object());
-                            get_property_jsval(
-                                cx.into(),
-                                object.handle(),
-                                c"length",
-                                current_value.handle_mut(),
-                            )?;
+                    let mut is_array = false;
+                    if unsafe { !IsArrayObject(cx, current_value.handle(), &mut is_array) } {
+                        return Err(Error::JSFailed);
+                    }
+                    if is_array {
+                        // Let value be ! ToLength(! Get(value, "length")).
+                        rooted!(&in(cx) let object = current_value.to_object());
+                        get_property_jsval(
+                            cx,
+                            object.handle(),
+                            c"length",
+                            current_value.handle_mut(),
+                        )?;
 
-                            continue;
-                        }
+                        continue;
                     }
                 }
 

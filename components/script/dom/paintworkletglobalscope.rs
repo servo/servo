@@ -538,19 +538,17 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 4-6.
         let property_names: Vec<String> =
-            get_property(cx.into(), paint_obj.handle(), c"inputProperties", ())?
-                .unwrap_or_default();
+            get_property(cx, paint_obj.handle(), c"inputProperties", ())?.unwrap_or_default();
         let properties = property_names.into_iter().map(Atom::from).collect();
 
         // Step 7-9.
         let input_arguments: Vec<String> =
-            get_property(cx.into(), paint_obj.handle(), c"inputArguments", ())?.unwrap_or_default();
+            get_property(cx, paint_obj.handle(), c"inputArguments", ())?.unwrap_or_default();
 
         // TODO: Steps 10-11.
 
         // Steps 12-13.
-        let alpha: bool =
-            get_property(cx.into(), paint_obj.handle(), c"alpha", ())?.unwrap_or(true);
+        let alpha: bool = get_property(cx, paint_obj.handle(), c"alpha", ())?.unwrap_or(true);
 
         // Step 14
         if unsafe { !IsConstructor(paint_obj.get()) } {
@@ -559,12 +557,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Steps 15-16
         rooted!(&in(cx) let mut prototype = UndefinedValue());
-        get_property_jsval(
-            cx.into(),
-            paint_obj.handle(),
-            c"prototype",
-            prototype.handle_mut(),
-        )?;
+        get_property_jsval(cx, paint_obj.handle(), c"prototype", prototype.handle_mut())?;
         if !prototype.is_object() {
             return Err(Error::Type(c"Prototype is not an object.".to_owned()));
         }
@@ -573,7 +566,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         // Steps 17-18
         rooted!(&in(cx) let mut paint_function = UndefinedValue());
         get_property_jsval(
-            cx.into(),
+            cx,
             prototype.handle(),
             c"paint",
             paint_function.handle_mut(),

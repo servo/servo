@@ -510,12 +510,8 @@ fn clone_an_object(
     {
         let mut result: Vec<JSValue> = Vec::new();
 
-        let get_property_result = get_property::<u32>(
-            cx.into(),
-            object_handle,
-            c"length",
-            ConversionBehavior::Default,
-        );
+        let get_property_result =
+            get_property::<u32>(cx, object_handle, c"length", ConversionBehavior::Default);
         let length = match get_property_result {
             Ok(length) => match length {
                 Some(length) => length,
@@ -537,7 +533,7 @@ fn clone_an_object(
             rooted!(&in(cx) let mut item = UndefinedValue());
             let cname = CString::new(i.to_string()).unwrap();
             let get_property_result =
-                get_property_jsval(cx.into(), object_handle, &cname, item.handle_mut());
+                get_property_jsval(cx, object_handle, &cname, item.handle_mut());
             match get_property_result {
                 Ok(_) => {
                     let converted_item =
@@ -1715,7 +1711,7 @@ pub(crate) fn handle_get_property(
 
                 rooted!(&in(cx) let mut property = UndefinedValue());
                 match get_property_jsval(
-                    cx.into(),
+                    cx,
                     element.reflector().get_jsobject(),
                     &cname,
                     property.handle_mut(),
