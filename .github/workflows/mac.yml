@@ -144,7 +144,7 @@ jobs:
           ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
@@ -176,7 +176,7 @@ jobs:
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Run DMG smoketest
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
