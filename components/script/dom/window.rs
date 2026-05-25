@@ -2110,8 +2110,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.client_window().min.x
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screenleft>
+    fn ScreenLeft(&self) -> i32 {
+        self.client_window().min.x
+    }
+
     /// <https://drafts.csswg.org/cssom-view/#dom-window-screeny>
     fn ScreenY(&self) -> i32 {
+        self.client_window().min.y
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screentop>
+    fn ScreenTop(&self) -> i32 {
         self.client_window().min.y
     }
 
