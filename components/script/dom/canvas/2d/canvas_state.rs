@@ -37,7 +37,9 @@ use style::properties::longhands::font_variant_caps::computed_value::T as FontVa
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
 use style::values::computed::font::FontStyle;
-use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
+use style::values::computed::{
+    FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
+};
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
@@ -2438,9 +2440,6 @@ impl CanvasState {
                         font: font.clone(),
                         script,
                         string: Default::default(),
-                        ligatures: FontVariantLigatures::NORMAL,
-                        numeric: FontVariantNumeric::NORMAL,
-                        east_asian: FontVariantEastAsian::NORMAL,
                         language,
                     },
                 );
@@ -2519,9 +2518,6 @@ struct UnshapedTextRun<'a> {
     script: Script,
     string: &'a str,
     language: Language,
-    ligatures: FontVariantLigatures,
-    numeric: FontVariantNumeric,
-    east_asian: FontVariantEastAsian,
 }
 
 impl UnshapedTextRun<'_> {
@@ -2530,9 +2526,6 @@ impl UnshapedTextRun<'_> {
             font: Default::default(),
             script: Default::default(),
             string: Default::default(),
-            ligatures: FontVariantLigatures::NORMAL,
-            numeric: FontVariantNumeric::NORMAL,
-            east_asian: FontVariantEastAsian::NORMAL,
             language,
         }
     }
@@ -2559,9 +2552,10 @@ impl UnshapedTextRun<'_> {
             script: self.script,
             language: self.language,
             flags: ShapingFlags::empty(),
-            ligatures: self.ligatures,
-            numeric: self.numeric,
-            east_asian: self.east_asian,
+            ligatures: FontVariantLigatures::NORMAL,
+            numeric: FontVariantNumeric::NORMAL,
+            east_asian: FontVariantEastAsian::NORMAL,
+            feature_settings: FontFeatureSettings::normal(),
         };
 
         let glyphs = font.shape_text(self.string, &options);

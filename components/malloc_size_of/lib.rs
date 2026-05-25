@@ -1327,6 +1327,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribution);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontFeatureSettings);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);

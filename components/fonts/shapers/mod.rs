@@ -7,8 +7,14 @@ mod harfbuzz;
 use app_units::Au;
 use euclid::default::Point2D;
 pub(crate) use harfbuzz::Shaper;
+use read_fonts::types::Tag;
+use rustc_hash::FxHashMap;
+use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 
-use crate::GlyphId;
+use crate::{
+    AFRC, CALT, CLIG, DLIG, FRAC, FWID, GlyphId, HLIG, JP04, JP78, JP83, JP90, KERN, LIGA, LNUM,
+    ONUM, ORDN, PNUM, PWID, RUBY, SMPL, ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
+};
 
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
 /// harfbuzz uses to represent unicode scipts.
@@ -47,4 +53,157 @@ pub(crate) trait GlyphShapingResult {
     fn is_rtl(&self) -> bool;
     /// An iterator of the shaped glyphs of this data.
     fn iter(&self) -> impl Iterator<Item = ShapedGlyph>;
+}
+
+fn compute_used_font_features(options: &ShapingOptions) -> impl Iterator<Item = (Tag, u32)> {
+    let mut features = FxHashMap::default();
+
+    let mut add_feature = |tag, value| {
+        features.entry(tag).insert_entry(value);
+    };
+
+    if options.ligatures == FontVariantLigatures::NORMAL {
+        add_feature(LIGA, 1);
+        add_feature(CLIG, 1);
+    } else if options.ligatures == FontVariantLigatures::NONE {
+        add_feature(LIGA, 0);
+        add_feature(CLIG, 0);
+        add_feature(DLIG, 0);
+        add_feature(HLIG, 0);
+        add_feature(CALT, 0);
+    } else {
+        if options
+            .ligatures
+            .contains(FontVariantLigatures::COMMON_LIGATURES)
+        {
+            add_feature(LIGA, 1);
+            add_feature(CLIG, 1);
+        } else if options
+            .ligatures
+            .contains(FontVariantLigatures::NO_COMMON_LIGATURES)
+        {
+            add_feature(LIGA, 0);
+            add_feature(CLIG, 0);
+        }
+
+        if options
+            .ligatures
+            .contains(FontVariantLigatures::DISCRETIONARY_LIGATURES)
+        {
+            add_feature(DLIG, 1);
+        } else if options
+            .ligatures
+            .contains(FontVariantLigatures::NO_DISCRETIONARY_LIGATURES)
+        {
+            add_feature(DLIG, 0);
+        }
+
+        if options
+            .ligatures
+            .contains(FontVariantLigatures::HISTORICAL_LIGATURES)
+        {
+            add_feature(HLIG, 1);
+        } else if options
+            .ligatures
+            .contains(FontVariantLigatures::NO_HISTORICAL_LIGATURES)
+        {
+            add_feature(HLIG, 0);
+        }
+
+        if options.ligatures.contains(FontVariantLigatures::CONTEXTUAL) {
+            add_feature(CALT, 1);
+        } else if options
+            .ligatures
+            .contains(FontVariantLigatures::NO_CONTEXTUAL)
+        {
+            add_feature(CALT, 0);
+        }
+    }
+
+    if options.numeric != FontVariantNumeric::NORMAL {
+        if options.numeric.contains(FontVariantNumeric::LINING_NUMS) {
+            add_feature(LNUM, 1);
+        } else if options.numeric.contains(FontVariantNumeric::OLDSTYLE_NUMS) {
+            add_feature(ONUM, 1);
+        }
+        if options
+            .numeric
+            .contains(FontVariantNumeric::PROPORTIONAL_NUMS)
+        {
+            add_feature(PNUM, 1);
+        } else if options.numeric.contains(FontVariantNumeric::TABULAR_NUMS) {
+            add_feature(TNUM, 1);
+        }
+        if options
+            .numeric
+            .contains(FontVariantNumeric::DIAGONAL_FRACTIONS)
+        {
+            add_feature(FRAC, 1);
+        } else if options
+            .numeric
+            .contains(FontVariantNumeric::STACKED_FRACTIONS)
+        {
+            add_feature(AFRC, 1);
+        }
+        if options.numeric.contains(FontVariantNumeric::ORDINAL) {
+            add_feature(ORDN, 1);
+        }
+        if options.numeric.contains(FontVariantNumeric::SLASHED_ZERO) {
+            add_feature(ZERO, 1);
+        }
+    }
+
+    if options.east_asian != FontVariantEastAsian::NORMAL {
+        if options.east_asian.contains(FontVariantEastAsian::JIS78) {
+            add_feature(JP78, 1);
+        } else if options.east_asian.contains(FontVariantEastAsian::JIS83) {
+            add_feature(JP83, 1);
+        } else if options.east_asian.contains(FontVariantEastAsian::JIS90) {
+            add_feature(JP90, 1);
+        } else if options.east_asian.contains(FontVariantEastAsian::JIS04) {
+            add_feature(JP04, 1);
+        } else if options
+            .east_asian
+            .contains(FontVariantEastAsian::SIMPLIFIED)
+        {
+            add_feature(SMPL, 1);
+        } else if options
+            .east_asian
+            .contains(FontVariantEastAsian::TRADITIONAL)
+        {
+            add_feature(TRAD, 1);
+        }
+
+        if options
+            .east_asian
+            .contains(FontVariantEastAsian::FULL_WIDTH)
+        {
+            add_feature(FWID, 1);
+        } else if options
+            .east_asian
+            .contains(FontVariantEastAsian::PROPORTIONAL_WIDTH)
+        {
+            add_feature(PWID, 1);
+        }
+
+        if options.east_asian.contains(FontVariantEastAsian::RUBY) {
+            add_feature(RUBY, 1);
+        }
+    }
+
+    if options
+        .flags
+        .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+    {
+        add_feature(KERN, 0);
+    }
+
+    for feature_setting in options.feature_settings.0.iter() {
+        add_feature(
+            Tag::from_u32(feature_setting.tag.0),
+            feature_setting.value as u32,
+        )
+    }
+
+    features.into_iter()
 }

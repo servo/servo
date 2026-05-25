@@ -33,8 +33,8 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
-    FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -398,7 +398,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     ///
@@ -417,6 +417,8 @@ pub struct ShapingOptions {
     pub numeric: FontVariantNumeric,
     /// The value of the `font-variant-east-asian` property.
     pub east_asian: FontVariantEastAsian,
+    /// The value of the `font-feature-settings` property.
+    pub feature_settings: FontFeatureSettings,
     /// Various flags.
     pub flags: ShapingFlags,
 }
@@ -444,7 +446,7 @@ impl Font {
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: *options,
+            options: options.clone(),
         };
         {
             let cache = self.cached_shape_data.read();
