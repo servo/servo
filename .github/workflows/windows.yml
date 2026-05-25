@@ -171,6 +171,13 @@ jobs:
         env:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
         run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
+      - name: Upload memory usage data
+        if: ${{ !cancelled() && inputs.unit-tests }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: memory-usage-data-${{ inputs.profile }}
+          # Using a wildcard here ensures that the archive includes the path.
+          path: C:\\a\\servo\\servo\\memory_usage_data.json
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
         # Upload test results to Codecov, also for failed unit-tests, but only

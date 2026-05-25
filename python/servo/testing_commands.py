@@ -12,10 +12,13 @@ import json
 import logging
 import os
 import os.path as path
+import time
+import psutil
 import shutil
 import subprocess
 import sys
 import textwrap
+import threading
 from argparse import ArgumentParser
 from contextlib import chdir
 from pathlib import Path
@@ -272,8 +275,14 @@ class MachCommands(CommandBase):
         result = call(crown_cargo_command, cwd="support/crown")
         if result != 0:
             return result
+
+        memory_usage_thread = threading.Thread(target=log_memory_usage)
+        memory_usage_thread.start()
         result = self.run_cargo_build_like_command(cargo_command, args, env=env, **kwargs)
         assert isinstance(result, int)
+        global keep_logging
+        keep_logging = False
+        memory_usage_thread.join()
         return result
 
     @Command("test-tidy", description="Run the source code tidiness check", category="testing")
@@ -893,3 +902,48 @@ def create_parser_create() -> ArgumentParser:
     p.add_argument("--wait", action="store_true", help="Create a reftest that waits until takeScreenshot() is called")
     p.add_argument("path", action="store", help="Path to the test file")
     return p
+
+
+keep_logging = True
+memory_usage_data = []
+
+
+def log_memory_usage():
+    while keep_logging:
+        system_memory = psutil.virtual_memory()
+        process_memory = []
+        processes = []
+        for process in psutil.process_iter():
+            try:
+                processes.append(
+                    {
+                        "name": process.name(),
+                        "rss": process.memory_info().rss,
+                        "cmdline": process.cmdline(),
+                    }
+                )
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        print(
+            f">>> memory usage: {system_memory.available // 1048576}M/{system_memory.total // 1048576}M available, {len(processes)} processes:",
+            end="",
+        )
+        processes.sort(key=lambda process: -process["rss"])
+        for i, process in enumerate(processes):
+            if i < 10:
+                print(f" {process['name']} ({process['rss'] // 1024}K)", end="")
+            else:
+                process["cmdline"] = None
+            process_memory.append(process)
+        memory_usage_data.append(
+            {
+                "system_memory": {
+                    "available": system_memory.available,
+                    "total": system_memory.total,
+                },
+                "process_memory": process_memory,
+            }
+        )
+        print(flush=True)
+        time.sleep(1)
+    json.dump(memory_usage_data, open("memory_usage_data.json", "w"))

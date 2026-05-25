@@ -40,3 +40,5 @@ geckordp == 1.0.3
 
 # For Python static type checking
 pyrefly == 0.23.1
+
+psutil == 7.2.2
