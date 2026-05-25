@@ -202,7 +202,7 @@ impl HTMLMetaElement {
         if !content.is_empty() {
             // Step 3. Run the shared declarative refresh steps with the meta element's node document, input, and the meta element.
             self.owner_document()
-                .shared_declarative_refresh_steps(&content.as_bytes(), true);
+                .shared_declarative_refresh_steps(&content.as_bytes(), true /* from_meta_element */);
         }
     }
 }
