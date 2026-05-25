@@ -1,5 +1,14 @@
 [configs]
 skip-check-licenses = false
+disallowed-coauthors = [
+    "copilot@github.com",
+    "cursoragent@cursor.com",
+    "gemini-cli@users.noreply.github.com",
+    "gemini-code-assist[bot]@users.noreply.github.com",
+    "gemini-code-assist@google.com",
+    "noreply@anthropic.com",
+    "claude@anthropic.com",
+]
 
 [ignore]
 # Files that are ignored for all tidy and lint checks.
