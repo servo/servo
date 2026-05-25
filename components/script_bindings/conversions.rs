@@ -220,16 +220,24 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
     type Config = ();
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _config: Self::Config,
     ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        Ok(
-            match root_from_handlevalue(value, SafeJSContext::from_ptr(cx)) {
-                Ok(result) => ConversionResult::Success(result),
-                Err(()) => ConversionResult::Failure(c"value is not an object".into()),
-            },
-        )
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _config: Self::Config,
+    ) -> Result<ConversionResult<DomRoot<T>>, ()> {
+        Ok(match root_from_handlevalue(value, cx.into()) {
+            Ok(result) => ConversionResult::Success(result),
+            Err(()) => ConversionResult::Failure(c"value is not an object".into()),
+        })
     }
 }
 
@@ -441,22 +449,37 @@ impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Fini
     type Config = ();
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         option: (),
     ) -> Result<ConversionResult<Finite<T>>, ()> {
-        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, option)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
+        let result = match FromJSValConvertible::safe_from_jsval(cx, value, option)? {
             ConversionResult::Success(v) => v,
             ConversionResult::Failure(error) => {
                 // FIXME(emilio): Why throwing instead of propagating the error?
-                throw_type_error(cx, &error);
+                unsafe { throw_type_error(cx.raw_cx(), &error) };
                 return Err(());
             },
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
             None => {
-                throw_type_error(cx, c"this argument is not a finite floating-point value");
+                unsafe {
+                    throw_type_error(
+                        cx.raw_cx(),
+                        c"this argument is not a finite floating-point value",
+                    )
+                };
                 Err(())
             },
         }
@@ -533,11 +556,21 @@ where
     type Config = T::Config;
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         config: Self::Config,
     ) -> Result<ConversionResult<Self>, ()> {
-        T::from_jsval(cx, value, config).map(|result| match result {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, config)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        config: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        T::safe_from_jsval(cx, value, config).map(|result| match result {
             ConversionResult::Success(inner) => {
                 ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
             },
