@@ -9,7 +9,6 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -58,10 +57,6 @@ impl DOMTokenList {
         )
     }
 
-    fn attribute(&self) -> Option<DomRoot<Attr>> {
-        self.element.get_attribute(&self.local_name)
-    }
-
     fn check_token_exceptions(&self, token: &DOMString) -> Fallible<Atom> {
         let token = token.str();
         match &*token {
@@ -105,26 +100,22 @@ impl DOMTokenList {
 impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-length>
     fn Length(&self) -> u32 {
-        self.attribute()
-            .map_or(0, |attr| attr.value().as_tokens().len()) as u32
+        self.element.get_tokenlist_attribute(&self.local_name).len() as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-item>
     fn Item(&self, index: u32) -> Option<DOMString> {
-        self.attribute().and_then(|attr| {
-            // FIXME(ajeffrey): Convert directly from Atom to DOMString
-            attr.value()
-                .as_tokens()
-                .get(index as usize)
-                .map(|token| DOMString::from(&**token))
-        })
+        self.element
+            .get_tokenlist_attribute(&self.local_name)
+            .get(index as usize)
+            .map(|token| DOMString::from(&**token))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-contains>
     fn Contains(&self, token: DOMString) -> bool {
-        let token = Atom::from(token);
-        self.attribute()
-            .is_some_and(|attr| attr.value().as_tokens().contains(&token))
+        self.element
+            .get_tokenlist_attribute(&self.local_name)
+            .contains(&Atom::from(token))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>

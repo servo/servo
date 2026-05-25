@@ -108,7 +108,7 @@ impl OffscreenCanvas {
         options: HandleValue,
     ) -> Option<GLContextAttributes> {
         unsafe {
-            match WebGLContextAttributes::new(cx.into(), options, CanGc::from_cx(cx)) {
+            match WebGLContextAttributes::new(cx, options) {
                 Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
                 Ok(ConversionResult::Failure(error)) => {
                     throw_type_error(cx.raw_cx(), &error);

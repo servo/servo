@@ -822,19 +822,18 @@ impl HTMLIFrameElement {
     /// property or clears it is the value isn't specified. Notably, an unspecified sandboxing
     /// attribute (no sandboxing) is different from an empty one (full sandboxing).
     fn parse_sandbox_attribute(&self) {
-        let attribute = self
-            .upcast::<Element>()
-            .get_attribute(&local_name!("sandbox"));
-        self.sandboxing_flag_set
-            .set(attribute.map(|attribute_value| {
-                let tokens: Vec<_> = attribute_value
-                    .value()
-                    .as_tokens()
-                    .iter()
-                    .map(|atom| atom.to_string().to_ascii_lowercase())
-                    .collect();
-                parse_a_sandboxing_directive(&tokens)
-            }));
+        let sandbox_value =
+            self.upcast::<Element>()
+                .with_attribute(&ns!(), &local_name!("sandbox"), |attribute| {
+                    let tokens: Vec<_> = attribute
+                        .value()
+                        .as_tokens()
+                        .iter()
+                        .map(|atom| atom.to_string().to_ascii_lowercase())
+                        .collect();
+                    parse_a_sandboxing_directive(&tokens)
+                });
+        self.sandboxing_flag_set.set(sandbox_value);
     }
 
     /// Step 4.2. of <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>

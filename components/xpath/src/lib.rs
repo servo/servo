@@ -21,16 +21,20 @@ pub use parser::{Error as ParserError, parse};
 pub use value::{NodeSet, Value};
 
 pub trait Dom {
-    type Node: Node;
-    type NamespaceResolver: NamespaceResolver;
+    type Context;
+
+    type Node: Node<Context = Self::Context>;
+    type NamespaceResolver: NamespaceResolver<Context = Self::Context>;
 }
 
 /// A handle to a DOM node exposing all functionality needed by xpath.
 pub trait Node: Eq + Clone + fmt::Debug {
+    type Context;
+
     type ProcessingInstruction: ProcessingInstruction;
     type Document: Document<Node = Self>;
     type Attribute: Attribute<Node = Self>;
-    type Element: Element<Node = Self>;
+    type Element: Element<Node = Self, Context = Self::Context>;
     type Opaque: Eq + Hash + 'static;
 
     fn is_comment(&self) -> bool;
@@ -69,7 +73,9 @@ pub trait Node: Eq + Clone + fmt::Debug {
 }
 
 pub trait NamespaceResolver: Clone {
-    fn resolve_namespace_prefix(&self, prefix: &str) -> Option<String>;
+    type Context;
+
+    fn resolve_namespace_prefix(&self, cx: &mut Self::Context, prefix: &str) -> Option<String>;
 }
 
 pub trait ProcessingInstruction {
@@ -85,6 +91,8 @@ pub trait Document {
 }
 
 pub trait Element {
+    type Context;
+
     type Node: Node<Element = Self>;
     type Attribute: Attribute<Node = Self::Node>;
 
@@ -92,7 +100,7 @@ pub trait Element {
     fn prefix(&self) -> Option<Prefix>;
     fn namespace(&self) -> Namespace;
     fn local_name(&self) -> LocalName;
-    fn attributes(&self) -> impl Iterator<Item = Self::Attribute>;
+    fn attributes(&self, cx: &mut Self::Context) -> impl Iterator<Item = Self::Attribute>;
     fn is_html_element_in_html_document(&self) -> bool;
 }
 
@@ -107,11 +115,12 @@ pub trait Attribute {
 
 /// Evaluate an already-parsed XPath expression
 pub fn evaluate_parsed_xpath<D: Dom>(
+    cx: &mut D::Context,
     expr: &Expression,
     context_node: D::Node,
 ) -> Result<Value<D::Node>, Error> {
     let context = EvaluationCtx::<D>::new(context_node);
-    match expr.evaluate(&context) {
+    match expr.evaluate(cx, &context) {
         Ok(mut value) => {
             if let Value::NodeSet(node_set) = &mut value {
                 node_set.deduplicate();
@@ -195,6 +204,7 @@ mod dummy_implementation {
     pub(crate) struct DummyElement;
 
     impl Node for DummyNode {
+        type Context = ();
         type ProcessingInstruction = DummyProcessingInstruction;
         type Document = DummyDocument;
         type Attribute = DummyAttribute;
@@ -278,6 +288,7 @@ mod dummy_implementation {
     }
 
     impl Element for DummyElement {
+        type Context = ();
         type Node = DummyNode;
         type Attribute = DummyAttribute;
 
@@ -293,7 +304,7 @@ mod dummy_implementation {
         fn local_name(&self) -> LocalName {
             LocalName::from("")
         }
-        fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
+        fn attributes(&self, _: &mut ()) -> impl Iterator<Item = Self::Attribute> {
             iter::empty()
         }
         fn is_html_element_in_html_document(&self) -> bool {

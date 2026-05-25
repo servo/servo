@@ -46,7 +46,7 @@ use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -411,19 +411,26 @@ fn create_native_handler_function(
 impl FromJSValConvertibleRc for Promise {
     #[expect(unsafe_code)]
     unsafe fn from_jsval(
-        cx: *mut RawJSContext,
+        _cx: *mut RawJSContext,
+        value: HandleValue,
+    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        Self::safe_from_jsval(&mut cx, value)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut JSContext,
         value: HandleValue,
     ) -> Result<ConversionResult<Rc<Promise>>, ()> {
         if value.get().is_null() {
             return Ok(ConversionResult::Failure(c"null not allowed".into()));
         }
 
-        let cx = unsafe { SafeJSContext::from_ptr(cx) };
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-        let global_scope =
-            unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+        let realm = CurrentRealm::assert(cx);
+        let global_scope = GlobalScope::from_current_realm(&realm);
 
-        let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::deprecated_note());
+        let promise = Promise::new_resolved(&global_scope, cx.into(), value, CanGc::from_cx(cx));
         Ok(ConversionResult::Success(promise))
     }
 }

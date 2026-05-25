@@ -12,6 +12,7 @@ use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -21,7 +22,6 @@ use js::rust::{
 };
 use js::typedarray::ArrayBufferViewU8;
 use rustc_hash::FxHashMap;
-use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -37,7 +37,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::stream::writablestream::WritableStream;
@@ -63,7 +63,7 @@ use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -250,8 +250,7 @@ impl Callback for PipeTo {
                 // If dest.[[state]] is "writable",
                 // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
                 if dest.is_writable() && !dest.close_queued_or_in_flight() {
-                    let Ok(done) = get_read_promise_done(cx.into(), &result, CanGc::from_cx(cx))
-                    else {
+                    let Ok(done) = get_read_promise_done(cx, &result) else {
                         // This is the case that the microtask ran in reaction
                         // to the closed promise of the reader,
                         // so we should wait for subsequent chunks,
@@ -417,7 +416,6 @@ impl PipeTo {
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
     // It will fail if it is the last `done` chunk, or if it is not a chunk at all.
-    #[expect(unsafe_code)]
     fn write_chunk(
         &self,
         cx: &mut JSContext,
@@ -427,16 +425,9 @@ impl PipeTo {
         if chunk.is_object() {
             rooted!(&in(cx) let object = chunk.to_object());
             rooted!(&in(cx) let mut bytes = UndefinedValue());
-            let has_value = unsafe {
-                get_dictionary_property(
-                    cx.raw_cx(),
-                    object.handle(),
-                    c"value",
-                    bytes.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Chunk should have a value.")
-            };
+            let has_value =
+                get_dictionary_property(cx, object.handle(), c"value", bytes.handle_mut())
+                    .expect("Chunk should have a value.");
             if has_value {
                 // Write the chunk.
                 let write_promise = self.writer.write(cx, global, bytes.handle());
@@ -1580,8 +1571,7 @@ impl ReadableStream {
         if self.is_errored() {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            self.stored_error
-                .safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
             promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             return promise;
         }
@@ -2076,7 +2066,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         // converted to an IDL value of type UnderlyingSource.
         let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(&in(cx) let obj_val = ObjectValue(underlying_source_obj.get()));
-            match JsUnderlyingSource::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
+            match JsUnderlyingSource::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
@@ -2277,15 +2267,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 }
 
-#[expect(unsafe_code)]
 /// The initial steps for the message handler for both readable and writable cross realm transforms.
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-pub(crate) unsafe fn get_type_and_value_from_message(
-    cx: SafeJSContext,
+pub(crate) fn get_type_and_value_from_message(
+    cx: &mut JSContext,
     data: SafeHandleValue,
     value: SafeMutableHandleValue,
-    can_gc: CanGc,
 ) -> DOMString {
     // Let data be the data of the message.
     // Note: we are passed the data as argument,
@@ -2293,29 +2281,20 @@ pub(crate) unsafe fn get_type_and_value_from_message(
 
     // Assert: data is an Object.
     assert!(data.is_object());
-    rooted!(in(*cx) let data_object = data.to_object());
+    rooted!(&in(cx) let data_object = data.to_object());
 
     // Let type be ! Get(data, "type").
-    rooted!(in(*cx) let mut type_ = UndefinedValue());
-    unsafe {
-        get_dictionary_property(
-            *cx,
-            data_object.handle(),
-            c"type",
-            type_.handle_mut(),
-            can_gc,
-        )
-    }
-    .expect("Getting the type should not fail.");
+    rooted!(&in(cx) let mut type_ = UndefinedValue());
+    get_dictionary_property(cx, data_object.handle(), c"type", type_.handle_mut())
+        .expect("Getting the type should not fail.");
 
     // Let value be ! Get(data, "value").
-    unsafe { get_dictionary_property(*cx, data_object.handle(), c"value", value, can_gc) }
+    get_dictionary_property(cx, data_object.handle(), c"value", value)
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result =
-        DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty, can_gc)
-            .expect("The type of the message should be a string");
+    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
+        .expect("The type of the message should be a string");
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
     };
@@ -2338,7 +2317,6 @@ pub(crate) struct CrossRealmTransformReadable {
 impl CrossRealmTransformReadable {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     /// Add a handler for port’s message event with the following steps:
-    #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
         cx: &mut CurrentRealm,
@@ -2347,14 +2325,7 @@ impl CrossRealmTransformReadable {
         message: SafeHandleValue,
     ) {
         rooted!(&in(cx) let mut value = UndefinedValue());
-        let type_string = unsafe {
-            get_type_and_value_from_message(
-                cx.into(),
-                message,
-                value.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-        };
+        let type_string = get_type_and_value_from_message(cx, message, value.handle_mut());
 
         // If type is "chunk",
         if type_string == "chunk" {
@@ -2394,7 +2365,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, CanGc::from_cx(cx));
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(cx, rooted_error.handle());
@@ -2407,62 +2378,51 @@ impl CrossRealmTransformReadable {
     }
 }
 
-#[expect(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_done(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     v: &SafeHandleValue,
-    can_gc: CanGc,
 ) -> Result<bool, Error> {
     if !v.is_object() {
         return Err(Error::Type(c"Unknown format for done property.".to_owned()));
     }
-    unsafe {
-        rooted!(in(*cx) let object = v.to_object());
-        rooted!(in(*cx) let mut done = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
-            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
-                Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
-            },
-            Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
-            Err(()) => Err(Error::JSFailed),
-        }
+
+    rooted!(&in(cx) let object = v.to_object());
+    rooted!(&in(cx) let mut done = UndefinedValue());
+    match get_dictionary_property(cx, object.handle(), c"done", done.handle_mut()) {
+        Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
+            Ok(ConversionResult::Success(val)) => Ok(val),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+            _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
+        },
+        Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
+        Err(()) => Err(Error::JSFailed),
     }
 }
 
-#[expect(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_bytes(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     v: &SafeHandleValue,
-    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
             c"Unknown format for for bytes read.".to_owned(),
         ));
     }
-    unsafe {
-        rooted!(in(*cx) let object = v.to_object());
-        rooted!(in(*cx) let mut bytes = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), c"value", bytes.handle_mut(), can_gc) {
-            Ok(true) => {
-                match Vec::<u8>::safe_from_jsval(
-                    cx,
-                    bytes.handle(),
-                    ConversionBehavior::EnforceRange,
-                    can_gc,
-                ) {
-                    Ok(ConversionResult::Success(val)) => Ok(val),
-                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                    _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
-                }
-            },
-            Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
-            Err(()) => Err(Error::JSFailed),
-        }
+
+    rooted!(&in(cx) let object = v.to_object());
+    rooted!(&in(cx) let mut bytes = UndefinedValue());
+    match get_dictionary_property(cx, object.handle(), c"value", bytes.handle_mut()) {
+        Ok(true) => {
+            match Vec::<u8>::safe_from_jsval(cx, bytes.handle(), ConversionBehavior::EnforceRange) {
+                Ok(ConversionResult::Success(val)) => Ok(val),
+                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+                _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
+            }
+        },
+        Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
+        Err(()) => Err(Error::JSFailed),
     }
 }
 
@@ -2470,11 +2430,10 @@ pub(crate) fn get_read_promise_bytes(
 /// This mirrors the conversion used inside `get_read_promise_bytes`,
 /// but operates on the raw chunk (no `{ value, done }` wrapper).
 pub(crate) fn bytes_from_chunk_jsval(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     chunk: &RootedTraceableBox<Heap<JSVal>>,
-    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
-    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
+    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),

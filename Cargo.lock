@@ -680,9 +680,9 @@ dependencies = [
 
 [[package]]
 name = "autocfg"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "av-scenechange"
@@ -1808,9 +1808,9 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "6.1.0"
+version = "6.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+checksum = "e6361d5c062261c78a176addb82d4c821ae42bed6089de0e12603cd25de2059c"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -5929,9 +5929,9 @@ checksum = "060ca76c500c8ffde25a89724d3476d4faca3b55fa3fe02cd8a3607e95b0861d"
 
 [[package]]
 name = "ohos-media-sys"
-version = "0.0.5"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6384d6e3befdaaec0206772e05a6b9222188e8ce023f6a164ca96e1091ef2e87"
+checksum = "f76a57cc7cc43fcaf57c77efa172760fc03827e6f2c769b4a2a9fabb8f3f9adf"
 dependencies = [
  "ohos-sys-opaque-types",
 ]

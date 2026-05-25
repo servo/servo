@@ -47,7 +47,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
@@ -319,8 +319,7 @@ impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        let _realm = InRealm::Already(&cx.into());
-        let is_done = match get_read_promise_done(cx.into(), &v, CanGc::from_cx(cx)) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -337,7 +336,7 @@ impl Callback for TransmitBodyPromiseHandler {
             return self.stream.stop_reading(cx);
         }
 
-        let chunk = match get_read_promise_bytes(cx.into(), &v, CanGc::from_cx(cx)) {
+        let chunk = match get_read_promise_bytes(cx, &v) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.

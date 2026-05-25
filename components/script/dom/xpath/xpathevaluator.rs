@@ -67,6 +67,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         resolver: Option<Rc<XPathNSResolver>>,
     ) -> Fallible<DomRoot<XPathExpression>> {
         let parsed_expression = parse_expression(
+            cx,
             &expression.str(),
             resolver,
             self.window.Document().is_html_document(),
@@ -96,6 +97,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         result: Option<&XPathResult>,
     ) -> Fallible<DomRoot<XPathResult>> {
         let parsed_expression = parse_expression(
+            cx,
             &expression.str(),
             resolver,
             self.window.Document().is_html_document(),

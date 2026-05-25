@@ -417,6 +417,14 @@ pub enum DevtoolScriptControlMsg {
     Resume(Option<String>, Option<String>),
     ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
     GetEnvironment(String, GenericSender<String>),
+    Blackbox(u32, BlackboxCoverage),
+    Unblackbox(u32, BlackboxCoverage),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum BlackboxCoverage {
+    Full,
+    Partial((u32, u32), (u32, u32)),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
