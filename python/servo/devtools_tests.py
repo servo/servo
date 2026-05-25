@@ -1471,6 +1471,47 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
             wait_for_pause(devtools.client, thread_actor, trigger)
 
+    def test_blackboxing_prevents_stepping(self):
+        url = f"{self.base_urls[0]}/debugger/loop.html"
+        self.run_servoshell(url=url)
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/loop.html")
+
+            # Get valid breakpoint position
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+            print(positions)
+            line1 = 4
+            line2 = 5
+            line1_col = min(positions[str(line1)])
+            line2_col = min(positions[str(line2)])
+
+            # Set breakpoint on line 4 and wait for it to be reached
+            def trigger():
+                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line1, line1_col)
+
+            wait_for_pause(devtools.client, thread_actor, trigger)
+
+            # Set breakpoint on line 5
+            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line2, line2_col)
+
+            # Blackbox line 5
+            blackboxing_actor = devtools.watcher.get_blackboxing_actor()["blackboxing"]["actor"]
+            devtools.client.send_receive(
+                {
+                    "to": blackboxing_actor,
+                    "type": "blackbox",
+                    "range": [{"start": {"line": 5, "column": 0}, "end": {"line": 5, "column": 30}}],
+                    "url": url,
+                }
+            )
+
+            # Step forward! We should skip over line 5 and end up on line 4 again
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 4)
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
     def setUpClass(cls):
