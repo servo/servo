@@ -2210,12 +2210,12 @@ impl GlobalScope {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                return ReadableStream::new_from_bytes(cx, self, bytes);
+                return ReadableStream::new_from_bytes_with_byte_reading_support(cx, self, bytes);
             },
             BlobResult::File(id, size) => (id, size),
         };
 
-        let stream = ReadableStream::new_with_external_underlying_source(
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
             cx,
             self,
             UnderlyingSourceType::Blob(size),
