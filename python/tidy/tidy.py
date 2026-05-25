@@ -1068,6 +1068,15 @@ class CargoDenyKrate:
 
 
 def run_coauthors_check() -> int:
+    """
+    Check the git history and pull request body for disallowed co-authors.
+
+    We run this as part of lint.yml, in `merge_group` `checks_requested`, and `pull_request`
+    `opened` and `synchronize`, to avoid landing commits with disallowed co-authors that are
+    commonly blocked. We don’t run it on `pull_request` `edited`, which means that the PR can be
+    queued for landing with disallowed co-authors in the PR description, but in that case, the
+    `merge_group` run will fail.
+    """
     print("\r ➤  Checking co-authors ...")
 
     is_pr_ci = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
@@ -1087,8 +1096,9 @@ def run_coauthors_check() -> int:
         "%(trailers:key=Co-authored-by)%n"
         "%(trailers:key=Assisted-by)"  # https://github.com/microsoft/vscode/issues/313962
     )
-    # Linting 1000 commits takes less than 20ms
-    log_command = ["git", "log", "-n1000", f"--format={log_format}"]
+    # Linting the whole commit history takes less than 500ms, and avoids having to reason about
+    # exactly how many commits are needed (see #44723)
+    log_command = ["git", "log", f"--format={log_format}"]
     log = subprocess.check_output(log_command, text=True)
     errors = check_coauthors(pull_request_body, log, verbose=is_pr_ci)
 

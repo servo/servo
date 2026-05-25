@@ -268,11 +268,7 @@ class CheckTidiness(unittest.TestCase):
         )
         self.assertNoMoreErrors(errors)
 
-        pr_body = (
-            "Something something\n"
-            "Assisted-by: LLM <llm@example.com>\n"
-            "Co-authored-by: LLM <llm@example.com>"
-        )
+        pr_body = "Something something\nAssisted-by: LLM <llm@example.com>\nCo-authored-by: LLM <llm@example.com>"
         errors = tidy.check_coauthors(pull_request_body=pr_body, git_log="", verbose=False)
         self.assertEqual(
             next(errors),

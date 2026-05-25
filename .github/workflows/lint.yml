@@ -42,15 +42,10 @@ jobs:
     name: Lint [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - id: choose-fetch-depth
-        shell: bash
-        # For non-PR events, GitHub Actions evaluates `${{ github.event.pull_request.commits }}`
-        # to the empty string, then bash evaluates `$((  + 2 ))` to 2
-        run: |
-          echo fetch-depth=$(( ${{ github.event.pull_request.commits }} + 2 )) | tee -a $GITHUB_OUTPUT
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
-          fetch-depth: ${{ steps.choose-fetch-depth.outputs.fetch-depth }}
+          # Fetch all commits, for `mach test-tidy`
+          fetch-depth: 0
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ runner.environment != 'self-hosted' }}
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
