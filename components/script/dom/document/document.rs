@@ -7,7 +7,6 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
-use std::ffi::c_void;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -24,7 +23,6 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
-    UntrustedNodeAddress,
 };
 use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
@@ -67,7 +65,6 @@ use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
-use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
@@ -150,7 +147,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
-use crate::dom::from_untrusted_node_address;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -314,11 +310,9 @@ impl PendingScrollEvent {
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AccessibilityData {
-    /// Nodes which have corresponding nodes in the accessibility tree, which need to be rooted
-    /// until their corresponding nodes removed from the accessibility tree.
-    /// This allows the lifetime of nodes to be guaranteed to be at least as long as the lifetime
-    /// of their corresponding accessibility nodes.
-    rooted_nodes: FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>,
+    /// Nodes which have been unbound from the DOM but may not yet have been removed from the
+    /// accessibility tree. This is cleared after each reflow.
+    rooted_nodes: Vec<Dom<Node>>,
 }
 
 /// Reasons why a [`Document`] might need a rendering update that is otherwise
@@ -3419,40 +3413,23 @@ impl Document {
         self.accessibility_data.borrow_mut()
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn root_nodes_for_accessibility(
-        &self,
-        _no_gc: &NoGC,
-        opaque_nodes: Vec<OpaqueNode>,
-    ) {
+    /// Root a node which has been removed from the DOM but which may still have an associated
+    /// accessibility tree node. It will be unrooted after the next reflow, as the accessibility
+    /// tree is updated as part of the reflow process.
+    pub(crate) fn root_removed_node_for_accessibility(&self, _no_gc: &NoGC, node_to_root: &Node) {
         assert!(pref!(accessibility_enabled));
 
         let mut accessibility_data = self.accessibility_data_mut();
         let rooted_nodes = &mut accessibility_data.rooted_nodes;
-        for opaque_node in opaque_nodes {
-            if rooted_nodes.contains_key(&NoTrace(opaque_node)) {
-                continue;
-            }
-
-            let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
-            // SAFETY: This is called immediately following layout, during which no GC occurs.
-            // This ensures that the opaque nodes can't be GCed before we try to
-            // interact with them.
-            unsafe {
-                let node_to_root = from_untrusted_node_address(address);
-                rooted_nodes.insert(NoTrace(opaque_node), Dom::from_ref(&*node_to_root))
-            };
-        }
+        rooted_nodes.push(Dom::from_ref(node_to_root));
     }
 
-    pub(crate) fn unroot_nodes_for_accessibility(&self, opaque_nodes: Vec<OpaqueNode>) {
+    /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`].
+    pub(crate) fn unroot_nodes_for_accessibility(&self) {
         assert!(pref!(accessibility_enabled));
 
         let mut accessibility_data = self.accessibility_data_mut();
-        let rooted_nodes = &mut accessibility_data.rooted_nodes;
-        for opaque_node in opaque_nodes {
-            rooted_nodes.remove(&NoTrace(opaque_node));
-        }
+        accessibility_data.rooted_nodes.clear();
     }
 }
 

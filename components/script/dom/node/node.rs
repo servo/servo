@@ -4380,6 +4380,11 @@ impl VirtualMethods for Node {
             self.ranges()
                 .drain_to_parent(context.parent, context.index(), self);
         }
+
+        if pref!(accessibility_enabled) {
+            self.owner_document()
+                .root_removed_node_for_accessibility(cx.no_gc(), self);
+        }
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {

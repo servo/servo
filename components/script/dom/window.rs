@@ -2720,15 +2720,7 @@ impl Window {
         document.update_animations_post_reflow();
 
         if pref!(accessibility_enabled) {
-            document.root_nodes_for_accessibility(
-                cx.no_gc(),
-                self.layout.borrow_mut().take_new_nodes_for_accessibility(),
-            );
-            document.unroot_nodes_for_accessibility(
-                self.layout
-                    .borrow_mut()
-                    .take_removed_nodes_for_accessibility(),
-            );
+            document.unroot_nodes_for_accessibility();
         }
 
         (

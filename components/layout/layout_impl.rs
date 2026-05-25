@@ -7,7 +7,6 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
@@ -228,17 +227,6 @@ pub struct LayoutThread {
 
     /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
-
-    /// Nodes which newly have a corresponding node in the accessibility tree.
-    /// These should be taken and rooted before any DOM mutations can occur
-    /// after a reflow.
-    /// See [Layout::take_new_nodes_for_accessibility()]
-    new_nodes_for_accessibility: Vec<OpaqueNode>,
-
-    /// Nodes which no longer have a corresponding node in the accessibility
-    /// tree. These should be taken and unrooted at some point.
-    /// See [Layout::take_removed_nodes_for_accessibility()]
-    removed_nodes_for_accessibility: Vec<OpaqueNode>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -753,14 +741,6 @@ impl Layout for LayoutThread {
     fn set_needs_accessibility_update(&self) {
         self.needs_accessibility_update.set(true);
     }
-
-    fn take_new_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode> {
-        mem::take(&mut self.new_nodes_for_accessibility)
-    }
-
-    fn take_removed_nodes_for_accessibility(&mut self) -> Vec<OpaqueNode> {
-        mem::take(&mut self.removed_nodes_for_accessibility)
-    }
 }
 
 impl LayoutThread {
@@ -820,8 +800,6 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
-            new_nodes_for_accessibility: vec![],
-            removed_nodes_for_accessibility: vec![],
         }
     }
 
@@ -957,16 +935,8 @@ impl LayoutThread {
             return false;
         };
 
-        // These fields should either never have been populated, or been taken at the end of the
-        // previous reflow.
-        assert!(self.new_nodes_for_accessibility.is_empty());
-        assert!(self.removed_nodes_for_accessibility.is_empty());
-
         let accessibility_tree = &mut *accessibility_tree;
-        if let Some(update_result) = accessibility_tree.update_tree(root_element) {
-            self.new_nodes_for_accessibility = update_result.new_opaque_nodes;
-            self.removed_nodes_for_accessibility = update_result.removed_opaque_nodes;
-
+        if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.
@@ -974,7 +944,7 @@ impl LayoutThread {
                 .embedder_chan
                 .send(EmbedderMsg::AccessibilityTreeUpdate(
                     self.webview_id,
-                    update_result.tree_update,
+                    tree_update,
                     accessibility_tree.embedder_epoch(),
                 ));
         }
