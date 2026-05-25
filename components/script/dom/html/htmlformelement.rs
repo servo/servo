@@ -700,24 +700,6 @@ impl HTMLFormElement {
         self.owner_document().encoding()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
-    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
-        // Step 1
-        let mut result = String::new();
-
-        // Step 2
-        for entry in form_data.iter() {
-            let value = match &entry.value {
-                FormDatumValue::File(f) => f.name(),
-                FormDatumValue::String(s) => s,
-            };
-            result.push_str(&format!("{}={}\r\n", entry.name, value));
-        }
-
-        // Step 3
-        result
-    }
-
     pub(crate) fn update_validity(&self, can_gc: CanGc) {
         let is_any_invalid = self
             .controls
@@ -1020,7 +1002,20 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::TEXT_PLAIN));
-                self.encode_plaintext(form_data).into_bytes()
+                // Step 1: Let pairs be the result of converting to a list
+                // of name-value pairs with entry list.
+                // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
+                let pairs = form_data.iter().map(|field| {
+                    (
+                        field.name.normalize_crlf(),
+                        field.replace_value().normalize_crlf(),
+                    )
+                });
+                // Step 2: Let body be the result of running the text/plain
+                // encoding algorithm with pairs.
+                let body = encode_plaintext(pairs);
+                // Step 3: Set body to the result of encoding body using encoding.
+                encode_with_html_fallback(&body, encoding).into_owned()
             },
         };
 
@@ -1046,7 +1041,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
         url.as_mut_url()
             .query_pairs_mut()
-            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .encoding_override(Some(&|s| encode_with_html_fallback(s, encoding)))
             .clear()
             .extend_pairs(pairs);
     }
@@ -1969,6 +1964,35 @@ impl FormControlElementHelpers for Element {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
+fn encode_plaintext(pairs: impl Iterator<Item = (String, String)>) -> String {
+    // Step 1. Let result be the empty string.
+    let mut result = String::new();
+    // Step 2. For each pair in pairs:
+    for (name, value) in pairs {
+        // Step 2.1. Append pair's name to result.
+        result.push_str(&name);
+        // Step 2.2. Append a single U+003D EQUALS SIGN character (=) to result.
+        result.push('=');
+        // Step 2.3. Append pair's value to result.
+        result.push_str(&value);
+        // Step 2.4. Append a U+000D CARRIAGE RETURN (CR) U+000A LINE FEED (LF)
+        // character pair to result.
+        result.push_str("\r\n");
+    }
+    // Step 3. Return result.
+    result
+}
+
+/// Encode a string with the form's encoding, converted to a byte sequence.
+/// <https://encoding.spec.whatwg.org/#encode>
+///
+/// Characters that can't be encoded in the given charset are replaced
+/// with HTML decimal numeric character references (e.g. 😂 → &#128514;).
+fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
+    encoding.encode(input).0
+}
+
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
 pub(crate) fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
@@ -1976,14 +2000,6 @@ pub(crate) fn encode_multipart_form_data(
     encoding: &'static Encoding,
 ) -> Vec<u8> {
     let mut result = vec![];
-
-    /// Step 2.3: Encode a string with the form's encoding.
-    /// <https://encoding.spec.whatwg.org/#encode>
-    /// Characters that can't be encoded in the given charset
-    /// are replaced with NCRs (e.g. 😂 → &#128514;).
-    fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
-        encoding.encode(input).0
-    }
 
     // Step 2.4: For field names and filenames for file fields, the result
     // of the encoding must be escaped by replacing:
