@@ -312,6 +312,7 @@ class MachCommands(CommandBase):
     )
     def test_tidy(self, all_files: bool, no_progress: bool, github_annotations: bool) -> int:
         tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
+        coauthors_failed = tidy.run_coauthors_check()
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)
@@ -323,7 +324,7 @@ class MachCommands(CommandBase):
         taplo_failed = format_toml_files_with_taplo()
 
         format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
-        tidy_failed = format_failed or tidy_failed
+        tidy_failed = format_failed or tidy_failed or coauthors_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
