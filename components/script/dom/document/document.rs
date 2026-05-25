@@ -237,7 +237,7 @@ pub(crate) struct RefreshRedirectDue {
     #[ignore_malloc_size_of = "non-owning"]
     pub(crate) window: DomRoot<Window>,
     /// Whether the refresh originated from a `<meta>` element.
-    pub(crate) from_meta: bool,
+    pub(crate) from_meta_element: bool,
 }
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
@@ -248,7 +248,7 @@ impl RefreshRedirectDue {
         // automatic features browsing context flag set,
         // then navigate document's node navigable to urlRecord using document,
         // with historyHandling set to "replace".
-        if self.from_meta &&
+        if self.from_meta_element &&
             self.window.Document().has_active_sandboxing_flag(
                 SandboxingFlagSet::SANDBOXED_AUTOMATIC_FEATURES_BROWSING_CONTEXT_FLAG,
             )
@@ -282,7 +282,7 @@ pub(crate) enum DeclarativeRefresh {
         url: ServoUrl,
         time: u64,
         /// Whether the refresh originated from a `<meta>` element.
-        from_meta: bool,
+        from_meta_element: bool,
     },
     CreatedAfterLoad,
 }
@@ -2169,14 +2169,14 @@ impl Document {
         if let Some(DeclarativeRefresh::PendingLoad {
             url,
             time,
-            from_meta,
+            from_meta_element,
         }) = &*self.declarative_refresh.borrow()
         {
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: DomRoot::from_ref(self.window()),
                     url: url.clone(),
-                    from_meta: *from_meta,
+                    from_meta_element: *from_meta_element,
                 }),
                 Duration::from_secs(*time),
             );
@@ -4462,7 +4462,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8], from_meta: bool) {
+    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8], from_meta_element: bool) {
         // 1. If document's will declaratively refresh is true, then return.
         if self.will_declaratively_refresh() {
             return;
@@ -4539,7 +4539,7 @@ impl Document {
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: DomRoot::from_ref(self.window()),
                     url: url_record,
-                    from_meta,
+                    from_meta_element,
                 }),
                 Duration::from_secs(time),
             );
@@ -4548,7 +4548,7 @@ impl Document {
             self.set_declarative_refresh(DeclarativeRefresh::PendingLoad {
                 url: url_record,
                 time,
-                from_meta,
+                from_meta_element,
             });
         }
     }
