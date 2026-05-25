@@ -214,6 +214,7 @@ fn console_argument_from_handle_value(
                 return Ok(DebuggerValue::ObjectValue {
                     uuid: uuid::Uuid::new_v4().to_string(),
                     class,
+                    own_property_length: preview.own_properties_length,
                     preview: Some(preview),
                 });
             }

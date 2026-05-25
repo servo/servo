@@ -106,11 +106,14 @@ function createValueGrip(value, depth = 0) {
             if (value.optimizedOut || value.uninitialized || value.missingArguments) {
                 return { valueType: "null" };
             }
+            // TODO: handle typed arrays and storage independently
+            const ownPropertyLength = value.getOwnPropertyNamesLength();
             // Debugger.Object - get preview using registered previewers
             // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
             return {
                 valueType: "object",
                 objectClass: value.class,
+                ownPropertyLength: Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined,
                 preview: getPreview(value, depth),
             };
         default:
@@ -171,7 +174,6 @@ const previewers = {};
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
 previewers.Function = [ function FunctionPreviewer(obj, depth) {
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     let function_details = {
         name: obj.name,
         displayName: obj.displayName,
@@ -180,36 +182,34 @@ previewers.Function = [ function FunctionPreviewer(obj, depth) {
         isGenerator: obj.isGeneratorFunction,
     }
 
+    let preview = { kind: "Object", function: function_details };
     if (depth > 1) {
-        return { kind: "Object", function: function_details, ownPropertiesLength };
+        return undefined;
     }
 
-    return {
-        kind: "Object",
-        ownProperties,
-        ownPropertiesLength,
-        function: function_details
-    };
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
+    preview.ownProperties = ownProperties;
+    preview.ownPropertiesLength = ownPropertiesLength;
+
+    return preview;
 } ];
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
 previewers.Array = [ function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
-    const length = lengthDescriptor ? lengthDescriptor.value : 0;
+    const arrayLength = lengthDescriptor ? lengthDescriptor.value : 0;
 
+    let preview = { kind: "ArrayLike", arrayLength };
     if (depth > 1) {
-        return {
-            kind: "ArrayLike",
-            arrayLength: length,
-        };
+        return undefined;
     }
 
-    const items = [];
-    for (let i = 0; i < length; i++) {
+    let items = (preview.items = []);
+    for (let i = 0; i < arrayLength; i++) {
         try {
             const desc = obj.getOwnPropertyDescriptor(i);
             if (desc && desc.value !== undefined) {
-                const grip = createValueGrip(desc.value, depth);
+                const grip = createValueGrip(desc.value, depth + 1);
                 delete grip.preview;
                 items.push(grip);
             }
@@ -218,27 +218,22 @@ previewers.Array = [ function ArrayPreviewer(obj, depth) {
         }
     }
 
-    return {
-        kind: "ArrayLike",
-        arrayLength: length,
-        items: items,
-    };
+    return preview;
 } ];
 
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
 previewers.Object = [ function ObjectPreviewer(obj, depth) {
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
-
+    let preview = { kind: "Object" };
     if (depth > 1) {
-       return { kind: "Object", ownPropertiesLength };
+       return undefined;
     }
 
-    return {
-        kind: "Object",
-        ownProperties,
-        ownPropertiesLength,
-    };
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
+    preview.ownProperties = ownProperties;
+    preview.ownPropertiesLength = ownPropertiesLength;
+
+    return preview;
 } ];
 
 function getPreview(obj, depth) {
@@ -251,7 +246,7 @@ function getPreview(obj, depth) {
         if (result) return result;
     }
 
-    return { ownProperties: [], ownPropertiesLength: 0 };
+    return undefined;
 }
 
 // Evaluate some javascript code in the global context of the debuggee

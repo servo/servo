@@ -122,6 +122,7 @@ pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
+    own_property_length: Option<u32>,
     preview: Option<devtools_traits::ObjectPreview>,
 }
 
@@ -228,6 +229,7 @@ impl ObjectActor {
         registry: &ActorRegistry,
         uuid: Option<String>,
         class: String,
+        own_property_length: Option<u32>,
         preview: Option<devtools_traits::ObjectPreview>,
     ) -> String {
         let Some(uuid) = uuid else {
@@ -236,6 +238,7 @@ impl ObjectActor {
                 name: name.clone(),
                 _uuid: None,
                 class,
+                own_property_length,
                 preview,
             };
             registry.register(actor);
@@ -247,6 +250,7 @@ impl ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),
                 class,
+                own_property_length,
                 preview,
             };
 
@@ -271,7 +275,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             sealed: false,
             function: None,
             preview: None,
-            own_property_length: None,
+            own_property_length: self.own_property_length,
         };
 
         // Build preview
@@ -279,7 +283,6 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
         let Some(preview) = self.preview.clone() else {
             return msg;
         };
-        msg.own_property_length = preview.own_properties_length;
 
         let function = preview.function.map(|function| FunctionPreview {
             name: function.name.clone(),
