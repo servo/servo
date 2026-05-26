@@ -1495,23 +1495,15 @@ impl ReadableByteStreamController {
     }
 
     pub(crate) fn in_memory(&self) -> bool {
-        if let Some(underlying_source) = self.underlying_source.get() {
-            return underlying_source.in_memory();
-        }
-
-        self.stream.get().is_some_and(|stream| stream.is_closed()) && self.queue.borrow().is_empty()
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return false;
+        };
+        underlying_source.in_memory()
     }
 
     pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
-        if let Some(underlying_source) = self.underlying_source.get() {
-            if !underlying_source.in_memory() {
-                return None;
-            }
-        } else if self.stream.get().is_some_and(|stream| stream.is_closed()) &&
-            self.queue.borrow().is_empty()
-        {
-            return Some(Vec::new());
-        } else {
+        let underlying_source = self.underlying_source.get()?;
+        if !underlying_source.in_memory() {
             return None;
         }
 
