@@ -3,7 +3,7 @@ dictionary HTMLMediaStreamConstraints {
   MediaTrackConstraintSet audio;
 };
 
-[Exposed=Window]
+[Exposed=Window, SecureContext]
 interface HTMLUserMediaElement : HTMLElement {
   [HTMLConstructor] constructor();
 

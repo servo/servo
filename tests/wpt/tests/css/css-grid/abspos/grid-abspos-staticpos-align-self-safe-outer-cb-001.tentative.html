@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: Testing safe overflow-position for align-self and justify-self in absolutely positioned boxes in grid containers in both horizontal and vertical writing modes if the CB is not the grid container</title>
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11934">
+  <link rel="match" href="grid-abspos-staticpos-align-self-safe-outer-cb-001-ref.html">
+  <style>
+    .container {
+      border: 3px solid blue;
+      width: 200px;
+      height: 25px;
+      margin-bottom: 10px;
+    }
+    .grid {
+      display: grid;
+      padding: 2px 1px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      width: 30px;
+      height: 25px;
+      grid: 3px 14px 3px / 2px 20px 2px;
+    }
+    br { clear: both }
+    .grid > * {
+      position: absolute;
+      grid-area: 2 / 2 / 3 / 3;
+      background: teal;
+      height: 35px;
+      width: 45px;
+      justify-self: safe end;
+      align-self: safe center;
+    }
+    .vertRL {
+      writing-mode: vertical-rl;
+    }
+    .relPos {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="container relPos vertRL"><div class="grid"><div></div></div></div>
+  <div class="container relPos"><div class="grid"><div></div></div></div>
+</body>
+</html>

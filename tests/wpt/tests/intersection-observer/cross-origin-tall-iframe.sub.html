@@ -10,7 +10,7 @@ pre, #log {
   top: 0;
   left: 200px;
 }
-iframe {
+#iframe {
   width: 160px;
   height: 5100px;
   border: 0;
@@ -22,12 +22,10 @@ iframe {
 </style>
 
 <div class="spacer"></div>
-<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4" sandbox="allow-scripts"></iframe>
+<iframe id="iframe" sandbox="allow-scripts"></iframe>
 <div class="spacer"></div>
 
 <script>
-let iframe = document.querySelector("iframe");
-
 async function queryIframeState() {
   let response = new Promise(resolve => {
     window.addEventListener("message", function(e) {
@@ -55,8 +53,24 @@ async function assertFrameTargetIntersects(expected, msg) {
   return state;
 }
 
+function loadFrame() {
+  return new Promise(resolve => {
+    // It's possible the iframe finishes loading before the listener is installed.
+    // So install it first before loading the iframe (by setting its src)
+
+    window.addEventListener("message", (e) => {
+      assert_equals(e.data, "leafLoaded", "Expected 'leafLoaded' message from the leaf iframe");
+      resolve();
+    }, { once: true });
+
+    iframe.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4";
+  });
+}
+
 onload = () => {
   promise_test(async function() {
+    await loadFrame();
+
     await assertFrameTargetIntersects(false, "at start");
     iframe.scrollIntoView({ block: "start" });
     await assertFrameTargetIntersects(false, "when frame top visible");

@@ -8,27 +8,52 @@
 </head>
 <body>
 <script>
-promise_test(async t => {
-  const invalid_origins = [
-    '/',
-    '*',
-    'https://example:bogus',
-    'https://\ud800.com',
-    'http://example.com',
-    'ftp://example.com',
-    'chrome-extension://foobar',
+test(t => {
+  const test_cases = [
+    {success: false, origin: '/'},
+    {success: false, origin: '*'},
+    {success: false, origin: 'https://example:bogus'},
+    {success: false, origin: 'https://\ud800.com'},
+    {success: false, origin: 'http://example.com'},
+    {success: false, origin: 'ftp://example.com'},
+    {success: false, origin: 'chrome-extension://foobar'},
+    {success: false, origin: 'about:blank'},
+    {success: false, origin: 'about:srcdoc'},
+
+    {success: true, origin: 'https://example.com'},
+    {success: true, origin: 'http://localhost:3000'},
   ];
 
-  for (const origin of invalid_origins) {
-    assert_throws_dom('SecurityError', () => {
-      navigator.modelContext.registerTool({
+  for (const test of test_cases) {
+    const register = () => {
+       navigator.modelContext.registerTool({
         name: 'test_tool_' + Math.random(),
         description: 'Test tool',
         execute: async () => 'hello'
-      }, { exposedTo: [origin] });
-    }, `Should throw SecurityError for origin: ${origin}`);
+      }, { exposedTo: [test.origin] });
+    };
+
+    if (!test.success) {
+      assert_throws_dom('SecurityError', register, `Should throw SecurityError for origin: ${origin}`);
+    } else {
+      try {
+        register();
+      } catch (e) {
+        throw new Error(`Should not have thrown for ${test.origin}`);
+      }
+    }
   }
-}, 'registerTool() throws SecurityError for invalid or non-HTTPS origins in exposedTo');
+}, 'registerTool() throws SecurityError for invalid or ' +
+   'non-potentially-trustworthy origins in exposedTo');
+
+test(t => {
+  // Does not throw, because the given abort signal is processed before `exposedTo` is.
+  navigator.modelContext.registerTool({
+    name: "name",
+    description: "description",
+    execute: () => {}
+  }, {signal: AbortSignal.abort('already-aborted'), exposedTo: ['about:blank#invalidOrigin']})
+}, "registerTool() does not throw for invalid exposedTo, if aborted signal is passed in");
 </script>
 </body>
 </html>

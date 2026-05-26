@@ -8,7 +8,7 @@
 # [fonttools]: https://github.com/fonttools/fonttools
 # [uv]: https://docs.astral.sh/uv/
 #
-range="--unicodes=20-7E,2018-201F,56FD,6C34,3000-301F,30FB,FF01-FF1F,FF5B-FF65"
+range="--unicodes=20-7E,2018-201F,56FD,6C34,3000-301F,30FB,FE00-FE0F,FF01-FF1F,FF3B,FF3D,FF5B-FF65"
 subrange="--unicodes=20-7E,56FD,FF08-FF09"
 features="--layout-features+=halt,fwid,hwid,palt,pwid,vhal,vpal"
 features_chws="$features,chws,vchw"

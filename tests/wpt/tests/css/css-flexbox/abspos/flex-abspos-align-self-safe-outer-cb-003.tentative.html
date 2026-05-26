@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test: Testing safe overflow-position for align-self in absolutely positioned boxes in flex containers when item doesn't overflow if the CB is not the flex container</title>
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11934">
+  <link rel="match" href="flex-abspos-align-self-safe-outer-cb-003-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .container {
+      border: 3px solid blue;
+      position: relative;
+      width: 200px;
+      margin: 50px;
+    }
+    .flex {
+      display: flex;
+      height: 50px;
+      width: 50px;
+      border: 3px solid black;
+      vertical-align: top;
+      margin-left: 125px;
+    }
+    .child {
+      border: 2px dotted purple;
+      background: teal;
+      width: 60px;
+      height: 40px;
+      align-self: safe center;
+      position: absolute;
+      background: yellow;
+      opacity: 0.5;
+    }
+    .rowDir {
+      flex-direction: row;
+    }
+    .colDir {
+      flex-direction: column;
+    }
+    .vertRL {
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="flex rowDir"><div class="child"></div></div>
+  </div>
+  <div class="container">
+    <div class="flex colDir"><div class="child"></div></div>
+  </div>
+  <div class="container">
+    <div class="flex rowDir vertRL"><div class="child"></div></div>
+  </div>
+  <div class="container">
+    <div class="flex colDir vertRL"><div class="child"></div></div>
+  </div>
+</body>
+</html>

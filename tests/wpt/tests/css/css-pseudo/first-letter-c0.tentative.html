@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSS Test: ::first-letter with leading C0 control character (tentative)</title>
+    <link rel="match" href="first-letter-c0.tentative-ref.html">
+    <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+    <meta name="assert" content="Tentative: a leading C0 control character (e.g. U+000B VERTICAL TAB or U+0019 END OF MEDIUM) is not skipped before the first typographic letter unit and becomes the first-letter itself; the spec is unclear and engines diverge.">
+    <style>
+        div {
+            font-size: 36px;
+        }
+        div::first-letter {
+            color: green;
+            background: yellow;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if the green-on-yellow region in each line matches the reference.</p>
+    <div>&#xb;Test</div>
+    <div>&#x19;Test</div>
+</body>
+</html>

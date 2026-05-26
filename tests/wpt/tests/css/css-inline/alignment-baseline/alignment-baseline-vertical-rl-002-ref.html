@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=baseline">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    :root {
+      font: 200px/1 'BaselineDiagnostic';
+    }
+
+    #container {
+      writing-mode: vertical-rl;
+      position: relative;
+    }
+
+    #target {
+      position: absolute;
+      inset-inline-start: 1rem;
+      font-size: 0.5rem;
+    }
+
+    img {
+      position: absolute;
+      inset-inline-start: calc(1rem + 0.5rem);
+      width: 64px;
+      height: 64px;
+
+      --offset-synthesized-under: 64px;
+      --offset-synthesized-over: 0px;
+      --offset-synthesized-middle: calc((var(--offset-synthesized-under) + var(--offset-synthesized-over)) / 2);
+    }
+
+    /* Position the target text span using its font metrics to match baselines */
+    .baseline     #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-central)); }
+    .text-bottom  #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-descent)); }
+    .alphabetic   #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-alphabetic)); }
+    .ideographic  #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-ideographic-under)); }
+    .middle       #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-x-middle)); }
+    .central      #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-central)); }
+    .mathematical #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-math)); }
+    .hanging      #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-hanging)); }
+    .text-top     #target { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-ascent)); }
+
+    /**
+     * Position the image (atomic inline) using its synthesized baselines:
+     * - Line-under: text-bottom, alphabetic, ideographic, baseline (in horizontal writing modes)
+     * - Midpoint: central, mathematical
+     * - Line-over: text-top, hanging
+     */
+    .baseline     img { inset-block-start: calc(1rem * var(--baseline-diagnostic-central) - var(--offset-synthesized-middle)); }
+    .text-bottom  img { inset-block-start: calc(1rem * var(--baseline-diagnostic-descent) - var(--offset-synthesized-under)); }
+    .alphabetic   img { inset-block-start: calc(1rem * var(--baseline-diagnostic-alphabetic) - var(--offset-synthesized-under)); }
+    .ideographic  img { inset-block-start: calc(1rem * var(--baseline-diagnostic-ideographic-under) - var(--offset-synthesized-under)); }
+    .middle       img { inset-block-start: calc(1rem * var(--baseline-diagnostic-x-middle) - var(--offset-synthesized-middle)); }
+    .central      img { inset-block-start: calc(1rem * var(--baseline-diagnostic-central) - var(--offset-synthesized-middle)); }
+    .mathematical img { inset-block-start: calc(1rem * var(--baseline-diagnostic-math) - var(--offset-synthesized-middle)); }
+    .hanging      img { inset-block-start: calc(1rem * var(--baseline-diagnostic-hanging) - var(--offset-synthesized-over)); }
+    .text-top     img { inset-block-start: calc(1rem * var(--baseline-diagnostic-ascent) - var(--offset-synthesized-over)); }
+  </style>
+</head>
+<body>
+  <span id="container">X<span id="target">X</span><img src="/images/grgr-256x256.png"></span>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+// Helper iframe for performance-speculations-navigation-destination-url.
+// Query param:
+//   navigateTo : URL to navigate to once loaded (required)
+const navigateTo =
+    new URLSearchParams(location.search).get('navigateTo');
+
+addEventListener('pagehide', () => {
+  parent.postMessage({
+    navigationDestinationURL:
+        performance.getSpeculations().navigationDestinationURL,
+  }, '*');
+});
+
+addEventListener('load', () => { location.href = navigateTo; });
+</script>

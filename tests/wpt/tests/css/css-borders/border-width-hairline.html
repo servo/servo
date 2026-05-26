@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations Test: border-width with hairline"</title>
+<link rel="author" title="Eyvind Lillesveen" href="mailto:eyvind.lillesveen@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#valdef-line-width-hairline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<style>
+    #t {
+        border-left-style: solid;
+        border-left-width: hairline;
+    }
+</style>
+<div id="t"></div>
+<script>
+    test_valid_value("border", "hairline dotted green");
+    test_valid_value("border-width", "5px hairline");
+    test_valid_value("border-width", "hairline");
+    test_valid_value("border-left-width", "hairline");
+
+    test(() => {
+        const pixels = Number(getComputedStyle(t).borderLeftWidth.replace("px", ""));
+        assert_less_than_equal(pixels, 1)
+        assert_greater_than(pixels, 0)
+    }, "Computed hairline width is within bounds");
+</script>
+</body>
+</html>

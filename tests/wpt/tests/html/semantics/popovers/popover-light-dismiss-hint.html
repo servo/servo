@@ -16,14 +16,14 @@
   <div popover id=auto2>auto 2
     <div popover=hint id=innerhint1>inner hint 1
       <div popover=hint id=innerhint2>inner hint 2
-        <div popover id=invalidauto1>Improperly nested auto 1</div>
+        <div popover id=improperlynestedauto1>Improperly nested auto 1</div>
       </div>
     </div>
   </div>
 </div>
 <div popover=hint id=hint1>hint 1
   <div popover=hint id=hint2>hint 2
-    <div popover id=invalidauto2>Improperly nested auto 2</div>
+    <div popover id=improperlynestedauto2>Improperly nested auto 2</div>
   </div>
 </div>
 <div popover=manual id=manual1>Manual</div>
@@ -34,10 +34,10 @@
   #auto2        {left:100px; top:200px;}
   #innerhint1   {left:100px; top:300px;}
   #innerhint2   {left:100px; top:400px;}
-  #invalidauto1 {left:100px; top:500px;}
+  #improperlynestedauto1 {left:100px; top:500px;}
   #hint1        {left:200px; top:100px;}
   #hint2        {left:200px; top:200px;}
-  #invalidauto1 {left:200px; top:400px;}
+  #improperlynestedauto1 {left:200px; top:400px;}
   #manual1      {left:300px; top:100px;}
   #outside {width:25px;height:25px}
 </style>
@@ -108,15 +108,10 @@
 
   promise_test(async (t) => {
     openall(setA, t);
-    assert_throws_dom('InvalidStateError', () => {
-      invalidauto1.showPopover();
-    });
-  },'Auto cannot be nested inside hint (invalidauto1)');
-
-  promise_test(async (t) => {
+    improperlynestedauto1.showPopover();
+    assertState([...setA, improperlynestedauto1] , [true, true, true, true, true, true]);
     openall(setB, t);
-    assert_throws_dom('InvalidStateError', () => {
-      invalidauto2.showPopover();
-    });
-  },'Auto cannot be nested inside hint (invalidauto2)');
+    improperlynestedauto2.showPopover();
+    assertState([...setB, improperlynestedauto2] , [true, true, true, true]);
+  },'Auto can be nested inside hint (nothing should throw, auto demoted to hint)');
 </script>

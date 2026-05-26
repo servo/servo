@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<title>Low-DPI hit tests</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+#canvas {
+  width: 200px;
+  height: 200px;
+}
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=target></div>
+  <div id=negative></div>
+</canvas>
+
+<script>
+
+function movePointer(x, y) {
+  return new test_driver.Actions().addTick().pointerMove(x, y).send();
+}
+
+function noHit(reject, signal) {
+  if (signal.aborted) {
+    return;
+  }
+  reject("no hit");
+}
+
+async function cleanup(controller) {
+  await movePointer(0, 0);
+  controller.abort();
+  const target = canvas.querySelector("#target");
+  target.style.pointerEvents = '';
+  target.style.transformOrigin = '';
+  target.style.transform = '';
+  const negative = canvas.querySelector("#negative");
+  negative.style.pointerEvents = '';
+  negative.style.transformOrigin = '';
+  negative.style.transform = '';
+}
+
+promise_test((t) => {
+  return new Promise(async (resolve, reject) => {
+    const controller = new AbortController();
+    t.add_cleanup(() => cleanup(controller));
+
+    const canvas = document.getElementById("canvas");
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const target = canvas.querySelector("#target");
+    target.style.transformOrigin = "0 0";
+    target.style.transform = "translate(15px, 35px) scale(0.01)";
+
+    // Do not hit test #negative for this test.
+    const negative = canvas.querySelector("#negative");
+    negative.style.pointerEvents = "none";
+
+    target.addEventListener("pointerenter", resolve, { signal: controller.signal });
+    await movePointer(canvasRect.x + 15, canvasRect.y + 35);
+    requestAnimationFrame(() => noHit(reject, controller.signal));
+  });
+}, "single target");
+
+promise_test((t) => {
+  return new Promise(async (resolve, reject) => {
+    const controller = new AbortController();
+    t.add_cleanup(() => cleanup(controller));
+
+    const canvas = document.getElementById("canvas");
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const target = canvas.querySelector("#target");
+    target.style.transformOrigin = "0 0";
+    target.style.transform = "translate(15px, 35px) scale(0.01)";
+
+    const negative = canvas.querySelector("#negative");
+    negative.style.transformOrigin = "0 0";
+    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+
+    target.addEventListener("pointerenter", reject, { signal: controller.signal });
+    negative.addEventListener("pointerenter", resolve, { signal: controller.signal });
+    await movePointer(canvasRect.x + 15, canvasRect.y + 35);
+    requestAnimationFrame(() => noHit(reject, controller.signal));
+  });
+}, "multiple targets, should only hit first");
+
+promise_test((t) => {
+  return new Promise(async (resolve, reject) => {
+    const controller = new AbortController();
+    t.add_cleanup(() => cleanup(controller));
+
+    const canvas = document.getElementById("canvas");
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const negative = canvas.querySelector("#negative");
+    negative.style.transformOrigin = "0 0";
+    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+
+    negative.addEventListener("pointerenter", reject, { signal: controller.signal });
+    await movePointer(canvasRect.x + 14, canvasRect.y + 35);
+    await movePointer(canvasRect.x + 16, canvasRect.y + 35);
+    await movePointer(canvasRect.x + 15, canvasRect.y + 34);
+    await movePointer(canvasRect.x + 15, canvasRect.y + 36);
+    requestAnimationFrame(resolve);
+  });
+}, "single target miss");
+
+promise_test((t) => {
+  return new Promise(async (resolve, reject) => {
+    const controller = new AbortController();
+    t.add_cleanup(() => cleanup(controller));
+
+    const canvas = document.getElementById("canvas");
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const target = canvas.querySelector("#target");
+    target.style.transformOrigin = "0 0";
+    target.style.transform = "translate(15px, 35px) scale(0.01)";
+
+    // Do not hit test #negative for this test.
+    const negative = canvas.querySelector("#negative");
+    negative.style.pointerEvents = "none";
+
+    target.addEventListener("pointerenter", resolve, { signal: controller.signal });
+    await movePointer(canvasRect.x + 15, canvasRect.y + 35);
+    requestAnimationFrame(() => noHit(reject, controller.signal));
+  });
+}, "single target and point");
+
+</script>
+</html>

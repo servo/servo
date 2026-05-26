@@ -33,41 +33,6 @@ test(t => {
     { sanitizer: { attributes: ["hello", "world"] } });
   assert_equals(d.innerHTML, `<b hello="1" world=""></b>`);
 }, "Unknown attribute names pass when allowed.");
-
-test(t => {
-  let d = document.createElement("div")
-  d.setHTML(`<div is="foo-bar">hello</div>`);
-  assert_equals(d.innerHTML, `<div>hello</div>`);
-  assert_false(d.firstChild.hasAttribute("is"));
-  assert_true(d.firstChild.matches(":defined"));
-}, "The is= attribute is removed by the default sanitizer config.");
-
-test(t => {
-  let d = document.createElement("div")
-  d.setHTML(`<span is="foo-bar">hello</span>`);
-  assert_equals(d.innerHTML, `<span>hello</span>`);
-  assert_false(d.firstChild.hasAttribute("is"));
-  assert_true(d.firstChild.matches(":defined"));
-}, "The is= attribute is removed from span by the default sanitizer config.");
-
-
-test(t => {
-  let d = document.createElement("div")
-  d.setHTML(`<div is="foo-bar">hello</div>`,
-    { sanitizer: { attributes: ["is"] } });
-  assert_equals(d.innerHTML, `<div is="foo-bar">hello</div>`);
-  assert_true(d.firstChild.hasAttribute("is"));
-  assert_false(d.firstChild.matches(":defined"));
-}, "The is= attribute is kept when explicitly allowed.");
-
-test(t => {
-  let d = document.createElement("div")
-  d.setHTML(`<div is="foo-bar">hello</div>`,
-    { sanitizer: { attributes: [] } });
-  assert_equals(d.innerHTML, `<div>hello</div>`);
-  assert_false(d.firstChild.hasAttribute("is"));
-  assert_true(d.firstChild.matches(":defined"));
-}, "The is= attribute gets blocked with a custom config.");
 </script>
 </body>
 </html>

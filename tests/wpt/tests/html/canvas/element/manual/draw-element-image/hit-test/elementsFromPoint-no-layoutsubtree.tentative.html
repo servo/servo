@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should not appear in elementsFromPoint without layoutsubtree</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200">
+  <div id=a></div>
+  <div id=b></div>
+  <div id=pointerEventsNone style="pointer-events: none;"></div>
+  <div id=inert inert></div>
+</canvas>
+
+<script>
+  test(function () {
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Child elements should be excluded from elementsFromPoint');
+</script>
+</html>

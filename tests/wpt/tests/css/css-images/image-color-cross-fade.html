@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) inside cross-fade()</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-function">
+<link rel="match" href="image-color-cross-fade-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    margin: 4px;
+  }
+  /* cross-fade() of two image(<color>) operands should match a cross-fade()
+     of the bare colors: the spec treats a <color> operand as a solid-color
+     image, so image(<color>) and <color> are interchangeable here. */
+  .both-images { background-image: cross-fade(image(green), image(green)); }
+  .one-image   { background-image: cross-fade(image(green), green); }
+</style>
+<p>Test passes if there are two solid green squares.</p>
+<div class="both-images"></div>
+<div class="one-image"></div>

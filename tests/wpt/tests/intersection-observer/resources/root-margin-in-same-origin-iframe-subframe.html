@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #target {
+    position: absolute;
+    height: 40px;
+    width: 40px;
+    background-color: green;
+  }
+</style>
+
+<div id="target"></div>
+
+<script>
+  let options = {
+    rootMargin: '40px 0px 0px 0px',
+    threshold: [1]
+  }
+
+  let observer = new IntersectionObserver((observations) => {
+    const lastObservation = observations[observations.length - 1];
+    window.top.postMessage({
+      isIntersecting: lastObservation.isIntersecting
+    }, "*");
+  }, options);
+
+  observer.observe(document.getElementById("target"));
+</script>

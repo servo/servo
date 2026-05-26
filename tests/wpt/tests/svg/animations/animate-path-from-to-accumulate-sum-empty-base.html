@@ -1,0 +1,60 @@
+<!doctype html>
+<title>SVG path 'd' from-to animation with accumulate='sum' and empty base</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+<link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#AccumulateAttribute"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="">
+    <animate id="animation" attributeName="d"
+             from="M 0 0 L 50 0 L 50 50 L 0 50 Z"
+             to="M 10 10 L 40 10 L 40 40 L 10 40 Z"
+             accumulate="sum"
+             begin="0s" dur="4s" repeatCount="2" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+// From-to with accumulate="sum" and empty base (d=""). The base value does not
+// contribute because additive defaults to "replace". Each iteration accumulates
+// the to-at-end-of-duration value (= to). Iteration 1 adds 1×to to the
+// interpolated result.
+function sample1() {
+  // Iter 0 start: from.
+  assert_animated_path_equals(path, "M 0 0 L 50 0 L 50 50 L 0 50 Z");
+}
+function sample2() {
+  // Iter 0 midpoint: from + 0.5*(to − from).
+  assert_animated_path_equals(path, "M 5 5 L 45 5 L 45 45 L 5 45 Z");
+}
+function sample3() {
+  // Iter 0 end: to.
+  assert_animated_path_equals(path, "M 10 10 L 40 10 L 40 40 L 10 40 Z");
+}
+function sample4() {
+  // Iter 1 start: from + 1×to.
+  assert_animated_path_equals(path, "M 10 10 L 90 10 L 90 90 L 10 90 Z");
+}
+function sample5() {
+  // Iter 1 midpoint: from + 0.5*(to − from) + 1×to.
+  assert_animated_path_equals(path, "M 15 15 L 85 15 L 85 85 L 15 85 Z");
+}
+function sample6() {
+  // Iter 1 end (frozen): to + 1×to.
+  assert_animated_path_equals(path, "M 20 20 L 80 20 L 80 80 L 20 80 Z");
+}
+smil_async_test((t) => {
+  const expectedValues = [
+    ["animation", 0.001, sample1],
+    ["animation", 2.0,   sample2],
+    ["animation", 3.999, sample3],
+    ["animation", 4.001, sample4],
+    ["animation", 6.0,   sample5],
+    ["animation", 7.999, sample6],
+    ["animation", 8.001, sample6],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

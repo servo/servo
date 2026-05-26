@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: &lt;number&gt; auto` with a larger max-height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="When line-clamp is used with a number of lines and `auto`, if it has a larger (max-)height than the number of lines, it clamps according to that number of lines.">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  max-height: 5lh;
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6</div>

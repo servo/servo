@@ -14,9 +14,9 @@ navigator.mediaDevices.getUserMedia({audio: true}).then(() => {
   navigator.mediaDevices.enumerateDevices().then((deviceList) => {
     outputDeviceList =
         deviceList.filter(({kind}) => kind === 'audiooutput');
-    assert_greater_than(outputDeviceList.length, 1,
-                        'the system must have more than 1 device.');
-    firstDeviceId = outputDeviceList[1].deviceId;
+    if (outputDeviceList.length > 1) {
+      firstDeviceId = outputDeviceList[1].deviceId;
+    }
 
     // Run async tests concurrently.
     async_test(t => testDefaultSinkId(t),
@@ -60,6 +60,12 @@ const testDefaultSinkId = (t) => {
 // Step 10.1.4. If sinkId is a type of DOMString, set [[sink ID]] to sinkId and
 // abort these substeps.
 const testValidSinkId = (t) => {
+  // At least one non-default audio output device is required to test setting
+  // a specific sinkId at construction.
+  if (outputDeviceList.length <= 1) {
+    t.done();
+    return;
+  }
   const audioContext = new AudioContext({sinkId: firstDeviceId});
   audioContext.addEventListener('statechange', () => {
     t.step(() => {

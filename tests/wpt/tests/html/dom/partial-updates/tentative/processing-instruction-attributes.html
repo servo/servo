@@ -4,7 +4,7 @@
 <link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="container"><?t a=b x="yy"?></div>
+<div id="container"><?t a="b" x="yy"?></div>
 
 <script>
   function createXMLDocument() {
@@ -15,7 +15,9 @@
       case "DOM":
         return document.createProcessingInstruction(target, data);
       case "parser":
-        return document.querySelector("#container").firstChild;
+        const div = document.createElement("div");
+        div.innerHTML = `<?${target} ${data}?>`;
+        return div.firstChild;
       case "xml":
         return createXMLDocument().createProcessingInstruction(target, data);
     }
@@ -23,12 +25,20 @@
   for (const source of ["DOM", "parser", "xml"]) {
     test(() => {
       const pi = createProcessingInstruction(source, "t", 'a=b x="yy"');
+      assert_false(pi.hasAttributes());
+      assert_array_equals(pi.getAttributeNames(), []);
+      assert_equals(pi.getAttribute("a"), null);
+      assert_equals(pi.getAttribute("x"), null);
+    }, "Processing instruction attribute parsing rejects unquoted attributes from " + source);
+
+    test(() => {
+      const pi = createProcessingInstruction(source, "t", 'a="b" x="yy"');
       const mutation_observer = new MutationObserver((records) => {});
       mutation_observer.observe(pi, { characterData: true, attributes: true });
       assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
       assert_equals(pi.target, "t");
       assert_true(pi.hasAttributes());
-      assert_equals(pi.data, `a=b x="yy"`);
+      assert_equals(pi.data, `a="b" x="yy"`);
       assert_array_equals(pi.getAttributeNames(), ["a", "x"]);
       assert_equals(pi.getAttribute("a"), "b");
       assert_equals(pi.getAttribute("x"), "yy");
@@ -74,8 +84,8 @@
       pi.data = "";
       assert_false(pi.hasAttributes());
       assert_array_equals(pi.getAttributeNames(), []);
-      pi.data = "blabla";
-      assert_equals(pi.data, `blabla`);
+      pi.data = 'blabla=""';
+      assert_equals(pi.data, `blabla=""`);
       assert_equals(pi.getAttribute("blabla"), "");
       assert_equals(pi.getAttribute("BLABLA"), "");
       assert_equals(pi.getAttribute("blaBLA"), "");
@@ -92,11 +102,11 @@
     test(() => {
       const pi = document.createProcessingInstruction(
         "xml-stylesheet",
-        `type=text/css href=style.css`,
+        `type="text/css" href="style.css"`,
       );
       assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
       assert_equals(pi.target, "xml-stylesheet");
-      assert_equals(pi.data, `type=text/css href=style.css`);
+      assert_equals(pi.data, `type="text/css" href="style.css"`);
       assert_true(pi.hasAttributes());
       assert_equals(pi.getAttribute("type"), "text/css");
       assert_equals(pi.getAttribute("href"), "style.css");
@@ -109,7 +119,7 @@
       assert_equals(pi.getAttribute("href"), null);
       assert_array_equals(pi.getAttributeNames(), ["type"]);
       assert_true(pi.hasAttributes());
-      pi.data = 'type="text/css" href=style3.css';
+      pi.data = 'type="text/css" href="style3.css"';
       assert_equals(pi.getAttribute("type"), "text/css");
       assert_equals(pi.getAttribute("href"), "style3.css");
       assert_array_equals(pi.getAttributeNames(), ["type", "href"]);

@@ -47,6 +47,9 @@ test_valid_value_combinations("content", `counters(counter-name, ".") "potato"`)
 test_valid_value_combinations("content", `"(" counters(counter-name, ".", counter-style) ")"`);
 test_valid_value_combinations("content", `open-quote "hello" "world" close-quote`);
 test_valid_value_combinations("content", `url("picture.svg") "hello"`);
+
+test_valid_value_combinations("content", "counter(\\})");
+test_valid_value_combinations("content", `counters(\\}, ".")`);
 </script>
 </body>
 </html>

@@ -238,6 +238,8 @@ def test_command(event_path, event_update, task, expected):
       'wpt-chrome-canary-reftest-6',
       'wpt-firefox-nightly-print-reftest-1',
       'wpt-chrome-canary-print-reftest-1',
+      'wpt-firefox-nightly-aamtest-1',
+      'wpt-chrome-canary-aamtest-1',
       'lint']),
     ("pr_event.json", True, {".taskcluster.yml", ".travis.yml", "tools/ci/start.sh"},
      ['lint',
@@ -591,7 +593,11 @@ def test_command(event_path, event_update, task, expected):
       'wpt-firefox-beta-print-reftest-1',
       'wpt-firefox-stable-print-reftest-1',
       'wpt-chromium-nightly-print-reftest-1',
-      'wpt-chrome-stable-print-reftest-1'])
+      'wpt-chrome-stable-print-reftest-1',
+      'wpt-firefox-beta-aamtest-1',
+      'wpt-firefox-stable-aamtest-1',
+      'wpt-chromium-nightly-aamtest-1',
+      'wpt-chrome-stable-aamtest-1'])
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'corner-top-left'</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that the computed value of 'corner-top-left' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("corner-top-left", "0px round", "normal");
+test_computed_value("corner-top-left", "normal");
+test_computed_value("corner-top-left", "4px round");
+test_computed_value("corner-top-left", "2% notch");
+test_computed_value("corner-top-left", "4px 2% squircle");
+test_computed_value("corner-top-left", "superellipse(-0.5) 30% 10px", "30% 10px superellipse(-0.5)");
+</script>

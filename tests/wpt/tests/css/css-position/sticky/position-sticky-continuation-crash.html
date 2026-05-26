@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2027261">
+<div id="sc" style="overflow:scroll; height:200px; width:200px;">
+  <div id="wrapper" style="contain:layout size; height:300px; width:60px;">
+    <div id="block" style="width:60px;">
+      <span id="s">&#x05E9; a &#x05E9; b &#x05E9; c &#x05E9; d &#x05E9; e</span>
+    </div>
+  </div>
+  <div style="height:500px;"></div>
+</div>
+<script>
+document.body.offsetHeight;
+s.style.position = 'sticky';
+s.style.top = '0';
+s.firstChild.data = '\u05E9 aaa bbb ccc ddd eee fff ggg hhh iii jjj';
+document.body.offsetHeight;
+s.style.position = 'static';
+getComputedStyle(s).color;
+s.remove();
+sc.scrollTop = 50;
+document.body.offsetHeight;
+</script>

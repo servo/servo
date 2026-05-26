@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corner-top-left' with valid values</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-top-left' supports valid single-corner values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+
+<script>
+test_valid_value("corner-top-left", "round 30%", "30% round");
+test_valid_value("corner-top-left", "10px bevel");
+test_valid_value("corner-top-left", "normal");
+test_valid_value("corner-top-left", "4px 2% round");
+test_valid_value("corner-top-left", "superellipse(-0.5) 30% 10px", "30% 10px superellipse(-0.5)");
+
+test_shorthand_value("corner-top-left", "10px bevel", {
+  "border-top-left-radius": "10px",
+  "corner-top-left-shape": "bevel",
+});
+test_shorthand_value("corner-top-left", "normal", {
+  "border-top-left-radius": "0px",
+  "corner-top-left-shape": "round",
+});
+</script>

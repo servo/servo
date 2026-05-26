@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage paints CSS blur filters</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="match" href="css-blur-filter-on-div-ref.html">
+  <meta name="assert" value="A div with a CSS blur filter paints with the filter.">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: green;
+      filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id="child"></div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+      takeScreenshot();
+    };
+ </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS filter: drop-shadow with currentColor on a link propagates tainting to subsequent SVG filters</title>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#tainted-filter-primitives">
+<link rel="match" href="reference/tainting-css-dropshadow-currentcolor-ref.html">
+<meta name="fuzzy" content="maxDifference=0-32; totalPixels=32">
+<style>
+  a {
+    display: block;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    filter: drop-shadow(0px 0px 0px currentColor) url(#dispmap);
+  }
+  a:link {
+    color: green;
+  }
+  a:visited {
+    color: red;
+  }
+</style>
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+  <filter id="dispmap" color-interpolation-filters="sRGB">
+    <feDisplacementMap in="SourceGraphic" in2="SourceGraphic"
+                       xChannelSelector="R" scale="200"/>
+  </filter>
+</svg>
+<a href="https://example.com/"></a>

@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<title>mathml:annotation-xml and fragment parsing</title>
+<link rel="help" href="https://issues.chromium.org/513859894">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<math>
+  <annotation-xml id="noenc"></annotation-xml>
+  <annotation-xml id="enchtml" encoding="application/xhtml+xml"></annotation-xml>
+</math>
+
+<script>
+  "use strict";
+
+  const noenc = document.getElementById("noenc");
+  const enchtml = document.getElementById("enchtml");
+
+  const HTML_NS = "http://www.w3.org/1999/xhtml";
+  const MATH_NS = "http://www.w3.org/1998/Math/MathML";
+
+  test(() => {
+    noenc.innerHTML = "<style><img></style>";
+    assert_equals(noenc.namespaceURI, MATH_NS, "<annotation-xml> namespace");
+    assert_equals(noenc.childNodes.length, 2, "<annotation-xml> child count");
+    assert_equals(noenc.firstChild.namespaceURI, MATH_NS, "<annotation-xml> first child namespace");
+    assert_equals(noenc.firstChild.localName, "style", "<annotation-xml> first child localName");
+    assert_equals(noenc.firstChild.childNodes.length, 0, "<annotation-xml> first child child count");
+    assert_equals(noenc.firstChild.nextSibling.namespaceURI, HTML_NS, "<annotation-xml> second child namespace");
+    assert_equals(noenc.firstChild.nextSibling.localName, "img", "<annotation-xml> second child localName");
+    assert_equals(noenc.firstChild.nextSibling.childNodes.length, 0, "<annotation-xml> second child child count");
+  }, `HTML parsing doesn't apply in <annotation-xml> without encoding attribute`);
+
+  test(() => {
+    enchtml.innerHTML = "<style><img></style>";
+    assert_equals(enchtml.namespaceURI, MATH_NS, "<annotation-xml> namespace");
+    assert_equals(enchtml.childNodes.length, 1, "<annotation-xml> child count");
+    assert_equals(enchtml.firstChild.namespaceURI, HTML_NS, "<annotation-xml> child namespace");
+    assert_equals(enchtml.firstChild.childNodes.length, 1, "<annotation-xml> child's child count");
+    assert_equals(enchtml.firstChild.childNodes[0].nodeType, Node.TEXT_NODE, "<annotation-xml> grandchild node type");
+  }, `HTML parsing does apply in <annotation-xml encoding="application/xhtml+xml">`);
+
+</script>

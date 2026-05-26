@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/513834016">
+<title>TouchEvent retargeting does not leak closed shadow root nodes to window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #host {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+
+<div id="host">
+  <template shadowrootmode="closed">
+    <div id="closed-inner" style="width: 100%; height: 100%; background: blue;"></div>
+  </template>
+</div>
+
+<script>
+promise_test(async () => {
+  const host = document.getElementById('host');
+
+  let windowCaptureTarget = null;
+  let windowCaptureTouchTarget = null;
+
+  const listener = function(e) {
+    windowCaptureTarget = e.target;
+    if (e.changedTouches.length > 0) {
+      windowCaptureTouchTarget = e.changedTouches[0].target;
+    }
+  };
+
+  window.addEventListener('touchstart', listener, { capture: true });
+
+  // Use test_driver to touch the center of the host element
+  await new test_driver.Actions()
+    .addPointer("touch_pointer", "touch")
+    .pointerMove(0, 0, {origin: host})
+    .pointerDown()
+    .pointerUp()
+    .send();
+
+  window.removeEventListener('touchstart', listener, { capture: true });
+
+  assert_equals(windowCaptureTarget, host, "Event target should be retargeted to host");
+  assert_equals(windowCaptureTouchTarget, host, "Touch target should be retargeted to host");
+}, "TouchEvent retargeting does not leak closed shadow root nodes to window during capture phase");
+</script>

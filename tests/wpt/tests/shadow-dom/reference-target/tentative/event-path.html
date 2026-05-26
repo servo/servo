@@ -459,6 +459,66 @@ test((t) => {
 }, "beforetoggle event propagates to source's shadow tree only; target in deeper shadow root");
 </script>
 
+<x-component id="outerG2">
+<template shadowRootMode="open">
+    <button id="button" popovertarget="middleG2">Toggle</button>
+    <x-component id="middleG2">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerG2">
+        <x-component id="innerG2">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+            <div id="targetDiv" popover></div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerG2 = document.getElementById("outerG2");
+    const button = outerG2.shadowRoot.getElementById("button");
+    const middleG2 = outerG2.shadowRoot.getElementById("middleG2");
+    const innerG2 = middleG2.shadowRoot.getElementById("innerG2");
+    const targetDiv = innerG2.shadowRoot.getElementById("targetDiv");
+    let targetDivToggleEventCount = 0;
+    let middleG2ToggleEventCount = 0;
+
+    outerG2.addEventListener("beforetoggle", (e) => {
+        assert_unreached("beforetoggle event should not fire on outer component.");
+    }, {once: true});
+
+    innerG2.addEventListener("beforetoggle", (e) => {
+        assert_unreached("beforetoggle event should not fire on inner component.");
+    }, {once: true});
+
+    targetDiv.addEventListener("beforetoggle", (e) => {
+        targetDivToggleEventCount++;
+        assert_true(e instanceof ToggleEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+    }, {once: true});
+
+    middleG2.addEventListener("beforetoggle", (e) => {
+        middleG2ToggleEventCount++;
+        assert_true(e instanceof ToggleEvent);
+        assert_equals(e.target, middleG2,
+                "target for event listener on middleG2 is middleG2");
+        assert_equals(e.source, button,
+                "source for event listener on middleG2 is button");
+    }, {once: true});
+
+    targetDiv.showPopover({source: button});
+    assert_equals(targetDivToggleEventCount, 1, "beforetoggle handler on targetDiv should have been called");
+    assert_equals(middleG2ToggleEventCount, 1, "beforetoggle handler on middleG2 should have been called");
+    t.add_cleanup(() => {
+        if (targetDiv.matches(':popover-open')) targetDiv.hidePopover();
+    });
+}, "beforetoggle event propagates to source's shadow tree only; target in deeper shadow root; showPopover called directly with source option");
+</script>
+
 <x-component id="outerH">
 <template shadowRootMode="open">
     <button id="button" popovertarget="middleH">Toggle</button>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+// Triggers a navigation to `navigateTo` and posts to the parent once the
+// navigate event has fired, so the parent can inspect the iframe's state
+// while the navigation is still in flight.
+const navigateTo =
+    new URLSearchParams(location.search).get('navigateTo');
+
+addEventListener('load', () => {
+  navigation.addEventListener('navigate', (event) => {
+    if (event.destination.url !== navigateTo) return;
+    parent.postMessage({ navigateEventFired: true }, '*');
+  }, { once: true });
+  location.href = navigateTo;
+});
+</script>

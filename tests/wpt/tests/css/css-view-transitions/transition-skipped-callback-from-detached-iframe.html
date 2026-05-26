@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View transitions: callback from detached iframe</title>
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+  let iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+
+  // Create a function in the iframe.
+  let fn = iframe.contentWindow.Function("");
+
+  // Detach the iframe, invalidating its context.
+  iframe.remove();
+
+  // Start a transition in the main document with the callback from the detached iframe.
+  let transition = document.startViewTransition(fn);
+
+  // Skip the transition. This synchronously schedules InvokeDOMChangeCallback.
+  transition.skipTransition();
+
+  // Catch expected rejections to prevent unhandled rejection failures.
+  transition.ready.catch(() => {});
+  transition.updateCallbackDone.catch(() => {});
+
+  // Wait for finished promise to reject.
+  try {
+    await transition.finished;
+    assert_unreached("finished promise should have rejected");
+  } catch (e) {
+    assert_equals(e.name, "AbortError", "finished promise should reject with AbortError");
+  }
+}, "Using a callback from a detached iframe should not crash");
+</script>
+</body>
+</html>

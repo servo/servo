@@ -8,19 +8,21 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
 
-  <circle id="circle-at-origin" r="10" fill="blue"/>
-  <ellipse id="ellipse" cx="150" cy="150" rx="200" ry="100"
-           fill="blue" fill-opacity="0.1"
-           stroke-width="100" stroke="green" stroke-opacity="0.2"/>
-  <rect id="basic-rectangle" x="90" y="200" width="100" height="100" fill="lightblue"/>
-  <path id="rectangular-outline-evenodd" d="M200,200h100v100h-100z m20,20h60v60h-60z"
-        fill="lightblue" fill-rule="evenodd"/>
-  <path id="rectangular-outline-nonzero" d="M310,200h100v100h-100z m20,20h60v60h-60z"
-        fill="lightblue"/>
-  <clipPath>
-    <path id="rectangular-outline-nonzero-in-clip" d="M200,200h100v100h-100z m20,20h60v60h-60z"
-          fill="lightblue" clip-rule="evenodd"/>
-  </clipPath>
+  <g id="container">
+    <circle id="circle-at-origin" r="10" fill="blue"/>
+    <ellipse id="ellipse" cx="150" cy="150" rx="200" ry="100"
+             fill="blue" fill-opacity="0.1"
+             stroke-width="100" stroke="green" stroke-opacity="0.2"/>
+    <rect id="basic-rectangle" x="90" y="200" width="100" height="100" fill="lightblue"/>
+    <path id="rectangular-outline-evenodd" d="M200,200h100v100h-100z m20,20h60v60h-60z"
+          fill="lightblue" fill-rule="evenodd"/>
+    <path id="rectangular-outline-nonzero" d="M310,200h100v100h-100z m20,20h60v60h-60z"
+          fill="lightblue"/>
+    <clipPath>
+      <path id="rectangular-outline-nonzero-in-clip" d="M200,200h100v100h-100z m20,20h60v60h-60z"
+            fill="lightblue" clip-rule="evenodd"/>
+    </clipPath>
+  </g>
 
   <script><![CDATA[
     'use strict';
@@ -74,6 +76,16 @@
     test(function() {
       testPoints(document.getElementById("ellipse"));
     }, document.title + ", functional test.");
+
+    test(function() {
+      const container = document.getElementById("container");
+      try {
+        container.style.zoom = 3;
+        testPoints(document.getElementById("ellipse"));
+      } finally {
+        container.style.zoom = 1;
+      }
+    }, document.title + ", functional test with zoom.");
 
     test(function() {
       const circleAtOrigin = document.getElementById("circle-at-origin");

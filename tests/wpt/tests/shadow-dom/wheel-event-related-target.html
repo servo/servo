@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="author" href="mailto:dbaron@chromium.org">
+<link rel="help" href="https://crbug.com/328662546">
+<link rel="help" href="https://crbug.com/513796307">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #container {
+    overflow: scroll;
+    height: 100px;
+  }
+</style>
+
+<body>
+<div id="container">Scrolling container
+  <div id="height: 20px; background: blue;"></div>
+  <div id="host">
+    <template shadowrootmode="open">
+      <div id=doNotExposeThisNode style="height: 200px; background: fuchsia;"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+promise_test(async t => {
+  const container = document.getElementById('container');
+  const host = document.getElementById('host');
+
+  let reachedHost = new Promise(resolve => {
+    container.addEventListener('wheel', t.step_func(e => {
+      if (container.scrollTop < 10) {
+        assert_equals(e.relatedTarget, container, "relatedTarget before mouse is over shadow host");
+      } else {
+        // We're testing that this is the host and not a node in the shadow tree!
+        // NOTE: WheelEvent.relatedTarget support doesn't appear to be
+        // implemented, but if it is it should be retargeted.
+        assert_equals(e.relatedTarget, host, "relatedTarget once mouse is over shadow host");
+        resolve();
+      }
+    }))
+  });
+
+  await new test_driver.Actions().scroll(10, 10, 0, 5, { origin: container }).scroll(10, 10, 0, 10, { origin: container }).scroll(10, 10, 0, 5, { origin: container }).send();
+  await reachedHost;
+}, "wheel relatedTarget should be retargeted to shadow host when entering shadow DOM");
+</script>
+</body>

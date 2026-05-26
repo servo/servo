@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text: justification expansion around CJK Unified Ideographs Extensions B–I</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#expanding-text">
+<meta name="assert" content="Codepoints from CJK Unified Ideographs Extensions B (U+20000), C (U+2A700), D (U+2B740), E (U+2B820), F (U+2CEB0), I (U+2EBF0), G (U+30000), and H (U+31350) must produce the same justification expansion behavior as U+4E00.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.box, .ref {
+    width: 400px;
+    font: 36px/1.4 serif;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.box { text-align: justify; text-align-last: justify; }
+.ref { text-align: left; }
+</style>
+</head>
+<body>
+
+<div class="box" id="box-4E00">一一一一一一</div>
+<div class="ref" id="ref-4E00">一一一一一一</div>
+
+<div class="box" id="box-20000">&#x20000;&#x20000;&#x20000;&#x20000;&#x20000;&#x20000;</div>
+<div class="ref" id="ref-20000">&#x20000;&#x20000;&#x20000;&#x20000;&#x20000;&#x20000;</div>
+
+<div class="box" id="box-2A700">&#x2A700;&#x2A700;&#x2A700;&#x2A700;&#x2A700;&#x2A700;</div>
+<div class="ref" id="ref-2A700">&#x2A700;&#x2A700;&#x2A700;&#x2A700;&#x2A700;&#x2A700;</div>
+
+<div class="box" id="box-2B740">&#x2B740;&#x2B740;&#x2B740;&#x2B740;&#x2B740;&#x2B740;</div>
+<div class="ref" id="ref-2B740">&#x2B740;&#x2B740;&#x2B740;&#x2B740;&#x2B740;&#x2B740;</div>
+
+<div class="box" id="box-2B820">&#x2B820;&#x2B820;&#x2B820;&#x2B820;&#x2B820;&#x2B820;</div>
+<div class="ref" id="ref-2B820">&#x2B820;&#x2B820;&#x2B820;&#x2B820;&#x2B820;&#x2B820;</div>
+
+<div class="box" id="box-2CEB0">&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;</div>
+<div class="ref" id="ref-2CEB0">&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;&#x2CEB0;</div>
+
+<div class="box" id="box-2EBF0">&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;</div>
+<div class="ref" id="ref-2EBF0">&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;&#x2EBF0;</div>
+
+<div class="box" id="box-30000">&#x30000;&#x30000;&#x30000;&#x30000;&#x30000;&#x30000;</div>
+<div class="ref" id="ref-30000">&#x30000;&#x30000;&#x30000;&#x30000;&#x30000;&#x30000;</div>
+
+<div class="box" id="box-31350">&#x31350;&#x31350;&#x31350;&#x31350;&#x31350;&#x31350;</div>
+<div class="ref" id="ref-31350">&#x31350;&#x31350;&#x31350;&#x31350;&#x31350;&#x31350;</div>
+
+<script>
+function expansionDelta(codepoint) {
+    function span(element) {
+        var range = document.createRange();
+        range.selectNodeContents(element);
+        return range.getBoundingClientRect().right - element.getBoundingClientRect().left;
+    }
+    var box = document.getElementById("box-" + codepoint);
+    var ref = document.getElementById("ref-" + codepoint);
+    return span(box) - span(ref);
+}
+
+function expands(codepoint) {
+    return expansionDelta(codepoint) > 2;
+}
+
+var baseExpands = expands("4E00");
+
+var extensions = [
+    { name: "B", codepoint: "20000" },
+    { name: "C", codepoint: "2A700" },
+    { name: "D", codepoint: "2B740" },
+    { name: "E", codepoint: "2B820" },
+    { name: "F", codepoint: "2CEB0" },
+    { name: "I", codepoint: "2EBF0" },
+    { name: "G", codepoint: "30000" },
+    { name: "H", codepoint: "31350" },
+];
+
+extensions.forEach(function(ext) {
+    test(function() {
+        assert_equals(expands(ext.codepoint), baseExpands,
+            "Extension " + ext.name + " (U+" + ext.codepoint + ") must match U+4E00 expansion behavior");
+    }, "CJK Unified Ideographs Extension " + ext.name + " (U+" + ext.codepoint + ") justifies like U+4E00");
+});
+
+document.querySelectorAll(".box, .ref").forEach(function(node) {
+    node.style.display = "none";
+});
+</script>
+</body>
+</html>
