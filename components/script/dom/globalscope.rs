@@ -2149,6 +2149,27 @@ impl GlobalScope {
             },
             BlobData::File(f) => {
                 if set_valid {
+                    // File blobs with cached byte data (converted from Memory)
+                    // need a unique UUID per URL.createObjectURL call.
+                    if let Some(cached_bytes) = f.get_cache() {
+                        let new_id = Uuid::new_v4();
+                        let origin = self.origin().immutable();
+                        let blob_buf = BlobBuf {
+                            filename: None,
+                            type_string: blob_info.blob_impl.type_string(),
+                            size: cached_bytes.len() as u64,
+                            bytes: cached_bytes,
+                        };
+                        let msg = FileManagerThreadMsg::PromoteMemory(
+                            new_id,
+                            blob_buf,
+                            true,
+                            origin.clone(),
+                        );
+                        self.send_to_file_manager(msg);
+                        return new_id;
+                    }
+
                     let origin = self.origin().immutable();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
