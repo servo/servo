@@ -30,7 +30,7 @@ use url::Host;
 use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
-use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };

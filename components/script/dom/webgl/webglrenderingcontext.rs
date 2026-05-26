@@ -263,7 +263,6 @@ impl WebGLRenderingContext {
         size: Size2D<u32>,
         ctx_data: WebGLCreateContextResult,
     ) -> WebGLRenderingContext {
-        let canvas = HTMLCanvasElementOrOffscreenCanvas::from(canvas);
         let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
         let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
         WebGLRenderingContext {
@@ -271,7 +270,7 @@ impl WebGLRenderingContext {
             webgl_version,
             glsl_version: ctx_data.glsl_version,
             limits: ctx_data.limits,
-            canvas,
+            canvas: HTMLCanvasElementOrOffscreenCanvas::from(canvas),
             last_error: Cell::new(None),
             texture_packing_alignment: Cell::new(4),
             texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
@@ -307,7 +306,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
         window: &Window,
