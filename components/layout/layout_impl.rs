@@ -1023,11 +1023,11 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
-        let mut removed_nodes_for_accessibility = None;
+        let mut removed_nodes_for_accessibility_integrity_check = None;
         if pref!(accessibility_enabled) && pref!(expensive_accessibility_test_assertions_enabled) {
             let mut accessibility_tree = self.accessibility_tree.borrow_mut();
             if let Some(accessibility_tree) = accessibility_tree.as_mut() {
-                removed_nodes_for_accessibility = Some(
+                removed_nodes_for_accessibility_integrity_check = Some(
                     accessibility_tree
                         .take_recently_removed_opaque_nodes()
                         .into_iter()
@@ -1044,7 +1044,7 @@ impl LayoutThread {
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
             reflow_statistics,
-            removed_nodes_for_accessibility,
+            removed_nodes_for_accessibility_integrity_check,
         })
     }
 

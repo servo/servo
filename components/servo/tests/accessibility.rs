@@ -460,10 +460,11 @@ fn test_accessibility_with_mutation_move_nodes() {
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
     assert_eq!(div2.role(), Role::GenericContainer);
 
+    // use both moveBefore and appendChild to exercise the different ways nodes move.
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "div1.moveBefore(h1,null); div2.moveBefore(h2,null);\
+        "div1.moveBefore(h1,null); div2.appendChild(h2);\
          window.ServoTestUtils.forceAccessibilityUpdate();",
     );
 

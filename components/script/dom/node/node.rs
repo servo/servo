@@ -4367,6 +4367,19 @@ impl VirtualMethods for Node {
         self.owner_doc().content_and_heritage_changed(self);
     }
 
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
+
+        // Only unroot the node now if we're going to run the integrity check, which will fail if
+        // the node is still in [`AccessibilityData::rooted_nodes`] when the check is run. If the
+        // check is disabled, the node will be unrooted after the next reflow anyway.
+        if pref!(accessibility_enabled) && pref!(expensive_accessibility_test_assertions_enabled) {
+            self.owner_document()
+                .accessibility_data_mut()
+                .unroot_node_for_accessibility(cx.no_gc(), self);
+        }
+    }
+
     // This handles the ranges mentioned in steps 2-3 when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
@@ -4383,6 +4396,7 @@ impl VirtualMethods for Node {
 
         if pref!(accessibility_enabled) {
             self.owner_document()
+                .accessibility_data_mut()
                 .root_removed_node_for_accessibility(cx.no_gc(), self);
         }
     }
