@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -62,6 +62,7 @@ pub(crate) struct GPUTexture {
     format: GPUTextureFormat,
     texture_usage: u32,
     droppable: DroppableGPUTexture,
+    default_view: MutNullableDom<GPUTextureView>,
 }
 
 impl GPUTexture {
@@ -89,6 +90,7 @@ impl GPUTexture {
             format,
             texture_usage,
             droppable: DroppableGPUTexture { channel, texture },
+            default_view: MutNullableDom::new(None),
         }
     }
 
@@ -167,6 +169,15 @@ impl GPUTexture {
             descriptor.parent.label.clone(),
             can_gc,
         ))
+    }
+
+    pub(crate) fn get_default_view(&self) -> WebGPUTextureView {
+        self.default_view
+            .or_init(|| {
+                self.CreateView(&GPUTextureViewDescriptor::default())
+                    .expect("Default descriptor should always be valid.")
+            })
+            .id()
     }
 }
 

@@ -5,9 +5,7 @@
 use std::borrow::Cow;
 use std::num::NonZeroU64;
 
-use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUTextureMethods as _, GPUTextureViewDescriptor,
-};
+use webgpu_traits::WebGPUTextureView;
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command as wgpu_com;
 use wgpu_core::pipeline::ProgrammableStageDescriptor;
@@ -25,6 +23,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUStoreOp, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
+use crate::dom::bindings::codegen::UnionTypes::GPUTextureOrGPUTextureView;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::types::GPUDevice;
 
@@ -669,6 +668,15 @@ impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
     }
 }
 
+impl Convert<WebGPUTextureView> for &GPUTextureOrGPUTextureView {
+    fn convert(self) -> WebGPUTextureView {
+        match self {
+            GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
+            GPUTextureOrGPUTextureView::GPUTexture(texture) => texture.get_default_view(),
+        }
+    }
+}
+
 impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
     fn convert(self) -> BindGroupEntry<'a> {
         BindGroupEntry {
@@ -676,12 +684,9 @@ impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
             resource: match self.resource {
                 GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
                 GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
-                GPUBindingResource::GPUTexture(ref t) => BindingResource::TextureView(
-                    t.CreateView(&GPUTextureViewDescriptor::default())
-                        .expect("Default descriptor should always be valid.")
-                        .id()
-                        .0,
-                ),
+                GPUBindingResource::GPUTexture(ref t) => {
+                    BindingResource::TextureView(t.get_default_view().0)
+                },
                 GPUBindingResource::GPUBufferBinding(ref b) => {
                     BindingResource::Buffer(BufferBinding {
                         buffer: b.buffer.id().0,

@@ -197,7 +197,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                     store_op: ds.stencilStoreOp.as_ref().map(Convert::convert),
                     read_only: ds.stencilReadOnly,
                 },
-                view: ds.view.id().0,
+                view: ds.view.convert().0,
             }
         });
 
@@ -206,7 +206,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .iter()
             .map(|color| -> Fallible<_> {
                 Ok(Some(wgpu_com::RenderPassColorAttachment {
-                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                    resolve_target: color.resolveTarget.as_ref().map(|t| t.convert().0),
                     load_op: convert_load_op(
                         &color.loadOp,
                         color
@@ -217,7 +217,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                             .unwrap_or_default(),
                     ),
                     store_op: color.storeOp.convert(),
-                    view: color.view.id().0,
+                    view: color.view.convert().0,
                     depth_slice: None,
                 }))
             })
