@@ -89,7 +89,16 @@ pub(crate) struct DowncastableActorArc<T> {
 impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        self.actor.actor_as_any().downcast_ref::<T>().unwrap()
+        self.actor
+            .actor_as_any()
+            .downcast_ref::<T>()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Failed to downcast {} to type {}",
+                    self.actor.name(),
+                    type_name::<T>()
+                )
+            })
     }
 }
 
