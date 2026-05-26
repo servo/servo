@@ -14,7 +14,7 @@ use std::{fmt, slice, str};
 
 use html5ever::{LocalName, Namespace};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::gc::MutableHandleValue;
+use js::gc::{HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSContext, JSString};
 use js::jsval::StringValue;
 use js::rust::{Runtime, Trace};
@@ -26,7 +26,6 @@ use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 use zeroize::Zeroize;
 
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::trace::RootedTraceableBox;
 
 const ASCII_END: u8 = 0x7E;
@@ -316,10 +315,10 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     pub fn from_js_string(
-        cx: SafeJSContext,
-        value: js::gc::HandleValue,
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
     ) -> Result<DOMString, DOMStringErrorType> {
-        let string_ptr = unsafe { js::rust::ToString(*cx, value) };
+        let string_ptr = unsafe { js::rust::ToString(cx.raw_cx(), value) };
         if string_ptr.is_null() {
             debug!("ToString failed");
             Err(DOMStringErrorType::JSConversionError)
@@ -331,7 +330,7 @@ impl DOMString {
             } else {
                 // We need to convert the string anyway as it is not just latin1
                 DOMStringType::Rust(unsafe {
-                    jsstr_to_string(*cx, ptr::NonNull::new(string_ptr).unwrap())
+                    jsstr_to_string(cx.raw_cx(), ptr::NonNull::new(string_ptr).unwrap())
                 })
             };
             Ok(DOMString(RefCell::new(inner)))
