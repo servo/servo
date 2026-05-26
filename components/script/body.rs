@@ -421,7 +421,14 @@ impl ExtractedBody {
         let task_source = global.task_manager().networking_task_source();
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
-        let in_memory = stream.get_in_memory_bytes();
+        // Empty extracted bodies are always representable as an in-memory empty payload.
+        let in_memory = stream.get_in_memory_bytes().or_else(|| {
+            if total_bytes == Some(0) {
+                Some(GenericSharedMemory::from_bytes(&[]))
+            } else {
+                None
+            }
+        });
 
         let net_source = match source {
             BodySource::Null => NetBodySource::Null,

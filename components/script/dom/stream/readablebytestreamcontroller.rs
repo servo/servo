@@ -864,41 +864,43 @@ impl ReadableByteStreamController {
             return Ok(());
         }
 
-        // If controller.[[pendingPullIntos]] is not empty,
-        let pending_pull_intos = self.pending_pull_intos.borrow();
-        if !pending_pull_intos.is_empty() {
-            // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
-            let first_pending_pull_into = pending_pull_intos.first().unwrap();
+        {
+            // If controller.[[pendingPullIntos]] is not empty,
+            let pending_pull_intos = self.pending_pull_intos.borrow();
+            if !pending_pull_intos.is_empty() {
+                // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
+                let first_pending_pull_into = pending_pull_intos.first().unwrap();
 
-            // If the remainder after dividing firstPendingPullInto’s bytes filled by
-            // firstPendingPullInto’s element size is not 0,
-            if !first_pending_pull_into
-                .bytes_filled
-                .get()
-                .is_multiple_of(first_pending_pull_into.element_size)
-            {
-                // needed to drop the borrow and avoid BorrowMutError
-                drop(pending_pull_intos);
+                // If the remainder after dividing firstPendingPullInto’s bytes filled by
+                // firstPendingPullInto’s element size is not 0,
+                if !first_pending_pull_into
+                    .bytes_filled
+                    .get()
+                    .is_multiple_of(first_pending_pull_into.element_size)
+                {
+                    // needed to drop the borrow and avoid BorrowMutError
+                    drop(pending_pull_intos);
 
-                // Let e be a new TypeError exception.
-                let e = Error::Type(
-                    c"remainder after dividing firstPendingPullInto's bytes
+                    // Let e be a new TypeError exception.
+                    let e = Error::Type(
+                        c"remainder after dividing firstPendingPullInto's bytes
                     filled by firstPendingPullInto's element size is not 0"
-                        .to_owned(),
-                );
+                            .to_owned(),
+                    );
 
-                // Perform ! ReadableByteStreamControllerError(controller, e).
-                rooted!(&in(cx) let mut error = UndefinedValue());
-                e.clone().to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    error.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
-                self.error(cx, error.handle());
+                    // Perform ! ReadableByteStreamControllerError(controller, e).
+                    rooted!(&in(cx) let mut error = UndefinedValue());
+                    e.clone().to_jsval(
+                        cx.into(),
+                        &self.global(),
+                        error.handle_mut(),
+                        CanGc::from_cx(cx),
+                    );
+                    self.error(cx, error.handle());
 
-                // Throw e.
-                return Err(e);
+                    // Throw e.
+                    return Err(e);
+                }
             }
         }
 
@@ -1490,6 +1492,39 @@ impl ReadableByteStreamController {
         // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] + byteLength.
         self.queue_total_size
             .set(self.queue_total_size.get() + byte_length as f64);
+    }
+
+    pub(crate) fn in_memory(&self) -> bool {
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return false;
+        };
+        underlying_source.in_memory()
+    }
+
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+        let underlying_source = self.underlying_source.get()?;
+        if !underlying_source.in_memory() {
+            return None;
+        }
+
+        let cx = GlobalScope::get_cx();
+        self.queue.borrow().iter().try_fold(
+            Vec::with_capacity(self.queue_total_size.get() as usize),
+            |mut bytes, entry| {
+                let mut chunk = vec![0; entry.byte_length];
+                entry
+                    .buffer
+                    .copy_data_to(
+                        cx,
+                        &mut chunk,
+                        entry.byte_offset,
+                        entry.byte_offset + entry.byte_length,
+                    )
+                    .ok()?;
+                bytes.extend(chunk);
+                Some(bytes)
+            },
+        )
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-shift-pending-pull-into>

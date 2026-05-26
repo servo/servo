@@ -20,7 +20,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
-use js::typedarray::ArrayBufferViewU8;
+use js::typedarray::{ArrayBufferViewU8, Uint8};
 use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
@@ -68,7 +68,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
 
-use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource, create_buffer_source};
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
@@ -983,6 +983,22 @@ impl ReadableStream {
         Ok(stream)
     }
 
+    /// <https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support>
+    pub(crate) fn new_from_bytes_with_byte_reading_support(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        bytes: Vec<u8>,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
+            cx,
+            global,
+            UnderlyingSourceType::Memory(bytes.len()),
+        )?;
+        stream.enqueue_native(cx, bytes);
+        stream.controller_close_native(cx);
+        Ok(stream)
+    }
+
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
     pub(crate) fn new_with_external_underlying_source(
@@ -1000,6 +1016,19 @@ impl ReadableStream {
             CanGc::from_cx(cx),
         );
         controller.setup(cx, stream.clone())?;
+        Ok(stream)
+    }
+
+    /// <https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support>
+    pub(crate) fn new_with_external_underlying_byte_source(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        source: UnderlyingSourceType,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        assert!(source.is_native());
+        let stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let controller = ReadableByteStreamController::new(source, 0.0, global, CanGc::from_cx(cx));
+        controller.setup(cx, global, stream.clone())?;
         Ok(stream)
     }
 
@@ -1107,18 +1136,37 @@ impl ReadableStream {
         }
     }
 
-    /// Endpoint to enqueue chunks directly from Rust.
-    /// Note: in other use cases this call happens via the controller.
+    /// <https://streams.spec.whatwg.org/#readablestream-enqueue>
     pub(crate) fn enqueue_native(&self, cx: &mut JSContext, bytes: Vec<u8>) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .enqueue_native(cx, bytes),
+            Some(ControllerType::Byte(controller)) => {
+                if bytes.is_empty() {
+                    return;
+                }
+
+                let controller = controller.get().expect("Stream should have controller.");
+                rooted!(&in(cx) let mut chunk_object = ptr::null_mut::<JSObject>());
+                create_buffer_source::<Uint8>(
+                    cx.into(),
+                    &bytes,
+                    chunk_object.handle_mut(),
+                    CanGc::from_cx(cx),
+                )
+                .expect("failed to create buffer source for native byte chunk.");
+
+                let chunk = RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(Heap::boxed(*chunk_object.handle())),
+                ));
+                controller
+                    .enqueue(cx, chunk)
+                    .expect("Enqueuing a native byte chunk should not fail.");
+            },
             _ => {
-                unreachable!(
-                    "Enqueueing chunk to a stream from Rust on other than default controller"
-                );
+                unreachable!("Enqueueing chunk to a stream from Rust without a controller");
             },
         }
     }
@@ -1185,7 +1233,7 @@ impl ReadableStream {
     }
 
     /// Call into the controller's `Close` method.
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    /// <https://streams.spec.whatwg.org/#readablestream-close>
     pub(crate) fn controller_close_native(&self, cx: &mut JSContext) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => {
@@ -1194,8 +1242,14 @@ impl ReadableStream {
                     .expect("Stream should have controller.")
                     .Close(cx);
             },
+            Some(ControllerType::Byte(controller)) => {
+                let _ = controller
+                    .get()
+                    .expect("Stream should have controller.")
+                    .close(cx);
+            },
             _ => {
-                unreachable!("Native closing is only done on default controllers.")
+                unreachable!("Native closing requires a stream controller.")
             },
         }
     }
@@ -1208,11 +1262,11 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .in_memory(),
-            _ => {
-                unreachable!(
-                    "Checking if source is in memory for a stream with a non-default controller"
-                )
-            },
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .in_memory(),
+            _ => unreachable!("Checking if source is in memory for a stream without a controller"),
         }
     }
 
@@ -1226,9 +1280,13 @@ impl ReadableStream {
                 .get_in_memory_bytes()
                 .as_deref()
                 .map(GenericSharedMemory::from_bytes),
-            _ => {
-                unreachable!("Getting in-memory bytes for a stream with a non-default controller")
-            },
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .get_in_memory_bytes()
+                .as_deref()
+                .map(GenericSharedMemory::from_bytes),
+            _ => unreachable!("Getting in-memory bytes for a stream without a controller"),
         }
     }
 
