@@ -626,6 +626,7 @@ pub struct ReflowResult {
     /// finished before reaching this stage of the layout. I.e., no update
     /// required.
     pub iframe_sizes: Option<IFrameSizes>,
+    pub removed_nodes_for_accessibility: Option<Vec<UntrustedNodeAddress>>,
 }
 
 bitflags! {
