@@ -328,6 +328,42 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertIn("from", response)
 
+    def test_console_eval_does_not_pause_again_while_already_paused(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            console_actor = devtools.targets[0]["consoleActor"]
+
+            # Stop at the breakpoint in end()
+            def trigger():
+                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", 5, 16)
+
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
+
+            eval_result = Future()
+            nested_pause = Future()
+
+            devtools.client.add_event_listener(
+                console_actor, Events.WebConsole.EVALUATION_RESULT, eval_result.set_result
+            )
+            devtools.client.add_event_listener(thread_actor, "paused", nested_pause.set_result)
+            devtools.client.send_receive(
+                {
+                    "to": console_actor,
+                    "type": "evaluateJSAsync",
+                    "text": "end()",
+                    "frameActor": paused_data["frame"]["actor"],
+                }
+            )
+
+            # The console evaluation should not pause again
+            time.sleep(0.5)
+            self.assertFalse(nested_pause.done())
+            eval_result.result(2)
+
+            # Clean up by resuming from the original pause
+            devtools.client.send_receive({"to": thread_actor, "type": "resume"})
+
     def test_manual_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
