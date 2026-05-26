@@ -83,8 +83,8 @@ stdenv.mkDerivation (androidEnvironment // {
   buildInputs = [
     # Native dependencies
     fontconfig freetype libunwind
-    xorg.libxcb
-    xorg.libX11
+    libxcb
+    libx11
 
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
@@ -146,7 +146,7 @@ stdenv.mkDerivation (androidEnvironment // {
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
     # Fixes missing library errors
-    wayland xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
+    wayland libxcursor libxrandr libxi libxkbcommon
 
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
