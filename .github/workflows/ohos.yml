@@ -77,7 +77,7 @@ jobs:
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.2.4
+        uses: openharmony-rs/setup-ohos-sdk@v1.0.0
         with:
           version: "6.0.0.1" # api 20 in openharmony
           fixup-path: true

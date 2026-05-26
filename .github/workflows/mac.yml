@@ -144,7 +144,7 @@ jobs:
           ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
@@ -163,7 +163,7 @@ jobs:
         # if unit-tests were supposed to run, and not if they were skipped (e.g., due
         # to an earlier failure).
         if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           report_type: test_results
           files: target/nextest/ci/junit.xml
@@ -176,7 +176,7 @@ jobs:
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Run DMG smoketest
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
@@ -239,13 +239,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

@@ -190,7 +190,7 @@ jobs:
         # if unit-tests were supposed to run, and not if they were skipped (e.g., due
         # to an earlier failure).
         if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           report_type: test_results
           files: target/nextest/ci/junit.xml
@@ -255,13 +255,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -370,7 +370,7 @@ jobs:
               --llvm-cov-option=--codecov \
               --llvm-cov-option=--output-path=codecov.json
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json,support/crown/codecov.json
@@ -382,13 +382,13 @@ jobs:
     if: ${{ inputs.unit-tests }}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
