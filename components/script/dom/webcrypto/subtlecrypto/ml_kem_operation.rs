@@ -747,13 +747,13 @@ pub(crate) fn import_key(
 
             // Step 2.5. If the alg field of jwk is not one of the alg values corresponding to the
             // name member of normalizedAlgorithm indicated in Section 8 of
-            // [draft-ietf-jose-pqc-kem-01] (Figure 1 or 2), then throw a DataError.
+            // [draft-ietf-jose-pqc-kem-05] (Figure 1 or 2), then throw a DataError.
             match normalized_algorithm.name {
                 CryptoAlgorithm::MlKem512 => {
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM512" && alg != "MLKEM512-AES128KW")
+                        .is_none_or(|alg| alg != "ML-KEM-512" && alg != "ML-KEM-512-AES128KW")
                     {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".to_string(),
@@ -764,7 +764,7 @@ pub(crate) fn import_key(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM768" && alg != "MLKEM768-AES192KW")
+                        .is_none_or(|alg| alg != "ML-KEM-768" && alg != "ML-KEM-768-AES192KW")
                     {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".to_string(),
@@ -775,7 +775,7 @@ pub(crate) fn import_key(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM1024" && alg != "MLKEM1024-AES256KW")
+                        .is_none_or(|alg| alg != "ML-KEM-1024" && alg != "ML-KEM-1024-AES256KW")
                     {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".to_string(),
@@ -1126,14 +1126,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.kty = Some(DOMString::from("AKP"));
 
             // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
-            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
+            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-05]
             // (Figure 1).
             //
             // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
             let alg = match key_algorithm.name {
-                CryptoAlgorithm::MlKem512 => "MLKEM512",
-                CryptoAlgorithm::MlKem768 => "MLKEM768",
-                CryptoAlgorithm::MlKem1024 => "MLKEM1024",
+                CryptoAlgorithm::MlKem512 => "ML-KEM-512",
+                CryptoAlgorithm::MlKem768 => "ML-KEM-768",
+                CryptoAlgorithm::MlKem1024 => "ML-KEM-1024",
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-KEM algorithm",
