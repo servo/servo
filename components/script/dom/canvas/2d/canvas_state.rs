@@ -33,6 +33,7 @@ use servo_canvas_traits::canvas::{
 use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
+use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
@@ -2556,6 +2557,7 @@ impl UnshapedTextRun<'_> {
             numeric: FontVariantNumeric::NORMAL,
             east_asian: FontVariantEastAsian::NORMAL,
             feature_settings: FontFeatureSettings::normal(),
+            position: FontVariantPosition::Normal,
         };
 
         let glyphs = font.shape_text(self.string, &options);
