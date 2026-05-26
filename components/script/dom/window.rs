@@ -2720,7 +2720,7 @@ impl Window {
         document.update_animations_post_reflow();
 
         if pref!(accessibility_enabled) {
-            document.unroot_nodes_for_accessibility();
+            document.unroot_nodes_for_accessibility(reflow_result.removed_nodes_for_accessibility);
         }
 
         (

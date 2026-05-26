@@ -49,6 +49,7 @@ pub struct AccessibilityTree {
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
+    recently_removed_opaque_nodes: Vec<OpaqueNode>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -93,6 +94,7 @@ impl AccessibilityTree {
             root_node_id: None,
             epoch,
             debug: opts::get().debug.clone(),
+            recently_removed_opaque_nodes: vec![],
         }
     }
 
@@ -110,6 +112,10 @@ impl AccessibilityTree {
         self.update_node_and_descendants(root_dom_node, &mut update);
 
         update.finalize(self)
+    }
+
+    pub(super) fn take_recently_removed_opaque_nodes(&mut self) -> Vec<OpaqueNode> {
+        std::mem::take(&mut self.recently_removed_opaque_nodes)
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -536,15 +542,23 @@ impl AccessibilityUpdate {
             return None;
         }
 
+        // This field should be taken after each update, if it's being used.
+        assert!(tree.recently_removed_opaque_nodes.is_empty());
+
         for (id, change) in self.tree_changes.drain() {
             match change {
                 TreeChange::New => {
                     let _ = tree.assert_node_for_id(id);
                 },
                 TreeChange::Removed => {
-                    let Some(_) = tree.remove_node(id) else {
+                    let Some(node) = tree.remove_node(id) else {
                         panic!("Removed node with id {id:?} not found in tree");
                     };
+                    if pref!(expensive_accessibility_test_assertions_enabled) &&
+                        let Some(opaque_node) = node.borrow().opaque_node
+                    {
+                        tree.recently_removed_opaque_nodes.push(opaque_node);
+                    }
                 },
                 TreeChange::PendingMove => {
                     unreachable!(

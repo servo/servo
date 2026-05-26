@@ -23,6 +23,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
+    UntrustedNodeAddress,
 };
 use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
@@ -48,7 +49,7 @@ use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -145,6 +146,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
+use crate::dom::from_untrusted_node_address;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -301,7 +303,7 @@ impl PendingScrollEvent {
 struct AccessibilityData {
     /// Nodes which have been unbound from the DOM but may not yet have been removed from the
     /// accessibility tree. This is cleared after each reflow.
-    rooted_nodes: Vec<Dom<Node>>,
+    rooted_nodes: FxHashSet<DomRoot<Node>>,
 }
 
 /// Reasons why a [`Document`] might need a rendering update that is otherwise
@@ -3406,14 +3408,30 @@ impl Document {
 
         let mut accessibility_data = self.accessibility_data_mut();
         let rooted_nodes = &mut accessibility_data.rooted_nodes;
-        rooted_nodes.push(Dom::from_ref(node_to_root));
+        rooted_nodes.insert(DomRoot::from_ref(node_to_root));
     }
 
     /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`].
-    pub(crate) fn unroot_nodes_for_accessibility(&self) {
+    #[expect(unsafe_code)]
+    pub(crate) fn unroot_nodes_for_accessibility(
+        &self,
+        removed_nodes: Option<Vec<UntrustedNodeAddress>>,
+    ) {
         assert!(pref!(accessibility_enabled));
 
         let mut accessibility_data = self.accessibility_data_mut();
+
+        if let Some(removed_nodes) = removed_nodes {
+            assert!(pref!(expensive_accessibility_test_assertions_enabled));
+            for address in removed_nodes {
+                unsafe {
+                    let removed_node = from_untrusted_node_address(address);
+                    accessibility_data.rooted_nodes.remove(&removed_node);
+                }
+            }
+            assert!(accessibility_data.rooted_nodes.is_empty());
+        }
+
         accessibility_data.rooted_nodes.clear();
     }
 }
