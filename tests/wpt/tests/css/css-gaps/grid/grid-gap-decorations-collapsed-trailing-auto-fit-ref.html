@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 100px 100px 100px;
+    /* Two explicit row tracks. Same rendered geometry as the test's
+       `100px 100px repeat(auto-fit, 100px)` after the trailing auto-fit
+       tracks collapse. */
+    grid-template-rows: 100px 100px;
+    gap: 10px;
+    width: 320px;
+    height: 430px;
+    align-content: start;
+
+    row-rule: 6px solid red;
+    row-rule-visibility-items: around;
+    rule-inset: 0px;
+  }
+
+  .item {
+    width: 100%;
+    height: 100%;
+    background: lightgray;
+    opacity: 0.8;
+  }
+</style>
+<div class="grid">
+  <div class="item" style="grid-column: 1 / 4; grid-row: 1 / 2"></div>
+  <div class="item" style="grid-column: 1 / 4; grid-row: 2 / 3"></div>
+</div>

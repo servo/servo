@@ -1,7 +1,14 @@
 <!DOCTYPE html>
+
+<html class="reftest-wait">
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Intersection observer with cross-origin iframe and tall viewport</title>
 <link rel="match" href="cross-origin-tall-iframe-rendering-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
 <style>
 :root { scrollbar-width: none }
 
@@ -16,9 +23,31 @@ iframe {
   outline: 1px solid;
 }
 </style>
+
 <div class="spacer"></div>
-<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4" sandbox="allow-scripts"></iframe>
+<iframe id="iframe" sandbox="allow-scripts"></iframe>
 <div class="spacer"></div>
+
 <script>
-document.querySelector("iframe").scrollIntoView({ block: "end" });
+  function loadFrame() {
+    return new Promise(resolve => {
+      // It's possible the iframe finishes loading before the listener is installed.
+      // So install it first before loading the iframe (by setting its src)
+      window.addEventListener("message", resolve, { once: true });
+      iframe.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4";
+    });
+  }
+
+  onload = async () => {
+    await loadFrame();
+
+    document.querySelector("iframe").scrollIntoView({ block: "end" });
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    takeScreenshot();
+  };
 </script>
+
+</html>

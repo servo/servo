@@ -493,7 +493,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         try:
             while not self.close_connection:
                 data = self.request.recv(window_size)
-                if data == '':
+                if data == b'':
                     self.logger.debug('(%s) Socket Closed' % self.uid)
                     self.close_connection = True
                     continue
@@ -524,6 +524,10 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
         except OSError as e:
             self.logger.error(f'({self.uid}) Closing Connection - \n{str(e)}')
+            if not self.close_connection:
+                self.close_connection = True
+        except ProtocolError as e:
+            self.logger.debug(f'H2 protocol error - {str(e)}')
             if not self.close_connection:
                 self.close_connection = True
         except Exception as e:

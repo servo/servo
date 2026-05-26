@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage with scaling, in a worker thread.</title>
+<meta charset="utf-8" />
+<link rel="help" href="https://github.com/WICG/html-in-canvas" />
+<link rel="match" href="scale-worker-ref.html" />
+<link rel="stylesheet" href="/html/canvas/resources/draw-element-image-styles.css" />
+<script src="/html/canvas/resources/color-grid-component.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  body {
+    display: grid;
+    grid: 256px / 1fr 1fr 1fr;
+    align-items: start;
+  }
+
+  canvas {
+    width: 256px;
+    height: 256px;
+  }
+
+  color-grid {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper">
+    <div class="css-is-awesome"></div>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper" xscale="1" yscale="1">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper" xscale="0.5" yscale="0.5">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper" xscale="2" yscale="2">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper" xscale="2" yscale="0.5">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<script type="module">
+  import { resizeToPixelGrid, computeScaledDestinationSize } from "/html/canvas/resources/draw-element-image-utils.js";
+
+  const workerCode = `
+    let ctx;
+    self.onmessage = function(e) {
+      if (e.data.canvas) {
+        ctx = e.data.canvas.getContext('2d');
+      }
+      if (e.data.elementImage) {
+        if (e.data.args.length === 4) {
+          ctx.drawElementImage(e.data.elementImage,
+            e.data.args[0], e.data.args[1], e.data.args[2], e.data.args[3]);
+        } else {
+          ctx.drawElementImage(e.data.elementImage,
+            e.data.args[0], e.data.args[1]);
+        }
+        self.postMessage('done');
+      }
+    };
+  `;
+  const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+
+  (async () => {
+    const worker = new Worker(workerUrl);
+    for (const cvs of document.querySelectorAll("canvas")) {
+      await resizeToPixelGrid(cvs);
+      await new Promise(setTimeout);
+      const target = cvs.firstElementChild;
+
+      let args = [];
+      if (target.hasAttribute("xscale") && target.hasAttribute("yscale")) {
+        const scaleX = Number.parseFloat(target.getAttribute("xscale"));
+        const scaleY = Number.parseFloat(target.getAttribute("yscale"));
+        const [destWidth, destHeight] =
+          computeScaledDestinationSize(cvs, target, scaleX, scaleY);
+        args = [0, 0, destWidth, destHeight];
+      } else {
+        args = [0, 0];
+      }
+
+      const offscreen = cvs.transferControlToOffscreen();
+      worker.postMessage({ canvas: offscreen }, [offscreen]);
+
+      await new Promise(resolve => {
+        worker.onmessage = () => {
+          resolve();
+        };
+        const elementImage = cvs.captureElementImage(target);
+        worker.postMessage({ elementImage: elementImage, args: args }, [elementImage]);
+      });
+    }
+  })().then(async () => {
+    // Wait for the worker thread to update before taking a screenshot.
+    await waitForCanvasPaint(document.querySelector("canvas"));
+    takeScreenshot();
+  });
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage paints CSS reference filters</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="match" href="css-filter-reference-on-div-ref.html">
+  <meta name="assert" value="A div with a CSS filter referencing SVG paints with the filter.">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background: red;
+    }
+    div {
+      width: 100px;
+      height: 100px;
+      background: red;
+      filter: url('#filter-green');
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id="child"></div>
+  </canvas>
+
+  <svg width="1px" height="1px">
+    <filter id="filter-green">
+      <feFlood flood-color="green" />
+    </filter>
+  </svg>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

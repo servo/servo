@@ -23,8 +23,13 @@
 
 function test_focus_fixup(selector, change, expectSync = false) {
   promise_test(async function(t) {
-    // Make sure we're not running from a ResizeObserver / etc notification.
-    await new Promise(r => t.step_timeout(r, 0));
+    // Make sure we're not running from a ResizeObserver / etc notification, and
+    // that the document is rendering already.
+    await new Promise(r => {
+      requestAnimationFrame(() => {
+        t.step_timeout(r, 0);
+      });
+    });
 
     const el = document.querySelector(selector);
     el.focus();

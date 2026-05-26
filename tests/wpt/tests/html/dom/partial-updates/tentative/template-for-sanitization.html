@@ -48,12 +48,12 @@
       const element = placeholder.cloneNode(true);
       const html_before = element.innerHTML;
       element.setHTMLUnsafe(
-        '<?marker name=p><template for="p">New content</template>',
+        '<?marker name="p"><template for="p">New content</template>',
         {
           sanitizer: { removeElements: ["template"] },
         },
       );
-      assert_equals(element.innerHTML, "<?marker name=p?>");
+      assert_equals(element.innerHTML, '<?marker name="p"?>');
     }, "<template for> is sanitized away with removeElements in a fragment");
 
     promise_test(async (t) => {
@@ -61,14 +61,14 @@
       const element = placeholder.cloneNode(true);
       const html_before = element.innerHTML;
       element.setHTMLUnsafe(
-        '<?marker name=p><template for="p">New content</template>',
+        '<?marker name="p"><template for="p">New content</template>',
         {
           sanitizer: { removeAttributes: ["for"] },
         },
       );
       assert_equals(
         element.innerHTML,
-        "<?marker name=p?><template>New content</template>",
+        '<?marker name="p"?><template>New content</template>',
       );
     }, "<template for> attribute is sanitized away with removeAttributes in a fragment");
   </script>

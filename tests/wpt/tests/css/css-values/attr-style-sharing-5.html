@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="attr-style-sharing-5-ref.html">
+<style>
+  li::marker {
+    content: attr(icon, "* ");
+  }
+</style>
+<ul>
+  <li id="bullet" icon="@ ">Has icon attribute</li>
+  <li>Fallback icon</li>
+</ul>

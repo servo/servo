@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Video controls hit test order</title>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.case { height: 100px }
+video, .target { display: inline-block; width: 100px; height: 100px }
+.overlap { margin-left: -100px }
+</style>
+
+<section class="case">
+  <video controls></video>
+  <div id="div-on-top" class="target overlap"></div>
+</section>
+<section class="case">
+  <div class="target"></div>
+  <video id="video-on-top" class="overlap" controls></video>
+</section>
+
+<script>
+function assertHit(expected_id) {
+  const expected = document.getElementById(expected_id);
+  const { x, y } = expected.getBoundingClientRect();
+  assert_equals(document.elementFromPoint(x + 1, y + 1), expected);
+}
+
+test(
+  () => { assertHit("div-on-top") },
+  "A later normal-flow sibling is hit-tested above video controls");
+
+test(
+  () => { assertHit("video-on-top") },
+  "Video controls are hit-tested above an earlier normal-flow sibling");
+</script>

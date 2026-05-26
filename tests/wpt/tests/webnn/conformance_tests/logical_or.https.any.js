@@ -409,6 +409,116 @@ const logicalOrTests = [
         }
       }
     }
+  },
+  {
+    'name': 'logicalOr uint8 broadcast 4D to 5D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'uint8'}
+        },
+        'inputB': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'logicalOr',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'logicalOr uint8 5D and broadcastable 4D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'uint8'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'logicalOr',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'logicalOr uint8 broadcasting two 5D inputs with a leading batch size of 1',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'uint8'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'logicalOr',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // 5D inputs whose broadcast roles alternate on every axis so no adjacent
+    // axes can be collapsed; exercises the explicit BROADCAST_TO + flatten
+    // fallback path.
+    'name': 'logicalOr uint8 5D inputs with alternating broadcast axes',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 1, 2], dataType: 'uint8'}
+        },
+        'inputB': {
+          'data': [1, 1, 0, 0],
+          'descriptor': {shape: [1, 2, 1, 2, 1], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'logicalOr',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
   }
 ];
 

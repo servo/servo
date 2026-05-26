@@ -206,6 +206,15 @@
   fuzzy_test_computed_color(`hsl(from rebeccapurple calc((h / 360) * 360deg) calc((s / 100) * 100%) calc((l / 100) * 100%) / calc(alpha * 100%))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hsl(from rebeccapurple h s calc(50% * l / 100))`, `color(srgb 0.2 0.1 0.3)`);
 
+  // Component keywords resolve to <number>.
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(sin(l)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(asin(sin(l))) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(clamp(0, l, 50)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * 1) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * (50rad / 50)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * (50rad / (50deg * (180 / pi)))) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+
   // Alpha is clamped to [0,1]
   fuzzy_test_computed_color(`hsl(from hsl(from rebeccapurple h s l / calc(alpha + 0.5)) h s l / calc(alpha - 0.5))`, `color(srgb 0.4 0.2 0.6 / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(from rebeccapurple h s l / calc(alpha - 1.5)) h s l / calc(alpha + 0.5))`, `color(srgb 0.4 0.2 0.6 / 0.5)`);

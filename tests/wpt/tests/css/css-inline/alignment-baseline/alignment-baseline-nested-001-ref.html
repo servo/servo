@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <style>
+    :root {
+      font: 240px/1 'BaselineDiagnostic';
+    }
+
+    #container {
+      position: relative;
+    }
+
+    span > span {
+      font-size: 0.5em;
+      position: absolute;
+    }
+
+    /* Position the target text span using its font metrics to match baselines */
+    .hanging      { inset-block-start: calc((1rem - 0.5rem) * var(--baseline-diagnostic-hanging)); }
+    .ideographic  { inset-block-start: calc((0.5rem - 0.25rem) * var(--baseline-diagnostic-ideographic-under)); }
+    .mathematical { inset-block-start: calc((0.25rem - 0.125rem) * var(--baseline-diagnostic-math)); }
+    .baseline     { inset-block-start: calc((0.125rem - 0.0625rem) * var(--baseline-diagnostic-alphabetic)); }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <span>X<span class="hanging">X<span class="ideographic">X<span class="mathematical">X<span class="baseline">X</span></span></span></span></span>
+  </div>
+</body>
+</html>

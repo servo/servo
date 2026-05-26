@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Canvas descendant text should be selectable</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=target>hello world</div>
+</canvas>
+
+<script>
+  promise_test(async () => {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(target, 0, 0);
+
+    let doubleClickEventFired = false;
+    canvas.addEventListener('dblclick', () => {
+      doubleClickEventFired = true;
+    });
+
+    assert_equals(document.getSelection().anchorNode, null,
+        'Selection should start empty.');
+    assert_false(doubleClickEventFired);
+
+    // Double click on the canvas.
+    await new test_driver.Actions()
+      .pointerMove(5, 5, { origin: canvas })
+      .pointerDown()
+      .pointerUp()
+      .pause(10 /* ms */)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_true(doubleClickEventFired, 'dblclick event should be fired.');
+    assert_equals(document.getSelection().anchorNode, target.firstChild,
+        '#target text should be selected by double-click.');
+  }, 'Double-clicking on canvas should be able to modify selection.');
+</script>
+</html>

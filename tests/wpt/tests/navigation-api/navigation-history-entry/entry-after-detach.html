@@ -12,7 +12,7 @@ async_test(t => {
     assert_not_equals(i_entry.id, "");
     i.remove();
     assert_false(i_entry.sameDocument);
-    assert_equals(i_entry.url, null);
+    assert_equals(i_entry.url, "");
     assert_equals(i_entry.key, "");
     assert_equals(i_entry.id, "");
   });

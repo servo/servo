@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw sandboxed same-origin iframes</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 100px;
+    height: 200px;
+    background: green;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  #sandboxedSameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <iframe id=sameOrigin width=100 height=100 src="https://{{location[host]}}/html/canvas/element/manual/draw-element-image/privacy/support/iframe-blue.html"></iframe>
+      <iframe id=sandboxedSameOrigin width=100 height=100 src="https://{{location[host]}}/html/canvas/element/manual/draw-element-image/privacy/support/sandboxed-iframe-red.html"></iframe>
+    </div>
+  </canvas>
+
+  <script>
+    let sPendingIframesToLoad = 2;
+
+    function pendingIframeLoaded() {
+      if (!--sPendingIframesToLoad) {
+        promise_test(async function(t) {
+          await waitForCanvasPaint(canvas);
+
+          const context = canvas.getContext("2d");
+          context.drawElementImage(child, 0, 0);
+
+          // Fetch all pixel data once to avoid multiple slow readbacks.
+          const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+          // Same-origin iframe should be drawn.
+          let pixel = _getPixelFromImageData(imgData, 50, 50);
+          assert_array_equals(pixel, [0, 0, 255, 255], "Same origin should draw");
+
+          // Sandboxed same-origin iframe should NOT be drawn.
+          // We should see the green background of the parent div.
+          pixel = _getPixelFromImageData(imgData, 50, 150);
+          assert_array_equals(pixel, [0, 128, 0, 255], "Sandboxed same-origin should not draw");
+        }, "drawElementImage should ignore sandboxed same-origin iframes");
+      }
+    }
+
+    sameOrigin.onload = pendingIframeLoaded;
+    sandboxedSameOrigin.onload = pendingIframeLoaded;
+  </script>
+</body>
+</html>

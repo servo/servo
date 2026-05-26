@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=baseline">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    :root {
+      font: 200px/1 'BaselineDiagnostic';
+    }
+
+    #container {
+      writing-mode: vertical-rl;
+      position: relative;
+    }
+
+    img {
+      position: absolute;
+      inset-inline-start: calc(1rem);
+      width: 100px;
+      height: 100px;
+
+      /* Visualize block start/end margins */
+      box-shadow:
+        inset -10px 0px black,
+        inset 30px 0px 0px black;
+
+      --offset-synthesized-under: calc(100px - 30px);
+      --offset-synthesized-over: calc(0px + 10px);
+      --offset-synthesized-middle: calc((var(--offset-synthesized-under) + var(--offset-synthesized-over)) / 2);
+    }
+
+    /**
+     * Position the image (atomic inline) using its synthesized baselines, factoring in the expected
+     * block start and end margins (-10px and -30px, respectively):
+     * - Line-under: text-bottom, alphabetic, ideographic, baseline (in horizontal writing modes)
+     * - Midpoint: central, mathematical, baseline (in vertical writing modes)
+     * - Line-over: text-top, hanging
+     */
+    .baseline     img { inset-block-start: calc(1rem * var(--baseline-diagnostic-central) - var(--offset-synthesized-middle)); }
+    .text-bottom  img { inset-block-start: calc(1rem * var(--baseline-diagnostic-descent) - var(--offset-synthesized-under)); }
+    .alphabetic   img { inset-block-start: calc(1rem * var(--baseline-diagnostic-alphabetic) - var(--offset-synthesized-under)); }
+    .ideographic  img { inset-block-start: calc(1rem * var(--baseline-diagnostic-ideographic-under) - var(--offset-synthesized-under)); }
+    .middle       img { inset-block-start: calc(1rem * var(--baseline-diagnostic-x-middle) - var(--offset-synthesized-middle)); }
+    .central      img { inset-block-start: calc(1rem * var(--baseline-diagnostic-central) - var(--offset-synthesized-middle)); }
+    .mathematical img { inset-block-start: calc(1rem * var(--baseline-diagnostic-math) - var(--offset-synthesized-middle)); }
+    .hanging      img { inset-block-start: calc(1rem * var(--baseline-diagnostic-hanging) - var(--offset-synthesized-over)); }
+    .text-top     img { inset-block-start: calc(1rem * var(--baseline-diagnostic-ascent) - var(--offset-synthesized-over)); }
+  </style>
+</head>
+<body>
+  <span id="container">X<img src="/images/checkerboard.svg"></span>
+</body>
+</html>

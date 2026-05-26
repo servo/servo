@@ -70,6 +70,8 @@ test_valid_value('width', 'random(property-index-scoped element-scoped , 0px, 10
                           'random(element-scoped ua-width-1, 0px, 100px, 3px)');
 test_valid_value('width', 'random(--foo property-index-scoped element-scoped , 0px, 100px, 3px)',
                           'random(--foo element-scoped ua-width-1, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--\\{ element-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(element-scoped ua-\\{, 0px, 100px, 3px)');
 
 // Test consistent types
 test_valid_value('width', 'random(--foo, 10px, 20%)');

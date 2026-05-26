@@ -11,9 +11,11 @@
 </head>
 <body>
 <script>
-test_valid_value("max-lines", 'none');
+test_valid_value("max-lines", 'auto');
 test_valid_value("max-lines", '1');
 test_valid_value("max-lines", '6');
+test_valid_value("max-lines", '7 auto');
+test_valid_value("max-lines", 'auto 8', '8 auto');
 </script>
 </body>
 </html>

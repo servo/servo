@@ -46,6 +46,11 @@ components:
     vars:
       test-type: test262
 
+  wpt-aamtest:
+    chunks: 1
+    vars:
+      test-type: aamtest
+
   run-options:
     options:
       xvfb: true
@@ -397,11 +402,13 @@ tasks:
                   of ${chunks.total}), run in the ${vars.channel} release of
                   ${vars.browser}.
 
-  # print-reftest are currently only supported by Chrome and Firefox.
+  # print-reftest amd aamtest are currently only supported by Chrome and Firefox.
   - $map:
       for:
         - vars:
             suite: print-reftest
+        - vars:
+            suite: aamtest
       do:
         $map:
           for:

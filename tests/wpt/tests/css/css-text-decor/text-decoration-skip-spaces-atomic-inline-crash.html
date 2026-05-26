@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-skip-spaces with atomic inline crash test</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<meta name="assert" content="text-decoration-skip-spaces should not crash when adjacent inline leaves include atomic inlines (images, inline-blocks)">
+<style>
+span {
+  text-decoration: underline;
+  text-decoration-skip-spaces: all;
+}
+</style>
+</head>
+<body>
+<p><span>hello <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="10" height="10"> world</span></p>
+</body>
+</html>

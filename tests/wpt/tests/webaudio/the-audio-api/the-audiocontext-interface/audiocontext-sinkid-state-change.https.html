@@ -16,13 +16,18 @@ promise_setup(async t => {
   const deviceList = await navigator.mediaDevices.enumerateDevices();
   outputDeviceList =
       deviceList.filter(({kind}) => kind === 'audiooutput');
-  assert_greater_than(outputDeviceList.length, 1,
-                      'the system must have more than 1 device.');
-  firstDeviceId = outputDeviceList[1].deviceId;
+  if (outputDeviceList.length > 1) {
+    firstDeviceId = outputDeviceList[1].deviceId;
+  }
 }, 'Get permission via getUserMedia() and a list of audio output devices.');
 
 // Test the sink change when from a suspended context.
 promise_test(async t => {
+  // At least one non-default audio output device is required to test
+  // setSinkId().
+  if (outputDeviceList.length <= 1) {
+    return;
+  }
   let events = [];
   const audioContext = new AudioContext();
   await audioContext.suspend();

@@ -104,13 +104,11 @@
     const auto = getPopovers()[1];
     hint.showPopover();
     assertState([true,false]);
-    assert_throws_dom('InvalidStateError', () => {
-      auto.showPopover();
-    });
-    assertState([true,false]);
+    auto.showPopover();
+    assertState([true,true]);
     hint.hidePopover();
-    assertState([false,false]);
-  },'If a popover=auto is shown, it should hide any open popover=hint, including if the popover=hint is an ancestral popover of the popover=auto. (You can\'t nest a popover=auto inside a popover=hint)');
+    assertState([false,false], 'closing the parent hint should close downgraded, nested auto');
+    },'Opening an auto popover inside a hint popover is allowed and it downgrades to hint.');
   </script>
 </div>
 
@@ -129,9 +127,9 @@
     assertState([true,true,false]);
     hint.showPopover(); // This should NOT hide auto2, since hint doesn't close unrelated autos.
     assertState([true,true,true]);
-    auto.hidePopover(); // Should hide both auto and hint.
+    auto.hidePopover(); // Hiding an auto hides its descendant hint stack.
     assertState([false,false,false]);
-  },'If you: a) show a popover=auto (call it D), then b) show a descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (A popover=hint can be nested inside a popover=auto)');
+  },'If you: a) show a popover=auto (call it D), then b) show a descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (A popover=hint gets hidden when its ancestral popover=auto is hidden)');
   </script>
 </div>
 
@@ -140,7 +138,7 @@
   <div popover=hint>Non-Nested hint</div>
   <script>
   test(() => {
-    const auto = getPopovers()[0]
+    const auto = getPopovers()[0];
     const hint = getPopovers()[1];
     auto.showPopover();
     hint.showPopover();
@@ -149,6 +147,30 @@
     assertState([false,true]);
     hint.hidePopover();
     assertState([false,false]);
-  },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should not be hidden. (Non-nested popover=hint are not hidden when unrelated popover=autos are hidden)');
+    },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should stay open. (Non-nested popover=hint does not get hidden when unrelated popover=autos are hidden)');
+  </script>
+</div>
+
+<div>
+  <div popover>Auto
+    <div popover>Auto2</div>
+    <div popover=hint>Hint</div>
+    <div popover>Auto3</div>
+  </div>
+  <script>
+  test(() => {
+    const auto1 = getPopovers()[0];
+    const auto2 = getPopovers()[1];
+    const hint1 = getPopovers()[2];
+    const auto3 = getPopovers()[3];
+    auto1.showPopover();
+    auto2.showPopover();
+    hint1.showPopover();
+    const events = [];
+    auto2.addEventListener("beforetoggle", (e) => { if (e.newState === "closed") events.push("auto"); });
+    hint1.addEventListener("beforetoggle", (e) => { if (e.newState === "closed") events.push("hint"); });
+    auto3.showPopover();
+    assert_array_equals(events, ["hint", "auto"], "Hint should be hidden before Auto");
+  },"When showing an auto popover, hint popovers should be closed before auto popovers.");
   </script>
 </div>

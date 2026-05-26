@@ -17,7 +17,7 @@
       },
     ).observe(document.getElementById("placeholder"), { childList: true });
   </script>
-  Some<?start name=n>text <span id="remove">remove</span><?end>
+  Some<?start name="n">text <span id="remove">remove</span><?end>
 </div>
 <template for="n"><span>content</span></template>
 <script>
@@ -27,7 +27,7 @@
     assert_array_equals(window.mutation_observer_records[0].map(
       r => `added [${stringify(r.addedNodes)}] removed [${stringify(r.removedNodes)}]`),
     ["added [3:#text:'Some'] removed []",
-     "added [7:start:'name=n'] removed []",
+     "added [7:start:'name=\"n\"'] removed []",
      "added [3:#text:'text'] removed []",
      "added [1:SPAN:'remove'] removed []",
      "added [7:end:''] removed []",
@@ -35,7 +35,7 @@
      "added [] removed [3:#text:'text']",
      "added [] removed [1:SPAN:'remove']",
      "added [1:SPAN:'content'] removed []",
-     "added [] removed [7:start:'name=n']",
+     "added [] removed [7:start:'name=\"n\"']",
      "added [] removed [7:end:'']"]);
   });
 </script>

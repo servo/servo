@@ -111,5 +111,95 @@ promise_test(async t => {
   assert_true('SpeculationNavigationData' in window,
     "SpeculationNavigationData should exist as a global interface");
 }, "SpeculationNavigationData interface exists");
+
+promise_test(async t => {
+  // Add a speculation rule, then remove it, and verify the navigation
+  // entry persists (sent candidates are accumulated and never removed).
+  const prefetchUrl = new URL('/common/blank.html?remove_test',
+                              location.href).href;
+
+  const script = document.createElement('script');
+  script.type = 'speculationrules';
+  script.textContent = JSON.stringify({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'eager',
+      tag: 'to-remove'
+    }]
+  });
+  document.head.appendChild(script);
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  let data = performance.getSpeculations();
+  let nav = data.navigations.find(n => n.url === prefetchUrl);
+  assert_not_equals(nav, undefined,
+    "Navigation should exist before removal");
+
+  // Remove the speculation rules script element.
+  script.remove();
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  data = performance.getSpeculations();
+  nav = data.navigations.find(n => n.url === prefetchUrl);
+  assert_not_equals(nav, undefined,
+    "Navigation should persist after removing the speculation rules");
+}, "Navigations persist after speculation rules are removed");
+
+promise_test(async t => {
+  // Add a speculation rule, then replace it with a modified version.
+  // Both the original and updated navigation entries should be present,
+  // since sent candidates are accumulated and never removed.
+  const prefetchUrl = new URL('/common/blank.html?modify_test',
+                              location.href).href;
+
+  const script = document.createElement('script');
+  script.type = 'speculationrules';
+  script.textContent = JSON.stringify({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'eager',
+      tag: 'original-tag'
+    }]
+  });
+  document.head.appendChild(script);
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  let data = performance.getSpeculations();
+  let nav = data.navigations.find(
+    n => n.url === prefetchUrl && n.tags && n.tags.includes('original-tag'));
+  assert_not_equals(nav, undefined,
+    "Navigation with original tag should exist");
+
+  // Remove the original and add a new rule with a different tag.
+  script.remove();
+
+  const script2 = document.createElement('script');
+  script2.type = 'speculationrules';
+  script2.textContent = JSON.stringify({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'moderate',
+      tag: 'updated-tag'
+    }]
+  });
+  document.head.appendChild(script2);
+  t.add_cleanup(() => script2.remove());
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  data = performance.getSpeculations();
+  nav = data.navigations.find(
+    n => n.url === prefetchUrl && n.tags && n.tags.includes('original-tag'));
+  assert_not_equals(nav, undefined,
+    "Navigation with original tag should persist after modification");
+
+  nav = data.navigations.find(
+    n => n.url === prefetchUrl && n.tags && n.tags.includes('updated-tag'));
+  assert_not_equals(nav, undefined,
+    "Navigation with updated tag should also exist");
+}, "Navigations persist and accumulate after speculation rules are modified");
 </script>
 </body>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) as a background-image layer</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-layered-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    margin: 4px;
+    background-color: red;
+  }
+  /* The first listed background-image paints on top, so an opaque
+     image(green) fully covers the lower image(red) layer. */
+  .opaque-top {
+    background-image: image(green), image(red);
+  }
+  /* image(transparent) on top lets the lower image(green) layer show through. */
+  .transparent-top {
+    background-image: image(transparent), image(green);
+  }
+</style>
+<p>Test passes if there are two green squares below.</p>
+<div class="opaque-top"></div>
+<div class="transparent-top"></div>

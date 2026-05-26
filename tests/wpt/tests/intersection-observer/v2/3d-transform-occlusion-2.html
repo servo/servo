@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+  }
+  #scene {
+    transform: translateX(0px);
+    transform-style: preserve-3d;
+  }
+  /* #target is at z=1 */
+  #target {
+    transform: translateZ(1px);
+    background: red;
+  }
+  /* #occluder is at z=2, in front of target */
+  #occluder {
+    transform: translateZ(2px);
+    background: blue;
+  }
+</style>
+<div id="scene">
+  <div id="target"></div>
+  <div id="occluder"></div>
+</div>
+
+<script>
+  setup({ single_test: true });
+  const target = document.getElementById("target");
+  new IntersectionObserver(entries => {
+    assert_false(entries[0].isVisible);
+    done();
+  }, {trackVisibility: true, delay: 100}).observe(target);
+</script>

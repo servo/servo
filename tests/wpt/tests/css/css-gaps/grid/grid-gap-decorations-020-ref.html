@@ -15,18 +15,33 @@
 
         column-gap: 10px;
         row-gap: 10px;
-
-        column-rule-color: pink;
-        column-rule-style: dotted;
-        column-rule-width: 10px;
-
-        row-rule-color: green;
-        row-rule-style: ridge;
-        row-rule-width: 10px;
     }
 
     .grid-item {
         background: skyblue;
+    }
+
+    .col-rule {
+        margin: 0px;
+        padding: 0px;
+        width: 0px;
+        height: 110px;
+        border-right: 10px dotted;
+        border-color: pink;
+        position: absolute;
+        left: 50px;
+        top: 0px;
+    }
+
+    .row-rule {
+        margin: 0px;
+        padding: 0px;
+        height: 0px;
+        width: 110px;
+        border-bottom: 10px ridge;
+        border-color: green;
+        position: absolute;
+        top: 50px;
     }
 </style>
 <div class="grid-container">
@@ -35,3 +50,5 @@
     <div class="grid-item"></div>
     <div class="grid-item"></div>
 </div>
+<div class="col-rule"></div>
+<div class="row-rule"></div>

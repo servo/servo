@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.modify() character granularity in bidi text</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style>
+  #container div { font: 16px monospace; }
+</style>
+
+<div id="container">
+  <!-- [Hello World           ] -->
+  <div id="pure-ltr" dir="ltr">Hello World</div>
+  <!-- [           مرحبا عالم] -->
+  <div id="pure-rtl" dir="rtl">&#x0645;&#x0631;&#x062D;&#x0628;&#x0627; &#x0639;&#x0627;&#x0644;&#x0645;</div>
+  <!-- [אבגדהו                ] -->
+  <div id="rtl-in-ltr" dir="ltr">&#x05D0;&#x05D1;&#x05D2;&#x05D3;&#x05D4;&#x05D5;</div>
+  <!-- [           Hello World] -->
+  <div id="ltr-in-rtl" dir="rtl">Hello World</div>
+  <!-- [Hello אבגדהו World    ] -->
+  <div id="mixed-ltr" dir="ltr">Hello &#x05D0;&#x05D1;&#x05D2;&#x05D3;&#x05D4;&#x05D5; World</div>
+  <!-- [    Hello World אבגדהו] -->
+  <div id="mixed-auto" dir="auto">&#x05D0;&#x05D1;&#x05D2;&#x05D3;&#x05D4;&#x05D5; Hello World</div>
+</div>
+
+<script>
+const selection = getSelection();
+
+function runTest(divId, count, direction, startOffset, endOffset, name) {
+  test(() => {
+    const div = document.getElementById(divId);
+    selection.collapse(div.firstChild, startOffset);
+    for (let i = 0; i < count; i++) {
+      selection.modify("move", direction, "character");
+    }
+    assert_equals(selection.focusOffset, endOffset);
+  }, name);
+}
+
+// Move in logical direction forward/backward
+
+runTest("pure-ltr", 2, "forward", 3, 5,
+  "LTR text in LTR paragraph: move forward 2 chars");
+runTest("pure-ltr", 2, "backward", 5, 3,
+  "LTR text in LTR paragraph: move backward 2 chars");
+
+runTest("pure-rtl", 2, "forward", 2, 4,
+  "RTL text in RTL paragraph: move forward 2 chars");
+runTest("pure-rtl", 2, "backward", 4, 2,
+  "RTL text in RTL paragraph: move backward 2 chars");
+
+runTest("rtl-in-ltr", 2, "forward", 2, 4,
+  "RTL text in LTR paragraph: move forward 2 chars");
+runTest("rtl-in-ltr", 2, "backward", 4, 2,
+  "RTL text in LTR paragraph: move backward 2 chars");
+
+runTest("ltr-in-rtl", 2, "forward", 3, 5,
+  "LTR text in RTL paragraph: move forward 2 chars");
+runTest("ltr-in-rtl", 2, "backward", 5, 3,
+  "LTR text in RTL paragraph: move backward 2 chars");
+
+runTest("mixed-ltr", 3, "forward", 4, 7,
+  "LTR-RTL context in LTR paragraph: move forward 3 chars");
+runTest("mixed-ltr", 3, "backward", 11, 8,
+  "LTR-RTL context in LTR paragraph: move backward 3 chars");
+runTest("mixed-ltr", 3, "forward", 7, 10,
+  "RTL-LTR context in LTR paragraph: move forward 3 chars");
+runTest("mixed-ltr", 3, "backward", 14, 11,
+  "RTL-LTR context in LTR paragraph: move backward 3 chars");
+
+runTest("mixed-auto", 3, "forward", 5, 8,
+  "Mixed context in auto-dir paragraph: move forward 3 chars");
+runTest("mixed-auto", 3, "backward", 17, 14,
+  "Mixed context in auto-dir paragraph: move backward 3 chars");
+
+// Move in true visual direction left/right
+
+runTest("pure-ltr", 2, "right", 3, 5,
+  "LTR text in LTR paragraph: move right 2 chars");
+runTest("pure-ltr", 2, "left", 5, 3,
+  "LTR text in LTR paragraph: move left 2 chars");
+
+runTest("pure-rtl", 2, "right", 4, 2,
+  "RTL text in RTL paragraph: move right 2 chars");
+runTest("pure-rtl", 2, "left", 2, 4,
+  "RTL text in RTL paragraph: move left 2 chars");
+
+runTest("rtl-in-ltr", 2, "right", 4, 2,
+  "RTL text in LTR paragraph: move right 2 chars");
+runTest("rtl-in-ltr", 2, "left", 2, 4,
+  "RTL text in LTR paragraph: move left 2 chars");
+
+runTest("ltr-in-rtl", 2, "right", 3, 5,
+  "LTR text in RTL paragraph: move right 2 chars");
+runTest("ltr-in-rtl", 2, "left", 5, 3,
+  "LTR text in RTL paragraph: move left 2 chars");
+
+runTest("mixed-ltr", 3, "right", 4, 11,
+  "LTR-RTL context in LTR paragraph: move right 3 chars");
+runTest("mixed-ltr", 3, "left", 11, 4,
+  "LTR-RTL context in LTR paragraph: move left 3 chars");
+runTest("mixed-ltr", 3, "right", 7, 14,
+  "RTL-LTR context in LTR paragraph: move right 3 chars");
+runTest("mixed-ltr", 3, "left", 14, 7,
+  "RTL-LTR context in LTR paragraph: move left 3 chars");
+
+runTest("mixed-auto", 3, "right", 17, 5,
+  "Mixed context in auto-dir paragraph: move right 3 chars");
+runTest("mixed-auto", 3, "left", 5, 17,
+  "Mixed context in auto-dir paragraph: move left 3 chars");
+
+</script>

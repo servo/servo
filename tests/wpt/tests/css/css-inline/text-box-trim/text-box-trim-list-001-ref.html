@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div.container {
+  font-family: Ahem;
+  font-size: 50px;
+  line-height: 1;
+  margin-left: 2em;
+}
+.lh2 {
+  line-height: 2;
+}
+ul {
+  list-style-type: "X";
+}
+ul, li {
+  margin: 0;
+  padding: 0;
+}
+</style>
+<div class="container">
+<!-- Single list item case -->
+<ul>
+  <li><span>X</span></li>
+</ul>
+
+<!-- Nested list case (no intermediate text) -->
+<ul>
+  <li>
+    <ul>
+      <li>X</li>
+    </ul>
+  </li>
+</ul>
+
+<ul>
+  <li>X</li>
+  <li>X</li>
+  <li>X
+    <ul>
+      <li class="lh2">X</li>
+    </ul>
+  </li>
+</ul>
+</div>

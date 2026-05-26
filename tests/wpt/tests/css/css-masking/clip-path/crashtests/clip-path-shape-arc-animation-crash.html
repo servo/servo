@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: crash interpolating shape() arc radius</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+  background-color: green;
+  animation: eye 1s infinite;
+  clip-path: shape(from 0% 50%, arc to 100% 50% of 100%, arc to 0% 50% of 100%);
+}
+@keyframes eye {
+  50% {
+    clip-path: shape(from 0% 50%, arc to 100% 50% of 63%, arc to 0% 50% of 63%);
+  }
+}
+</style>
+<div class="container"></div>

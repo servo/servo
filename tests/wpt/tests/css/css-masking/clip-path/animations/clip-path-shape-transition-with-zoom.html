@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Masking: clip-path shape() transition with zoom</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+<link rel="match" href="clip-path-shape-transition-with-zoom-ref.html">
+<meta name="assert" content="A clip-path shape() transition on a zoomed
+    element uses zoomed keyframe geometry.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+<style>
+  .target {
+    width: 100px;
+    height: 100px;
+    zoom: 2;
+    background-color: green;
+    clip-path: shape(from 0px 0px, line to 50px 0px,
+        line to 50px 50px, line to 0px 50px, close);
+    transition-property: clip-path;
+    transition-duration: 20s;
+    transition-timing-function: steps(2, jump-end);
+    transition-delay: -9.999s;
+  }
+
+  .target.changed {
+    clip-path: shape(from 0px 0px, line to 60px 0px,
+        line to 60px 60px, line to 0px 60px, close);
+  }
+</style>
+<div class="target"></div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
+      const target = document.querySelector('.target');
+      target.classList.add('changed');
+      await waitForAnimationTime(document.getAnimations()[0], 1);
+      takeScreenshot();
+    });
+  });
+</script>

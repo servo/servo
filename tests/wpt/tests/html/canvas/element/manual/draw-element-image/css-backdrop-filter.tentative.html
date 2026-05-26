@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage CSS backdrop filter filters the canvas as the background</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="match" href="css-backdrop-filter-ref.html">
+  <meta name="assert" value="A div with a CSS backdrop-filter filters canvas content and paints with the filter in the correct area.">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background: red;
+    }
+    div {
+      width: 50px;
+      height: 50px;
+      backdrop-filter: grayscale();
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id="child">
+      <p>Hello</p>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.fillStyle = 'green';
+      // The fillRect is required to have some content behind the filter.
+      context.fillRect(0, 0, 100, 100);
+      context.fillStyle = 'lightgreen';
+      context.beginPath();
+      context.arc(25, 25, 25, 0, 2 * Math.PI);
+      context.fill();
+      context.drawElementImage(child, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

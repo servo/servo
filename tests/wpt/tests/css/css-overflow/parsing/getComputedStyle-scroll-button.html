@@ -1,0 +1,143 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: getComputedStyle() resolves different properties for scroll-button pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    overflow: auto;
+  }
+  #scroller-vertical {
+    writing-mode: vertical-rl;
+    direction: ltr;
+  }
+
+  /* Test 1: Horizontal LTR synonym matching */
+  #scroller-horizontal::scroll-button(inline-start) {
+    content: "A";
+    width: 30px;
+    height: 20px;
+  }
+  #scroller-horizontal::scroll-button(left) {
+    content: "B"; /* Should cascade and overwrite inline-start */
+    width: 35px;
+    height: 20px;
+  }
+
+  /* Test 2: Vertical-RL writing mode mapping */
+  #scroller-vertical::scroll-button(inline-start) {
+    content: "V-Start";
+    width: 45px;
+    height: 20px;
+  }
+  #scroller-vertical::scroll-button(up) {
+    content: "V-Up"; /* Should cascade and overwrite inline-start (which is up) */
+    width: 50px;
+    height: 20px;
+  }
+  #scroller-vertical::scroll-button(block-start) {
+    content: "V-BStart";
+    width: 55px;
+    height: 20px;
+  }
+  #scroller-vertical::scroll-button(right) {
+    content: "V-Right"; /* Should cascade and overwrite block-start (which is right) */
+    width: 60px;
+    height: 20px;
+  }
+
+  /* Test 3: Scroll button styled without 'content' (not generated) */
+  #scroller-no-content::scroll-button(inline-start) {
+    width: 80px;
+    height: 20px;
+  }
+
+  /* Test 4: Non-scroller originating element */
+  #not-scroller::scroll-button(inline-start) {
+    content: "<";
+    width: 90px;
+    height: 20px;
+  }
+</style>
+<div id="scroller-horizontal" class="scroller">
+  <div style="width: 500px; height: 100px;"></div>
+</div>
+<div id="scroller-vertical" class="scroller">
+  <div style="width: 500px; height: 500px;"></div>
+</div>
+<div id="scroller-no-content" class="scroller">
+  <div style="width: 500px; height: 100px;"></div>
+</div>
+<div id="not-scroller" style="width: 100px; height: 100px;"></div>
+<script>
+  test(() => {
+    const scroller = document.getElementById("scroller-horizontal");
+    const styleStart = getComputedStyle(scroller, "::scroll-button(inline-start)");
+    const styleLeft = getComputedStyle(scroller, "::scroll-button(left)");
+
+    // In horizontal LTR, inline-start and left map to the same pseudo-element.
+    // Therefore, the 'left' rule (defined later) should cascade and overwrite
+    // the 'inline-start' rule, and both queries must return identical values.
+    assert_equals(styleStart.content, '"B"', "inline-start should return cascaded 'B'");
+    assert_equals(styleStart.width, "35px", "inline-start should return cascaded 35px");
+
+    assert_equals(styleLeft.content, '"B"', "left should return cascaded 'B'");
+    assert_equals(styleLeft.width, "35px", "left should return cascaded 35px");
+  }, "inline-start and left map to the same pseudo-element in horizontal LTR");
+
+  test(() => {
+    const scroller = document.getElementById("scroller-vertical");
+
+    // In vertical-rl LTR, inline-start is up (top).
+    // Therefore, 'up' (defined later) should overwrite 'inline-start'.
+    const styleStart = getComputedStyle(scroller, "::scroll-button(inline-start)");
+    const styleUp = getComputedStyle(scroller, "::scroll-button(up)");
+
+    assert_equals(styleStart.content, '"V-Up"', "inline-start should map to up and be overwritten");
+    assert_equals(styleStart.width, "50px", "inline-start width should be overwritten");
+    assert_equals(styleUp.content, '"V-Up"', "up should return 'V-Up'");
+    assert_equals(styleUp.width, "50px", "up width should be 50px");
+
+    // In vertical-rl LTR, block-start is right.
+    // Therefore, 'right' (defined later) should overwrite 'block-start'.
+    const styleBStart = getComputedStyle(scroller, "::scroll-button(block-start)");
+    const styleRight = getComputedStyle(scroller, "::scroll-button(right)");
+
+    assert_equals(styleBStart.content, '"V-Right"', "block-start should map to right and be overwritten");
+    assert_equals(styleBStart.width, "60px", "block-start width should be overwritten");
+    assert_equals(styleRight.content, '"V-Right"', "right should return 'V-Right'");
+    assert_equals(styleRight.width, "60px", "right width should be 60px");
+  }, "Writing-mode vertical-rl LTR correctly maps logical directions to physical directions");
+
+  test(() => {
+    const scroller = document.getElementById("scroller-no-content");
+    const styleStart = getComputedStyle(scroller, "::scroll-button(inline-start)");
+
+    // The pseudo-element is not created because it has no content.
+    // However, getComputedStyle() should still resolve and return the styled width.
+    assert_equals(styleStart.content, "normal", "Should return default 'normal' content");
+    assert_equals(styleStart.width, "80px", "Should correctly resolve styled width");
+  }, "getComputedStyle() resolves properties when pseudo-element is not created due to no content");
+
+  test(() => {
+    const notScroller = document.getElementById("not-scroller");
+    const styleStart = getComputedStyle(notScroller, "::scroll-button(inline-start)");
+
+    // The originating element is not a scroll container, so the pseudo-element
+    // is generated in a disabled state (since it has styled content).
+    // getComputedStyle() should resolve and return its styled properties correctly.
+    assert_equals(styleStart.content, '"<"', "Should correctly resolve styled content");
+    assert_equals(styleStart.width, "90px", "Should correctly resolve styled width");
+  }, "getComputedStyle() resolves properties when the originating element is not a scroll container");
+
+  test(() => {
+    const scroller = document.getElementById("scroller-horizontal");
+    const styleInvalid = getComputedStyle(scroller, "::scroll-button(invalid-argument)");
+
+    // Invalid argument should not crash the browser, and instead fall back cleanly.
+    assert_equals(styleInvalid.width, "", "Should fall back cleanly and return empty width");
+  }, "getComputedStyle() with invalid argument falls back cleanly and does not crash");
+</script>

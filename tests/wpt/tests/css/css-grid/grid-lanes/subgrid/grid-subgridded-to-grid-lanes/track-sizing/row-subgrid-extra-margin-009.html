@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-extra-margin-009-ref.html">
+<style>
+.wrapper {
+  width: 110px;
+  height: 83px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-rows: repeat(2, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-template: subgrid / auto;
+  grid-template-columns: auto auto auto;
+  background: green;
+  padding: 11px 3px 9px 7px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class="wrapper">
+<!--
+  Grid lanes container height = 83px (2 rows of 41.5px each).
+
+  This test exercises padding-top and row-gap overrides at each
+  level of the chain:
+    outer:           pad-T = 11, pad-B = 9, row-gap = 20
+    inner1, inner2:  pad-T = 10, pad-B = 9, row-gap = 15
+    leaves:          pad-T = 11, pad-B = 2, row-gap = 5
+
+  The dominant leaf accumulates contributions from every level of
+  the chain. On the start side: leaf's pad-T (11) + inner's pad-T
+  (10) + outer's pad-T (11) = 32. On the end side: leaf's pad-B (2)
+  + half of inner's own row-gap (15/2 = 7.5) = 9.5. The leaf's
+  total margin contribution is 32 + 9.5 = 41.5.
+
+  Per the WG resolution at
+  https://github.com/w3c/csswg-drafts/issues/10926, in a grid-lanes
+  container every subgrid in an auto-placed chain must accommodate
+  its margin contribution at every row it could land in. Both rows
+  therefore end up at 41.5px:
+    2 rows * 41.5px = 83px.
+-->
+  <div class="grid-lanes">
+    <div class="subgrid" style="grid-row: span 2; gap: 20px 10px">
+      <div class="subgrid" style="grid-row: span 2; padding-top: 10px; row-gap: 15px;">
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+      </div>
+      <div class="subgrid" style="grid-row: span 2; padding-top: 10px; row-gap: 15px;">
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+        <div class="subgrid" style="padding-bottom: 2px; row-gap: 5px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

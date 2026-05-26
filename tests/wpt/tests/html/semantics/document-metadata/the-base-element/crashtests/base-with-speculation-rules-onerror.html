@@ -1,0 +1,12 @@
+<!DOCTYPE HTML>
+<base id="b" href="original-base-url" target="_top" att1="1" att2="2" att3="3">
+<script id="s" type="speculationrules">[]</script>
+<script>
+let b = document.getElementById("b");
+document.getElementById("s").addEventListener("error", event => {
+  for (let i = 1; i <= 10; ++i) {
+    b.setAttribute(`newatt${i}`, `value${i}`);
+  }
+});
+b.href = "/new-base-url";
+</script>

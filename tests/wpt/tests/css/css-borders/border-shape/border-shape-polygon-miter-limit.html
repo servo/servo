@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: border-shape polygon stroke keeps miter joins</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-polygon-miter-limit-ref.html">
+<style>
+  .test {
+    border-shape: polygon(0% 0%, 100% 100%, 100% 0%, 0% 100%) border-box;
+    width: 66px;
+    height: 150px;
+    margin: 50px 20px;
+    display: inline-block;
+  }
+
+  .t1 {
+    border: 20px solid green;
+  }
+
+  .t2 {
+    border: 19px solid green;
+  }
+</style>
+<div class="test t1"></div>
+<div class="test t2"></div>

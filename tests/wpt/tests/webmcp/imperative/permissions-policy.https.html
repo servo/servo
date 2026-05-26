@@ -54,7 +54,7 @@ promise_test(async t => {
   }, '*');
   const failure_msg = await failure_promise;
 
-  assert_true(failure_msg.includes('SecurityError'), `Expected SecurityError in navigated iframe, got: ${failure_msg}`);
+  assert_true(failure_msg.includes('NotAllowedError'), `Expected NotAllowedError in navigated iframe, got: ${failure_msg}`);
 }, 'registerTool() throws in iframe, after navigation to an origin not covered by permissions policy');
 
 promise_test(async t => {
@@ -80,8 +80,8 @@ promise_test(async t => {
   iframe.contentWindow.postMessage('getTools', '*');
   const failure_msg = await failure_promise;
 
-  assert_true(failure_msg.includes('SecurityError'), `Expected SecurityError in iframe, got: ${failure_msg}`);
-}, 'getTools() throws SecurityError in iframe when permissions policy is disabled');
+  assert_true(failure_msg.includes('NotAllowedError'), `Expected NotAllowedError in iframe, got: ${failure_msg}`);
+}, 'getTools() throws NotAllowedError in iframe when permissions policy is disabled');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
@@ -108,8 +108,8 @@ promise_test(async t => {
   iframe.contentWindow.postMessage({ action: 'execute_fake_tool', name: 'dummy_tool' }, '*');
   const response = await failure_promise;
 
-  assert_equals(response.error_name, 'SecurityError', 'Should reject with SecurityError');
-}, 'executeTool() throws SecurityError in iframe when permissions policy is disabled');
+  assert_equals(response.error_name, 'NotAllowedError', 'Should reject with NotAllowedError');
+}, 'executeTool() throws NotAllowedError in iframe when permissions policy is disabled');
 </script>
 </body>
 </html>

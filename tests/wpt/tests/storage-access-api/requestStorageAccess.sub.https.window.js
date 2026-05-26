@@ -49,6 +49,9 @@ promise_test(
 
         assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');
         assert_true(CanAccessCookiesViaJS(), 'After obtaining storage access, scripts in the frame should be able to access cookies.');
+        if (testPrefix.includes('ABA')) {
+          assert_true(await document.hasStorageAccess(), 'After obtaining storage access, `hasStorageAccess` should resolve with true.');
+        }
       } else {
         return promise_rejects_dom(
             t, "NotAllowedError", document.requestStorageAccess(),

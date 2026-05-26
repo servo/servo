@@ -244,7 +244,9 @@ window.onload = () => {
     assert_array_equals(events,[
       'beforetoggle closed -> open',
       'button blur',
+      'beforetoggle open -> closed',
       'focusElement focus',
+      'toggle open -> closed',
       'toggle closed -> open'
     ]);
   }, 'The toggle event is still fired if the popover is removed during focus/blur');

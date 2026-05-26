@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>drawElementImage does not draw target-text with custom highlights</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="target-text-ignored-overlay-path-ref.html">
+<meta name="assert" value="When preserving privacy for readback, do not draw target text markers when mixed with custom highlights.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #canvas {
+    background: grey;
+  }
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+  ::target-text {
+    color: lime;
+    background-color: green;
+  }
+</style>
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id="child">
+    <div>Match with more</div>
+  </div>
+</canvas>
+<script>
+  onload = async () => {
+    window.location.hash = "#:~:text=Match";
+
+    let r = new Range();
+    r.setStart(document.body, 0);
+    r.setEnd(document.body, 1);
+    CSS.highlights.set("example-highlight", new Highlight(r));
+
+    await waitForCanvasPaint(canvas);
+    canvas.getContext("2d").drawElementImage(child, 0, 0);
+    takeScreenshot();
+  };
+</script>
+</html>

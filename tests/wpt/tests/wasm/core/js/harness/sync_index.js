@@ -124,6 +124,7 @@ function reinitializeRegistry() {
         global_f32: 666.6,
         global_f64: 666.6,
         table: new WebAssembly.Table({initial: 10, maximum: 20, element: 'anyfunc'}),
+        table64: new WebAssembly.Table({initial: 10, maximum: 20, element: 'anyfunc', address: "i64"}),
         memory: new WebAssembly.Memory({initial: 1, maximum: 2})
     };
     let handler = {
