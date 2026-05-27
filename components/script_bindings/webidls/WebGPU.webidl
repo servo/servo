@@ -199,7 +199,7 @@ dictionary GPUBufferDescriptor : GPUObjectDescriptorBase {
 };
 
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;
-[Exposed=(Window, Worker), /*SecureContext,*/ Pref="dom_webgpu_enabled"]
+[Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 namespace GPUBufferUsage {
     const GPUFlagsConstant MAP_READ      = 0x0001;
     const GPUFlagsConstant MAP_WRITE     = 0x0002;
@@ -214,7 +214,7 @@ namespace GPUBufferUsage {
 };
 
 typedef [EnforceRange] unsigned long GPUMapModeFlags;
-[Exposed=(Window, Worker), /*SecureContext,*/ Pref="dom_webgpu_enabled"]
+[Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 namespace GPUMapMode {
     const GPUFlagsConstant READ  = 0x0001;
     const GPUFlagsConstant WRITE = 0x0002;

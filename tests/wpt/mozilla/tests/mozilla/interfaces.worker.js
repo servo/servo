@@ -39,8 +39,6 @@ test_interfaces([
   "FileReaderSync",
   "FinalizationRegistry",
   "FormData",
-  "GPUBufferUsage",
-  "GPUMapMode",
   "Headers",
   "History",
   "IDBCursor",
