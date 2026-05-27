@@ -70,6 +70,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
     ElementMethods, GetHTMLOptions, ScrollIntoViewContainer, ScrollLogicalPosition, ShadowRootInit,
 };
+use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
@@ -110,6 +111,7 @@ use crate::dom::element::attributes::storage::{
     AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
@@ -4376,6 +4378,31 @@ impl VirtualMethods for Element {
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match *attr.local_name() {
+            // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
+            // Event handler content attributes are defined on `Element` rather than `HTMLElement`
+            // so that other element types (such as SVG elements) activate them as well.
+            ref name if name.starts_with("on") && EventTarget::is_content_event_handler(name) => {
+                let evtarget = self.upcast::<EventTarget>();
+                let event_name = &name[2..];
+                match mutation {
+                    // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
+                    AttributeMutation::Set(..) => {
+                        let source = &**attr.value();
+                        let source_line = 1; // TODO(#9604) get current JS execution line
+                        evtarget.set_event_handler_uncompiled(
+                            self.owner_window().get_url(),
+                            source_line,
+                            event_name,
+                            source,
+                        );
+                    },
+                    // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
+                    AttributeMutation::Removed => {
+                        evtarget
+                            .set_event_handler_common::<EventHandlerNonNull>(cx, event_name, None);
+                    },
+                }
+            },
             local_name!("style") => self.update_style_attribute(attr, mutation),
             local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
