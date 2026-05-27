@@ -1276,7 +1276,7 @@ where
                 )),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
-                    let process_index = index - 5;
+                    let process_index = index - 4;
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
                 },
