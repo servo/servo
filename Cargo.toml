@@ -179,6 +179,7 @@ ohos-sys-opaque-types = "0.1.7"
 ohos-vsync = "0.1.3"
 ohos-window-manager-sys = "0.1"
 ohos-window-sys = "0.1.7"
+once_cell = "1.21.4"
 openxr = "0.21"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }

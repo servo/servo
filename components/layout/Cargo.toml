@@ -40,6 +40,7 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 num-derive = { workspace = true }
 num-traits = { workspace = true }
+once_cell = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }

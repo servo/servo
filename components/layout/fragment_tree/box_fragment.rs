@@ -8,6 +8,7 @@ use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
+use once_cell::race::OnceBox;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{AtomicOptScrollTreeNodeId, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
@@ -94,17 +95,17 @@ pub(crate) struct BoxFragmentRareData {
 impl BoxFragmentRareData {
     /// Create a new rare data based on information given to the fragment. Ideally, We should
     /// avoid creating rare data as much as possible to reduce the memory cost.
-    fn try_boxed_from(
-        specific_layout_info: Option<SpecificLayoutInfo>,
-    ) -> AtomicRefCell<Option<Box<Self>>> {
-        AtomicRefCell::new(specific_layout_info.map(|info| {
-            Box::new(BoxFragmentRareData {
+    fn new(specific_layout_info: Option<SpecificLayoutInfo>) -> OnceBox<AtomicRefCell<Self>> {
+        if let Some(info) = specific_layout_info {
+            OnceBox::with_value(Box::new(AtomicRefCell::new(BoxFragmentRareData {
                 resolved_sticky_insets: None,
                 specific_layout_info: Some(info),
                 generated_clip_id: None,
                 generated_scroll_tree_node_id: None,
-            })
-        }))
+            })))
+        } else {
+            OnceBox::new()
+        }
     }
 }
 
@@ -136,7 +137,7 @@ pub(crate) struct BoxFragment {
     pub background_mode: BackgroundMode,
 
     /// Rare data that not all kinds of [`BoxFragment`] would have.
-    pub rare_data: AtomicRefCell<Option<Box<BoxFragmentRareData>>>,
+    pub rare_data: OnceBox<AtomicRefCell<BoxFragmentRareData>>,
 
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
@@ -160,7 +161,7 @@ impl BoxFragment {
         margin: PhysicalSides<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> Self {
-        let rare_data = BoxFragmentRareData::try_boxed_from(specific_layout_info);
+        let rare_data = BoxFragmentRareData::new(specific_layout_info);
         Self {
             base: BaseFragment::new(base_fragment_info, style.into(), content_rect),
             children,
@@ -230,34 +231,25 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
-        let mut rare_data = self.rare_data.borrow_mut();
-        if rare_data.is_none() {
-            *rare_data = Some(Default::default());
-        }
-
-        AtomicRefMut::map(rare_data, |rare_data| {
-            rare_data
-                .as_mut()
-                .expect("This data should have just been set")
-        })
+    pub(crate) fn ensure_rare_data(&self) -> AtomicRefMut<'_, BoxFragmentRareData> {
+        self.rare_data.get_or_init(Default::default).borrow_mut()
     }
 
     pub(crate) fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
-        let rare_data = self.rare_data.borrow();
+        let rare_data = self.rare_data.get()?.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
-            rare_data.as_ref()?.specific_layout_info.as_ref()
+            rare_data.specific_layout_info.as_ref()
         })
     }
 
     pub(crate) fn resolved_sticky_insets(
         &self,
     ) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
-        let rare_data = self.rare_data.borrow();
+        let rare_data = self.rare_data.get()?.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
-            rare_data.as_ref()?.resolved_sticky_insets.as_ref()
+            rare_data.resolved_sticky_insets.as_ref()
         })
     }
 
@@ -266,7 +258,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn generated_clip_id(&self) -> Option<ClipId> {
-        self.rare_data.borrow().as_ref()?.generated_clip_id
+        self.rare_data.get()?.borrow().generated_clip_id
     }
 
     pub(crate) fn set_generated_clip_id(&self, generated_clip_id: ClipId) {
@@ -274,10 +266,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn generated_scroll_tree_node_id(&self) -> Option<ScrollTreeNodeId> {
-        self.rare_data
-            .borrow()
-            .as_ref()?
-            .generated_scroll_tree_node_id
+        self.rare_data.get()?.borrow().generated_scroll_tree_node_id
     }
 
     pub(crate) fn set_generated_scroll_tree_node_id(
