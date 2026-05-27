@@ -4373,7 +4373,13 @@ impl VirtualMethods for Node {
         // Only unroot the node now if we're going to run the integrity check, which will fail if
         // the node is still in [`AccessibilityData::rooted_nodes`] when the check is run. If the
         // check is disabled, the node will be unrooted after the next reflow anyway.
-        if pref!(accessibility_enabled) && pref!(expensive_accessibility_test_assertions_enabled) {
+        if pref!(accessibility_enabled) &&
+            pref!(expensive_accessibility_test_assertions_enabled) &&
+            self.owner_document()
+                .window()
+                .layout()
+                .accessibility_active()
+        {
             self.owner_document()
                 .accessibility_data_mut()
                 .unroot_node_for_accessibility(cx.no_gc(), self);
@@ -4394,7 +4400,12 @@ impl VirtualMethods for Node {
                 .drain_to_parent(context.parent, context.index(), self);
         }
 
-        if pref!(accessibility_enabled) {
+        if pref!(accessibility_enabled) &&
+            self.owner_document()
+                .window()
+                .layout()
+                .accessibility_active()
+        {
             self.owner_document()
                 .accessibility_data_mut()
                 .root_removed_node_for_accessibility(cx.no_gc(), self);

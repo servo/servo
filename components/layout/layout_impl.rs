@@ -221,6 +221,9 @@ pub struct LayoutThread {
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
 
+    /// Whether accessibility is active for this Layout.
+    accessibility_active: Cell<bool>,
+
     /// Layout's internal representation of its accessibility tree.
     /// This is `None` if accessibility is not active.
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
@@ -722,16 +725,22 @@ impl Layout for LayoutThread {
     }
 
     fn set_accessibility_active(&self, active: bool, epoch: Epoch) {
+        self.accessibility_active.set(active);
         if !active {
             self.accessibility_tree.replace(None);
             return;
         }
+
         self.set_needs_accessibility_update();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_some() {
             return;
         }
         *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
+    }
+
+    fn accessibility_active(&self) -> bool {
+        self.accessibility_active.get()
     }
 
     fn needs_accessibility_update(&self) -> bool {
@@ -798,6 +807,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
+            accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
         }

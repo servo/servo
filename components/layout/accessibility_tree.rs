@@ -564,34 +564,34 @@ impl AccessibilityUpdate {
             return None;
         }
 
-        // This field should be taken after each update, if it's being used.
-        assert!(tree.recently_removed_opaque_nodes.is_empty());
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            // This field should be taken after each update, if it's being used.
+            assert!(tree.recently_removed_opaque_nodes.is_empty());
 
-        for (id, change) in self.tree_changes.drain() {
-            match change {
-                TreeChange::New => {
-                    let _ = tree.assert_node_for_id(id);
-                },
-                TreeChange::Removed => {
-                    let Some(node) = tree.remove_node(id) else {
-                        panic!("Removed node with id {id:?} not found in tree");
-                    };
-                    if pref!(expensive_accessibility_test_assertions_enabled) &&
-                        let Some(opaque_node) = node.borrow().opaque_node
-                    {
+            for (id, change) in self.tree_changes.iter() {
+                if change == &TreeChange::Removed {
+                    let node = tree.assert_node_for_id(*id);
+                    if let Some(opaque_node) = node.borrow().opaque_node {
                         tree.recently_removed_opaque_nodes.push(opaque_node);
                     }
-                },
+                };
+            }
+        }
+
+        for id in self
+            .tree_changes
+            .drain()
+            .filter_map(|(id, change)| match change {
                 TreeChange::PendingMove => {
                     unreachable!(
                         "Pending move found for node id {id:?} when draining tree state changes"
                     );
                 },
-                TreeChange::Moved => {
-                    // We only track moved nodes to avoid incorrectly marking them as removed, so
-                    // we just silently drop them here.
-                },
-            }
+                TreeChange::Removed => Some(id),
+                _ => None,
+            })
+        {
+            tree.remove_node(id);
         }
 
         let accesskit_tree = accesskit::Tree::new(root_node_id);
