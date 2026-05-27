@@ -14,11 +14,13 @@ use devtools_traits::{
 use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, JS_GetFunctionArity, PropertyDescriptor};
+use js::jsapi::{self, ESClass, JS_GetFunctionArity, PropertyDescriptor, SavedFrameSelfHosted};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    GetArrayLength, GetBuiltinClass, GetPropertyKeys, JS_GetFunctionDisplayId, JS_GetFunctionId,
+    GetArrayLength, GetBuiltinClass, GetPropertyKeys, GetSavedFrameColumn,
+    GetSavedFrameFunctionDisplayName, GetSavedFrameLine, GetSavedFrameSource,
+    JS_ClearPendingException, JS_GetFunctionDisplayId, JS_GetFunctionId,
     JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue, JS_Stringify,
     JS_ValueToFunction, JS_ValueToSource,
 };
@@ -165,12 +167,8 @@ impl Console {
 
 #[expect(unsafe_code)]
 unsafe fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
-    rooted!(in(unsafe {cx.raw_cx()}) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
-        Some(js_str) => {
-            js_string.set(js_str.as_ptr());
-            unsafe { jsstr_to_string(cx.raw_cx(), js_str) }.into()
-        },
+        Some(js_str) => unsafe { jsstr_to_string(cx.raw_cx(), js_str) }.into(),
         None => "<error converting value to string>".into(),
     }
 }
@@ -304,8 +302,7 @@ fn console_object_from_handle_value(
 
         let key = if id.is_string() {
             rooted!(&in(cx) let mut key_value = UndefinedValue());
-            let raw_id: jsapi::HandleId = id.handle().into();
-            if !unsafe { JS_IdToValue(&(*cx), *raw_id.ptr, key_value.handle_mut()) } {
+            if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
                 continue;
             }
             rooted!(&in(cx) let js_string = key_value.to_string());
@@ -349,8 +346,8 @@ fn console_object_from_handle_value(
             rooted!(&in(cx) let mut display_name = std::ptr::null_mut::<jsapi::JSString>());
             let arity;
             unsafe {
-                JS_GetFunctionId(&(*cx), fun.handle(), name.handle_mut());
-                JS_GetFunctionDisplayId(&(*cx), fun.handle(), display_name.handle_mut());
+                JS_GetFunctionId(cx, fun.handle(), name.handle_mut());
+                JS_GetFunctionDisplayId(cx, fun.handle(), display_name.handle_mut());
                 arity = JS_GetFunctionArity(fun.get());
             }
             let name =
@@ -406,7 +403,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             value: HandleValue,
             parents: Vec<u64>,
         ) -> DOMString {
-            rooted!(in(unsafe {cx.raw_cx()}) let mut obj = value.to_object());
+            rooted!(&in(cx) let mut obj = value.to_object());
             let mut object_class = ESClass::Other;
             if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
                 return DOMString::from("/* invalid */");
@@ -434,8 +431,8 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             let mut explicit_keys = object_class == ESClass::Object;
             let mut props = Vec::with_capacity(ids.len());
             for id in ids.iter().take(MAX_LOG_CHILDREN) {
-                rooted!(in(unsafe {cx.raw_cx()}) let id = *id);
-                rooted!(in(unsafe {cx.raw_cx()}) let mut desc = PropertyDescriptor::default());
+                rooted!(&in(cx) let id = *id);
+                rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
 
                 let mut is_none = false;
                 if !unsafe {
@@ -450,7 +447,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
                     return DOMString::from("/* invalid */");
                 }
 
-                rooted!(in(unsafe {cx.raw_cx()}) let mut property = UndefinedValue());
+                rooted!(&in(cx) let mut property = UndefinedValue());
                 if !unsafe {
                     JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut())
                 } {
@@ -471,9 +468,8 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
                 let value_string = stringify_inner(cx, property.handle(), parents.clone());
                 if explicit_keys {
                     let key = if id.is_string() || id.is_symbol() || id.is_int() {
-                        rooted!(in(unsafe {cx.raw_cx()}) let mut key_value = UndefinedValue());
-                        let raw_id: jsapi::HandleId = id.handle().into();
-                        if !unsafe { JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) } {
+                        rooted!(&in(cx) let mut key_value = UndefinedValue());
+                        if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
                             return DOMString::from("/* invalid */");
                         }
                         unsafe { handle_value_to_string(cx, key_value.handle()) }
@@ -531,12 +527,12 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
     // since their properties generally live on the prototype object.
     // Instead, fall back to the output of JSON.stringify combined
     // with the class name extracted from the output of toString().
-    rooted!(in(unsafe {cx.raw_cx()}) let obj = value.to_object());
+    rooted!(&in(cx) let obj = value.to_object());
     let is_dom_class = unsafe { get_dom_class(obj.get()).is_ok() };
     if !is_dom_class {
         return None;
     }
-    rooted!(in(unsafe {cx.raw_cx()}) let class_name = unsafe { ToString( cx.raw_cx(), value) });
+    rooted!(&in(cx) let class_name = unsafe { ToString( cx.raw_cx(), value) });
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return Some("<error converting DOM object to string>".into());
     };
@@ -546,7 +542,7 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
             .replace("]", "")
     };
     let mut repr = format!("{} ", class_name);
-    rooted!(in(unsafe {cx.raw_cx()}) let mut value = value.get());
+    rooted!(&in(cx) let mut value = value.get());
 
     #[expect(unsafe_code)]
     unsafe extern "C" fn stringified(
@@ -560,7 +556,7 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
         true
     }
 
-    rooted!(in(unsafe {cx.raw_cx()}) let space = Int32Value(2));
+    rooted!(&in(cx) let space = Int32Value(2));
     let stringify_result = unsafe {
         JS_Stringify(
             cx,
@@ -616,7 +612,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(cx.raw_cx(), messages[arg_index]) };
                     if num.is_err() {
-                        unsafe { js::rust::wrappers2::JS_ClearPendingException(cx) };
+                        unsafe { JS_ClearPendingException(cx) };
                     }
                     arg_index += 1;
                     format_integer_substitution(&mut result, num);
@@ -630,7 +626,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(cx.raw_cx(), messages[arg_index]) };
                     if num.is_err() {
-                        unsafe { js::rust::wrappers2::JS_ClearPendingException(cx) };
+                        unsafe { JS_ClearPendingException(cx) };
                     }
                     arg_index += 1;
                     format_float_substitution(&mut result, num);
@@ -863,7 +859,7 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
     const MAX_FRAME_COUNT: u32 = 128;
 
     let mut frames = vec![];
-    rooted!(in(unsafe {cx.raw_cx()}) let mut handle =  ptr::null_mut());
+    rooted!(&in(cx) let mut handle =  ptr::null_mut());
     let captured_js_stack =
         unsafe { CapturedJSStack::new(cx.raw_cx(), handle, Some(MAX_FRAME_COUNT)) };
     let Some(captured_js_stack) = captured_js_stack else {
@@ -871,16 +867,16 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
     };
 
     captured_js_stack.for_each_stack_frame(|frame| {
-        rooted!(in(unsafe {cx.raw_cx()}) let mut result: *mut jsapi::JSString = ptr::null_mut());
+        rooted!(&in(cx) let mut result: *mut jsapi::JSString = ptr::null_mut());
 
         // Get function name
         unsafe {
-            js::rust::wrappers2::GetSavedFrameFunctionDisplayName(
+            GetSavedFrameFunctionDisplayName(
                 cx,
                 ptr::null_mut(),
                 frame,
                 result.handle_mut(),
-                jsapi::SavedFrameSelfHosted::Include,
+                SavedFrameSelfHosted::Include,
             );
         }
         let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
@@ -892,12 +888,12 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
         // Get source file name
         result.set(ptr::null_mut());
         unsafe {
-            js::rust::wrappers2::GetSavedFrameSource(
+            GetSavedFrameSource(
                 cx,
                 ptr::null_mut(),
                 frame,
                 result.handle_mut(),
-                jsapi::SavedFrameSelfHosted::Include,
+                SavedFrameSelfHosted::Include,
             );
         }
         let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
@@ -909,23 +905,23 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
         // get line/column number
         let mut line_number = 0;
         unsafe {
-            js::rust::wrappers2::GetSavedFrameLine(
+            GetSavedFrameLine(
                 cx,
                 ptr::null_mut(),
                 frame,
                 &mut line_number,
-                jsapi::SavedFrameSelfHosted::Include,
+                SavedFrameSelfHosted::Include,
             );
         }
 
         let mut column_number = jsapi::JS::TaggedColumnNumberOneOrigin { value_: 0 };
         unsafe {
-            js::rust::wrappers2::GetSavedFrameColumn(
+            GetSavedFrameColumn(
                 cx,
                 ptr::null_mut(),
                 frame,
                 &mut column_number,
-                jsapi::SavedFrameSelfHosted::Include,
+                SavedFrameSelfHosted::Include,
             );
         }
         let frame = StackFrame {
