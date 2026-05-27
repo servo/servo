@@ -154,20 +154,11 @@ impl FromJSValConvertible for USVString {
             debug!("ToString failed");
             return Err(());
         };
-        let latin1 = unsafe { JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr()) };
-        if latin1 {
-            // FIXME(ajeffrey): Convert directly from DOMString to USVString
-            return Ok(ConversionResult::Success(USVString(unsafe {
-                jsstr_to_string(cx.raw_cx(), jsstr)
-            })));
-        }
-        let mut length = 0;
-        let chars = unsafe { JS_GetTwoByteStringCharsAndLength(cx, jsstr.as_ptr(), &mut length) };
-        assert!(!chars.is_null());
-        let char_vec = unsafe { slice::from_raw_parts(chars, length) };
-        Ok(ConversionResult::Success(USVString(
-            String::from_utf16_lossy(char_vec),
-        )))
+
+        // FIXME(ajeffrey): Convert directly from DOMString to USVString
+        Ok(ConversionResult::Success(USVString(unsafe {
+            jsstr_to_string(cx.raw_cx(), jsstr)
+        })))
     }
 }
 
