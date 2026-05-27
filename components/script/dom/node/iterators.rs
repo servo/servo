@@ -15,8 +15,14 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::{Node, ShadowIncluding};
 
 pub(crate) struct FollowingNodeIterator {
-    pub(crate) current: Option<DomRoot<Node>>,
-    pub(crate) root: DomRoot<Node>,
+    current: Option<DomRoot<Node>>,
+    root: DomRoot<Node>,
+}
+
+impl FollowingNodeIterator {
+    pub(crate) fn new(current: Option<DomRoot<Node>>, root: DomRoot<Node>) -> Self {
+        FollowingNodeIterator { current, root }
+    }
 }
 
 impl FollowingNodeIterator {
@@ -68,8 +74,14 @@ impl Iterator for FollowingNodeIterator {
 }
 
 pub(crate) struct PrecedingNodeIterator {
-    pub(crate) current: Option<DomRoot<Node>>,
-    pub(crate) root: DomRoot<Node>,
+    current: Option<DomRoot<Node>>,
+    root: DomRoot<Node>,
+}
+
+impl PrecedingNodeIterator {
+    pub(crate) fn new(current: Option<DomRoot<Node>>, root: DomRoot<Node>) -> Self {
+        PrecedingNodeIterator { current, root }
+    }
 }
 
 impl Iterator for PrecedingNodeIterator {
@@ -100,8 +112,17 @@ pub(crate) struct SimpleNodeIterator<I>
 where
     I: Fn(&Node) -> Option<DomRoot<Node>>,
 {
-    pub(crate) current: Option<DomRoot<Node>>,
-    pub(crate) next_node: I,
+    current: Option<DomRoot<Node>>,
+    next_node: I,
+}
+
+impl<I> SimpleNodeIterator<I>
+where
+    I: Fn(&Node) -> Option<DomRoot<Node>>,
+{
+    pub(crate) fn new(current: Option<DomRoot<Node>>, next_node: I) -> Self {
+        SimpleNodeIterator { current, next_node }
+    }
 }
 
 impl<I> Iterator for SimpleNodeIterator<I>
@@ -129,11 +150,29 @@ pub(crate) struct UnrootedSimpleNodeIterator<'a, 'b, I>
 where
     I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
-    pub(crate) current: Option<UnrootedDom<'b, Node>>,
-    pub(crate) next_node: I,
+    current: Option<UnrootedDom<'b, Node>>,
+    next_node: I,
     /// This is unused and only used for lifetime guarantee of NoGC
-    pub(crate) no_gc: &'b NoGC,
-    pub(crate) phantom: PhantomData<&'a Node>,
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b, I> UnrootedSimpleNodeIterator<'a, 'b, I>
+where
+    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
+{
+    pub(crate) fn new(
+        current: Option<UnrootedDom<'b, Node>>,
+        next_node: I,
+        no_gc: &'b NoGC,
+    ) -> Self {
+        UnrootedSimpleNodeIterator {
+            current,
+            next_node,
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<'a, 'b, I> Iterator for UnrootedSimpleNodeIterator<'a, 'b, I>
@@ -153,9 +192,9 @@ where
 }
 
 pub(crate) struct TreeIterator {
-    pub(crate) current: Option<DomRoot<Node>>,
-    pub(crate) depth: usize,
-    pub(crate) shadow_including: ShadowIncluding,
+    current: Option<DomRoot<Node>>,
+    depth: usize,
+    shadow_including: ShadowIncluding,
 }
 
 impl TreeIterator {
