@@ -6,6 +6,7 @@ use std::ptr;
 
 use js::JSCLASS_IS_GLOBAL;
 use js::context::JSContext;
+use js::gc::{HandleObject, MutableHandleObject};
 use js::glue::SetProxyReservedSlot;
 use js::jsapi::{JS_SetReservedSlot, JSAutoRealm, JSClass, JSObject};
 use js::jsval::{PrivateValue, UndefinedValue};
@@ -24,13 +25,7 @@ use crate::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT;
 use crate::weakref::DOM_WEAK_SLOT;
 use crate::{DomObject, DomTypes, MutDomObject};
 
-type ProtoObjectFn = Box<
-    dyn Fn(
-        &mut js::context::JSContext,
-        js::rust::Handle<*mut JSObject>,
-        js::rust::MutableHandle<*mut JSObject>,
-    ),
->;
+type ProtoObjectFn = fn(&mut js::context::JSContext, HandleObject, MutableHandleObject);
 
 /// TODO: unforgeable is missing
 pub(crate) struct WrapConfig {
@@ -46,8 +41,6 @@ pub(crate) struct WrapConfig {
     pub(crate) has_legacy_unforgeable_members: bool,
 }
 
-/// SAFETY:
-/// This function returns the first two objects as raw pointers that need to be rooted.
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
     cx: &mut JSContext,
@@ -129,7 +122,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
         let root = raw.reflect_with(obj.get());
         root.reflector().set_proto_id(config.prototype_id as u16);
 
-        // CopyLegacyUnforgeablePropertiesToInstance
+        // From here on we copy the legacy unforgeable properties to instance which was originally in a different function.
         if config.has_legacy_unforgeable_members {
             rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
             if config.is_proxy {

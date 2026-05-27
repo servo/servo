@@ -3367,7 +3367,7 @@ class CGWrapMethod(CGAbstractMethod):
         else:
             proxy_handler = "None"
         prototype_id = f"PrototypeList::ID::{self.descriptor.name}"
-        proto_object_fn = "Box::new(GetProtoObject::<D>)"
+        proto_object_fn = "GetProtoObject::<D>"
         if self.descriptor.proxy:
             c = "None"
         else:
