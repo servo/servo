@@ -129,12 +129,16 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
 
         if let Ok(rule) = rule {
             self.css_rule.parent_stylesheet().will_modify();
-            let mut guard = self.css_rule.shared_lock().write();
-            self.keyframes_rule
-                .borrow()
-                .write_with(&mut guard)
-                .keyframes
-                .push(rule);
+
+            {
+                let mut guard = self.css_rule.shared_lock().write();
+                self.keyframes_rule
+                    .borrow()
+                    .write_with(&mut guard)
+                    .keyframes
+                    .push(rule);
+            }
+
             self.rulelist(cx).append_lazy_dom_rule();
             self.css_rule.parent_stylesheet().notify_invalidations();
         }
