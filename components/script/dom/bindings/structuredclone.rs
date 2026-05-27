@@ -683,8 +683,8 @@ pub(crate) struct StructuredDataReader<'a> {
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
     // A map of serialized image data.
     pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
-    // A map of serialized crypto key.
-    pub(crate) crypto_key: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
+    // A map of serialized crypto keys.
+    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -725,8 +725,8 @@ pub(crate) struct StructuredDataWriter {
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
     // A map of serialized image data.
     pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
-    // A map of serialized crypto key.
-    pub(crate) crypto_key: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
+    // A map of serialized crypto keys.
+    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -794,7 +794,7 @@ pub(crate) fn write(
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
             offscreen_canvases: sc_writer.offscreen_canvases.take(),
             image_data: sc_writer.image_data.take(),
-            crypto_key: sc_writer.crypto_key.take(),
+            crypto_keys: sc_writer.crypto_keys.take(),
         };
 
         Ok(data)
@@ -831,7 +831,7 @@ pub(crate) fn read(
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
         image_data: data.image_data.take(),
-        crypto_key: data.crypto_key.take(),
+        crypto_keys: data.crypto_keys.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {

@@ -295,8 +295,8 @@ impl Serializable for CryptoKey {
         reader: StructuredData<'a, '_>,
     ) -> &'a mut Option<FxHashMap<CryptoKeyId, Self::Data>> {
         match reader {
-            StructuredData::Reader(reader) => &mut reader.crypto_key,
-            StructuredData::Writer(writer) => &mut writer.crypto_key,
+            StructuredData::Reader(reader) => &mut reader.crypto_keys,
+            StructuredData::Writer(writer) => &mut writer.crypto_keys,
         }
     }
 }

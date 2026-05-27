@@ -692,11 +692,11 @@ impl BroadcastClone for SerializableCryptoKey {
     type Id = CryptoKeyId;
 
     fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
-        &data.crypto_key
+        &data.crypto_keys
     }
 
     fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
-        &mut data.crypto_key
+        &mut data.crypto_keys
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {

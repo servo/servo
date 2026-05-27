@@ -58,7 +58,7 @@ pub struct StructuredSerializedData {
     /// Serialized image data objects.
     pub image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
     /// Serialized crypto key objects.
-    pub crypto_key: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
+    pub crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
 }
 
 impl StructuredSerializedData {
