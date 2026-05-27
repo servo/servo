@@ -9,7 +9,6 @@ use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::cmp::Ordering;
 use std::default::Default;
 use std::f64::consts::PI;
-use std::marker::PhantomData;
 use std::ops::Deref;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
@@ -113,6 +112,10 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
+use crate::dom::node::iterators::{
+    FollowingNodeIterator, PrecedingNodeIterator, SimpleNodeIterator, TreeIterator,
+    UnrootedSimpleNodeIterator, UnrootedTreeIterator,
+};
 use crate::dom::node::nodelist::NodeList;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -930,43 +933,35 @@ impl Node {
     pub(crate) fn inclusively_following_siblings(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            next_node: |n| n.GetNextSibling(),
-        }
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), |n| n.GetNextSibling())
     }
 
     pub(crate) fn inclusively_following_siblings_unrooted<'b>(
         &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
-        UnrootedSimpleNodeIterator {
-            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
-            next_node: |n, no_gc| n.get_next_sibling_unrooted(no_gc),
+        UnrootedSimpleNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            |n, no_gc| n.get_next_sibling_unrooted(no_gc),
             no_gc,
-            phantom: PhantomData,
-        }
+        )
     }
 
     pub(crate) fn inclusively_preceding_siblings(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            next_node: |n| n.GetPreviousSibling(),
-        }
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), |n| n.GetPreviousSibling())
     }
 
     pub(crate) fn inclusively_preceding_siblings_unrooted<'b>(
         &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
-        UnrootedSimpleNodeIterator {
-            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
-            next_node: |n, no_gc| n.get_previous_sibling_unrooted(no_gc),
+        UnrootedSimpleNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            |n, no_gc| n.get_previous_sibling_unrooted(no_gc),
             no_gc,
-            phantom: PhantomData,
-        }
+        )
     }
 
     pub(crate) fn common_ancestor(
@@ -1032,40 +1027,25 @@ impl Node {
     }
 
     pub(crate) fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetNextSibling(),
-            next_node: |n| n.GetNextSibling(),
-        }
+        SimpleNodeIterator::new(self.GetNextSibling(), |n| n.GetNextSibling())
     }
 
     pub(crate) fn preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetPreviousSibling(),
-            next_node: |n| n.GetPreviousSibling(),
-        }
+        SimpleNodeIterator::new(self.GetPreviousSibling(), |n| n.GetPreviousSibling())
     }
 
     pub(crate) fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
-        FollowingNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            root: DomRoot::from_ref(root),
-        }
+        FollowingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
     }
 
     pub(crate) fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
-        PrecedingNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            root: DomRoot::from_ref(root),
-        }
+        PrecedingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
     }
 
     /// Return an iterator that moves from `self` down the tree, choosing the last child
     /// at each step of the way.
     pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetLastChild(),
-            next_node: |n| n.GetLastChild(),
-        }
+        SimpleNodeIterator::new(self.GetLastChild(), |n| n.GetLastChild())
     }
 
     pub(crate) fn is_parent_of(&self, child: &Node) -> bool {
@@ -1618,10 +1598,7 @@ impl Node {
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetParentNode(),
-            next_node: |n| n.GetParentNode(),
-        }
+        SimpleNodeIterator::new(self.GetParentNode(), |n| n.GetParentNode())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
@@ -1629,17 +1606,14 @@ impl Node {
         &self,
         shadow_including: ShadowIncluding,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            next_node: move |n| {
-                if shadow_including == ShadowIncluding::Yes &&
-                    let Some(shadow_root) = n.downcast::<ShadowRoot>()
-                {
-                    return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
-                }
-                n.GetParentNode()
-            },
-        }
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |n| {
+            if shadow_including == ShadowIncluding::Yes &&
+                let Some(shadow_root) = n.downcast::<ShadowRoot>()
+            {
+                return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            }
+            n.GetParentNode()
+        })
     }
 
     pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
@@ -1671,29 +1645,22 @@ impl Node {
     }
 
     pub(crate) fn children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetFirstChild(),
-            next_node: |n| n.GetNextSibling(),
-        }
+        SimpleNodeIterator::new(self.GetFirstChild(), |n| n.GetNextSibling())
     }
 
     pub(crate) fn children_unrooted<'a>(
         &self,
         no_gc: &'a NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
-        UnrootedSimpleNodeIterator {
-            current: self.get_first_child_unrooted(no_gc),
-            next_node: |n, no_gc| n.get_next_sibling_unrooted(no_gc),
+        UnrootedSimpleNodeIterator::new(
+            self.get_first_child_unrooted(no_gc),
+            |n, no_gc| n.get_next_sibling_unrooted(no_gc),
             no_gc,
-            phantom: PhantomData,
-        }
+        )
     }
 
     pub(crate) fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: self.GetLastChild(),
-            next_node: |n| n.GetPreviousSibling(),
-        }
+        SimpleNodeIterator::new(self.GetLastChild(), |n| n.GetPreviousSibling())
     }
 
     /// Returns the children as Elements
@@ -2025,10 +1992,9 @@ impl Node {
     pub(crate) fn inclusive_ancestors_in_flat_tree(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator {
-            current: Some(DomRoot::from_ref(self)),
-            next_node: move |n| n.parent_in_flat_tree(),
-        }
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |n| {
+            n.parent_in_flat_tree()
+        })
     }
 
     /// We are marking this as an implemented pseudo element.
@@ -2423,343 +2389,11 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 }
 
-//
-// Iteration and traversal
-//
-
-pub(crate) struct FollowingNodeIterator {
-    current: Option<DomRoot<Node>>,
-    root: DomRoot<Node>,
-}
-
-impl FollowingNodeIterator {
-    /// Skips iterating the children of the current node
-    pub(crate) fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
-        let current = self.current.take()?;
-        self.next_skipping_children_impl(current)
-    }
-
-    fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        if self.root == current {
-            self.current = None;
-            return None;
-        }
-
-        if let Some(next_sibling) = current.GetNextSibling() {
-            self.current = Some(next_sibling);
-            return current.GetNextSibling();
-        }
-
-        for ancestor in current.inclusive_ancestors(ShadowIncluding::No) {
-            if self.root == ancestor {
-                break;
-            }
-            if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return ancestor.GetNextSibling();
-            }
-        }
-        self.current = None;
-        None
-    }
-}
-
-impl Iterator for FollowingNodeIterator {
-    type Item = DomRoot<Node>;
-
-    /// <https://dom.spec.whatwg.org/#concept-tree-following>
-    fn next(&mut self) -> Option<DomRoot<Node>> {
-        let current = self.current.take()?;
-
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            return current.GetFirstChild();
-        }
-
-        self.next_skipping_children_impl(current)
-    }
-}
-
-pub(crate) struct PrecedingNodeIterator {
-    current: Option<DomRoot<Node>>,
-    root: DomRoot<Node>,
-}
-
-impl Iterator for PrecedingNodeIterator {
-    type Item = DomRoot<Node>;
-
-    /// <https://dom.spec.whatwg.org/#concept-tree-preceding>
-    fn next(&mut self) -> Option<DomRoot<Node>> {
-        let current = self.current.take()?;
-
-        self.current = if self.root == current {
-            None
-        } else if let Some(previous_sibling) = current.GetPreviousSibling() {
-            if self.root == previous_sibling {
-                None
-            } else if let Some(last_child) = previous_sibling.descending_last_children().last() {
-                Some(last_child)
-            } else {
-                Some(previous_sibling)
-            }
-        } else {
-            current.GetParentNode()
-        };
-        self.current.clone()
-    }
-}
-
-struct SimpleNodeIterator<I>
-where
-    I: Fn(&Node) -> Option<DomRoot<Node>>,
-{
-    current: Option<DomRoot<Node>>,
-    next_node: I,
-}
-
-impl<I> Iterator for SimpleNodeIterator<I>
-where
-    I: Fn(&Node) -> Option<DomRoot<Node>>,
-{
-    type Item = DomRoot<Node>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take();
-        self.current = current.as_ref().and_then(|c| (self.next_node)(c));
-        current
-    }
-}
-
-/// An efficient SimpleNodeIterator because it skips rooting if there are no GC pauses.
-///
-/// Use this if you have a `&JSContext` or `NoGC`.
-///
-/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
-/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
-/// while this iterator is alive.
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct UnrootedSimpleNodeIterator<'a, 'b, I>
-where
-    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
-{
-    current: Option<UnrootedDom<'b, Node>>,
-    next_node: I,
-    /// This is unused and only used for lifetime guarantee of NoGC
-    no_gc: &'b NoGC,
-    phantom: PhantomData<&'a Node>,
-}
-
-impl<'a, 'b, I> Iterator for UnrootedSimpleNodeIterator<'a, 'b, I>
-where
-    'b: 'a,
-    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
-{
-    type Item = UnrootedDom<'b, Node>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take();
-        self.current = current
-            .as_ref()
-            .and_then(|c| (self.next_node)(c, self.no_gc));
-        current
-    }
-}
-
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum ShadowIncluding {
     No,
     Yes,
-}
-
-pub(crate) struct TreeIterator {
-    current: Option<DomRoot<Node>>,
-    depth: usize,
-    shadow_including: ShadowIncluding,
-}
-
-impl TreeIterator {
-    fn new(root: &Node, shadow_including: ShadowIncluding) -> TreeIterator {
-        TreeIterator {
-            current: Some(DomRoot::from_ref(root)),
-            depth: 0,
-            shadow_including,
-        }
-    }
-
-    pub(crate) fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
-        let current = self.current.take()?;
-
-        self.next_skipping_children_impl(current)
-    }
-
-    fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = current.inclusive_ancestors(self.shadow_including);
-
-        for ancestor in iter {
-            if self.depth == 0 {
-                break;
-            }
-            if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return Some(current);
-            }
-            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
-                // Shadow roots don't have sibling, so after we're done traversing
-                // one we jump to the first child of the host
-                if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
-                    self.current = Some(child);
-                    return Some(current);
-                }
-            }
-            self.depth -= 1;
-        }
-        debug_assert_eq!(self.depth, 0);
-        self.current = None;
-        Some(current)
-    }
-
-    pub(crate) fn peek(&self) -> Option<&DomRoot<Node>> {
-        self.current.as_ref()
-    }
-}
-
-impl Iterator for TreeIterator {
-    type Item = DomRoot<Node>;
-
-    /// <https://dom.spec.whatwg.org/#concept-tree-order>
-    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
-    fn next(&mut self) -> Option<DomRoot<Node>> {
-        let current = self.current.take()?;
-
-        // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
-            self.shadow_including == ShadowIncluding::Yes
-        {
-            self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
-            self.depth += 1;
-            return Some(current);
-        }
-
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            self.depth += 1;
-            return Some(current);
-        };
-
-        self.next_skipping_children_impl(current)
-    }
-}
-
-/// An efficient TreeIterator because it skips rooting if there are no GC pauses.
-///
-/// Use this if you have a `&JSContext` or `NoGC`.
-///
-/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
-/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
-/// while this iterator is alive.
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct UnrootedTreeIterator<'a, 'b> {
-    current: Option<UnrootedDom<'b, Node>>,
-    depth: usize,
-    shadow_including: ShadowIncluding,
-    /// This is unused and only used for lifetime guarantee of NoGC
-    no_gc: &'b NoGC,
-    phantom: PhantomData<&'a Node>,
-}
-
-impl<'a, 'b> UnrootedTreeIterator<'a, 'b>
-where
-    'b: 'a,
-{
-    pub(crate) fn new(
-        root: &'a Node,
-        shadow_including: ShadowIncluding,
-        no_gc: &'b NoGC,
-    ) -> UnrootedTreeIterator<'a, 'b> {
-        UnrootedTreeIterator {
-            current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
-            depth: 0,
-            shadow_including,
-            no_gc,
-            phantom: PhantomData,
-        }
-    }
-
-    pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
-        let current = self.current.take()?;
-
-        let iter = current.inclusive_ancestors(self.shadow_including);
-
-        for ancestor in iter {
-            if self.depth == 0 {
-                break;
-            }
-
-            let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
-
-            if let Some(next_sibling) = next_sibling_option {
-                self.current = Some(next_sibling);
-                return Some(current);
-            }
-
-            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
-                // Shadow roots don't have sibling, so after we're done traversing
-                // one we jump to the first child of the host
-                let child_option = shadow_root
-                    .Host()
-                    .upcast::<Node>()
-                    .get_first_child_unrooted(self.no_gc);
-
-                if let Some(child) = child_option {
-                    self.current = Some(child);
-                    return Some(current);
-                }
-            }
-            self.depth -= 1;
-        }
-        debug_assert_eq!(self.depth, 0);
-        self.current = None;
-        Some(current)
-    }
-}
-
-impl<'a, 'b> Iterator for UnrootedTreeIterator<'a, 'b>
-where
-    'b: 'a,
-{
-    type Item = UnrootedDom<'b, Node>;
-
-    /// <https://dom.spec.whatwg.org/#concept-tree-order>
-    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
-    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
-        let current = self.current.take()?;
-
-        // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
-            self.shadow_including == ShadowIncluding::Yes
-        {
-            self.current = Some(UnrootedDom::from_dom(
-                Dom::from_ref(shadow_root.upcast::<Node>()),
-                self.no_gc,
-            ));
-            self.depth += 1;
-            return Some(current);
-        }
-
-        let first_child_option = current.get_first_child_unrooted(self.no_gc);
-        if let Some(first_child) = first_child_option {
-            self.current = Some(first_child);
-            self.depth += 1;
-            return Some(current);
-        };
-
-        // current is empty.
-        let _ = self.current.insert(current);
-        self.next_skipping_children()
-    }
 }
 
 /// Specifies whether children must be recursively cloned or not.
@@ -3845,15 +3479,24 @@ impl Node {
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
     }
 
-    fn get_next_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+    pub(crate) fn get_next_sibling_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
         self.next_sibling.get_unrooted(no_gc)
     }
 
-    fn get_previous_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+    pub(crate) fn get_previous_sibling_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
         self.prev_sibling.get_unrooted(no_gc)
     }
 
-    fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+    pub(crate) fn get_first_child_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
         self.first_child.get_unrooted(no_gc)
     }
 
