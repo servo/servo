@@ -252,7 +252,7 @@ impl BluetoothDevice {
         let context = self.get_context();
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
-            if id == &String::from(self.Id()) && device.get_gatt(cx).Connected() {
+            if id == &self.Id().str() as &str && device.get_gatt(cx).Connected() {
                 return Ok(());
             }
         }
