@@ -533,7 +533,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             return Ok(USVString("data:,".into()));
         };
 
-        let image_type = EncodedImageType::from(mime_type.encoded_bytes().bytes());
+        let image_type = EncodedImageType::from(&mime_type.str() as &str);
 
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
@@ -588,7 +588,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             .borrow_mut()
             .insert(callback_id, callback);
         let quality = Self::maybe_quality(quality);
-        let image_type = EncodedImageType::from(mime_type.encoded_bytes().bytes());
+        let image_type = EncodedImageType::from(&mime_type.str() as &str);
 
         self.global()
             .task_manager()
