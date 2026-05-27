@@ -96,7 +96,7 @@ impl Console {
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
         let (arguments, embedder_msg) = if !messages.is_empty() && messages[0].is_string() {
-            let (formatted, consumed) = apply_sprintf_substitutions(cx.into(), &messages);
+            let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
             let remaining = &messages[consumed..];
 
             let mut arguments: Vec<DebuggerValue> =
@@ -344,17 +344,13 @@ fn console_object_from_handle_value(
             )
         },
         ESClass::Function => {
-            rooted!(&in(cx) let fun = unsafe { JS_ValueToFunction(cx, handle_value.into()) });
+            rooted!(&in(cx) let fun = unsafe { JS_ValueToFunction(cx, handle_value) });
             rooted!(&in(cx) let mut name = std::ptr::null_mut::<jsapi::JSString>());
             rooted!(&in(cx) let mut display_name = std::ptr::null_mut::<jsapi::JSString>());
             let arity;
             unsafe {
-                JS_GetFunctionId(&(*cx), fun.handle().into(), name.handle_mut().into());
-                JS_GetFunctionDisplayId(
-                    &(*cx),
-                    fun.handle().into(),
-                    display_name.handle_mut().into(),
-                );
+                JS_GetFunctionId(&(*cx), fun.handle(), name.handle_mut());
+                JS_GetFunctionDisplayId(&(*cx), fun.handle(), display_name.handle_mut());
                 arity = JS_GetFunctionArity(fun.get());
             }
             let name =
@@ -882,8 +878,8 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             js::rust::wrappers2::GetSavedFrameFunctionDisplayName(
                 cx,
                 ptr::null_mut(),
-                frame.into(),
-                result.handle_mut().into(),
+                frame,
+                result.handle_mut(),
                 jsapi::SavedFrameSelfHosted::Include,
             );
         }
@@ -899,8 +895,8 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             js::rust::wrappers2::GetSavedFrameSource(
                 cx,
                 ptr::null_mut(),
-                frame.into(),
-                result.handle_mut().into(),
+                frame,
+                result.handle_mut(),
                 jsapi::SavedFrameSelfHosted::Include,
             );
         }
@@ -916,7 +912,7 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             js::rust::wrappers2::GetSavedFrameLine(
                 cx,
                 ptr::null_mut(),
-                frame.into(),
+                frame,
                 &mut line_number,
                 jsapi::SavedFrameSelfHosted::Include,
             );
@@ -927,7 +923,7 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             js::rust::wrappers2::GetSavedFrameColumn(
                 cx,
                 ptr::null_mut(),
-                frame.into(),
+                frame,
                 &mut column_number,
                 jsapi::SavedFrameSelfHosted::Include,
             );
