@@ -9,7 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::id::ScrollTreeNodeId;
+use servo_base::id::{AtomicOptScrollTreeNodeId, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::f32_rect_to_au_rect;
 use style::Zero;
@@ -145,7 +145,7 @@ pub(crate) struct BoxFragment {
     /// `StackingContextTree` construction, so isn't available before that time. This is
     /// used to for determining final viewport size and position of this node and will
     /// also be used in the future for hit testing.
-    pub spatial_tree_node: AtomicRefCell<Option<ScrollTreeNodeId>>,
+    pub spatial_tree_node: AtomicOptScrollTreeNodeId,
 }
 
 impl BoxFragment {
@@ -173,7 +173,7 @@ impl BoxFragment {
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
-            spatial_tree_node: AtomicRefCell::default(),
+            spatial_tree_node: AtomicOptScrollTreeNodeId::new(None),
         }
     }
 
@@ -753,6 +753,6 @@ impl BoxFragment {
     }
 
     pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
-        *self.spatial_tree_node.borrow()
+        self.spatial_tree_node.get()
     }
 }

@@ -766,7 +766,7 @@ impl BoxFragment {
             style.establishes_containing_block_for_absolute_descendants(self.base.flags);
 
         let mut new_scroll_node_id = containing_block.scroll_node_id;
-        *self.spatial_tree_node.borrow_mut() = Some(new_scroll_node_id);
+        self.spatial_tree_node.set(Some(new_scroll_node_id));
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
@@ -1306,7 +1306,7 @@ impl BoxFragment {
             }
         }
 
-        *self.spatial_tree_node.borrow_mut() = None;
+        self.spatial_tree_node.set(None);
         assign_spatial_tree_node_on_fragments(&self.children);
     }
 }

@@ -10,7 +10,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, LazyLock};
 
 use accesskit::{TreeId, Uuid};
@@ -482,6 +482,35 @@ pub const TEST_SCRIPT_EVENT_LOOP_ID: ScriptEventLoopId = ScriptEventLoopId(1234)
 pub struct ScrollTreeNodeId {
     /// The index of this scroll tree node in the tree's array of nodes.
     pub index: usize,
+}
+
+#[derive(MallocSizeOf)]
+pub struct AtomicOptScrollTreeNodeId(AtomicUsize);
+
+impl AtomicOptScrollTreeNodeId {
+    pub fn new(opt_id: Option<ScrollTreeNodeId>) -> Self {
+        Self(AtomicUsize::new(Self::from_opt(opt_id)))
+    }
+
+    pub fn set(&self, opt_id: Option<ScrollTreeNodeId>) {
+        self.0.store(Self::from_opt(opt_id), Ordering::Relaxed);
+    }
+
+    fn from_opt(opt_id: Option<ScrollTreeNodeId>) -> usize {
+        if let Some(ScrollTreeNodeId { index }) = opt_id {
+            debug_assert_ne!(index, usize::MAX);
+            index
+        } else {
+            usize::MAX
+        }
+    }
+
+    pub fn get(&self) -> Option<ScrollTreeNodeId> {
+        match self.0.load(Ordering::Relaxed) {
+            usize::MAX => None,
+            index => Some(ScrollTreeNodeId { index }),
+        }
+    }
 }
 
 static PAINTER_ID: AtomicU32 = AtomicU32::new(1);
