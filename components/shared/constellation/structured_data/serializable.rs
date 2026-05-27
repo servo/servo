@@ -17,12 +17,13 @@ use pixels::SharedSnapshot;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId, FileListId,
-    ImageBitmapId, ImageDataId, QuotaExceededErrorId,
+    BlobId, CryptoKeyId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId,
+    FileListId, ImageBitmapId, ImageDataId, QuotaExceededErrorId,
 };
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
 use uuid::Uuid;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use super::StructuredSerializedData;
 
@@ -75,6 +76,8 @@ pub enum Serializable {
     ImageBitmap,
     /// The `ImageData` interface.
     ImageData,
+    /// The `CryptoKey` interface.
+    CryptoKey,
 }
 
 impl Serializable {
@@ -109,6 +112,9 @@ impl Serializable {
             },
             Serializable::ImageData => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageData>
+            },
+            Serializable::CryptoKey => {
+                StructuredSerializedData::clone_all_of_type::<SerializableCryptoKey>
             },
         }
     }
@@ -546,6 +552,151 @@ impl BroadcastClone for SerializableImageData {
 
     fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.image_data
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+/// A serializable version of the `Algorithm` dictionary, used by the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableAlgorithm {
+    pub name: String,
+}
+
+/// A serializable version of the `CShakeParams` dictionary, used by the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableCShakeParams {
+    pub name: String,
+    pub output_length: u32,
+    pub function_name: Option<Vec<u8>>,
+    pub customization: Option<Vec<u8>>,
+}
+
+/// A serializable version of the `TurboShakeParams` dictionary, used by the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableTurboShakeParams {
+    pub name: String,
+    pub output_length: u32,
+    pub domain_separation: Option<u8>,
+}
+
+/// A serializable version of the `DigestAlgorithm` type, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum SerializableDigestAlgorithm {
+    Sha(SerializableAlgorithm),
+    Sha3(SerializableAlgorithm),
+    CShake(SerializableCShakeParams),
+    TurboShake(SerializableTurboShakeParams),
+}
+
+/// A serializable version of the `KeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableKeyAlgorithm {
+    pub name: String,
+}
+
+/// A serializable version of the `RsaHashedKeyAlgorithm` dictionary, used the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableRsaHashedKeyAlgorithm {
+    pub name: String,
+    pub modulus_length: u32,
+    pub public_exponent: Vec<u8>,
+    pub hash: SerializableDigestAlgorithm,
+}
+
+/// A serializable version of the `EcKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableEcKeyAlgorithm {
+    pub name: String,
+    pub named_curve: String,
+}
+
+/// A serializable version of the `AesKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableAesKeyAlgorithm {
+    pub name: String,
+    pub length: u16,
+}
+
+/// A serializable version of the `HmacKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableHmacKeyAlgorithm {
+    pub name: String,
+    pub hash: SerializableDigestAlgorithm,
+    pub length: u32,
+}
+
+/// A serializable version of the `KeyAlgorithmAndDerivatives` type, used by the `SubtleCrypto`
+/// interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum SerializableKeyAlgorithmAndDerivatives {
+    KeyAlgorithm(SerializableKeyAlgorithm),
+    RsaHashedKeyAlgorithm(SerializableRsaHashedKeyAlgorithm),
+    EcKeyAlgorithm(SerializableEcKeyAlgorithm),
+    AesKeyAlgorithm(SerializableAesKeyAlgorithm),
+    HmacKeyAlgorithm(SerializableHmacKeyAlgorithm),
+}
+
+/// A serializable version of the `Handle` type, used by the `CryptoKey` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, Zeroize, ZeroizeOnDrop)]
+pub enum SerializableCryptoKeyHandle {
+    RsaPrivateKey(Vec<u8>),
+    RsaPublicKey(Vec<u8>),
+    P256PrivateKey(Vec<u8>),
+    P384PrivateKey(Vec<u8>),
+    P521PrivateKey(Vec<u8>),
+    P256PublicKey(Vec<u8>),
+    P384PublicKey(Vec<u8>),
+    P521PublicKey(Vec<u8>),
+    Ed25519PrivateKey(Vec<u8>),
+    Ed25519PublicKey(Vec<u8>),
+    X25519PrivateKey([u8; 32]),
+    X25519PublicKey([u8; 32]),
+    Aes128Key(Vec<u8>),
+    Aes192Key(Vec<u8>),
+    Aes256Key(Vec<u8>),
+    HkdfSecret(Vec<u8>),
+    Pbkdf2(Vec<u8>),
+    Hmac(Vec<u8>),
+    MlKem512PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem768PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem1024PrivateKey((Vec<u8>, Vec<u8>)),
+    MlKem512PublicKey(Vec<u8>),
+    MlKem768PublicKey(Vec<u8>),
+    MlKem1024PublicKey(Vec<u8>),
+    MlDsa44PrivateKey(Vec<u8>),
+    MlDsa65PrivateKey(Vec<u8>),
+    MlDsa87PrivateKey(Vec<u8>),
+    MlDsa44PublicKey(Vec<u8>),
+    MlDsa65PublicKey(Vec<u8>),
+    MlDsa87PublicKey(Vec<u8>),
+    ChaCha20Poly1305Key(Vec<u8>),
+    Argon2Password(Vec<u8>),
+}
+
+/// A serializable version of the `CryptoKey` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableCryptoKey {
+    pub key_type: String,
+    pub extractable: bool,
+    pub algorithm: SerializableKeyAlgorithmAndDerivatives,
+    pub usages: Vec<String>,
+    pub handle: SerializableCryptoKeyHandle,
+}
+
+impl BroadcastClone for SerializableCryptoKey {
+    type Id = CryptoKeyId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.crypto_keys
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.crypto_keys
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {

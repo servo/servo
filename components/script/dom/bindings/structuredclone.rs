@@ -28,16 +28,16 @@ use js::rust::{
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
 use servo_base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId, FileListId,
-    ImageBitmapId, ImageDataId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId,
-    PipelineNamespaceId, QuotaExceededErrorId,
+    BlobId, CryptoKeyId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId,
+    FileListId, ImageBitmapId, ImageDataId, Index, MessagePortId, NamespaceIndex,
+    OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
 };
 use servo_constellation_traits::{
     BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
-    Serializable as SerializableInterface, SerializableFile, SerializableFileList,
-    SerializableImageBitmap, SerializableImageData, SerializableQuotaExceededError,
-    StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface,
-    TransformStreamData,
+    Serializable as SerializableInterface, SerializableCryptoKey, SerializableFile,
+    SerializableFileList, SerializableImageBitmap, SerializableImageData,
+    SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas,
+    Transferrable as TransferrableInterface, TransformStreamData,
 };
 use strum::IntoEnumIterator;
 
@@ -47,6 +47,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
+use crate::dom::cryptokey::CryptoKey;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::file::File;
@@ -93,6 +94,7 @@ pub(super) enum StructuredCloneTags {
     DomMatrix = 0xFFFF8012,
     DomMatrixReadOnly = 0xFFFF8013,
     ImageData = 0xFFFF8014,
+    CryptoKey = 0xFFFF8015,
     Max = 0xFFFFFFFF,
 }
 
@@ -113,6 +115,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
             SerializableInterface::ImageData => StructuredCloneTags::ImageData,
+            SerializableInterface::CryptoKey => StructuredCloneTags::CryptoKey,
         }
     }
 }
@@ -153,6 +156,7 @@ fn reader_for_type(
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
         SerializableInterface::ImageData => read_object::<ImageData>,
+        SerializableInterface::CryptoKey => read_object::<CryptoKey>,
     }
 }
 
@@ -310,6 +314,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
         SerializableInterface::ImageData => try_serialize::<ImageData>,
+        SerializableInterface::CryptoKey => try_serialize::<CryptoKey>,
     }
 }
 
@@ -678,6 +683,8 @@ pub(crate) struct StructuredDataReader<'a> {
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
     // A map of serialized image data.
     pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
+    // A map of serialized crypto keys.
+    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -718,6 +725,8 @@ pub(crate) struct StructuredDataWriter {
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
     // A map of serialized image data.
     pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
+    // A map of serialized crypto keys.
+    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -785,6 +794,7 @@ pub(crate) fn write(
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
             offscreen_canvases: sc_writer.offscreen_canvases.take(),
             image_data: sc_writer.image_data.take(),
+            crypto_keys: sc_writer.crypto_keys.take(),
         };
 
         Ok(data)
@@ -821,6 +831,7 @@ pub(crate) fn read(
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
         image_data: data.image_data.take(),
+        crypto_keys: data.crypto_keys.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
