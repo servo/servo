@@ -670,7 +670,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 
                 log::error!(
                     "Unhandled promise rejection: {}",
-                    stringify_handle_value(reason.handle())
+                    stringify_handle_value( cx, reason.handle())
                 );
 
                 let event = PromiseRejectionEvent::new(
