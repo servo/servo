@@ -5974,9 +5974,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-window-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f801f5de727bd01cfdcd6e9b0de9d6d3e674e0ac73ea7ee202c0bcd75fc1daf7"
+checksum = "2bd994e92b2c9daaa310068b45e3c3108d1a7c26a01daded0f3ddada692e688e"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
