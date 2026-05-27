@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use embedder_traits::UntrustedNodeAddress;
 use layout_api::AnimatingImages;
-use paint_api::ImageUpdate;
+use paint_api::{ImageUpdate, SerializableImageData};
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -72,22 +72,15 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
-                let frame = image
-                    .frame_data(state.active_frame)
-                    .expect("No frame found")
-                    .clone();
-                if let Some(mut descriptor) =
-                    image.webrender_image_descriptor_and_offset_for_frame()
-                {
-                    descriptor.offset = frame.byte_range.start as i32;
-                    Some(ImageUpdate::UpdateImageForAnimation(
-                        image.id.unwrap(),
-                        descriptor,
-                    ))
-                } else {
-                    error!("Doing normal image update which will be slow!");
-                    None
-                }
+                let (descriptor, ipc_shared_memory) =
+                    image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
+
+                Some(ImageUpdate::UpdateImage(
+                    image.id.unwrap(),
+                    descriptor,
+                    SerializableImageData::Raw(ipc_shared_memory),
+                    None,
+                ))
             })
             .collect();
         window

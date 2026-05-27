@@ -409,12 +409,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     .get_or_insert_with(|| FrameHolder::new(frame.clone()))
                     .set(frame);
 
-                updates.push(ImageUpdate::AddImage(
-                    new_image_key,
-                    descriptor,
-                    image_data,
-                    false,
-                ));
+                updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
                 let Some(image_key) = self.paint_api.generate_image_key_blocking(self.webview_id)
@@ -453,9 +448,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
 
                 self.current_frame_holder = Some(FrameHolder::new(frame));
 
-                updates.push(ImageUpdate::AddImage(
-                    image_key, descriptor, image_data, false,
-                ));
+                updates.push(ImageUpdate::AddImage(image_key, descriptor, image_data));
             },
         }
         self.paint_api

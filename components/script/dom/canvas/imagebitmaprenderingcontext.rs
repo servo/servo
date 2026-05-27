@@ -109,7 +109,7 @@ impl ImageBitmapRenderingContext {
             if self.image_added.get() {
                 paint_api.update_image(image_key, descriptor, data, Some(epoch));
             } else {
-                paint_api.add_image(image_key, descriptor, data, false);
+                paint_api.add_image(image_key, descriptor, data);
                 self.image_added.set(true);
             }
         }
