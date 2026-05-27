@@ -168,7 +168,7 @@ objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 objc2-foundation = { version = "0.3.1", default-features = false }
 ocb3 = "0.1.0"
-ohos-abilitykit-sys = "0.1.5"
+ohos-abilitykit-sys = "0.1.6"
 ohos-deviceinfo = "0.1.0"
 ohos-deviceinfo-sys = "0.1.6"
 ohos-ime = "0.4.2"
