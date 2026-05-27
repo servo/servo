@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicI32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
-use euclid::{Point2D, Rect, Size2D};
 use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -18,12 +17,11 @@ use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style_traits::CSSPixel;
 use web_atoms::local_name;
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalRectAuCell, PhysicalSize};
 
 #[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
 #[repr(u8)]
@@ -61,7 +59,7 @@ pub(crate) struct BaseFragment {
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
-    rect: Rect<AtomicI32, CSSPixel>,
+    rect: PhysicalRectAuCell,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
     pub status: AtomicU8,
@@ -91,55 +89,32 @@ impl BaseFragment {
             tag: base_fragment_info.tag,
             flags: base_fragment_info.flags,
             style,
-            rect: Rect::new(
-                Point2D::new(rect.origin.x.0.into(), rect.origin.y.0.into()),
-                Size2D::new(rect.size.width.0.into(), rect.size.height.0.into()),
-            ),
+            rect: PhysicalRectAuCell::new(rect),
             status: AtomicU8::new(FragmentStatus::New as u8),
         }
     }
 
     #[inline]
     pub(crate) fn rect(&self) -> PhysicalRect<Au> {
-        PhysicalRect::new(
-            Point2D::new(
-                Au::new(self.rect.origin.x.load(Ordering::Relaxed)),
-                Au::new(self.rect.origin.y.load(Ordering::Relaxed)),
-            ),
-            Size2D::new(
-                Au::new(self.rect.size.width.load(Ordering::Relaxed)),
-                Au::new(self.rect.size.height.load(Ordering::Relaxed)),
-            ),
-        )
+        self.rect.get()
     }
 
     #[inline]
     pub(crate) fn set_rect(&self, new_rect: PhysicalRect<Au>) {
-        let origin = &self.rect.origin;
-        origin.x.store(new_rect.origin.x.0, Ordering::Relaxed);
-        origin.y.store(new_rect.origin.y.0, Ordering::Relaxed);
-
-        let size = &self.rect.size;
-        size.width.store(new_rect.size.width.0, Ordering::Relaxed);
-        size.height.store(new_rect.size.height.0, Ordering::Relaxed);
+        self.rect.set(new_rect);
     }
 
     #[inline]
     pub(crate) fn translate_rect(&self, offset: PhysicalSize<Au>) {
         // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
         // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
-        let origin = &self.rect.origin;
-        let new_x = Au::new(origin.x.load(Ordering::Relaxed)) + offset.width;
-        origin.x.store(new_x.0, Ordering::Relaxed);
-        let new_y = Au::new(origin.y.load(Ordering::Relaxed)) + offset.height;
-        origin.y.store(new_y.0, Ordering::Relaxed);
+        let new_origin = self.rect.origin() + offset;
+        self.rect.set_origin(new_origin);
     }
 
     #[inline]
     pub(crate) fn set_rect_origin(&self, offset: PhysicalPoint<Au>) {
-        let origin = &self.rect.origin;
-        origin.x.store(offset.x.0, Ordering::Relaxed);
-        origin.y.store(offset.y.0, Ordering::Relaxed);
+        self.rect.set_origin(offset)
     }
 
     pub(crate) fn is_anonymous(&self) -> bool {

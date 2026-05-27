@@ -26,7 +26,8 @@ use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalRectAuCell,
+    PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
@@ -117,7 +118,7 @@ pub(crate) struct BoxFragment {
 
     /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: AtomicRefCell<PhysicalRect<Au>>,
+    pub cumulative_containing_block_rect: PhysicalRectAuCell,
 
     pub padding: PhysicalSides<Au>,
     pub border: PhysicalSides<Au>,
@@ -409,8 +410,9 @@ impl BoxFragment {
         scrollable_overflow
     }
 
+    #[inline]
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
-        *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
+        self.cumulative_containing_block_rect.set(*containing_block);
     }
 
     pub(crate) fn offset_by_containing_block(
@@ -419,12 +421,7 @@ impl BoxFragment {
         containing_block_computation: ContainingBlockCalculation<'_>,
     ) -> PhysicalRect<Au> {
         containing_block_computation.ensure();
-        rect.translate(
-            self.cumulative_containing_block_rect
-                .borrow()
-                .origin
-                .to_vector(),
-        )
+        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
     }
 
     pub(crate) fn cumulative_content_box_rect(
@@ -616,7 +613,7 @@ impl BoxFragment {
 
         let containing_block_size = LazyCell::new(|| {
             containing_block_computation.ensure();
-            self.cumulative_containing_block_rect.borrow().size
+            self.cumulative_containing_block_rect.size()
         });
 
         // "A resolved value special case property like top defined in another

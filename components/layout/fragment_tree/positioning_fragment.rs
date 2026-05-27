@@ -13,7 +13,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::fragment_tree::ContainingBlockCalculation;
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalRect, PhysicalRectAuCell};
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
 /// itself. [`PositioningFragment`]s may be completely anonymous, or just non-painting Fragments
@@ -28,7 +28,7 @@ pub(crate) struct PositioningFragment {
 
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: AtomicRefCell<PhysicalRect<Au>>,
+    pub cumulative_containing_block_rect: PhysicalRectAuCell,
 
     /// Whether or not this [`PositioningFragment`] is a line box.
     is_line_box: bool,
@@ -74,8 +74,9 @@ impl PositioningFragment {
         })
     }
 
+    #[inline]
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
-        *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
+        self.cumulative_containing_block_rect.set(*containing_block);
     }
 
     pub fn offset_by_containing_block(
@@ -84,12 +85,7 @@ impl PositioningFragment {
         containing_block_computation: ContainingBlockCalculation<'_>,
     ) -> PhysicalRect<Au> {
         containing_block_computation.ensure();
-        rect.translate(
-            self.cumulative_containing_block_rect
-                .borrow()
-                .origin
-                .to_vector(),
-        )
+        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
     }
 
     /// Get the scrollable overflow for this [`PositioningFragment`] relative to its
