@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -133,7 +134,8 @@ pub(crate) struct BoxFragment {
     /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
     /// rectangle. This does not take into account any transforms this fragment applies.
     /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
-    scrollable_overflow: AtomicRefCell<Option<PhysicalRect<Au>>>,
+    scrollable_overflow: PhysicalRectAuCell,
+    scrollable_overflow_is_up_to_date: AtomicBool,
 
     pub background_mode: BackgroundMode,
 
@@ -172,6 +174,7 @@ impl BoxFragment {
             margin,
             baselines: Baselines::default(),
             scrollable_overflow: Default::default(),
+            scrollable_overflow_is_up_to_date: AtomicBool::new(false),
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
@@ -293,17 +296,26 @@ impl BoxFragment {
     /// block, recalculating scrollable overflow when necessary, for instance after a
     /// style change.
     pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
-        *self
-            .scrollable_overflow
-            .borrow_mut()
-            .get_or_insert_with(|| self.calculate_scrollable_overflow())
+        if self
+            .scrollable_overflow_is_up_to_date
+            .load(Ordering::Acquire)
+        {
+            self.scrollable_overflow.get()
+        } else {
+            let rect = self.calculate_scrollable_overflow();
+            self.scrollable_overflow.set(rect);
+            self.scrollable_overflow_is_up_to_date
+                .store(true, Ordering::Release);
+            rect
+        }
     }
 
     /// Clear the scrollable overflow on this [`BoxFragment`]. This is called
     /// during damage propagation when a fragment is preserved, itself or one of its
     /// descendants has scrollable overflow damage.
     pub(crate) fn clear_scrollable_overflow(&self) {
-        *self.scrollable_overflow.borrow_mut() = None;
+        self.scrollable_overflow_is_up_to_date
+            .store(false, Ordering::Release);
     }
 
     /// This is an implementation of:

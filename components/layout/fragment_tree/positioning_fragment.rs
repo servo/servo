@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::print_tree::PrintTree;
@@ -24,7 +24,8 @@ pub(crate) struct PositioningFragment {
     pub children: Vec<Fragment>,
 
     /// The scrollable overflow of this anonymous fragment's children.
-    scrollable_overflow: AtomicRefCell<Option<PhysicalRect<Au>>>,
+    scrollable_overflow: PhysicalRectAuCell,
+    scrollable_overflow_is_up_to_date: AtomicBool,
 
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
@@ -69,6 +70,7 @@ impl PositioningFragment {
             base: BaseFragment::new(base_fragment_info, style.into(), rect),
             children,
             scrollable_overflow: Default::default(),
+            scrollable_overflow_is_up_to_date: AtomicBool::new(false),
             cumulative_containing_block_rect: Default::default(),
             is_line_box,
         })
@@ -92,17 +94,26 @@ impl PositioningFragment {
     /// containing block, recalculating scrollable overflow when necessary, for instance
     /// after a style change.
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        *self
-            .scrollable_overflow
-            .borrow_mut()
-            .get_or_insert_with(|| self.calculate_scrollable_overflow())
+        if self
+            .scrollable_overflow_is_up_to_date
+            .load(Ordering::Acquire)
+        {
+            self.scrollable_overflow.get()
+        } else {
+            let rect = self.calculate_scrollable_overflow();
+            self.scrollable_overflow.set(rect);
+            self.scrollable_overflow_is_up_to_date
+                .store(true, Ordering::Release);
+            rect
+        }
     }
 
     /// Clear the scrollable overflow on this [`PositioningFragment`]. This is called
     /// during damage propagation when a fragment is preserved, itself or one of its
     /// descendants has scrollable overflow damage.
     pub(crate) fn clear_scrollable_overflow(&self) {
-        *self.scrollable_overflow.borrow_mut() = None;
+        self.scrollable_overflow_is_up_to_date
+            .store(false, Ordering::Release);
     }
 
     fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
