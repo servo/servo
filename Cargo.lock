@@ -5944,9 +5944,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-sys-opaque-types"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97f72e2121a94c07908afa7ae845775f02a51dbc4c691a96710151a00043203d"
+checksum = "f0135000ddab1491bd02a60e855c02e71be855845ca354162c1e189dea79d015"
 
 [[package]]
 name = "ohos-vsync"
@@ -5974,9 +5974,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-window-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f801f5de727bd01cfdcd6e9b0de9d6d3e674e0ac73ea7ee202c0bcd75fc1daf7"
+checksum = "2bd994e92b2c9daaa310068b45e3c3108d1a7c26a01daded0f3ddada692e688e"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
