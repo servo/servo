@@ -2887,6 +2887,7 @@ def getAllTypes(
             yield (t, None)
     for typedef in typedefs:
         if typedef.innerType.isRecord():
+            assert isinstance(typedef.innerType, IDLRecordType)
             yield (typedef.innerType.inner, None)
         yield (typedef.innerType, None)
 

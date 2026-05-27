@@ -386,16 +386,30 @@ class MachCommands(CommandBase):
         else:
             print("SKIP: Install tshark manually")
 
+        print("Verifying integrity of WebIDL parser...")
+        try:
+            result = subprocess.run(
+                ["components/script_bindings/third_party/WebIDL/manage.py", "verify"], check=True, capture_output=True
+            )
+            print("OK")
+        except subprocess.CalledProcessError as e:
+            print(f"Process failed with exit status {e.returncode}: {e.cmd}", file=sys.stderr)
+            print(f"stdout: {repr(e.stdout)}", file=sys.stderr)
+            print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
+            raise e
+
         if all or tests:
             print("Running WebIDL tests...")
 
-            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "third_party", "WebIDL"))
+            test_file_dir = path.abspath(
+                path.join(PROJECT_TOPLEVEL_PATH, "components", "script_bindings", "third_party", "WebIDL", "parser")
+            )
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
             run_globals: dict[str, Any] = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-            passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
+            passed = not run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
 
