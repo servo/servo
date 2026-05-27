@@ -403,6 +403,10 @@ impl Convert<wgpu_types::BlendFactor> for &GPUBlendFactor {
             GPUBlendFactor::Src_alpha_saturated => wgpu_types::BlendFactor::SrcAlphaSaturated,
             GPUBlendFactor::Constant => wgpu_types::BlendFactor::Constant,
             GPUBlendFactor::One_minus_constant => wgpu_types::BlendFactor::OneMinusConstant,
+            GPUBlendFactor::Src1 => wgpu_types::BlendFactor::Src1,
+            GPUBlendFactor::One_minus_src1 => wgpu_types::BlendFactor::OneMinusSrc1,
+            GPUBlendFactor::Src1_alpha => wgpu_types::BlendFactor::Src1Alpha,
+            GPUBlendFactor::One_minus_src1_alpha => wgpu_types::BlendFactor::OneMinusSrc1Alpha,
         }
     }
 }
