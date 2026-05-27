@@ -301,6 +301,9 @@ impl ServiceWorkerContainer {
             ))
             .is_err()
         {
+            // Note: pop the promise we just pushed, since we will not get a result back to handle it.
+            self.pending_algorithm_results.borrow_mut().pop_back();
+
             debug_assert!(
                 false,
                 "Failed to send Unregister algorithm message to the constellation."
@@ -420,6 +423,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
                 can_gc,
             );
+            // Note: pop the promise we just pushed, since we will not get a result back to handle it.
+            self.pending_algorithm_results.borrow_mut().pop_back();
             return promise;
         };
 
@@ -441,6 +446,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             ))
             .is_err()
         {
+            // Note: pop the promise we just pushed, since we will not get a result back to handle it.
+            self.pending_algorithm_results.borrow_mut().pop_back();
             debug_assert!(
                 false,
                 "Failed to send StartRegister algorithm message to the constellation."
@@ -511,6 +518,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             ))
             .is_err()
         {
+            // Note: pop the promise we just pushed, since we will not get a result back to handle it.
+            self.pending_algorithm_results.borrow_mut().pop_back();
             promise.reject_error(
                 Error::Type(c"Failed to send MatchServiceWorkerRegistration algorithm".to_owned()),
                 CanGc::from_cx(realm),
