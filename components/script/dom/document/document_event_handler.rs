@@ -63,8 +63,9 @@ use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::interactive_element_command::InteractiveElementCommand;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
+use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::types::{

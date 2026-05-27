@@ -22,7 +22,8 @@ use crate::dom::htmlinputelement::input_type::InputType;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::input_element::{HTMLInputElement, InputActivationState};
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 

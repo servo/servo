@@ -15,7 +15,8 @@ use crate::dom::execcommand::basecommand::{
 };
 use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
 use crate::dom::html::htmllielement::HTMLLIElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;

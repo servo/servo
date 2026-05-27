@@ -12,7 +12,8 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{
     HTMLAnchorElement, HTMLButtonElement, HTMLElement, HTMLFieldSetElement, HTMLInputElement,
     HTMLLabelElement, HTMLLegendElement, HTMLOptionElement,

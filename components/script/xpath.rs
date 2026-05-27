@@ -28,8 +28,8 @@ use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttributeStorage;
-use crate::dom::iterators::PrecedingNodeIterator;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::{PrecedingNodeIterator, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 

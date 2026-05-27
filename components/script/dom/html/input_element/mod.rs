@@ -67,9 +67,10 @@ use crate::dom::htmlinputelement::radio_input_type::{
     broadcast_radio_checked, perform_radio_group_validation,
 };
 use crate::dom::input_element::input_type::InputType;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
-    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};

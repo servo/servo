@@ -6,6 +6,7 @@ use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
+use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
@@ -18,9 +19,9 @@ use crate::dom::execcommand::contenteditable::node::{
     NodeOrString, is_allowed_child, node_matches_local_name, split_the_parent, wrap_node_list,
 };
 use crate::dom::html::htmlbrelement::HTMLBRElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-use crate::dom::{Node, ShadowIncluding};
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-insertparagraph-command>
 pub(crate) fn execute_insert_paragraph_command(

@@ -7,6 +7,7 @@ use std::iter;
 
 use crate::dom::activation::Activatable;
 use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::iterators::ShadowIncluding;
 use script_bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -39,7 +40,7 @@ use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, 
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;

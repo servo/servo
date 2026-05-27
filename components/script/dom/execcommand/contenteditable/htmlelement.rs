@@ -20,7 +20,8 @@ use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
-use crate::dom::node::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::node::{Node, NodeTraits};
 use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
 

@@ -15,7 +15,8 @@ use servo_constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, Wi
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::dom::types::{Document, Window};
 use crate::script_thread::with_script_thread;
 
