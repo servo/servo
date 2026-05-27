@@ -465,6 +465,12 @@ impl Player for OhosAvPlayer {
         Ok(())
     }
 
+    fn set_seekable(&self, seekable: bool) -> Result<(), servo_media::player::PlayerError> {
+        debug!("SetSeekable: {}", seekable);
+
+        Ok(())
+    }
+
     fn set_playback_rate(
         &self,
         playback_rate: f64,

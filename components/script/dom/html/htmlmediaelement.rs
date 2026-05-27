@@ -3796,6 +3796,18 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         // Explicit media player initialization with live/seekable source.
+        if let Err(e) = element
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .set_seekable(is_seekable)
+        {
+            warn!("Could not set player seekable {:?}", e);
+        }
+
         if let Some(expected_content_length) = self.expected_content_length &&
             let Err(e) = element
                 .player
