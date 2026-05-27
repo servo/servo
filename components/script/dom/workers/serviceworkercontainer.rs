@@ -242,7 +242,7 @@ impl ServiceWorkerContainer {
 
         let task_source = global
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .to_sendable();
         let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
