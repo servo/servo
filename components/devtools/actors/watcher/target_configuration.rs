@@ -78,9 +78,9 @@ impl Actor for TargetConfigurationActor {
                     let root_actor = registry.find::<RootActor>("root");
                     if let Some(tab_name) = root_actor.active_tab() {
                         let tab_descriptor_actor = registry.find::<TabDescriptorActor>(&tab_name);
-                        let browsing_context_name = tab_descriptor_actor.browsing_context();
-                        let browsing_context_actor =
-                            registry.find::<BrowsingContextActor>(&browsing_context_name);
+                        let browsing_context_actor = registry.find::<BrowsingContextActor>(
+                            &tab_descriptor_actor.browsing_context_name,
+                        );
                         browsing_context_actor
                             .simulate_color_scheme(theme)
                             .map_err(|_| ActorError::Internal)?;

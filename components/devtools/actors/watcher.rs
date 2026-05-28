@@ -191,7 +191,7 @@ pub(crate) struct WatcherActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
-    pub browsing_context_name: String,
+    browsing_context_name: String,
     network_parent_name: String,
     target_configuration_name: String,
     thread_configuration_name: String,
@@ -329,8 +329,8 @@ impl Actor for WatcherActor {
                                     name: name.into(),
                                     new_uri: None,
                                     time: get_time_stamp(),
-                                    title: Some(browsing_context_actor.title.borrow().clone()),
-                                    url: Some(browsing_context_actor.url.borrow().clone()),
+                                    title: Some(browsing_context_actor.title()),
+                                    url: Some(browsing_context_actor.url()),
                                 };
                                 browsing_context_actor.resource_array(
                                     event,
@@ -519,6 +519,29 @@ impl WatcherActor {
                 ResourceArrayType::Available,
                 stream,
             );
+        }
+    }
+
+    pub fn emit_target_available_or_destroyed<'a>(
+        &self,
+        browsing_context_actor: &BrowsingContextActor,
+        registry: &ActorRegistry,
+        connections: impl Iterator<Item = &'a mut DevtoolsConnection>,
+        available: bool,
+    ) {
+        let msg = WatchTargetsReply {
+            from: self.name(),
+            type_: (if available {
+                "target-available-form"
+            } else {
+                "target-destroyed-form"
+            })
+            .into(),
+            target: TargetActorMsg::BrowsingContext(browsing_context_actor.encode(registry)),
+        };
+
+        for stream in connections {
+            let _ = stream.write_json_packet(&msg);
         }
     }
 }

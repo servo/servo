@@ -162,27 +162,22 @@ impl StyleSheetsActor {
                 tx,
             ));
         let style_sheets = rx.recv().unwrap();
+        let url = browsing_context_actor.url();
+        let browsing_context_id = browsing_context_actor.browsing_context_id.value();
         style_sheets
             .into_iter()
             .map(|info| StyleSheetData {
-                resource_id: format!(
-                    "{}-{}",
-                    browsing_context_actor.browsing_context_id.value(),
-                    info.style_sheet_index
-                ),
-                browsing_context_id: browsing_context_actor.browsing_context_id.value(),
+                resource_id: format!("{}-{}", browsing_context_id, info.style_sheet_index),
+                browsing_context_id,
                 href: info.href.clone(),
-                node_href: browsing_context_actor.url.borrow().clone(),
+                node_href: url.clone(),
                 disabled: info.disabled,
                 title: (!info.title.is_empty()).then_some(info.title),
                 system: info.system,
                 is_new: false,
                 file_name: None,
                 source_map_url: Some("".to_string()),
-                source_map_base_url: Some(
-                    info.href
-                        .unwrap_or_else(|| browsing_context_actor.url.borrow().clone()),
-                ),
+                source_map_base_url: Some(info.href.unwrap_or_else(|| url.clone())),
                 style_sheet_index: info.style_sheet_index,
                 constructed: false,
                 rule_count: info.rule_count,

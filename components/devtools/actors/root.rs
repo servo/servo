@@ -292,7 +292,7 @@ impl Actor for RootActor {
                             let tab_descriptor_actor =
                                 registry.find::<TabDescriptorActor>(tab_descriptor_name);
                             // Filter out iframes and workers
-                            if tab_descriptor_actor.is_top_level_global() {
+                            if tab_descriptor_actor.is_top_level_global(registry) {
                                 Some(tab_descriptor_actor.encode(registry))
                             } else {
                                 None

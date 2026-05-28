@@ -13,11 +13,12 @@ use servo_base::generic_channel::GenericSender;
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
 use crate::generic_channel::channel;
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

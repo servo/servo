@@ -442,26 +442,54 @@ impl DevtoolsInstance {
         framerate_actor.add_tick(tick);
     }
 
-    fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
-        let browsing_context_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
+    fn handle_navigate(&mut self, browsing_context_id: BrowsingContextId, state: NavigationState) {
+        let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
+            return;
+        };
+        let browsing_context_name = browsing_context_name.clone();
         let browsing_context_actor = self
             .registry
-            .find::<BrowsingContextActor>(browsing_context_name);
+            .find::<BrowsingContextActor>(&browsing_context_name);
+        let watcher_actor = self
+            .registry
+            .find::<WatcherActor>(&browsing_context_actor.watcher_name);
         let mut id_map = self.id_map.lock().unwrap();
         let mut connections = self.connections.lock().unwrap();
-        if let NavigationState::Start(url) = &state {
-            let watcher_actor = self
-                .registry
-                .find::<WatcherActor>(&browsing_context_actor.watcher_name);
-            watcher_actor.emit_will_navigate(
-                browsing_context_id,
-                url.clone(),
-                &mut connections.values_mut(),
-                &mut id_map,
-            );
-        }
 
-        browsing_context_actor.handle_navigate(state, &mut id_map, connections.values_mut());
+        match &state {
+            NavigationState::Start(url) => {
+                watcher_actor.emit_will_navigate(
+                    browsing_context_id,
+                    url.clone(),
+                    &mut connections.values_mut(),
+                    &mut id_map,
+                );
+            },
+            NavigationState::Stop(pipeline_id, page_info) => {
+                watcher_actor.emit_target_available_or_destroyed(
+                    &browsing_context_actor,
+                    &self.registry,
+                    connections.values_mut(),
+                    false,
+                );
+
+                let outer_window_id = id_map.outer_window_id(*pipeline_id);
+                browsing_context_actor.update_pipeline(
+                    *pipeline_id,
+                    outer_window_id,
+                    page_info.clone(),
+                );
+
+                watcher_actor.emit_target_available_or_destroyed(
+                    &browsing_context_actor,
+                    &self.registry,
+                    connections.values_mut(),
+                    true,
+                );
+
+                // TODO: Correctly destroy targets, we probably need to create new browsing context actors too.
+            },
+        }
     }
 
     // We need separate actor representations for each script global that exists;
@@ -659,15 +687,10 @@ impl DevtoolsInstance {
         let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
             return;
         };
-        let watcher_name = self
-            .registry
-            .find::<BrowsingContextActor>(browsing_context_name)
-            .watcher_name
-            .clone();
 
         let network_event_name = match self.actor_requests.get(&request_id) {
             Some(name) => name.clone(),
-            None => self.create_network_event_actor(request_id, watcher_name),
+            None => self.create_network_event_actor(request_id, browsing_context_name.clone()),
         };
 
         handle_network_event(
@@ -678,13 +701,17 @@ impl DevtoolsInstance {
         )
     }
 
-    /// Create a new NetworkEventActor for a given request ID and watcher name.
-    fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
+    /// Create a new NetworkEventActor for a given request ID and browsing context name.
+    fn create_network_event_actor(
+        &mut self,
+        request_id: String,
+        browsing_context_name: String,
+    ) -> String {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
         let network_event_name =
-            NetworkEventActor::register(&self.registry, resource_id, watcher_name);
+            NetworkEventActor::register(&self.registry, resource_id, browsing_context_name);
 
         self.actor_requests
             .insert(request_id, network_event_name.clone());
@@ -749,20 +776,14 @@ impl DevtoolsInstance {
                 return;
             };
 
-            let thread_actor_name = {
-                let browsing_context_actor = self
-                    .registry
-                    .find::<BrowsingContextActor>(browsing_context_name);
-                browsing_context_actor.thread_name.clone()
-            };
-
-            let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(&source_actor);
-
             // Notify browsing context about the new source
             let browsing_context_actor = self
                 .registry
                 .find::<BrowsingContextActor>(browsing_context_name);
+
+            let thread_actor_name = browsing_context_actor.thread_name.clone();
+            let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
+            thread_actor.source_manager.add_source(&source_actor);
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 browsing_context_actor.resource_array(
@@ -835,14 +856,12 @@ impl DevtoolsInstance {
         pipeline_id: PipelineId,
         frame: FrameInfo,
     ) {
-        let Some(browsing_context_name) = self
-            .pipelines
-            .get(&pipeline_id)
-            .and_then(|id| self.browsing_contexts.get(id))
-        else {
+        let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
             return;
         };
-
+        let Some(browsing_context_name) = self.browsing_contexts.get(browsing_context_id) else {
+            return;
+        };
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);

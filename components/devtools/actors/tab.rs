@@ -72,8 +72,7 @@ struct GetWatcherReply {
 #[derive(MallocSizeOf)]
 pub(crate) struct TabDescriptorActor {
     name: String,
-    browsing_context_name: String,
-    is_top_level_global: bool,
+    pub browsing_context_name: String,
 }
 
 impl Actor for TabDescriptorActor {
@@ -167,29 +166,24 @@ impl Actor for TabDescriptorActor {
 }
 
 impl TabDescriptorActor {
-    pub(crate) fn register(
-        registry: &ActorRegistry,
-        browsing_context_name: String,
-        is_top_level_global: bool,
-    ) -> String {
+    pub(crate) fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
         let name = registry.new_name::<Self>();
         let root_actor = registry.find::<RootActor>("root");
         root_actor.tabs.borrow_mut().push(name.clone());
-        let actor = TabDescriptorActor {
+        let actor = Self {
             name: name.clone(),
             browsing_context_name,
-            is_top_level_global,
         };
         registry.register::<Self>(actor);
         name
     }
 
-    pub(crate) fn is_top_level_global(&self) -> bool {
-        self.is_top_level_global
-    }
-
-    pub fn browsing_context(&self) -> String {
-        self.browsing_context_name.clone()
+    pub(crate) fn is_top_level_global(&self, registry: &ActorRegistry) -> bool {
+        registry
+            .find::<BrowsingContextActor>(&self.browsing_context_name)
+            .page_info
+            .borrow()
+            .is_top_level_global
     }
 }
 
@@ -197,9 +191,6 @@ impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
     fn encode(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
         let browsing_context_actor =
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
-        let title = browsing_context_actor.title.borrow().clone();
-        let url = browsing_context_actor.url.borrow().clone();
-
         TabDescriptorActorMsg {
             actor: self.name(),
             browser_id: browsing_context_actor.browser_id.value(),
@@ -207,13 +198,13 @@ impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
             is_zombie_tab: false,
             outer_window_id: browsing_context_actor.outer_window_id().value(),
             selected: false,
-            title,
+            title: browsing_context_actor.title(),
             traits: DescriptorTraits {
                 watcher: true,
                 supports_navigation: true,
                 supports_reload_descriptor: true,
             },
-            url,
+            url: browsing_context_actor.url(),
         }
     }
 }
