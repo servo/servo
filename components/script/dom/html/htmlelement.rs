@@ -60,10 +60,10 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::input_element::input_type::InputType;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, ShadowIncluding, UnbindContext,
-    from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
 };
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;

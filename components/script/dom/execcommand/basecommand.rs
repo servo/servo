@@ -40,7 +40,8 @@ use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::execcommand::commands::unlink::execute_unlink_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 

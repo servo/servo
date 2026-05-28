@@ -10,11 +10,12 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 
 use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::iterators::TreeIterator;
 use crate::dom::types::{
     Element, HTMLDialogElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
 };
-use crate::dom::{Document, Node, NodeTraits, ShadowIncluding};
+use crate::dom::{Document, Node, NodeTraits};
 
 /// <https://html.spec.whatwg.org/multipage/#focus-navigation-scope-owner>
 ///

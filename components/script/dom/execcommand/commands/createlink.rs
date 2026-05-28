@@ -6,13 +6,13 @@ use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
-use crate::dom::ShadowIncluding;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-createlink-command>

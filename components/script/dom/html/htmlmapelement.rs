@@ -15,7 +15,8 @@ use crate::dom::document::Document;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 
 #[dom_struct]
 pub(crate) struct HTMLMapElement {

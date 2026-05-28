@@ -49,9 +49,10 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{
-    BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
-    UnbindContext, VecPreOrderInsertionHelper,
+    BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, UnbindContext,
+    VecPreOrderInsertionHelper,
 };
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;

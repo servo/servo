@@ -111,6 +111,7 @@ use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::node::iterators::{
     FollowingNodeIterator, PrecedingNodeIterator, SimpleNodeIterator, TreeIterator,
@@ -2362,13 +2363,6 @@ impl<'dom> LayoutDom<'dom, Node> {
                 .is_some_and(|shadow_root| shadow_root.is_user_agent_widget())
         })
     }
-}
-
-/// Whether a tree traversal should pass shadow tree boundaries.
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) enum ShadowIncluding {
-    No,
-    Yes,
 }
 
 /// Specifies whether children must be recursively cloned or not.

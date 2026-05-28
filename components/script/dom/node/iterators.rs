@@ -6,13 +6,20 @@ use std::marker::PhantomData;
 
 use js::context::NoGC;
 
+use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
 use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::{Node, ShadowIncluding};
+
+/// Whether a tree traversal should pass shadow tree boundaries.
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum ShadowIncluding {
+    No,
+    Yes,
+}
 
 pub(crate) struct FollowingNodeIterator {
     current: Option<DomRoot<Node>>,

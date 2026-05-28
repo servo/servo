@@ -31,7 +31,8 @@ use crate::dom::activation::Activatable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::textcontrol::TextControlElement;
 use crate::dom::types::{
     Element, HTMLAnchorElement, HTMLElement, HTMLImageElement, HTMLInputElement, HTMLSelectElement,

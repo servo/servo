@@ -30,9 +30,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, ShadowIncluding,
-    UnbindContext,
+    BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;

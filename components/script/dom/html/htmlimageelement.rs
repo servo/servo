@@ -71,11 +71,10 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlmapelement::HTMLMapElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
-};
+use crate::dom::node::{BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
