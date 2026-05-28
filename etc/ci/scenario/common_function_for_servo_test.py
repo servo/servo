@@ -249,7 +249,9 @@ def stop_servo() -> None:
     print("Stop Test Application successful!")
 
 
-def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement) -> Any:
+def element_scroll_into_view_and_rect(
+    driver: webdriver.Remote, element: WebElement
+) -> tuple[float, float, float, float]:
     """
     This scrolls element into view, and return the DOMRect tuple:
     [left, top, right, bottom]
@@ -279,7 +281,10 @@ def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElem
         element,
     )
 
-    return physical_rect
+    if not isinstance(physical_rect, list) or len(physical_rect) != 4:
+        raise TypeError("Expected a 4-item rect list")
+    left, top, right, bottom = physical_rect
+    return (left, top, right, bottom)
 
 
 def element_screenshot(driver: webdriver.Remote, element: WebElement, filename: str) -> None:
