@@ -20,7 +20,7 @@ import time
 from decimal import Decimal
 from enum import Enum
 from types import TracebackType
-from typing import Any, Callable, Optional, Self, Type
+from typing import Callable, Optional, Self, Type
 
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from PIL import Image
