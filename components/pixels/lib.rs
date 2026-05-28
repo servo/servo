@@ -401,23 +401,27 @@ impl RasterImage {
         self.frames.get(index)
     }
 
+    /// Returns the image descriptor needed for webrender and transforms them if necessary.
+    /// Returns if we can cache the image or not, with true meaning we can cache it.
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
-    ) -> (ImageDescriptor, GenericSharedMemory) {
+    ) -> (ImageDescriptor, GenericSharedMemory, bool) {
         let frame = self
             .frames
             .get(frame_index)
             .unwrap_or_else(|| panic!("Asked for a frame that did not exist: {frame_index:?}"));
 
-        let (format, data) = match self.format {
+        let (format, data, should_animate) = match self.format {
             PixelFormat::BGRA8 => (
                 WebRenderImageFormat::BGRA8,
                 GenericSharedMemory::from_bytes(&self.bytes),
+                self.should_animate(),
             ),
             PixelFormat::RGBA8 => (
                 WebRenderImageFormat::RGBA8,
                 GenericSharedMemory::from_bytes(&self.bytes),
+                self.should_animate(),
             ),
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
@@ -428,6 +432,7 @@ impl RasterImage {
                 (
                     WebRenderImageFormat::BGRA8,
                     GenericSharedMemory::from_bytes(&bytes),
+                    false, // The image cache will use wrong frames because we transform the frames here
                 )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
@@ -445,7 +450,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, data)
+        (descriptor, data, should_animate)
     }
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
