@@ -1010,8 +1010,16 @@ impl Node {
         SimpleNodeIterator::new(self.GetPreviousSibling(), |n| n.GetPreviousSibling())
     }
 
-    pub(crate) fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
-        FollowingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
+    pub(crate) fn following_nodes(
+        &self,
+        root: &Node,
+        shadow_including: ShadowIncluding,
+    ) -> FollowingNodeIterator {
+        FollowingNodeIterator::new(
+            Some(DomRoot::from_ref(self)),
+            DomRoot::from_ref(root),
+            shadow_including,
+        )
     }
 
     pub(crate) fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
@@ -3470,14 +3478,19 @@ impl Node {
     }
 
     /// Compares `other` with `self` in [tree order](https://dom.spec.whatwg.org/#concept-tree-order).
-    fn compare_dom_tree_position(&self, other: &Node, common_ancestor: &Node) -> Ordering {
+    pub(crate) fn compare_dom_tree_position(
+        &self,
+        other: &Node,
+        common_ancestor: &Node,
+        shadow_including: ShadowIncluding,
+    ) -> Ordering {
         debug_assert!(
-            self.inclusive_ancestors(ShadowIncluding::No)
+            self.inclusive_ancestors(shadow_including)
                 .any(|ancestor| &*ancestor == common_ancestor)
         );
         debug_assert!(
             other
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(shadow_including)
                 .any(|ancestor| &*ancestor == common_ancestor)
         );
 
@@ -3493,11 +3506,11 @@ impl Node {
         }
 
         let my_ancestors: Vec<_> = self
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(shadow_including)
             .take_while(|ancestor| &**ancestor != common_ancestor)
             .collect();
         let other_ancestors: Vec<_> = other
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(shadow_including)
             .take_while(|ancestor| &**ancestor != common_ancestor)
             .collect();
 
@@ -4876,9 +4889,11 @@ where
     /// * any time an element is moved within the tree, it is removed from this array and re-inserted
     fn insert_pre_order(&mut self, node: &T, tree_root: &Node) {
         let Err(insertion_index) = self.binary_search_by(|candidate| {
-            candidate
-                .upcast()
-                .compare_dom_tree_position(node.upcast(), tree_root)
+            candidate.upcast().compare_dom_tree_position(
+                node.upcast(),
+                tree_root,
+                ShadowIncluding::No,
+            )
         }) else {
             // The element is already in the vector. We assume that users of this method generally
             // expect no duplicates, so there's nothing more to do.

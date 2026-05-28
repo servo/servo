@@ -1220,20 +1220,24 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(cx, context);
         }
-        self.owner_document().invalidate_iframes_collection();
+
+        self.owner_document().iframes_mut().add(self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-removing-steps>
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.unbind_from_tree(cx, context);
+        }
 
-        // The iframe HTML element removing steps, given removedNode, are to destroy a child navigable given removedNode
+        // The iframe HTML element removing steps, given removedNode, are to destroy a child
+        // navigable given removedNode
         self.destroy_child_navigable(cx);
 
-        self.owner_document().invalidate_iframes_collection();
+        self.owner_document().iframes_mut().remove(self);
     }
 }
 

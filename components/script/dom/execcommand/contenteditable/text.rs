@@ -11,6 +11,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::dom::text::Text;
 
@@ -110,7 +111,7 @@ impl Text {
         // Step 9. Let reference be node.
         // Step 10. While reference is a descendant of ancestor:
         // Step 10.1. Let reference be the node after it in tree order, or null if there is no such node.
-        for reference in node.following_nodes(&resolved_ancestor) {
+        for reference in node.following_nodes(&resolved_ancestor, ShadowIncluding::No) {
             // Step 10.2. If reference is a block node or a br, return true.
             if reference.is_block_node() || reference.is::<HTMLBRElement>() {
                 return true;
