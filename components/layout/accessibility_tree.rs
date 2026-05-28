@@ -29,9 +29,19 @@ struct AccessibilityUpdate {
 }
 
 struct AccessibilityNode {
+    /// The unique ID for the node. This is used both as a key in [`AccessibilityTree`]'s cache of
+    /// nodes, and as an identifier in [`accesskit`] datastructures: [`accesskit::Node`]s,
+    /// [`accesskit::TreeUpdate`]s and [`accesskit::ActionRequest`]s.
     id: NodeId,
+    /// The computed [`accesskit::Node`] data. This will be copied and serialized into a
+    /// [`accesskit::TreeUpdate`] whenever it is changed during an update.
     accesskit_node: accesskit::Node,
+    /// The [`OpaqueNode`] for the DOM node which corresponds to this accessibility node, if any.
+    /// An accessibility node may not correspond to a DOM node if it corresponds to a
+    /// pseudo-element, or in a test.
     opaque_node: Option<OpaqueNode>,
+    /// Whether this node has been updated in the current tree update. This is reset to `false`
+    /// when the node is added to the [`AccessibilityUpdate`] - see [`AccessibilityUpdate::add()`].
     updated: bool,
 }
 
@@ -41,11 +51,22 @@ struct AccessibilityNode {
 /// to define our own representation for incremental tree building.
 #[derive(Debug)]
 pub struct AccessibilityTree {
+    /// All nodes currently in the tree as of the most recent update. New nodes are added and stale
+    /// nodes are pruned during [`AccessibilityTree::update_tree()`].
     nodes: FxHashMap<NodeId, ArcRefCell<AccessibilityNode>>,
+    /// A map to allow retrieving the [`AccessibilityNode`] which corresponds to a particular DOM
+    /// node, if any.
     opaque_node_to_id: FxHashMap<OpaqueNode, NodeId>,
+    /// Sent with each [`accesskit::TreeUpdate`]. This allows this tree to be
+    /// [grafted](https://docs.rs/accesskit/latest/accesskit/struct.Node.html#method.tree_id) into
+    /// an application's tree.
     tree_id: accesskit::TreeId,
+    /// Sent with each [`accesskit::TreeUpdate`] to identify the root node, and also used in
+    /// [`Self::assert_integrity()`].
     root_node_id: Option<accesskit::NodeId>,
-    epoch: Epoch,
+    /// Sent to the embedder alongside each [`accesskit::TreeUpdate`], so that the embedder can
+    /// drop updates from documents which have been navigated away from.
+    embedder_epoch: Epoch,
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
@@ -71,11 +92,11 @@ enum TreeChange {
     /// order, depending on the relative positions of the node before and after it moves.
     ///
     /// - If a node's new parent is updated before its old parent, the node will be in a
-    ///   `TreeChange::Moved(Move::Pending)` state until its old parent is updated. We expect that it
+    ///   `TreeChange::PendingMove` state until its old parent is updated. We expect that it
     ///   must later be removed from its old parent, at which point its state will be updated to
-    ///   `TreeChange::Moved(Move::Complete)`.
+    ///   `TreeChange::Moved`.
     /// - If a node's old parent is updated before its new parent, the node will be first
-    ///   `TreeChange::Removed` and then `TreeChange ::Moved(Move::Complete)`.
+    ///   `TreeChange::Removed` and then `TreeChange::Moved`.
     ///
     /// At the end of the update, we assert that there are no pending moves remaining.
     PendingMove,
@@ -85,13 +106,14 @@ enum TreeChange {
 }
 
 impl AccessibilityTree {
-    pub(super) fn new(tree_id: accesskit::TreeId, epoch: Epoch) -> Self {
+    /// See [`Self::tree_id`] and [`Self::embedder_epoch`] for explanations of the parameters.
+    pub(super) fn new(tree_id: accesskit::TreeId, embedder_epoch: Epoch) -> Self {
         Self {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
             tree_id,
             root_node_id: None,
-            epoch,
+            embedder_epoch,
             debug: opts::get().debug.clone(),
         }
     }
@@ -219,8 +241,8 @@ impl AccessibilityTree {
         *id
     }
 
-    pub(crate) fn epoch(&self) -> Epoch {
-        self.epoch
+    pub(crate) fn embedder_epoch(&self) -> Epoch {
+        self.embedder_epoch
     }
 
     /// Assert that the tree is a tree without any dangling references or orphaned nodes.
