@@ -69,14 +69,14 @@ pub(crate) struct BaseFragment {
 
 impl std::fmt::Debug for BaseFragment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BaseFragment")
-            .field("tag", &self.tag)
-            .field("flags", &self.flags)
-            .field("rect", &self.rect)
-            .field(
-                "status",
-                &FragmentStatus::from_u8(self.status.load(Ordering::Relaxed)),
-            )
+        let mut formatter = f.debug_struct("BaseFragment");
+        let mut formatter = formatter.field("tag", &self.tag);
+        if !self.flags.is_empty() {
+            formatter = formatter.field("flags", &self.flags);
+        }
+        formatter
+            .field("rect", &self.rect())
+            .field("status", &self.status())
             .finish()
     }
 }
@@ -304,10 +304,23 @@ malloc_size_of_is_0!(FragmentFlags);
 
 /// A data structure used to hold DOM and pseudo-element information about
 /// a particular layout object.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
     pub(crate) pseudo_element_chain: PseudoElementChain,
+}
+
+impl std::fmt::Debug for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Tag({:?}", self.node))?;
+        if let Some(pseudo) = self.pseudo_element_chain.primary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        if let Some(pseudo) = self.pseudo_element_chain.secondary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        f.write_str(")")
+    }
 }
 
 impl Tag {
