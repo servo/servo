@@ -256,7 +256,7 @@ impl AccessibilityTree {
             return;
         };
 
-        let mut print_tree = PrintTree::new("Accessibility Tree".to_string());
+        let mut print_tree = PrintTree::new("Accessibility Tree");
         let node = self.assert_node_for_id(root_node_id);
         node.borrow().print(self, &mut print_tree);
         print_tree.end_level();

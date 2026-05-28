@@ -875,7 +875,7 @@ impl StackingContext {
             warn!("failed to print stacking context tree: debug_print_items was None");
             return;
         }
-        let mut tree = PrintTree::new("Stacking context tree".to_owned());
+        let mut tree = PrintTree::new("Stacking context tree");
         self.debug_print_with_tree(&mut tree);
     }
 
