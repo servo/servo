@@ -505,9 +505,9 @@ fn clone_an_object(
     // Step 2. Append value to `seen`.
     seen.insert(hashable.clone());
 
-    let return_val = if unsafe {
-        is_array_like::<crate::DomTypeHolder>(cx.raw_cx(), val) || is_arguments_object(cx, val)
-    } {
+    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
+        is_arguments_object(cx, val)
+    {
         let mut result: Vec<JSValue> = Vec::new();
 
         let get_property_result = get_property::<u32>(
