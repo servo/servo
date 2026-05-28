@@ -4400,11 +4400,11 @@ impl VirtualMethods for Node {
                 .drain_to_parent(context.parent, context.index(), self);
         }
 
-        if pref!(accessibility_enabled) &&
-            self.owner_document()
-                .window()
-                .layout()
-                .accessibility_active()
+        if self
+            .owner_document()
+            .window()
+            .layout()
+            .accessibility_active()
         {
             self.owner_document()
                 .accessibility_data_mut()

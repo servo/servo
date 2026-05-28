@@ -27,7 +27,7 @@ impl AccessibilityData {
         _no_gc: &NoGC,
         node_to_root: &Node,
     ) {
-        assert!(pref!(accessibility_enabled));
+        debug_assert!(pref!(accessibility_enabled));
 
         self.rooted_nodes.insert(DomRoot::from_ref(node_to_root));
     }
@@ -35,7 +35,7 @@ impl AccessibilityData {
     /// Unroot a node which has been added to the DOM, if it was previously rooted due to
     /// `[Self::root_removed_node_for_accessibility()`].
     pub(crate) fn unroot_node_for_accessibility(&mut self, _no_gc: &NoGC, node_to_unroot: &Node) {
-        assert!(pref!(accessibility_enabled));
+        debug_assert!(pref!(accessibility_enabled));
 
         self.rooted_nodes.remove(&DomRoot::from_ref(node_to_unroot));
     }
@@ -46,10 +46,10 @@ impl AccessibilityData {
         &mut self,
         removed_nodes_for_integrity_check: Option<Vec<UntrustedNodeAddress>>,
     ) {
-        assert!(pref!(accessibility_enabled));
+        debug_assert!(pref!(accessibility_enabled));
 
         if let Some(removed_nodes) = removed_nodes_for_integrity_check {
-            assert!(pref!(expensive_accessibility_test_assertions_enabled));
+            debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
             for address in removed_nodes {
                 unsafe {
                     let removed_node = from_untrusted_node_address(address);
