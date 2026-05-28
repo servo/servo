@@ -157,6 +157,7 @@ impl Console {
     }
 
     // Directly logs a string message, without processing the message
+    // TODO: https://github.com/servo/servo/issues/45112
     #[expect(unsafe_code)]
     pub(crate) fn internal_warn(global: &GlobalScope, message: String) {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
@@ -166,7 +167,7 @@ impl Console {
 }
 
 #[expect(unsafe_code)]
-unsafe fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
+fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
         Some(js_str) => unsafe { jsstr_to_string(cx.raw_cx(), js_str) }.into(),
         None => "<error converting value to string>".into(),
@@ -393,132 +394,125 @@ fn console_object_from_handle_value(
 
 #[expect(unsafe_code)]
 pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> DOMString {
-    unsafe {
-        if message.is_string() {
-            let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
-            return jsstr_to_string(cx.raw_cx(), jsstr).into();
+    if message.is_string() {
+        let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
+        return unsafe { jsstr_to_string(cx.raw_cx(), jsstr).into() };
+    }
+    fn stringify_object_from_handle_value(
+        cx: &mut JSContext,
+        value: HandleValue,
+        parents: Vec<u64>,
+    ) -> DOMString {
+        rooted!(&in(cx) let mut obj = value.to_object());
+        let mut object_class = ESClass::Other;
+        if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
+            return DOMString::from("/* invalid */");
         }
-        unsafe fn stringify_object_from_handle_value(
-            cx: &mut JSContext,
-            value: HandleValue,
-            parents: Vec<u64>,
-        ) -> DOMString {
-            rooted!(&in(cx) let mut obj = value.to_object());
-            let mut object_class = ESClass::Other;
-            if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
-                return DOMString::from("/* invalid */");
+        let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        if !unsafe {
+            GetPropertyKeys(
+                cx,
+                obj.handle(),
+                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+                ids.handle_mut(),
+            )
+        } {
+            return DOMString::from("/* invalid */");
+        }
+        let truncate = ids.len() > MAX_LOG_CHILDREN;
+        if object_class != ESClass::Array && object_class != ESClass::Object {
+            if truncate {
+                return DOMString::from("…");
+            } else {
+                return handle_value_to_string(cx, value);
             }
-            let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        }
+
+        let mut explicit_keys = object_class == ESClass::Object;
+        let mut props = Vec::with_capacity(ids.len());
+        for id in ids.iter().take(MAX_LOG_CHILDREN) {
+            rooted!(&in(cx) let id = *id);
+            rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
+
+            let mut is_none = false;
             if !unsafe {
-                GetPropertyKeys(
+                JS_GetOwnPropertyDescriptorById(
                     cx,
                     obj.handle(),
-                    jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-                    ids.handle_mut(),
+                    id.handle(),
+                    desc.handle_mut(),
+                    &mut is_none,
                 )
             } {
                 return DOMString::from("/* invalid */");
             }
-            let truncate = ids.len() > MAX_LOG_CHILDREN;
-            if object_class != ESClass::Array && object_class != ESClass::Object {
-                if truncate {
-                    return DOMString::from("…");
-                } else {
-                    return unsafe { handle_value_to_string(cx, value) };
-                }
+
+            rooted!(&in(cx) let mut property = UndefinedValue());
+            if !unsafe { JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) }
+            {
+                return DOMString::from("/* invalid */");
             }
 
-            let mut explicit_keys = object_class == ESClass::Object;
-            let mut props = Vec::with_capacity(ids.len());
-            for id in ids.iter().take(MAX_LOG_CHILDREN) {
-                rooted!(&in(cx) let id = *id);
-                rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
-
-                let mut is_none = false;
-                if !unsafe {
-                    JS_GetOwnPropertyDescriptorById(
-                        cx,
-                        obj.handle(),
-                        id.handle(),
-                        desc.handle_mut(),
-                        &mut is_none,
-                    )
-                } {
-                    return DOMString::from("/* invalid */");
-                }
-
-                rooted!(&in(cx) let mut property = UndefinedValue());
-                if !unsafe {
-                    JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut())
-                } {
-                    return DOMString::from("/* invalid */");
-                }
-
-                if !explicit_keys {
-                    if id.is_int() {
-                        if let Ok(id_int) = usize::try_from(id.to_int()) {
-                            explicit_keys = props.len() != id_int;
-                        } else {
-                            explicit_keys = false;
-                        }
+            if !explicit_keys {
+                if id.is_int() {
+                    if let Ok(id_int) = usize::try_from(id.to_int()) {
+                        explicit_keys = props.len() != id_int;
                     } else {
                         explicit_keys = false;
                     }
-                }
-                let value_string = stringify_inner(cx, property.handle(), parents.clone());
-                if explicit_keys {
-                    let key = if id.is_string() || id.is_symbol() || id.is_int() {
-                        rooted!(&in(cx) let mut key_value = UndefinedValue());
-                        if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
-                            return DOMString::from("/* invalid */");
-                        }
-                        unsafe { handle_value_to_string(cx, key_value.handle()) }
-                    } else {
-                        return DOMString::from("/* invalid */");
-                    };
-                    props.push(format!("{}: {}", key, value_string,));
                 } else {
-                    props.push(String::from(value_string));
+                    explicit_keys = false;
                 }
             }
-            if truncate {
-                props.push("…".to_string());
-            }
-            if object_class == ESClass::Array {
-                DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+            let value_string = stringify_inner(cx, property.handle(), parents.clone());
+            if explicit_keys {
+                let key = if id.is_string() || id.is_symbol() || id.is_int() {
+                    rooted!(&in(cx) let mut key_value = UndefinedValue());
+                    if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
+                        return DOMString::from("/* invalid */");
+                    }
+                    handle_value_to_string(cx, key_value.handle())
+                } else {
+                    return DOMString::from("/* invalid */");
+                };
+                props.push(format!("{}: {}", key, value_string,));
             } else {
-                DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+                props.push(value_string.to_string());
             }
         }
-        fn stringify_inner(
-            cx: &mut JSContext,
-            value: HandleValue,
-            mut parents: Vec<u64>,
-        ) -> DOMString {
-            if parents.len() >= MAX_LOG_DEPTH {
-                return DOMString::from("...");
-            }
-            let value_bits = value.asBits_;
-            if parents.contains(&value_bits) {
-                return DOMString::from("[circular]");
-            }
-            if value.is_undefined() {
-                // This produces a better value than "(void 0)" from JS_ValueToSource.
-                return DOMString::from("undefined");
-            } else if !value.is_object() {
-                return unsafe { handle_value_to_string(cx, value) };
-            }
-            parents.push(value_bits);
-
-            if value.is_object() &&
-                let Some(repr) = maybe_stringify_dom_object(cx, value)
-            {
-                return repr;
-            }
-            unsafe { stringify_object_from_handle_value(cx, value, parents) }
+        if truncate {
+            props.push("…".to_string());
         }
-        stringify_inner(cx, message, Vec::new())
+        if object_class == ESClass::Array {
+            DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+        } else {
+            DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+        }
     }
+    fn stringify_inner(cx: &mut JSContext, value: HandleValue, mut parents: Vec<u64>) -> DOMString {
+        if parents.len() >= MAX_LOG_DEPTH {
+            return DOMString::from("...");
+        }
+        let value_bits = value.asBits_;
+        if parents.contains(&value_bits) {
+            return DOMString::from("[circular]");
+        }
+        if value.is_undefined() {
+            // This produces a better value than "(void 0)" from JS_ValueToSource.
+            return DOMString::from("undefined");
+        } else if !value.is_object() {
+            return handle_value_to_string(cx, value);
+        }
+        parents.push(value_bits);
+
+        if value.is_object() &&
+            let Some(repr) = maybe_stringify_dom_object(cx, value)
+        {
+            return repr;
+        }
+        stringify_object_from_handle_value(cx, value, parents)
+    }
+    stringify_inner(cx, message, Vec::new())
 }
 
 #[expect(unsafe_code)]
