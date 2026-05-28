@@ -848,6 +848,7 @@ pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
 where
     T: DomObject,
 {
+    #[expect(clippy::type_complexity)]
     pub(crate) indexed_getter_and_length:
         Option<Box<dyn Fn(&T, &mut js::context::JSContext) -> u32>>,
     pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
@@ -928,11 +929,11 @@ where
         if let Some(properties) = config.supported_named_properties {
             for name in properties(unwrapped_proxy) {
                 let cstring = CString::new(name).unwrap();
-                let jsstring = JS_AtomizeAndPinString(&*cx, cstring.as_ptr());
+                let jsstring = JS_AtomizeAndPinString(&cx, cstring.as_ptr());
                 rooted!(&in(cx) let rooted = jsstring);
                 rooted!(&in(cx) let mut rooted_jsid: jsid);
                 RUST_INTERNED_STRING_TO_JSID(
-                    &mut *cx,
+                    &mut cx,
                     rooted.handle().get(),
                     rooted_jsid.handle_mut(),
                 );
@@ -945,7 +946,7 @@ where
 
         if !expando.is_null() &&
             !GetPropertyKeys(
-                &mut *cx,
+                &mut cx,
                 expando.handle(),
                 JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
                 props,
@@ -954,5 +955,69 @@ where
             return false;
         }
     }
+    true
+}
+
+pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
+    pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
+    #[expect(clippy::type_complexity)]
+    pub(crate) indexed_getter_and_length:
+        Option<Box<dyn Fn(&T, &mut js::context::JSContext) -> u32>>,
+    pub(crate) cross_origin: bool,
+}
+
+#[expect(non_snake_case)]
+pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T, D>(
+    config: JSProxyHandlerOwnEnumerablePropertyKeysConfig<T>,
+    cx: *mut crate::import::base::RawJSContext,
+    proxy: RawHandleObject,
+    props: RawMutableHandleIdVector,
+) -> bool
+where
+    D: DomTypes,
+    T: DomObject,
+{
+    unsafe {
+        let mut cx = crate::import::base::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
+        let mut cx = CurrentRealm::assert(&mut cx);
+        let current_realm = &mut cx;
+
+        let mut cx = if config.cross_origin {
+            if !<D as DomHelpers<D>>::is_platform_object_same_origin(current_realm, proxy) {
+                // There are no enumerable cross-origin props, so we're done.
+                return true;
+            }
+
+            // Safe to enter the Realm of proxy now.
+            let cx = AutoRealm::new_from_handle(current_realm, Handle::from_raw(proxy));
+            Realm::AutoRealm(cx)
+        } else {
+            Realm::CurrentRealm(current_realm)
+        };
+        if let Some(length_fn) = config.indexed_getter_and_length {
+            let length = (length_fn)(&*unwrapped_proxy, &mut cx);
+            for i in 0..length {
+                rooted!(&in(cx) let mut rooted_jsid: jsid);
+
+                int_to_jsid(i as i32, rooted_jsid.handle_mut());
+                AppendToIdVector(props, rooted_jsid.handle());
+            }
+        }
+
+        rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
+        get_expando_object(proxy, expando.handle_mut());
+        if !expando.is_null() &&
+            !GetPropertyKeys(
+                &mut cx,
+                expando.handle(),
+                JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+                props,
+            )
+        {
+            return false;
+        }
+    }
+
     true
 }

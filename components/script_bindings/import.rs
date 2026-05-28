@@ -103,7 +103,6 @@ pub(crate) mod module {
         JSCLASS_RESERVED_SLOTS_MASK, typedarray,
     };
     pub(crate) use servo_config::pref;
-
     pub(crate) use super::base::*;
     pub(crate) use crate::codegen::Globals::Globals;
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
@@ -147,6 +146,31 @@ pub(crate) mod module {
         generic_getter, generic_method, generic_setter, generic_static_promise_method,
         get_array_index_from_id, get_property_on_prototype, has_property_on_prototype,
         may_resolve_global, may_resolve_window, resolve_global, resolve_window, trace_global,
+    };
+    pub(crate) use js::jsapi::{
+        __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmErrorPrototype,
+        GetRealmFunctionPrototype, GetRealmIteratorPrototype, GetRealmObjectPrototype,
+        GetWellKnownSymbol, Handle as RawHandle, HandleId as RawHandleId,
+        HandleObject as RawHandleObject, JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById,
+        JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm,
+        JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
+        JSFunctionSpec, JSJitGetterCallArgs, JSJitInfo, JSJitInfo__bindgen_ty_1,
+        JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3, JSJitInfo_AliasSet, JSJitInfo_ArgType,
+        JSJitInfo_OpType, JSJitMethodCallArgs, JSJitSetterCallArgs, JSNativeWrapper,
+        JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPropertySpec,
+        JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
+        JSPropertySpec_AccessorsOrValue_Accessors, JSPropertySpec_Kind, JSPropertySpec_Name,
+        JSPropertySpec_ValueWrapper, JSPropertySpec_ValueWrapper__bindgen_ty_1,
+        JSPropertySpec_ValueWrapper_Type, JSTracer, JSTypedMethodJitInfo, JSValueType,
+        MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
+        MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
+        ObjectOpResult, PropertyDescriptor, SymbolCode, UndefinedHandleValue, jsid,
+    };
+    pub(crate) use js::rust::wrappers::{
+        Call, JS_CopyOwnPropertiesAndPrivateFields, JS_DefineProperty, JS_DefinePropertyById2,
+        JS_GetProperty, JS_InitializePropertiesFromCompatibleNativeObject,
+        JS_NewObjectWithGivenProto, JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype,
+        JS_SetProperty, JS_SetPrototype, JS_WrapObject, NewProxyObject, RUST_SYMBOL_TO_JSID,
     };
     pub(crate) use crate::{JSTraceable, proxyhandler};
 }
