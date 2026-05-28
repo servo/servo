@@ -946,7 +946,7 @@ impl LayoutThread {
                 .send(EmbedderMsg::AccessibilityTreeUpdate(
                     self.webview_id,
                     tree_update,
-                    accessibility_tree.epoch(),
+                    accessibility_tree.embedder_epoch(),
                 ));
         }
         self.needs_accessibility_update.set(false);
