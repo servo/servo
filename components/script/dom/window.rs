@@ -2728,7 +2728,15 @@ impl Window {
 
         document.update_animations_post_reflow();
 
-        document.accessibility_data_mut().unroot_all_removed_nodes();
+        if let Some(removed_nodes_for_integrity_check) =
+            reflow_result.removed_nodes_for_accessibility_integrity_check
+        {
+            document
+                .accessibility_data_mut()
+                .unroot_all_removed_nodes_with_integrity_check(removed_nodes_for_integrity_check);
+        } else {
+            document.accessibility_data_mut().unroot_all_removed_nodes();
+        }
 
         (
             reflow_result.reflow_phases_run,

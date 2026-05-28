@@ -625,6 +625,11 @@ pub struct ReflowResult {
     /// finished before reaching this stage of the layout. I.e., no update
     /// required.
     pub iframe_sizes: Option<IFrameSizes>,
+    /// If `expensive_accessibility_test_assertions_enabled` is true, this will contain the
+    /// UntrustedNodeAddresses for dom Nodes corresponding to the accessibility nodes removed from
+    /// the accessibility tree in the most recent update. This is used exclusively for an integrity
+    /// check.
+    pub removed_nodes_for_accessibility_integrity_check: Option<Vec<UntrustedNodeAddress>>,
 }
 
 bitflags! {

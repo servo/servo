@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::UntrustedNodeAddress;
 use js::context::NoGC;
 use rustc_hash::FxHashSet;
-use script_bindings::root::Dom;
+use script_bindings::root::{Dom, DomRoot};
 use servo_config::pref;
 
-use crate::dom::Node;
+use crate::dom::{Node, from_untrusted_node_address};
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -56,5 +57,39 @@ impl AccessibilityData {
     /// This should be called at the end of reflow.
     pub(crate) fn unroot_all_removed_nodes(&mut self) {
         self.rooted_nodes.clear();
+    }
+
+    /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`],
+    /// while also asserting that the nodes which were removed from the accessibility tree:
+    /// - were also removed from the document, and
+    /// - match the nodes which were rooted here after being removed from the tree.
+    ///
+    /// This should be called instead of [`Self::unroot_all_removed_nodes()`] at the end of reflow
+    /// if [`ReflowResult::removed_nodes_for_accessibility_integrity_check`] is not `None`.
+    #[expect(unsafe_code)]
+    pub(crate) fn unroot_all_removed_nodes_with_integrity_check(
+        &mut self,
+        removed_nodes_from_accessibility_tree: Vec<UntrustedNodeAddress>,
+    ) {
+        debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
+
+        let mut rooted_nodes: FxHashSet<DomRoot<Node>> = self
+            .rooted_nodes
+            .drain()
+            .map(|node| node.as_rooted())
+            .collect();
+
+        // If nodes were re-added to the tree, they will still be rooted here as well, but we can
+        // ignore them for the purposes of the integrity check.
+        rooted_nodes.retain(|node| !node.is_connected());
+
+        for address in removed_nodes_from_accessibility_tree {
+            unsafe {
+                let removed_node = from_untrusted_node_address(address);
+                assert!(rooted_nodes.remove(&removed_node));
+            }
+        }
+
+        assert!(rooted_nodes.is_empty());
     }
 }

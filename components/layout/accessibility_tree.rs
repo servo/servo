@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
+use embedder_traits::UntrustedNodeAddress;
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -70,6 +71,9 @@ pub struct AccessibilityTree {
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
+    /// Nodes which were removed from the tree in the most recent update. If set, should be taken
+    /// using [`Self::take_recently_removed_opaque_nodes()`] before the next update.
+    recently_removed_opaque_nodes: Option<Vec<OpaqueNode>>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -115,6 +119,7 @@ impl AccessibilityTree {
             root_node_id: None,
             embedder_epoch,
             debug: opts::get().debug.clone(),
+            recently_removed_opaque_nodes: None,
         }
     }
 
@@ -132,6 +137,18 @@ impl AccessibilityTree {
         self.update_node_and_descendants(root_dom_node, &mut update);
 
         update.finalize(self)
+    }
+
+    pub(super) fn take_recently_removed_opaque_nodes(
+        &mut self,
+    ) -> Option<Vec<UntrustedNodeAddress>> {
+        let opaque_nodes = std::mem::take(&mut self.recently_removed_opaque_nodes)?;
+        Some(
+            opaque_nodes
+                .into_iter()
+                .map(|opaque_node| opaque_node.into())
+                .collect(),
+        )
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -210,6 +227,23 @@ impl AccessibilityTree {
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            // This field should be taken after each update, if it's being used.
+            assert!(self.recently_removed_opaque_nodes.is_none());
+            let mut recently_removed_opaque_nodes = vec![];
+
+            for (id, change) in update.tree_changes.iter() {
+                if change == &TreeChange::Removed {
+                    let node = self.assert_node_for_id(id);
+                    if let Some(opaque_node) = node.borrow().opaque_node {
+                        recently_removed_opaque_nodes.push(opaque_node);
+                    }
+                };
+            }
+
+            self.recently_removed_opaque_nodes = Some(recently_removed_opaque_nodes);
+        }
+
         for id in update
             .tree_changes
             .drain()
