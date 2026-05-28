@@ -2608,7 +2608,7 @@ impl UnshapedTextRun<'_> {
     }
 }
 
-// https://drafts.csswg.org/css-color/#parse-a-css-color-value
+/// <https://drafts.csswg.org/css-color/#parse-a-css-color-value>
 pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &DOMString,
@@ -2620,7 +2620,7 @@ pub(super) fn parse_color(
     let context =
         parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
 
-    // Step1. Parse input as a <color>. If the result is failure, return failure;
+    // Step 1. Parse input as a <color>. If the result is failure, return failure;
     // otherwise, let color be the result.
     Color::parse_and_compute(&context, &mut parser, None).map(|color| {
         // Step 2. Let used color be the result of resolving color to a used color.
@@ -2629,8 +2629,8 @@ pub(super) fn parse_color(
         // passed, or the initial values of the properties if not.
         //
         // Fast path: if the parsed color is already absolute we can return immediately.
-        if let ComputedColor::Absolute(c) = color {
-            return c;
+        if let ComputedColor::Absolute(color) = color {
+            return color;
         }
 
         // TODO: https://github.com/whatwg/html/issues/1099
