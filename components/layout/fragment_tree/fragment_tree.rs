@@ -52,7 +52,7 @@ impl FragmentTree {
     }
 
     pub fn print(&self) {
-        let mut print_tree = PrintTree::new("Fragment Tree".to_string());
+        let mut print_tree = PrintTree::new("Fragment Tree");
         for fragment in &self.root_fragments {
             fragment.print(&mut print_tree);
         }

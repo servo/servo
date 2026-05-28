@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt::Display;
+
 /// A struct that makes it easier to print out a pretty tree of data, which
 /// can be visually scanned more easily.
 pub struct PrintTree {
@@ -14,8 +16,8 @@ pub struct PrintTree {
 }
 
 impl PrintTree {
-    pub fn new(title: String) -> PrintTree {
-        println!("\u{250c} {}", title);
+    pub fn new(title: impl Display) -> PrintTree {
+        println!("\u{250c} {title}");
         PrintTree {
             level: 1,
             queued_item: None,
