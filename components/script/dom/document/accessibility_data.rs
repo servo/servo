@@ -4,17 +4,16 @@
 
 use js::context::NoGC;
 use rustc_hash::FxHashSet;
-use script_bindings::root::DomRoot;
+use script_bindings::root::Dom;
 use servo_config::pref;
 
 use crate::dom::Node;
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct AccessibilityData {
     /// Nodes which have been unbound from the DOM but may not yet have been removed from the
     /// accessibility tree. This is cleared after each reflow.
-    rooted_nodes: FxHashSet<DomRoot<Node>>,
+    rooted_nodes: FxHashSet<Dom<Node>>,
 }
 
 impl AccessibilityData {
@@ -53,7 +52,7 @@ impl AccessibilityData {
     ) {
         debug_assert!(pref!(accessibility_enabled));
 
-        self.rooted_nodes.insert(DomRoot::from_ref(node_to_root));
+        self.rooted_nodes.insert(Dom::from_ref(node_to_root));
     }
 
     /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`].
