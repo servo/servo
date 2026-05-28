@@ -51,6 +51,7 @@ testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
     "paint/tracing",
+    "paint_api/tracing",
     "servo-constellation/tracing",
     "fonts/tracing",
     "layout/tracing",

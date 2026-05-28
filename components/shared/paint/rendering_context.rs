@@ -379,6 +379,7 @@ impl RenderingContext for SoftwareRenderingContext {
         let _ = self.swap_chain.resize(device, context, size);
     }
 
+    #[servo_tracing::instrument(skip_all, name = "SoftwareRenderingContext::present")]
     fn present(&self) {
         let device = &mut self.surfman_rendering_info.device.borrow_mut();
         let context = &mut self.surfman_rendering_info.context.borrow_mut();
@@ -567,6 +568,7 @@ impl RenderingContext for WindowRenderingContext {
         }
     }
 
+    #[servo_tracing::instrument(skip_all, name = "WindowRenderingContext::present")]
     fn present(&self) {
         if let Err(error) = self.surfman_context.present_bound_surface() {
             warn!("Error presenting surface: {error:?}");
