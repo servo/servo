@@ -127,7 +127,7 @@ partial interface Element {
 
 // https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface Element {
-  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
+  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;

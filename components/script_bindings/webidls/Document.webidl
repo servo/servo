@@ -93,7 +93,7 @@ dictionary ImportNodeOptions {
 // [LegacyOverrideBuiltIns]
 partial /*sealed*/ interface Document {
   [NewObject, Throws]
-  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html);
+  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
 
   // resource metadata management
   [PutForwards=href, LegacyUnforgeable]

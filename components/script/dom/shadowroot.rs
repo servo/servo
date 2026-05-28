@@ -24,7 +24,9 @@ use stylo_atoms::Atom;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -525,21 +527,29 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         &self,
         cx: &mut js::context::JSContext,
         value: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
     ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
-        let value = TrustedHTML::get_trusted_type_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
         )?;
-        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
-        let target = self.upcast::<Node>();
-        let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, cx);
+        // Step 2. Set and filter HTML given this, this's shadow host, compliantHTML, options, and
+        // false.
+        Sanitizer::set_and_filter_html(
+            cx,
+            self.upcast(),
+            &self.Host(),
+            compliant_html,
+            options,
+            false,
+        )?;
+
         Ok(())
     }
 
