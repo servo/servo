@@ -75,7 +75,9 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMethods, ShadowRootMode, SlotAssignmentMode,
 };
@@ -3485,11 +3487,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, cx: &mut JSContext, html: TrustedHTMLOrString) -> ErrorResult {
+    fn SetHTMLUnsafe(
+        &self,
+        cx: &mut JSContext,
+        html: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
+    ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
-        let html = TrustedHTML::get_trusted_type_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
             html,
@@ -3502,8 +3509,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             DomRoot::from_ref(self.upcast())
         };
 
-        // Step 3. Unsafely set HTML given target, this, and compliantHTML
-        Node::unsafely_set_html(&target, self, html, cx);
+        // Step 3. Set and filter HTML given target, this, compliantHTML, options, and false.
+        Sanitizer::set_and_filter_html(cx, &target, self, compliant_html, options, false)?;
+
         Ok(())
     }
 

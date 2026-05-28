@@ -94,7 +94,9 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
@@ -4792,6 +4794,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         cx: &mut js::context::JSContext,
         window: &Window,
         s: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
@@ -4837,7 +4840,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
         ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
-        // Step 5. Return document.
+
+        // Step 5. Let sanitizer be the result of calling get a sanitizer instance from options with
+        // options and false.
+        let sanitizer = Sanitizer::get_sanitizer_instance_from_options(cx, window, options, false)?;
+
+        // Step 6. Call sanitize on document with sanitizer and false.
+        sanitizer.sanitize(cx, document.upcast(), false)?;
+
+        // Step 7. Return document.
         document.set_ready_state(cx, DocumentReadyState::Complete);
         Ok(document)
     }

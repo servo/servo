@@ -122,7 +122,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
 use crate::dom::servoparser::html::HtmlSerialize;
-use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
+use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::text::Text;
@@ -328,31 +328,6 @@ impl Node {
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&node).bind_to_tree(cx, &context);
         }
-    }
-
-    /// Implements the "unsafely set HTML" algorithm as specified in:
-    /// <https://html.spec.whatwg.org/multipage/#concept-unsafely-set-html>
-    pub(crate) fn unsafely_set_html(
-        target: &Node,
-        context_element: &Element,
-        html: DOMString,
-        cx: &mut JSContext,
-    ) {
-        // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
-        let new_children = ServoParser::parse_html_fragment(cx, context_element, html, true);
-
-        // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
-
-        let context_document = context_element.owner_document();
-        let fragment = DocumentFragment::new(cx, &context_document);
-
-        // Step 3. For each node in newChildren, append node to fragment.
-        for child in new_children {
-            fragment.upcast::<Node>().AppendChild(cx, &child).unwrap();
-        }
-
-        // Step 4. Replace all with fragment within target.
-        Node::replace_all(cx, Some(fragment.upcast()), target);
     }
 
     /// Clear style and layout data on this [`Node`] and all descendants. This is used to clean
