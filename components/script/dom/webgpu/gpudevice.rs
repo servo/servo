@@ -350,9 +350,8 @@ impl GPUDevice {
                     self.validate_texture_format_required_features(&dss_desc.format)
                         .map(|format| wgpu_types::DepthStencilState {
                             format,
-                            // TODO(sagudev): these need webidl sync
-                            depth_write_enabled: Some(dss_desc.depthWriteEnabled),
-                            depth_compare: Some(dss_desc.depthCompare.convert()),
+                            depth_write_enabled: dss_desc.depthWriteEnabled,
+                            depth_compare: dss_desc.depthCompare.map(|dc| dc.convert()),
                             stencil: wgpu_types::StencilState {
                                 front: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
