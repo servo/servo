@@ -307,8 +307,8 @@ fn console_object_from_handle_value(
 
         // https://console.spec.whatwg.org/#printer
         // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
-        let is_accessor = descriptor.hasGetter_() && !descriptor.getter_.is_null() ||
-            descriptor.hasSetter_() && !descriptor.setter_.is_null();
+        let is_accessor = (descriptor.hasGetter_() && !descriptor.getter_.is_null()) ||
+            (descriptor.hasSetter_() && !descriptor.setter_.is_null());
         let value = if is_accessor {
             accessor_value_from_property_descriptor(&descriptor)
         } else {
@@ -736,6 +736,7 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
                     .map(|items| {
                         items
                             .iter()
+                            .take(MAX_LOG_CHILDREN)
                             .map(stringify_debugger_value)
                             .collect::<Vec<_>>()
                     })
@@ -755,6 +756,7 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
                 .map(|properties| {
                     properties
                         .iter()
+                        .take(MAX_LOG_CHILDREN)
                         .map(|property| {
                             format!(
                                 "{}: {}",
@@ -872,14 +874,17 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     ) {
         // Step 1. Let object be item with generic JavaScript object formatting applied.
         let argument = console_argument_from_handle_value(cx, item, &mut Vec::new());
-        let level = ConsoleLogLevel::Dir;
         let prefix = global.current_group_label().unwrap_or_default();
         // Step 2. Perform Printer("dir", « object », options).
-        let formatted_message = format!("{prefix}{}", stringify_debugger_value(&argument));
-        let console_message = Self::build_message(cx, level.clone(), vec![argument], None);
-        Console::send_to_devtools(global, console_message);
-
-        Self::send_to_embedder(global, level, formatted_message);
+        Console::send_to_devtools(
+            global,
+            Self::build_message(cx, ConsoleLogLevel::Dir, vec![argument], None),
+        );
+        Self::send_to_embedder(
+            global,
+            ConsoleLogLevel::Dir,
+            format!("{prefix}{}", stringify_debugger_value(&argument)),
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>
