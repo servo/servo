@@ -10,6 +10,7 @@ use servo_config::pref;
 use crate::dom::Node;
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct AccessibilityData {
     /// Nodes which have been unbound from the DOM but may not yet have been removed from the
     /// accessibility tree. This is cleared after each reflow.
