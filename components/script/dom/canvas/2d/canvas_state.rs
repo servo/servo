@@ -37,6 +37,7 @@ use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
+use style::values::computed::color::Color as ComputedColor;
 use style::values::computed::font::FontStyle;
 use style::values::computed::{
     FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
@@ -2607,6 +2608,7 @@ impl UnshapedTextRun<'_> {
     }
 }
 
+// https://drafts.csswg.org/css-color/#parse-a-css-color-value
 pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &DOMString,
@@ -2617,7 +2619,20 @@ pub(super) fn parse_color(
     let url = Url::parse("about:blank").unwrap().into();
     let context =
         parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
+
+    // Step1. Parse input as a <color>. If the result is failure, return failure;
+    // otherwise, let color be the result.
     Color::parse_and_compute(&context, &mut parser, None).map(|color| {
+        // Step 2. Let used color be the result of resolving color to a used color.
+        // If the value of other properties on the element a <color> is on is required to do the
+        // resolution (such as resolving a currentcolor or system color), use element if it was
+        // passed, or the initial values of the properties if not.
+        //
+        // Fast path: if the parsed color is already absolute we can return immediately.
+        if let ComputedColor::Absolute(c) = color {
+            return c;
+        }
+
         // TODO: https://github.com/whatwg/html/issues/1099
         // Reconsider how to calculate currentColor in a display:none canvas
 
