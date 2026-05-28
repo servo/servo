@@ -70,7 +70,6 @@ pub struct AccessibilityTree {
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
-    recently_removed_opaque_nodes: Vec<OpaqueNode>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -116,7 +115,6 @@ impl AccessibilityTree {
             root_node_id: None,
             embedder_epoch,
             debug: opts::get().debug.clone(),
-            recently_removed_opaque_nodes: vec![],
         }
     }
 
@@ -134,10 +132,6 @@ impl AccessibilityTree {
         self.update_node_and_descendants(root_dom_node, &mut update);
 
         update.finalize(self)
-    }
-
-    pub(super) fn take_recently_removed_opaque_nodes(&mut self) -> Vec<OpaqueNode> {
-        std::mem::take(&mut self.recently_removed_opaque_nodes)
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -562,20 +556,6 @@ impl AccessibilityUpdate {
         if self.changed_nodes.is_empty() {
             assert!(self.tree_changes.is_empty());
             return None;
-        }
-
-        if pref!(expensive_accessibility_test_assertions_enabled) {
-            // This field should be taken after each update, if it's being used.
-            assert!(tree.recently_removed_opaque_nodes.is_empty());
-
-            for (id, change) in self.tree_changes.iter() {
-                if change == &TreeChange::Removed {
-                    let node = tree.assert_node_for_id(*id);
-                    if let Some(opaque_node) = node.borrow().opaque_node {
-                        tree.recently_removed_opaque_nodes.push(opaque_node);
-                    }
-                };
-            }
         }
 
         for id in self

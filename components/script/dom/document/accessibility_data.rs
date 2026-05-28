@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::UntrustedNodeAddress;
 use js::context::NoGC;
 use rustc_hash::FxHashSet;
 use script_bindings::root::DomRoot;
 use servo_config::pref;
 
-use crate::dom::{Node, from_untrusted_node_address};
+use crate::dom::Node;
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -32,32 +31,9 @@ impl AccessibilityData {
         self.rooted_nodes.insert(DomRoot::from_ref(node_to_root));
     }
 
-    /// Unroot a node which has been added to the DOM, if it was previously rooted due to
-    /// `[Self::root_removed_node_for_accessibility()`].
-    pub(crate) fn unroot_node_for_accessibility(&mut self, _no_gc: &NoGC, node_to_unroot: &Node) {
-        debug_assert!(pref!(accessibility_enabled));
-
-        self.rooted_nodes.remove(&DomRoot::from_ref(node_to_unroot));
-    }
-
     /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`].
-    #[expect(unsafe_code)]
-    pub(crate) fn unroot_all_nodes_for_accessibility(
-        &mut self,
-        removed_nodes_for_integrity_check: Option<Vec<UntrustedNodeAddress>>,
-    ) {
+    pub(crate) fn unroot_all_nodes_for_accessibility(&mut self) {
         debug_assert!(pref!(accessibility_enabled));
-
-        if let Some(removed_nodes) = removed_nodes_for_integrity_check {
-            debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
-            for address in removed_nodes {
-                unsafe {
-                    let removed_node = from_untrusted_node_address(address);
-                    self.rooted_nodes.remove(&removed_node);
-                }
-            }
-            assert!(self.rooted_nodes.is_empty());
-        }
 
         self.rooted_nodes.clear();
     }

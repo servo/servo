@@ -2722,9 +2722,7 @@ impl Window {
         if pref!(accessibility_enabled) {
             document
                 .accessibility_data_mut()
-                .unroot_all_nodes_for_accessibility(
-                    reflow_result.removed_nodes_for_accessibility_integrity_check,
-                );
+                .unroot_all_nodes_for_accessibility();
         }
 
         (
