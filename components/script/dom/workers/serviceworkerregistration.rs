@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerRegistrationId;
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
@@ -17,6 +21,7 @@ use uuid::Uuid;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -24,6 +29,7 @@ use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
+use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
@@ -188,6 +194,57 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             .borrow()
             .as_ref()
             .map(|sw| DomRoot::from_ref(&**sw))
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkerregistration-unregister>
+    fn Unregister(&self, cx: &mut JSContext) -> Rc<Promise> {
+        // Step 1: Let registration be the service worker registration.
+        // Note: `self` is the registration.
+
+        // Step 2: Let promise be a new promise.
+        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
+
+        let Some(worker) = self.get_newest_worker() else {
+            promise.resolve_native(&true, CanGc::from_cx(cx));
+            return promise;
+        };
+
+        let global = self.global();
+        let Some(window) = global.downcast::<Window>() else {
+            // Worker navigator does not have a service woker container yet.
+            promise.resolve_native(&false, CanGc::from_cx(cx));
+            return promise;
+        };
+        let service_worker_container = window.Navigator().ServiceWorker();
+
+        // Step 3: Let job be the result of running Create Job with unregister,
+        // registration’s storage key, registration’s scope url, null, promise,
+        // and this’s relevant settings object.
+        // Step 4: Invoke Schedule Job with job.
+        // Note: done in the container.
+        let Some(storage_key) = global.obtain_storage_key() else {
+            promise.reject_error(
+                Error::Type(c"Failed to obtain a storage key".to_owned()),
+                CanGc::from_cx(cx),
+            );
+            return promise;
+        };
+        service_worker_container.create_and_schedule_unregister_job(
+            cx,
+            storage_key,
+            self.scope.clone(),
+            worker.get_script_url(),
+            promise.clone(),
+        );
+
+        // Set all workers to none.
+        // Note: not clear where the spec does this.
+        *self.installing.borrow_mut() = None;
+        *self.waiting.borrow_mut() = None;
+        *self.active.borrow_mut() = None;
+
+        // Step 5: Return promise.
+        promise
     }
 
     /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute>
