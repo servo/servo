@@ -7,7 +7,7 @@ use std::future::{Future, ready};
 use std::io::{BufReader, Seek, SeekFrom};
 use std::pin::Pin;
 
-use headers::{ContentType, HeaderMapExt, Range};
+use headers::{ContentLength, ContentRange, ContentType, HeaderMapExt, Range};
 use http::Method;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -71,6 +71,22 @@ impl ProtocolHandler for FileProtocolHander {
                 // At this point we should have already validated the header.
                 if is_range_request {
                     partial_content(&mut response);
+                }
+
+                // Set Content-Length and Content-Range headers when end is determinable.
+                let end_byte = range.end.map(|e| e as u64).or(file_size);
+                if let Some(end_byte) = end_byte {
+                    let start_byte = range.start as u64;
+
+                    response
+                        .headers
+                        .typed_insert(ContentLength(end_byte - start_byte));
+                    if is_range_request &&
+                        let Ok(content_range) =
+                            ContentRange::bytes(start_byte..end_byte, file_size)
+                    {
+                        response.headers.typed_insert(content_range);
+                    }
                 }
 
                 // Set Content-Type header.
