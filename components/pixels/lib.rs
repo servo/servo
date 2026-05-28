@@ -241,17 +241,16 @@ pub enum EncodedImageType {
     Webp,
 }
 
-impl From<String> for EncodedImageType {
+impl From<&str> for EncodedImageType {
     // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
     // User agents must support PNG ("image/png"). User agents may support other
     // types. If the user agent does not support the requested type, then it
     // must create the file using the PNG format.
     // Anything different than image/jpeg or image/webp is thus treated as PNG.
-    fn from(mime_type: String) -> Self {
-        let mime = mime_type.to_lowercase();
-        if mime == "image/jpeg" {
+    fn from(mime_string: &str) -> Self {
+        if mime_string.eq_ignore_ascii_case("image/jpeg") {
             Self::Jpeg
-        } else if mime == "image/webp" {
+        } else if mime_string.eq_ignore_ascii_case("image/webp") {
             Self::Webp
         } else {
             Self::Png

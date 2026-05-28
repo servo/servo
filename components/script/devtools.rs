@@ -240,9 +240,9 @@ pub(crate) fn handle_get_stylesheets(
         for i in 0..node.stylesheet_list_owner().stylesheet_count() {
             if let Some(s) = node.stylesheet_list_owner().stylesheet_at(i) {
                 stylesheets.push(StyleSheetInfo {
-                    href: s.href().map(|h| h.to_string()),
+                    href: s.href().map(String::from),
                     disabled: s.disabled(),
-                    title: s.title().to_string(),
+                    title: String::from(s.title()),
                     style_sheet_index: i as i32,
                     system: s.origin() == Origin::UserAgent,
                     rule_count: s.get_rule_count(),
@@ -271,7 +271,7 @@ pub(crate) fn handle_get_stylesheet_text(
         if let Some(node) = stylesheet.owner_node() {
             let text = node.upcast::<Node>().GetTextContent().unwrap_or_default();
             if !text.is_empty() {
-                return Some(text.to_string());
+                return Some(String::from(text));
             }
         }
 
@@ -280,7 +280,7 @@ pub(crate) fn handle_get_stylesheet_text(
         let mut css_text = String::new();
         for i in 0..rules.Length() {
             if let Some(rule) = rules.Item(cx, i) {
-                css_text.push_str(&rule.CssText().to_string());
+                css_text.push_str(&rule.CssText().str());
                 css_text.push('\n');
             }
         }
@@ -369,9 +369,15 @@ pub(crate) fn handle_get_attribute_style(
         .map(|i| {
             let name = style.Item(i);
             NodeStyle {
-                name: name.to_string(),
-                value: style.GetPropertyValue(name.clone()).to_string(),
-                priority: style.GetPropertyPriority(name).to_string(),
+                // This code has to clone the name values, even though
+                // these function actually would only need to borrow,
+                // but the binding generator forces an owned DOMString
+                // in the signature.
+                // It'd be nice to not have to do this here and in the
+                // similar cases below, but I don't see how.
+                value: String::from(style.GetPropertyValue(name.clone())),
+                priority: String::from(style.GetPropertyPriority(name.clone())),
+                name: String::from(name),
             }
         })
         .collect();
@@ -403,7 +409,7 @@ fn build_rule_map(
         }
 
         if let Some(layer_rule) = rule.downcast::<CSSLayerBlockRule>() {
-            let name = layer_rule.Name().to_string();
+            let name = String::from(layer_rule.Name());
             let mut next = ancestors.to_vec();
             next.push(AncestorData::Layer {
                 actor_id: None,
@@ -524,9 +530,9 @@ pub(crate) fn handle_get_stylesheet_style(
                 .map(|i| {
                     let name = declaration.Item(i);
                     NodeStyle {
-                        name: name.to_string(),
-                        value: declaration.GetPropertyValue(name.clone()).to_string(),
-                        priority: declaration.GetPropertyPriority(name).to_string(),
+                        value: String::from(declaration.GetPropertyValue(name.clone())),
+                        priority: String::from(declaration.GetPropertyPriority(name.clone())),
+                        name: String::from(name),
                     }
                 })
                 .collect(),
@@ -557,9 +563,9 @@ pub(crate) fn handle_get_computed_style(
         .map(|i| {
             let name = computed_style.Item(i);
             NodeStyle {
-                name: name.to_string(),
-                value: computed_style.GetPropertyValue(name.clone()).to_string(),
-                priority: computed_style.GetPropertyPriority(name).to_string(),
+                value: String::from(computed_style.GetPropertyValue(name.clone())),
+                priority: String::from(computed_style.GetPropertyPriority(name.clone())),
+                name: String::from(name),
             }
         })
         .collect();

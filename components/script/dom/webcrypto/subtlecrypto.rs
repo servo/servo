@@ -3157,13 +3157,12 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyGenParams {
     ) -> Result<Self, Self::Error> {
         Ok(SubtleEcKeyGenParams {
             name: algorithm_name,
-            named_curve: get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
                 object,
                 c"namedCurve",
                 StringificationBehavior::Default,
-            )?
-            .to_string(),
+            )?),
         })
     }
 }
@@ -3231,13 +3230,12 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyImportParams {
     ) -> Result<Self, Self::Error> {
         Ok(SubtleEcKeyImportParams {
             name: algorithm_name,
-            named_curve: get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
                 object,
                 c"namedCurve",
                 StringificationBehavior::Default,
-            )?
-            .to_string(),
+            )?),
         })
     }
 }

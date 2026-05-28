@@ -170,7 +170,7 @@ impl BluetoothDevice {
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::IsRepresentedDeviceNull(
-                self.Id().to_string(),
+                String::from(self.Id()),
                 sender,
             ))
             .unwrap();
@@ -252,7 +252,7 @@ impl BluetoothDevice {
         let context = self.get_context();
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
-            if id == &self.Id().to_string() && device.get_gatt(cx).Connected() {
+            if id == &self.Id().str() as &str && device.get_gatt(cx).Connected() {
                 return Ok(());
             }
         }

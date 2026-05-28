@@ -91,7 +91,7 @@ impl Element {
         local_name: &LocalName,
         value: USVString,
     ) {
-        self.set_attribute(cx, local_name, AttrValue::String(value.to_string()));
+        self.set_attribute(cx, local_name, AttrValue::String(value.into()));
     }
 
     pub(crate) fn get_trusted_type_url_attribute(

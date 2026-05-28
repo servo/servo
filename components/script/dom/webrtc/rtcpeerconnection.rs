@@ -209,7 +209,7 @@ impl RTCPeerConnection {
                     .borrow()
                     .as_ref()
                     .unwrap()
-                    .configure(server.to_string(), policy);
+                    .configure(String::from(server), policy);
             }
         }
         this

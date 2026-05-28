@@ -1151,7 +1151,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Alert {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
+            message: String::from(message),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
@@ -1184,7 +1184,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Confirm {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
+            message: String::from(message),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
@@ -1235,8 +1235,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Prompt {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
-            default: default.to_string(),
+            message: String::from(message),
+            default: String::from(default),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));

@@ -501,7 +501,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
                 if s.is_empty() {
                     return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
                 }
-                transform_to_matrix(s.to_string())
+                transform_to_matrix(&s.str())
                     .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
@@ -1220,10 +1220,10 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     }
 }
 
-pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<f64>)> {
+pub(crate) fn transform_to_matrix(value: &str) -> Fallible<(bool, Transform3D<f64>)> {
     use style::properties::longhands::transform;
 
-    let mut input = ParserInput::new(&value);
+    let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let url_data = Url::parse("about:blank").unwrap().into();
     let context =

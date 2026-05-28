@@ -660,7 +660,7 @@ impl HTMLImageElement {
             .all(|source| source.descriptor.width.is_none());
         if !src.is_empty() && no_density_source_of_1 && no_width_descriptor {
             source_set.image_sources.push(ImageSource {
-                url: src.to_string(),
+                url: String::from(src),
                 descriptor: Descriptor {
                     width: None,
                     density: None,
@@ -1117,7 +1117,7 @@ impl HTMLImageElement {
             .get_string_attribute(&local_name!("src"));
 
         if !self.uses_srcset_or_picture() && !src.is_empty() {
-            selected_source = Some(USVString(src.to_string()));
+            selected_source = Some(USVString(String::from(src)));
             selected_pixel_density = Some(1_f64);
         };
 

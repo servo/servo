@@ -241,7 +241,7 @@ impl HTMLInputElement {
     pub(crate) fn auto_directionality(&self) -> Option<String> {
         match *self.input_type() {
             InputType::Text(_) | InputType::Search(_) | InputType::Url(_) | InputType::Email(_) => {
-                let value: String = self.Value().to_string();
+                let value: String = String::from(self.Value());
                 Some(HTMLInputElement::directionality_from_value(&value))
             },
             _ => None,
@@ -1961,7 +1961,7 @@ impl HTMLInputElement {
                     ControlElement::Ime(DomRoot::from_ref(self.upcast())),
                     EmbedderControlRequest::InputMethod(InputMethodRequest {
                         input_method_type,
-                        text: self.Value().to_string(),
+                        text: String::from(self.Value()),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
                         // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.

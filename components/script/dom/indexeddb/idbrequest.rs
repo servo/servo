@@ -133,7 +133,7 @@ impl RequestListener {
         let send_result = global.storage_threads().send(IndexedDBThreadMsg::Sync(
             SyncOperation::RequestHandled {
                 origin: global.origin().immutable().clone(),
-                db_name: transaction.get_db_name().to_string(),
+                db_name: String::from(transaction.get_db_name()),
                 txn: transaction.get_serial_number(),
                 request_id,
             },
@@ -548,8 +548,8 @@ impl IDBRequest {
             .storage_threads()
             .send(IndexedDBThreadMsg::Async(
                 global.origin().immutable().clone(),
-                transaction.get_db_name().to_string(),
-                source.get_name().to_string(),
+                String::from(transaction.get_db_name()),
+                String::from(source.get_name()),
                 transaction.get_serial_number(),
                 request_id,
                 transaction_mode,

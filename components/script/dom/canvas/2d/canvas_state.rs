@@ -1632,7 +1632,7 @@ impl CanvasState {
         let node = canvas.upcast::<Node>();
         let window = canvas.owner_window();
 
-        let Some(resolved_font_style) = window.resolved_font_style_query(node, value.to_string())
+        let Some(resolved_font_style) = window.resolved_font_style_query(node, String::from(value))
         else {
             // This will happen when there is a syntax error.
             return;

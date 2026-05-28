@@ -94,7 +94,7 @@ impl RTCDataChannel {
         servo_media_id: Option<DataChannelId>,
     ) -> RTCDataChannel {
         let mut init: DataChannelInit = options.convert();
-        init.label = label.to_string();
+        init.label = label.0.clone();
 
         let controller = peer_connection.get_webrtc_controller().borrow();
         let servo_media_id = servo_media_id.unwrap_or(

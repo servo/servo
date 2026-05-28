@@ -208,7 +208,7 @@ impl Bluetooth {
         for opt_service in optional_services {
             // Step 2.5 - 2.6.
             let uuid = match BluetoothUUID::service(opt_service.clone()) {
-                Ok(u) => u.to_string(),
+                Ok(u) => String::from(u),
                 Err(e) => {
                     p.reject_error(e, CanGc::from_cx(cx));
                     return;
@@ -304,7 +304,7 @@ where
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
         let canonicalized = match uuid_canonicalizer(u) {
-            Ok(canonicalized_uuid) => canonicalized_uuid.to_string(),
+            Ok(canonicalized_uuid) => String::from(canonicalized_uuid),
             Err(e) => {
                 p.reject_error(e, CanGc::from_cx(cx));
                 return p;
@@ -373,7 +373,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 
             for service in services {
                 // Step 3.2 - 3.3.
-                let uuid = BluetoothUUID::service(service.clone())?.to_string();
+                let uuid = String::from(BluetoothUUID::service(service.clone())?);
 
                 // Step 3.4.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
@@ -467,7 +467,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 };
 
                 // Step 9.3 - 9.4.
-                let service = BluetoothUUID::service(service_name)?.to_string();
+                let service = String::from(BluetoothUUID::service(service_name)?);
 
                 // Step 9.5.
                 if uuid_is_blocklisted(service.as_ref(), Blocklist::All) {

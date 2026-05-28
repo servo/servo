@@ -753,7 +753,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(value.to_string())
+            .update_nonce_internal_slot(String::from(value))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -793,10 +793,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return Default::default();
         }
 
-        let access_key_string = self
-            .element
-            .get_string_attribute(&local_name!("accesskey"))
-            .to_string();
+        let access_key_string =
+            String::from(self.element.get_string_attribute(&local_name!("accesskey")));
 
         #[cfg(target_os = "macos")]
         let access_key_label = format!("⌃⌥{access_key_string}");
