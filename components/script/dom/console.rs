@@ -157,7 +157,7 @@ impl Console {
     }
 
     // Directly logs a string message, without processing the message
-    // TODO: https://github.com/servo/servo/issues/45112
+    // TODO: https://github.com/servo/servo/issues/45202
     #[expect(unsafe_code)]
     pub(crate) fn internal_warn(global: &GlobalScope, message: String) {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
