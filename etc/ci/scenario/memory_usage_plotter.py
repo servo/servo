@@ -9,19 +9,23 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from io import TextIOWrapper
 import argparse
 import threading
 import time
 import csv
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Self, Type
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import datetime as dt
 from pathlib import Path
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 import sys
-from hdc_py.hdc import HarmonyDeviceConnector
+from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
+from types import TracebackType
 from common_function_for_servo_test import create_driver
 
 PACKAGE_NAME = "org.servo.servo"
@@ -31,17 +35,17 @@ PACKAGE_NAME = "org.servo.servo"
 @dataclass
 class MemoryLoggingOptions:
     verbose: bool = False
-    frequency: int = 2
-    pid: int = None
+    frequency: float = 2
+    pid: Optional[int] = None
     log_to_file: bool = False
     plot: bool = False
     file_name: str = "memory_usage_plotter"
-    pre_time: int = 0
-    post_time: int = 0
+    pre_time: float = 0
+    post_time: float = 0
     set_minimal_history: bool = False
-    from_dump: str = None
+    from_dump: Optional[str] = None
     mode: str = "collect"
-    reset_tab: str = None
+    reset_tab: Optional[str | bool] = None
     create_own_webdriver: bool = False
 
 
@@ -154,10 +158,10 @@ class MemorySample:
 class MemoryLog:
     samples: List[MemorySample] = field(default_factory=list)
 
-    def add(self, sample: MemorySample):
+    def add(self, sample: MemorySample) -> None:
         self.samples.append(sample)
 
-    def clear(self):
+    def clear(self) -> None:
         self.samples.clear()
 
 
@@ -187,34 +191,34 @@ class WebDriverIsNotSet(Exception):
 
 
 class NonBlockingMemoryLogging:
-    def set_webdriver(self, webdriver: webdriver):
-        self.driver = webdriver
+    def set_webdriver(self, driver: webdriver.Remote) -> None:
+        self.driver = driver
 
-    def from_dump(self):
-        self.log = load_memory_log(self.options.from_dump)
-        self.plot_memory_log()
+    def from_dump(self) -> None:
+        if self.options.from_dump is not None:
+            self.log = load_memory_log(self.options.from_dump)
+            self.plot_memory_log()
 
-    def __init__(self, options: MemoryLoggingOptions = None):
+    def __init__(self, options: Optional[MemoryLoggingOptions] = None) -> None:
         # Defaults:
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
-        self.driver = None
+        self.driver: Optional[WebDriver] = None
+        self.hdc: Optional[HarmonyDeviceConnector] = None
+        self.csv_file: Optional[TextIOWrapper] = None
         if self.options.create_own_webdriver:
             self.driver = create_driver(timeout=1)
-            if self.driver is None:
-                print("Doublecheck that servo is running and has `--psn=--webdriver`")
-                sys.exit(0)
 
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
 
         # check for the `file` mode
-        if options.mode is None:
+        if self.options.mode is None:
             print("No mode has been specified. Exiting")
             sys.exit(1)
-        if options.mode == "plot" and options.from_dump is not None:
-            raise_if_input_invalid(options.from_dump)
+        if self.options.mode == "plot" and self.options.from_dump is not None:
+            raise_if_input_invalid(self.options.from_dump)
             self.from_dump()
             sys.exit(0)
         self.log = MemoryLog()
@@ -228,20 +232,24 @@ class NonBlockingMemoryLogging:
             daemon=True,
         )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.start()
         self.csv_file = None
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.stop()
         if self.csv_file:
             self.csv_file.close()
         if self.driver is not None:
             self.driver.quit()
-        return False
 
-    def start(self):
+    def start(self) -> None:
         if self.options.pid is None:
             try:
                 self.hdc = HarmonyDeviceConnector()
@@ -255,7 +263,7 @@ class NonBlockingMemoryLogging:
                     time.sleep(abs(self.options.pre_time))
                 self.event("start")
 
-    def stop(self):
+    def stop(self) -> None:
         self.event("stop")
         if self.options.post_time is not None:
             self.verbose_print(f"post-logging for {self.options.post_time}s...")
@@ -263,7 +271,7 @@ class NonBlockingMemoryLogging:
                 if self.driver is None:
                     raise WebDriverIsNotSet("The `-r` argument or Tab Reset was passed, but the webdriver is not set")
                 self.verbose_print(f"Setting the url to reset_tab: {self.options.reset_tab}")
-                if self.options.reset_tab is not str:
+                if not isinstance(self.options.reset_tab, str):
                     self.options.reset_tab = "about:blank"
                 self.driver.get(self.options.reset_tab)
             time.sleep(self.options.post_time)
@@ -273,18 +281,24 @@ class NonBlockingMemoryLogging:
             self._thread.join()
             if self.options.verbose:
                 print(self.log)
-            if self.options.log_to_file:
+            if self.options.log_to_file and self.csv_file:
                 self.csv_file.close()
             if self.options.plot:
                 self.plot_memory_log()
 
-    def _run(self):
+    def _run(self) -> None:
         while not self._stop_event.is_set():
             self.event()
             time.sleep(1 / self.options.frequency)
 
-    def event(self, event_name: str = None):
+    def event(self, event_name: Optional[str] = None) -> None:
+        if self.options.pid is None:
+            return
+
         memory_point = get_memory_info(self.options.pid)
+        if memory_point is None:
+            return
+
         if self.options.verbose:
             print(memory_point)
         sample = MemorySample(
@@ -295,7 +309,8 @@ class NonBlockingMemoryLogging:
         )
         if self.options.log_to_file:
             self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
-            self.csv_file.flush()
+            if self.csv_file:
+                self.csv_file.flush()
         self.log.add(sample)
 
     def verbose_print(self, to_print: str) -> None:
@@ -307,7 +322,7 @@ class NonBlockingMemoryLogging:
             raise ValueError("MemoryLog is empty")
 
         # Extract data
-        times = [dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples]
+        times = mdates.date2num([dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples])
         rss = [s.RSS_MB for s in self.log.samples]
         swap = [s.Swap_MB for s in self.log.samples]
         total = [r + s for r, s in zip(rss, swap)]
@@ -349,6 +364,9 @@ class NonBlockingMemoryLogging:
             plt.title(self.options.file_name)
         else:
             plt.title("Memory Usage Over Time")
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b %H:%M:%S"))
+        plt.gcf().autofmt_xdate()
         plt.ylim(bottom=0)
         plt.legend()
         plt.grid(True)
@@ -447,6 +465,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.create_own_webdriver = True
-    with NonBlockingMemoryLogging(args) as worker:
+    options_kwargs = {
+        field.name: getattr(args, field.name) for field in fields(MemoryLoggingOptions) if hasattr(args, field.name)
+    }
+    options = MemoryLoggingOptions(**options_kwargs)
+    options.create_own_webdriver = True
+    with NonBlockingMemoryLogging(options) as worker:
         time.sleep(2)
         print("Exiting memory_usage_plotter.py")

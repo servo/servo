@@ -19,6 +19,8 @@ import sys
 import time
 from decimal import Decimal
 from enum import Enum
+from types import TracebackType
+from typing import Any, Callable, Optional, Self, Type
 
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from PIL import Image
@@ -49,13 +51,13 @@ class MitmProxyRunType(enum.Enum):
 
 
 class MitmProxy:
-    def __init__(self, use_proxy: MitmProxyRunType, dump_file, port: int):
-        self.mitmproxy = None
+    def __init__(self, use_proxy: MitmProxyRunType, dump_file: pathlib.Path, port: int) -> None:
+        self.mitmproxy: subprocess.Popen[bytes] | None = None
         self.use_proxy = use_proxy
         self.dump_file = dump_file
         self.port = port
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         # for record the external recorder will record
         # make sure mitmproxy is installed
         if self.use_proxy == MitmProxyRunType.REPLAY:
@@ -91,14 +93,19 @@ class MitmProxy:
             )
         return self
 
-    def __exit__(self, exception_type, exception_value, exception_traceback):
+    def __exit__(
+        self,
+        exception_type: Type[BaseException] | None,
+        exception_value: BaseException | None,
+        exception_traceback: TracebackType | None,
+    ) -> None:
         if self.mitmproxy:
             print("Killing mitmproxy")
             self.mitmproxy.kill()
             time.sleep(2)
 
 
-def calculate_frame_rate():
+def calculate_frame_rate() -> float:
     """
     Pull trace from device and calculate frame rate through trace
     calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed
@@ -120,7 +127,7 @@ def calculate_frame_rate():
     print(f"Pull trace file to {file_name} success.")
 
     trace_key = "H:ReceiveVsync"
-    check_list = []
+    check_list: list[str] = []
     with open(file_name, "r") as f:
         lines = f.readlines()
         if "TouchHandler::FlingStart" not in lines:
@@ -153,7 +160,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     print("Trying to create driver")
     options = ArgOptions()
     options.set_capability("browserName", "servo")
-    driver = None
+    driver: Optional[webdriver.Remote] = None
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
         try:
@@ -164,7 +171,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
     if driver is None:
-        print(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
+        raise RuntimeError(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
     else:
         print(
             f"Established Webdriver connection in {time.time() - start_time}s",
@@ -206,7 +213,9 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     return PortMapResult.SUCCESSFUL
 
 
-def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT):
+def setup_hdc_forward(
+    timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT
+) -> None:
     """
     set hdc forward
     :return: If successful, return driver; If failed, return False
@@ -232,7 +241,7 @@ def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, ho
     raise TimeoutError("HDC port forwarding timed out")
 
 
-def stop_servo():
+def stop_servo() -> None:
     """stop servo application"""
     print("Prepare to stop Test Application...")
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
@@ -240,7 +249,7 @@ def stop_servo():
     print("Stop Test Application successful!")
 
 
-def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement):
+def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement) -> Any:
     """
     This scrolls element into view, and return the DOMRect tuple:
     [left, top, right, bottom]
@@ -273,13 +282,13 @@ def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElem
     return physical_rect
 
 
-def element_screenshot(element: WebElement, filename: str):
+def element_screenshot(driver: webdriver.Remote, element: WebElement, filename: str) -> None:
     if not (filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg")):
         raise ValueError(f"Invalid file type: {filename}. Expected a .jpg/.jpeg file.")
 
     try:
         print(f"Scrolling {element}")
-        region = element_scroll_into_view_and_rect(element)
+        region = element_scroll_into_view_and_rect(driver, element)
         time.sleep(2)
         hdc = HarmonyDeviceConnector()
         hdc.screenshot(filename)
@@ -295,8 +304,8 @@ def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
     completed_process = hdc.cmd("hidumper -s WindowManagerService -a '-a'", capture_output=True, encoding="utf-8")
     output = str(completed_process.stdout)
     lines = output.splitlines()
-    focused_window = None
-    servo_window_id = None
+    focused_window: Optional[int] = None
+    servo_window_id: Optional[int] = None
     for line in lines:
         if line.lower().startswith("focus window:"):
             focused_window = int(line.split(":")[1].strip())
@@ -315,7 +324,7 @@ def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
     return focused_window == servo_window_id
 
 
-def close_usb_popup(hdc: HarmonyDeviceConnector):
+def close_usb_popup(hdc: HarmonyDeviceConnector) -> None:
     """
     When connecting an OpenHarmony device, a system pop-up will be opened on the device,
     asking the user to confirm which USB mode should be used for the connection.
@@ -335,11 +344,12 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
 def run_test(
-    test_fn,
+    test_fn: Callable[[], None],
     test_name: str,
     use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
     session_history_max_length: int | None = None,
-):
+    url: Optional[str] = None,
+) -> None:
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
         print("Setting mitmproxy replay")
@@ -349,6 +359,7 @@ def run_test(
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
         print(f"Dump file {dump_file} did not exist. We will abort")
         return
+    resolved_url = url if url is not None else ABOUT_BLANK
     hdc = HarmonyDeviceConnector()
     try:
         print("Stopping potential old servo instance ...")
@@ -358,7 +369,7 @@ def run_test(
         with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
             print("Starting new servo instance...")
             time.sleep(5)
-            cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
+            cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {resolved_url} --psn=--webdriver"
             if use_mitmproxy.should_servo_proxy():
                 cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
                 if session_history_max_length is not None:

@@ -20,7 +20,7 @@ import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 
 
-def operator():
+def operator() -> None:
     driver = common_function_for_servo_test.create_driver()
 
     popup_css_selector = (
@@ -65,7 +65,7 @@ def operator():
         "shell",
         "hitrace -b 81920 -t 10 ace app ohos ability graphic -o /data/local/tmp/my_trace.html",
     ]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(5)
 
     print("Swiping ...")
@@ -75,10 +75,10 @@ def operator():
     process.wait(timeout=15)
     stdout, stderr = process.communicate()
     print("hitrace command complete. Output:")
-    print(stdout.decode())
+    print(stdout)
     if stderr:
         print("Error message:")
-        print(stderr.decode())
+        print(stderr)
 
     frame_rate = common_function_for_servo_test.calculate_frame_rate()
     print(f"framerate is {frame_rate}")
@@ -88,4 +88,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_framerate_with_video", "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(operator, "mossel_framerate_with_video", url="https://m.huaweimossel.com")

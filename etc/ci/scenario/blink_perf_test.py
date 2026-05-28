@@ -18,7 +18,8 @@ import re
 import json
 import argparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
+from types import TracebackType
+from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode  # type: ignore[import-untyped]
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -27,7 +28,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from dataclasses import dataclass
 import threading
 import csv
-from typing import Dict
+from typing import Any, Dict, Optional, Type
 from common_function_for_servo_test import create_driver, setup_hdc_forward, stop_servo, close_usb_popup
 
 
@@ -108,15 +109,15 @@ class AbortReason(Enum):
 
 
 class LocalFileServe:
-    def __init__(self, port: int, *args, **kwargs):
-        self.local_server = None
+    def __init__(self, port: int) -> None:
+        self.local_server: Optional[ThreadingHTTPServer] = None
         self.port = port
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         print(f"Serving local test files on port {self.port}")
 
         class StaticHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args, directory=DIRECTORY, **kwargs)
 
         self.local_server = ThreadingHTTPServer(
@@ -127,7 +128,12 @@ class LocalFileServe:
         thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
         thread.start()
 
-    def __exit__(self, *args):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         if self.local_server is not None:
             self.local_server.server_close()
 
@@ -137,7 +143,7 @@ def get_serve_path_for_file(root: str, file: str) -> str:
 
 
 def run_single_test(
-    test_file_name: str, driver: webdriver.Remote, port: int, serve_path, cli_args
+    test_file_name: str, driver: webdriver.Remote, port: int, serve_path: str, cli_args: argparse.Namespace
 ) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
@@ -163,8 +169,11 @@ def run_single_test(
             )
         print(f">>> Page loading took {(after_get - before_get):.2f}s")
 
-        avg_line, min_line, max_line = None, None, None
-        start_time, latest_time = time.perf_counter(), 0
+        avg_line: Optional[float] = None
+        min_line: Optional[float] = None
+        max_line: Optional[float] = None
+        unit: Optional[str] = None
+        start_time, latest_time = time.perf_counter(), 0.0
         while latest_time - start_time < 60:
             try:
                 element = driver.find_element(By.ID, "log")
@@ -192,12 +201,12 @@ def run_single_test(
     return AbortReason.NotFound
 
 
-def oswalk_error(error: OSError):
+def oswalk_error(error: OSError) -> None:
     print(error)
     sys.exit(1)
 
 
-def write_file(results):
+def write_file(results: dict[str, dict[str, Any]]) -> None:
     with open("results.json", "w") as f:
         json.dump(results, f)
 
@@ -322,15 +331,15 @@ def memory_report_to_bencher_metrics(
     }
 
 
-def verbose_print(str_to_print: str, is_verbose: bool = False):
+def verbose_print(str_to_print: str, is_verbose: bool = False) -> None:
     if is_verbose:
         print(str_to_print)
 
 
-def run_tests(port, cli_args):
+def run_tests(port: int, cli_args: argparse.Namespace) -> None:
     skip_until = cli_args.skip_until
 
-    final_result = {}
+    final_result: dict[str, dict[str, Any]] = {}
     csv_file, csv_writer = None, None
     if cli_args and cli_args.extra_csv:
         csv_file = open("blink_perf_test_logs.csv", "w", newline="", encoding="utf-8")
@@ -363,10 +372,11 @@ def run_tests(port, cli_args):
 
                             verbose_print(f"result: {result}", cli_args.verbose)
 
-                            if result == AbortReason.NotFound or result == AbortReason.Panic:
+                            if isinstance(result, AbortReason):
                                 if csv_writer:
                                     csv_writer.writerow([filePath, "error"])
                             else:
+                                metrics: dict[str, dict[str, float]] = {}
                                 combined_result = {
                                     "value": result.value,
                                     "lower_value": result.lower_value,
@@ -405,7 +415,7 @@ def run_tests(port, cli_args):
                                     csv_writer.writerow([filePath, result.value])
                         finally:
                             webdriver.quit()
-                        if csv_writer:
+                        if csv_writer and csv_file:
                             csv_file.flush()
                     stop_servo()
         print(f"final_result {final_result}")

@@ -12,3 +12,10 @@ license = "Apache-2.0 OR MIT"
 
 [tool.uv]
 native-tls = true
+
+[tool.pyrefly]
+search-path = ["."]
+python-interpreter-path = ".venv/bin/python"
+project-excludes = [
+    "**/.venv/**",
+]
