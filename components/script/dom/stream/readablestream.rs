@@ -213,7 +213,6 @@ impl Callback for PipeTo {
     /// - the current state.
     /// - the type of `result`.
     /// - the state of a stored promise(in some cases).
-    #[expect(unsafe_code)]
     fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
         let global = self.reader.global();
 
@@ -333,7 +332,7 @@ impl Callback for PipeTo {
                     if !result.is_object() {
                         false
                     } else {
-                        unsafe { is_array_like::<crate::DomTypeHolder>(cx.raw_cx(), result) }
+                        is_array_like::<crate::DomTypeHolder>(cx, result)
                     }
                 };
 

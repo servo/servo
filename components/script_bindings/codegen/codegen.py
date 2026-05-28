@@ -628,7 +628,7 @@ class CGMethodCall(CGThing):
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed
             # properties... skip that last for now.  It's a bit of a pain.
-            pickFirstSignature(f"{distinguishingArg}.get().is_object() && is_array_like::<D>(cx.raw_cx(), {distinguishingArg})",
+            pickFirstSignature(f"{distinguishingArg}.get().is_object() && is_array_like::<D>(cx, {distinguishingArg})",
                                lambda s:
                                    (s[1][distinguishingIndex].type.isSequence()
                                     or s[1][distinguishingIndex].type.isObject()))
@@ -6256,7 +6256,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self) -> str:
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return (f'let {argName} = jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).expect("Not a string-convertible JSID?");\n'
+        return (f'let {argName} = jsid_to_string(cx, Handle::from_raw(id)).expect("Not a string-convertible JSID?");\n'
                 "let this = UnwrapProxy::<D>(proxy);\n"
                 "let this = &*this;\n"
                 f"{CGProxySpecialOperation.define(self)}")
@@ -6300,7 +6300,7 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
         return ("if !id.is_symbol() {\n"
-                f'    let {argName} = match jsid_to_string(cx.raw_cx(), Handle::from_raw(id)) {{\n'
+                f'    let {argName} = match jsid_to_string(cx, Handle::from_raw(id)) {{\n'
                 "        Some(val) => val,\n"
                 "        None => {\n"
                 "            throw_type_error(cx.raw_cx(), c\"Not a string-convertible JSID\");\n"

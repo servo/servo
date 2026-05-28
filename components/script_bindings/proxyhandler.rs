@@ -378,7 +378,7 @@ pub(crate) unsafe fn cross_origin_has_own(
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
     //       do that.
-    *bp = jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|key| {
+    *bp = jsid_to_string(cx, Handle::from_raw(id)).is_some_and(|key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
             defined_key.to_bytes() == key.str().as_bytes()
@@ -425,7 +425,7 @@ pub(crate) fn is_cross_origin_allowlisted_prop(
     id: RawHandleId,
 ) -> bool {
     unsafe {
-        if jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|st| st == "then") {
+        if jsid_to_string(cx, Handle::from_raw(id)).is_some_and(|st| st == "then") {
             return true;
         }
 

@@ -16,8 +16,9 @@ use js::jsapi::{
     Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN, JSContext, JSObject,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::IsArrayObject;
-use js::rust::wrappers2::{JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength};
+use js::rust::wrappers2::{
+    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
+};
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
@@ -446,11 +447,11 @@ where
 ///
 /// # Safety
 /// - cx must point to a non-null, valid JSContext instance.
-pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+pub fn jsid_to_string(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
-        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(jsstr_to_string(cx, jsstr).into());
+        let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();
+        return Some(unsafe { jsstr_to_string(cx.raw_cx(), jsstr) }.into());
     }
 
     if id_raw.is_int() {
@@ -605,39 +606,42 @@ where
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList, DOMTokenList).
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
+pub fn is_array_like<D: crate::DomTypes>(
+    cx: &mut js::context::JSContext,
+    value: HandleValue,
+) -> bool {
     let mut is_array = false;
-    assert!(IsArrayObject(cx, value, &mut is_array));
+    assert!(unsafe { IsArrayObject(cx, value, &mut is_array) });
     if is_array {
         return true;
     }
 
-    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
+    let object: *mut JSObject = match FromJSValConvertible::safe_from_jsval(cx, value, ()).unwrap()
+    {
         ConversionResult::Success(object) => object,
         _ => return false,
     };
 
-    // TODO: HTMLAllCollection
-    if root_from_object::<D::DOMTokenList>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::FileList>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::NodeList>(object, cx).is_ok() {
-        return true;
+    unsafe {
+        // TODO: HTMLAllCollection
+        if root_from_object::<D::DOMTokenList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::FileList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLFormControlsCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLOptionsCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::NodeList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
     }
 
     false
