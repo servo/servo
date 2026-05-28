@@ -9,6 +9,9 @@ rust-version.workspace = true
 repository.workspace = true
 description.workspace = true
 
+[features]
+binary = ["gstreamer/binary", "gstreamer-gl/binary", "gstreamer-gl-egl/binary", "gstreamer-video/binary", "servo-media-gstreamer-render/binary"]
+
 [lib]
 name = "servo_media_gstreamer_render_android"
 path = "lib.rs"

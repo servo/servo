@@ -30,6 +30,8 @@ gstreamer1-plugins-base-devel
 gstreamer1-plugins-good
 gstreamer1-plugins-bad-free-devel
 gstreamer1-plugins-ugly-free
+libpulse-devel
+alsa-lib-devel
 libjpeg-turbo-devel
 zlib-ng
 libjpeg-turbo

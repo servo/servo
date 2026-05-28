@@ -97,22 +97,23 @@ gaol = "0.2.1"
 generic-array = "0.14"
 gilrs = "0.11.1"
 gleam = "0.15"
-glib = "0.22"
-glib-sys = "0.22"
+glib = { git = "https://github.com/gtk-rs/gtk-rs-core", branch = "main" }
+glib-sys = { git = "https://github.com/gtk-rs/gtk-rs-core", branch = "main" }
 glow = "0.17.0"
-gstreamer = { version = "0.25", features = ["v1_18"] }
-gstreamer-app = "0.25"
-gstreamer-audio = "0.25"
-gstreamer-base = "0.25"
-gstreamer-gl = "0.25"
-gstreamer-gl-egl = "0.25"
-gstreamer-gl-wayland = "0.25"
-gstreamer-gl-x11 = "0.25"
-gstreamer-play = "0.25"
-gstreamer-sdp = "0.25"
-gstreamer-sys = "0.25"
-gstreamer-video = "0.25"
-gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
+gstreamer = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries", features = ["v1_28"] }
+gstreamer-app = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-audio = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-base = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-gl = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-gl-egl = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-gl-sys = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-gl-wayland = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-gl-x11 = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-play = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-sdp = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-sys = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-video = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries" }
+gstreamer-webrtc = { git = "https://gitlab.freedesktop.org/calvaris/gstreamer-rs.git", branch="binaries", features = ["v1_28"] }
 half = "2"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
@@ -361,6 +362,34 @@ webxr-api = { package = "servo-webxr-api", version = "=0.2.0", path = "component
 xpath = { package = "servo-xpath", version = "=0.2.0", path = "components/xpath" }
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
+[workspace.metadata.system-deps.gstreamer_1_0.'cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))']
+url = "https://people.freedesktop.org/~tsaunier/gstreamer/pkg/linux/1.28.3/gstreamer-1.0-linux-x86_64-1.28.3.tar.xz"
+checksum = "03dbe9d7ba5ce9df8635e52260c7bf69f7031519834dad7fdf6a23aa71de2782"
+
+[workspace.metadata.system-deps.gstreamer_1_0.'cfg(target_os = "macos")']
+url = "https://gstreamer.freedesktop.org/data/pkg/macos/1.28.3/gstreamer-1.0-devel-1.28.3-universal.pkg"
+checksum = "12c01972acb5668416248606bac6148c8d6f0395969650d05a18be9a08de0260"
+
+[workspace.metadata.system-deps.gstreamer_1_0.'cfg(all(target_os = "windows", target_arch = "x86_64", target_env = "msvc"))']
+url = "https://gstreamer.freedesktop.org/data/pkg/windows/1.28.3/msvc/gstreamer-1.0-msvc-x86_64-1.28.3.exe"
+checksum = "f01b4fb30b3aefdcdf4251d4a7464fb68197d15a763a2a94b667b93f88cc6216"
+
+[workspace.metadata.system-deps.gstreamer_1_0.'cfg(target_os = "android")']
+url = "https://gstreamer.freedesktop.org/data/pkg/android/1.28.2/gstreamer-1.0-android-universal-1.28.2.tar.xz"
+checksum = "ba9f1c6e10f0736fbf48cd741634fa90e49d50c961a4454230040b2517490d2a"
+
+[workspace.metadata.gstreamer-plugins]
+include = ["coreelements", "typefindfunctions", "app", "audioconvert", "audioresample", "audiotestsrc", "videotestsrc", "videoconvertscale", "compositor", "gio", "ogg", "opus", "playback", "theora", "vorbis", "volume", "opengl", "audiofx", "audioparsers", "autodetect", "deinterlace", "id3demux", "interleave", "isomp4", "matroska", "rtp", "rtpmanager", "videofilter", "vpx", "wavparse", "audiobuffersplit", "dtls", "id3tag", "proxy", "videoparsersbad", "webrtc", "nice", "libav"]
+
+[workspace.metadata.gstreamer-plugins.'cfg(target_os = "linux")']
+include = ["pulseaudio", "alsa"]
+
+[workspace.metadata.gstreamer-plugins.'cfg(target_os = "macos")']
+include = ["osxaudio", "osxvideo", "applemedia"]
+
+[workspace.metadata.gstreamer-plugins.'cfg(target_os = "windows")']
+include = ["wasapi"]
+
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
 # consider RSA key generation tests fail due to timeout.
@@ -416,6 +445,8 @@ lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
+system-deps = { git = "https://github.com/eerii/system-deps", branch = "binary" }
+
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

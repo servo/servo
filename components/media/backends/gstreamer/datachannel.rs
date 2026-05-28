@@ -154,10 +154,14 @@ impl GStreamerWebRtcDataChannel {
 
     pub fn send(&self, message: &DataChannelMessage) {
         match message {
-            DataChannelMessage::Text(text) => self.channel.send_string(Some(text)),
-            DataChannelMessage::Binary(data) => self
-                .channel
-                .send_data(Some(&glib::Bytes::from(data.as_slice()))),
+            DataChannelMessage::Text(text) => {
+                let _ = self.channel.send_string_full(Some(text));
+            },
+            DataChannelMessage::Binary(data) => {
+                let _ = self
+                    .channel
+                    .send_data_full(Some(&glib::Bytes::from(data.as_slice())));
+            },
         }
     }
 

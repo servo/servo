@@ -273,6 +273,7 @@ class CommandBase(object):
     def __init__(self, context: Any) -> None:
         self.context = context
         self.enable_media = False
+        self.use_system_gstreamer = False
         self.enable_code_coverage = False
         self.features = []
 
@@ -517,6 +518,13 @@ class CommandBase(object):
                     help="Which media stack to use",
                 ),
                 CommandArgument(
+                    "--use-system-gstreamer",
+                    default=False,
+                    group="Feature Selection",
+                    action="store_true",
+                    help="Choose where we use the GStreamer library in the system or else bundle a downloaded pre-built version",
+                ),
+                CommandArgument(
                     "--debug-mozjs",
                     default=False,
                     group="Feature Selection",
@@ -587,6 +595,7 @@ class CommandBase(object):
                 if build_configuration:
                     self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
+                    self.use_system_gstreamer = kwargs["use_system_gstreamer"]
                     self.enable_media = self.is_media_enabled(kwargs["media_stack"])
 
                 if build_configuration or binary_selection:
@@ -723,8 +732,9 @@ class CommandBase(object):
         # This is a workaround for Ubuntu 20.04, which doesn't support a new enough GStreamer.
         # Once we drop support for this platform (it's currently needed for wpt.fyi runners),
         # we can remove this workaround and officially only support Ubuntu 22.04 and up.
+        # This is only valid if we opt-out of bundling GStreamer and prefer to use the system one.
         platform = servo.platform.get()
-        if not self.target.is_cross_build() and platform.is_linux and not platform.is_gstreamer_installed(self.target):
+        if not self.target.is_cross_build() and platform.is_linux and self.use_system_gstreamer and not platform.is_gstreamer_installed(self.target):
             return False
 
         return media_stack != "dummy"
@@ -748,7 +758,7 @@ class CommandBase(object):
         # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
         # environment variables are set via `self.build_env()`.
         platform = servo.platform.get()
-        if self.enable_media and not platform.is_gstreamer_installed(self.target):
+        if self.enable_media and self.use_system_gstreamer and not platform.is_gstreamer_installed(self.target):
             raise FileNotFoundError(
                 "GStreamer libraries not found (>= version 1.18).Please see installation instructions in README.md"
             )
@@ -793,6 +803,8 @@ class CommandBase(object):
             features += list(self.features)
             if self.enable_media:
                 features.append("media-gstreamer")
+                if not self.use_system_gstreamer:
+                    features.append("media-gstreamer-binary")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 

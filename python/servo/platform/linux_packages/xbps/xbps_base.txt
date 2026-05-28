@@ -28,6 +28,8 @@ gst-plugins-base1-devel
 gst-plugins-good1
 gst-plugins-bad1-devel
 gst-plugins-ugly1
+pulseaudio-devel
+alsa-lib-devel
 vulkan-loader
 libxkbcommon
 libxkbcommon-x11
