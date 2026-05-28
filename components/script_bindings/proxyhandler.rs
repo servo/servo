@@ -844,6 +844,8 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
     report_cross_origin_denial::<D>(cx, id, "access")
 }
 
+// The types will be rooted in the function using them
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
 where
     T: DomObject,
@@ -958,6 +960,8 @@ where
     true
 }
 
+// The types will be rooted in the function using them
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
     #[expect(clippy::type_complexity)]
