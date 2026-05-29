@@ -106,10 +106,7 @@ impl BaseFragment {
 
     #[inline]
     pub(crate) fn translate_rect(&self, offset: PhysicalSize<Au>) {
-        // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
-        // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
-        let new_origin = self.rect.origin() + offset;
-        self.rect.set_origin(new_origin);
+        self.rect.translate(offset)
     }
 
     #[inline]

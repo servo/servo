@@ -696,7 +696,7 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
 /// A `PhysicalRect<Au>` with shared mutablitiy
 ///
 /// It is based on `AtomicI32` but is not atomic itself: there is no protection against tearing:
-/// If multiple threads are calling `set()`, the rectangle may end up with some fileds from one call
+/// If multiple threads are calling `set()`, the rectangle may end up with some fields from one call
 /// and some fields from another call.
 ///
 /// Compared to `AtomicRefCell<PhysicalRect<Au>>`:
@@ -755,6 +755,14 @@ impl PhysicalRectAuCell {
         let size = &self.0.size;
         size.width.store(new_size.width.0, Ordering::Relaxed);
         size.height.store(new_size.height.0, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn translate(&self, offset: PhysicalSize<Au>) {
+        // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
+        // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
+        let new_origin = self.origin() + offset;
+        self.set_origin(new_origin);
     }
 }
 

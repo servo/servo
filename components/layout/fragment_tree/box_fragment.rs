@@ -98,16 +98,16 @@ impl BoxFragmentRareData {
     /// Create a new rare data based on information given to the fragment. Ideally, We should
     /// avoid creating rare data as much as possible to reduce the memory cost.
     fn new(specific_layout_info: Option<SpecificLayoutInfo>) -> OnceBox<AtomicRefCell<Self>> {
-        if let Some(info) = specific_layout_info {
-            OnceBox::with_value(Box::new(AtomicRefCell::new(BoxFragmentRareData {
-                resolved_sticky_insets: None,
-                specific_layout_info: Some(info),
-                generated_clip_id: None,
-                generated_scroll_tree_node_id: None,
-            })))
-        } else {
-            OnceBox::new()
-        }
+        specific_layout_info
+            .map(|info| {
+                OnceBox::with_value(Box::new(AtomicRefCell::new(BoxFragmentRareData {
+                    resolved_sticky_insets: None,
+                    specific_layout_info: Some(info),
+                    generated_clip_id: None,
+                    generated_scroll_tree_node_id: None,
+                })))
+            })
+            .unwrap_or_default()
     }
 }
 
