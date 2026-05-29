@@ -120,11 +120,11 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
         let owner_document = self.0.owner_document();
         let next_non_descendant_node = self
             .0
-            .following_nodes(owner_document.upcast())
+            .following_nodes(owner_document.upcast(), ShadowIncluding::No)
             .next_skipping_children();
         let following_nodes = next_non_descendant_node
             .clone()
-            .map(|node| node.following_nodes(owner_document.upcast()))
+            .map(|node| node.following_nodes(owner_document.upcast(), ShadowIncluding::No))
             .into_iter()
             .flatten();
         next_non_descendant_node

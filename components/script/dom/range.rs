@@ -346,7 +346,7 @@ impl Range {
         let document = start.owner_doc();
         let end_clone = end.clone();
         start
-            .following_nodes(document.upcast::<Node>())
+            .following_nodes(document.upcast::<Node>(), ShadowIncluding::No)
             .take_while(move |node| node != &end)
             .chain(iter::once(end_clone))
             .flat_map(move |node| node.border_boxes())
@@ -1008,7 +1008,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         rooted_vec!(let mut contained_children);
         let ancestor = self.CommonAncestorContainer();
 
-        let mut iter = start_node.following_nodes(&ancestor);
+        let mut iter = start_node.following_nodes(&ancestor, ShadowIncluding::No);
 
         let mut next = iter.next();
         while let Some(child) = next {
@@ -1155,7 +1155,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
-            .following_nodes(&ancestor)
+            .following_nodes(&ancestor, ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Text>);
 
         for child in iter {

@@ -24,11 +24,20 @@ pub(crate) enum ShadowIncluding {
 pub(crate) struct FollowingNodeIterator {
     current: Option<DomRoot<Node>>,
     root: DomRoot<Node>,
+    shadow_including: ShadowIncluding,
 }
 
 impl FollowingNodeIterator {
-    pub(crate) fn new(current: Option<DomRoot<Node>>, root: DomRoot<Node>) -> Self {
-        FollowingNodeIterator { current, root }
+    pub(crate) fn new(
+        current: Option<DomRoot<Node>>,
+        root: DomRoot<Node>,
+        shadow_including: ShadowIncluding,
+    ) -> Self {
+        FollowingNodeIterator {
+            current,
+            root,
+            shadow_including,
+        }
     }
 }
 
@@ -50,7 +59,7 @@ impl FollowingNodeIterator {
             return current.GetNextSibling();
         }
 
-        for ancestor in current.inclusive_ancestors(ShadowIncluding::No) {
+        for ancestor in current.inclusive_ancestors(self.shadow_including) {
             if self.root == ancestor {
                 break;
             }

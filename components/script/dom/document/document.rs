@@ -2731,19 +2731,13 @@ impl Document {
     /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes(&self) -> Ref<'_, IFrameCollection> {
-        self.iframes.borrow_mut().validate(self);
         self.iframes.borrow()
     }
 
     /// A mutable reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes_mut(&self) -> RefMut<'_, IFrameCollection> {
-        self.iframes.borrow_mut().validate(self);
         self.iframes.borrow_mut()
-    }
-
-    pub(crate) fn invalidate_iframes_collection(&self) {
-        self.iframes.borrow_mut().invalidate();
     }
 
     pub(crate) fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
