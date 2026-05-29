@@ -752,11 +752,16 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             clone
                 .downcast::<CharacterData>()
                 .unwrap()
-                .SetData(text.unwrap());
+                .SetData(cx, text.unwrap());
             // Step 4.3.
             fragment.upcast::<Node>().AppendChild(cx, &clone)?;
             // Step 4.4.
-            end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
+            end_data.ReplaceData(
+                cx,
+                start_offset,
+                end_offset - start_offset,
+                DOMString::new(),
+            )?;
             // Step 4.5.
             return Ok(fragment);
         }
@@ -795,11 +800,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 clone
                     .downcast::<CharacterData>()
                     .unwrap()
-                    .SetData(text.unwrap());
+                    .SetData(cx, text.unwrap());
                 // Step 15.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 15.4.
                 start_data.ReplaceData(
+                    cx,
                     start_offset,
                     start_node.len() - start_offset,
                     DOMString::new(),
@@ -840,11 +846,11 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 clone
                     .downcast::<CharacterData>()
                     .unwrap()
-                    .SetData(text.unwrap());
+                    .SetData(cx, text.unwrap());
                 // Step 18.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 18.4.
-                end_data.ReplaceData(0, end_offset, DOMString::new())?;
+                end_data.ReplaceData(cx, 0, end_offset, DOMString::new())?;
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
@@ -989,7 +995,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             // Step 3.1. Replace data of originalStartNode with originalStartOffset,
             // originalEndOffset − originalStartOffset, and the empty string.
             // Step 3.2. Return.
-            return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
+            return text.ReplaceData(
+                cx,
+                start_offset,
+                end_offset - start_offset,
+                DOMString::new(),
+            );
         }
 
         // Step 4. Let nodesToRemove be a list of all the nodes that are contained in this,
@@ -1043,6 +1054,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // originalStartNode’s length − originalStartOffset, and the empty string.
         if let Some(text) = start_node.downcast::<CharacterData>() {
             text.ReplaceData(
+                cx,
                 start_offset,
                 start_node.len() - start_offset,
                 DOMString::new(),
@@ -1058,7 +1070,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 11. If originalEndNode is a CharacterData node,
         // then replace data of originalEndNode with 0, originalEndOffset, and the empty string.
         if let Some(text) = end_node.downcast::<CharacterData>() {
-            text.ReplaceData(0, end_offset, DOMString::new()).unwrap();
+            text.ReplaceData(cx, 0, end_offset, DOMString::new())
+                .unwrap();
         }
 
         Ok(())

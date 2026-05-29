@@ -102,7 +102,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             parent.ranges().increment_at(parent, node.index() + 1);
         }
         // Step 8.
-        cdata.DeleteData(offset, count).unwrap();
+        cdata.DeleteData(cx, offset, count).unwrap();
         // Step 9.
         Ok(new_node)
     }

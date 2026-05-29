@@ -1129,7 +1129,7 @@ impl HTMLElement {
         let node_chars = node.downcast::<CharacterData>().expect("Node is Text");
         let next_chars = next.downcast::<CharacterData>().expect("Next node is Text");
         node_chars
-            .ReplaceData(node_chars.Length(), 0, next_chars.Data())
+            .ReplaceData(cx, node_chars.Length(), 0, next_chars.Data())
             .expect("Got chars from Text");
 
         // Step 4:Remove next.

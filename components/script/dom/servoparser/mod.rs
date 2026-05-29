@@ -1620,7 +1620,7 @@ fn insert(
                 .and_then(DomRoot::downcast::<Text>);
 
             if let Some(text) = text {
-                text.upcast::<CharacterData>().append_data(&t);
+                text.upcast::<CharacterData>().append_data(cx, &t);
             } else {
                 let text = Text::new(cx, String::from(t).into(), &parent.owner_doc());
                 parent

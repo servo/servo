@@ -3686,7 +3686,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
-                character_data.SetData(val.unwrap_or_default());
+                character_data.SetData(cx, val.unwrap_or_default());
             },
             _ => {},
         };
@@ -3722,7 +3722,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
-                characterdata.SetData(value.unwrap_or_default());
+                characterdata.SetData(cx, value.unwrap_or_default());
             },
             NodeTypeId::DocumentType | NodeTypeId::Document(_) => {},
         };
@@ -3959,7 +3959,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                         .move_to_text_child_at(self, index as u32, &node, length);
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
-                    cdata.append_data(&sibling_cdata.data());
+                    cdata.append_data(cx, &sibling_cdata.data());
                     Node::remove(cx, &sibling, self, SuppressObserver::Unsuppressed);
                 }
             } else {
