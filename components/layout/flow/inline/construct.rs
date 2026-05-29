@@ -10,6 +10,7 @@ use icu_segmenter::WordSegmenter;
 use layout_api::{LayoutNode, SharedSelection};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::dom::NodeInfo;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
@@ -443,17 +444,22 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let box_slot = info.node.box_slot();
+        let box_slot = info.node.is_text_node().then(|| info.node.box_slot());
         let text_run = ArcRefCell::new(TextRun::new(
             info.into(),
             current_inline_styles,
             new_range,
             new_character_range,
-            box_slot.take_layout_box_as_text_run(),
+            box_slot
+                .as_ref()
+                .and_then(|box_slot| box_slot.take_layout_box_as_text_run()),
         ));
         self.inline_items
             .push(InlineItem::TextRun(text_run.clone()));
-        box_slot.set(LayoutBox::Text(text_run));
+
+        if let Some(box_slot) = box_slot {
+            box_slot.set(LayoutBox::Text(text_run));
+        }
     }
 
     pub(crate) fn enter_display_contents(&mut self, shared_inline_styles: SharedInlineStyles) {
