@@ -1277,14 +1277,12 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes()
-                .as_deref()
-                .map(GenericSharedMemory::from_bytes),
+                .map(GenericSharedMemory::from_vec),
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes()
-                .as_deref()
-                .map(GenericSharedMemory::from_bytes),
+                .map(GenericSharedMemory::from_vec),
             _ => unreachable!("Getting in-memory bytes for a stream without a controller"),
         }
     }

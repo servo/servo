@@ -3185,7 +3185,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let buff = match *src_data {
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
-            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize]),
+            None => GenericSharedMemory::from_byte(0, expected_byte_len as usize),
         };
         if buff.len() < expected_byte_len as usize {
             return {

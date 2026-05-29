@@ -352,8 +352,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::UpdateImage(
                         current_frame.image_key,
                         descriptor,
-                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
-                            &frame.get_data(),
+                        SerializableImageData::Raw(GenericSharedMemory::from_arc_vec(
+                            frame.get_data(),
                         )),
                         None,
                     ));
@@ -400,8 +400,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         })
                     })
                     .unwrap_or_else(|| {
-                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
-                            &frame.get_data(),
+                        SerializableImageData::Raw(GenericSharedMemory::from_arc_vec(
+                            frame.get_data(),
                         ))
                     });
 
@@ -446,8 +446,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         })
                     })
                     .unwrap_or_else(|| {
-                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
-                            &frame.get_data(),
+                        SerializableImageData::Raw(GenericSharedMemory::from_arc_vec(
+                            frame.get_data(),
                         ))
                     });
 

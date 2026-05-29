@@ -650,7 +650,7 @@ impl WebGLRenderingContext {
             1,
             size,
             TexSource::Pixels(TexPixels::new(
-                GenericSharedMemory::from_bytes(&pixels),
+                GenericSharedMemory::from_vec(pixels),
                 size,
                 PixelFormat::RGBA8,
                 None,
@@ -4633,7 +4633,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 

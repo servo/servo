@@ -350,8 +350,8 @@ impl Callback for TransmitBodyPromiseHandler {
         // TODO: queue a fetch task on request to process request body for request.
         let _ = self
             .bytes_sender
-            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_bytes(
-                &chunk,
+            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_vec(
+                chunk,
             )));
     }
 }
