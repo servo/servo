@@ -963,7 +963,10 @@ impl DataBlock {
         {
             return Err(());
         }
-        assert!(range.start <= range.end);
+        let range_len = range
+            .end
+            .checked_sub(range.start)
+            .expect("range end must be >= range start");
         assert!(range.end <= self.data.len());
 
         let cx = GlobalScope::get_cx();
@@ -984,7 +987,7 @@ impl DataBlock {
         rooted!(in(*cx) let object = unsafe {
             NewExternalArrayBuffer(
                 *cx,
-                range.end.checked_sub(range.start).expect("range end must be >= range start"),
+                range_len,
                 // FIXME(jschwe): I believe casting to a mutable pointer is unsound.
                 // We would need interior mutability.
                 data_ptr.cast_mut().cast(),
