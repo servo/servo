@@ -400,23 +400,29 @@ impl RasterImage {
         self.frames.get(index)
     }
 
+    /// Returns tuple containing three items:
+    ///   - An [`ImageDescriptor`] descriptor used to describe this image to WebRender
+    ///   - A [`GenericSharedMemory`] containing the image data
+    ///  - Whether or not this image should be cached in the `Painter` animating image cache.
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
-    ) -> (ImageDescriptor, GenericSharedMemory) {
+    ) -> (ImageDescriptor, GenericSharedMemory, bool) {
         let frame = self
             .frames
             .get(frame_index)
             .unwrap_or_else(|| panic!("Asked for a frame that did not exist: {frame_index:?}"));
 
-        let (format, data) = match self.format {
+        let (format, data, should_animate) = match self.format {
             PixelFormat::BGRA8 => (
                 WebRenderImageFormat::BGRA8,
                 GenericSharedMemory::from_bytes(&self.bytes),
+                self.should_animate(),
             ),
             PixelFormat::RGBA8 => (
                 WebRenderImageFormat::RGBA8,
                 GenericSharedMemory::from_bytes(&self.bytes),
+                self.should_animate(),
             ),
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
@@ -427,6 +433,10 @@ impl RasterImage {
                 (
                     WebRenderImageFormat::BGRA8,
                     GenericSharedMemory::from_bytes(&bytes),
+                    // As we are transforming each frame individually we cache all frames
+                    // in the painter and adjust the offset, therefore this image should not
+                    // be added to the Painter's image cache.
+                    false,
                 )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
@@ -444,7 +454,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, data)
+        (descriptor, data, should_animate)
     }
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
