@@ -1101,14 +1101,24 @@ impl Document {
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, can_gc: CanGc) {
+    pub(crate) fn unregister_element_id(
+        &self,
+        cx: &mut js::context::JSContext,
+        to_unregister: &Element,
+        id: Atom,
+    ) {
         self.document_or_shadow_root
             .unregister_named_element(&self.id_map, to_unregister, &id);
-        self.reset_form_owner_for_listeners(&id, can_gc);
+        self.reset_form_owner_for_listeners(cx, &id);
     }
 
     /// Associate an element present in this document with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, can_gc: CanGc) {
+    pub(crate) fn register_element_id(
+        &self,
+        cx: &mut js::context::JSContext,
+        element: &Element,
+        id: Atom,
+    ) {
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document \
              element.",
@@ -1119,7 +1129,7 @@ impl Document {
             &id,
             DomRoot::from_ref(root.upcast::<Node>()),
         );
-        self.reset_form_owner_for_listeners(&id, can_gc);
+        self.reset_form_owner_for_listeners(cx, &id);
     }
 
     /// Remove any existing association between the provided name and any elements in this document.
@@ -4207,14 +4217,14 @@ impl Document {
         self.fullscreen_element.set(element);
     }
 
-    fn reset_form_owner_for_listeners(&self, id: &Atom, can_gc: CanGc) {
+    fn reset_form_owner_for_listeners(&self, cx: &mut js::context::JSContext, id: &Atom) {
         let map = self.form_id_listener_map.borrow();
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
-                    .reset_form_owner(can_gc);
+                    .reset_form_owner(cx);
             }
         }
     }

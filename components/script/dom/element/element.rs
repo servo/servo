@@ -4440,7 +4440,7 @@ impl VirtualMethods for Element {
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.unregister_element_id(self, old_value, CanGc::from_cx(cx));
+                                    doc.unregister_element_id(cx, self, old_value);
                                 }
                             }
                             if value != atom!("") {
@@ -4451,7 +4451,7 @@ impl VirtualMethods for Element {
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.register_element_id(self, value, CanGc::from_cx(cx));
+                                    doc.register_element_id(cx, self, value);
                                 }
                             }
                         },
@@ -4464,7 +4464,7 @@ impl VirtualMethods for Element {
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.unregister_element_id(self, value, CanGc::from_cx(cx));
+                                    doc.unregister_element_id(cx, self, value);
                                 }
                             }
                         },
@@ -4580,7 +4580,7 @@ impl VirtualMethods for Element {
         }
 
         if let Some(f) = self.as_maybe_form_control() {
-            f.bind_form_control_to_tree(CanGc::from_cx(cx));
+            f.bind_form_control_to_tree(cx);
         }
 
         let doc = self.owner_document();
@@ -4597,7 +4597,7 @@ impl VirtualMethods for Element {
             if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root.register_element_id(self, id.clone(), CanGc::from_cx(cx));
             } else {
-                doc.register_element_id(self, id.clone(), CanGc::from_cx(cx));
+                doc.register_element_id(cx, self, id.clone());
             }
         }
         if let Some(ref name) = self.name_attribute() &&
@@ -4614,7 +4614,7 @@ impl VirtualMethods for Element {
             // TODO: The valid state of ancestors might be wrong if the form control element
             // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
             // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
-            f.unbind_form_control_from_tree(CanGc::from_cx(cx));
+            f.unbind_form_control_from_tree(cx);
         }
 
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
@@ -4635,7 +4635,7 @@ impl VirtualMethods for Element {
                     shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
                 }
             } else {
-                doc.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
+                doc.unregister_element_id(cx, self, value.clone());
             }
         }
         if let Some(ref value) = self.name_attribute() &&
@@ -4844,19 +4844,18 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_invalid(&self, needs_update: bool, can_gc: CanGc) -> bool {
+    pub(crate) fn is_invalid(&self, cx: &mut JSContext, needs_update: bool) -> bool {
         if let Some(validatable) = self.as_maybe_validatable() {
             if needs_update {
                 validatable
-                    .validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                    .validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
             }
-            return validatable.is_instance_validatable() &&
-                !validatable.satisfies_constraints(can_gc);
+            return validatable.is_instance_validatable() && !validatable.satisfies_constraints(cx);
         }
 
         if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid(can_gc);
+            return internals.is_invalid(cx);
         }
         false
     }

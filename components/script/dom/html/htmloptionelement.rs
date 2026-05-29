@@ -40,7 +40,6 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLOptionElement {
@@ -133,11 +132,11 @@ impl HTMLOptionElement {
         }
     }
 
-    fn update_select_validity(&self, can_gc: CanGc) {
+    fn update_select_validity(&self, cx: &mut JSContext) {
         if let Some(select) = self.owner_select_element() {
             select
-                .validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
 
@@ -277,7 +276,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
         option.SetDefaultSelected(cx, default_selected);
         option.set_selectedness(selected);
-        option.update_select_validity(CanGc::from_cx(cx));
+        option.update_select_validity(cx);
         Ok(option)
     }
 
@@ -377,7 +376,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         self.dirtiness.set(true);
         self.set_selectedness(selected);
         self.pick_if_selected_and_reset();
-        self.update_select_validity(CanGc::from_cx(cx));
+        self.update_select_validity(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
@@ -414,7 +413,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.check_parent_disabled_state_for_option();
                     },
                 }
-                self.update_select_validity(CanGc::from_cx(cx));
+                self.update_select_validity(cx);
             },
             local_name!("selected") => {
                 let mut selectedness_changed = false;
@@ -443,7 +442,7 @@ impl VirtualMethods for HTMLOptionElement {
                     }
                 }
 
-                self.update_select_validity(CanGc::from_cx(cx));
+                self.update_select_validity(cx);
             },
             local_name!("label") => {
                 // The label of the selected option is displayed inside the select element, so we need to repaint
@@ -465,7 +464,7 @@ impl VirtualMethods for HTMLOptionElement {
             .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity(CanGc::from_cx(cx));
+        self.update_select_validity(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
@@ -477,8 +476,8 @@ impl VirtualMethods for HTMLOptionElement {
             .find_map(DomRoot::downcast::<HTMLSelectElement>)
         {
             select
-                .validity_state(CanGc::from_cx(cx))
-                .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
             select.ask_for_reset();
         }
 
@@ -525,8 +524,8 @@ impl VirtualMethods for HTMLOptionElement {
                 .find_map(DomRoot::downcast::<HTMLSelectElement>)
             {
                 select
-                    .validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                    .validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
                 select.ask_for_reset();
             }
 
@@ -540,6 +539,6 @@ impl VirtualMethods for HTMLOptionElement {
         element.check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity(CanGc::from_cx(cx));
+        self.update_select_validity(cx);
     }
 }

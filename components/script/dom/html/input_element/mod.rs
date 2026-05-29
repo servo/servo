@@ -1562,7 +1562,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
-        self.validity_state(CanGc::from_cx(cx))
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -1576,14 +1576,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
-        self.validity_state(CanGc::from_cx(cx))
-            .set_custom_error_message(error);
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
 
@@ -1896,8 +1895,8 @@ impl HTMLInputElement {
                 perform_radio_group_validation(cx, self, self.radio_group_name().as_ref())
             },
             _ => {
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
             },
         }
     }
@@ -2195,7 +2194,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             _ => {
                 self.input_type()
@@ -2260,15 +2259,12 @@ impl VirtualMethods for HTMLInputElement {
             el.check_disabled_attribute();
         }
 
-        self.input_type().as_specific().unbind_from_tree(
-            self,
-            form_owner,
-            context,
-            CanGc::from_cx(cx),
-        );
+        self.input_type()
+            .as_specific()
+            .unbind_from_tree(cx, self, form_owner, context);
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -2396,9 +2392,9 @@ impl Validatable for HTMLInputElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -2420,8 +2416,8 @@ impl Validatable for HTMLInputElement {
 
     fn perform_validation(
         &self,
+        cx: &mut JSContext,
         validate_flags: ValidationFlags,
-        can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
@@ -2439,7 +2435,7 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value, can_gc)
+            self.suffers_from_pattern_mismatch(&value, CanGc::from_cx(cx))
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }

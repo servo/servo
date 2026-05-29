@@ -198,8 +198,8 @@ impl HTMLTextAreaElement {
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
 
         let placeholder_shown =
             self.textinput.borrow().is_empty() && !self.placeholder.borrow().is_empty();
@@ -539,8 +539,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
-        self.validity_state(can_gc)
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -554,13 +554,13 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
-        self.validity_state(can_gc).set_custom_error_message(error);
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
 
@@ -694,13 +694,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             _ => {},
         }
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
@@ -745,8 +745,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             el.check_disabled_attribute();
         }
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -767,8 +767,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             let mut textinput = el.textinput.borrow_mut();
             textinput.set_content(self.textinput.borrow().get_content());
         }
-        el.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        el.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -845,8 +845,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             self.handle_focus_event(event);
         }
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
@@ -880,9 +880,9 @@ impl Validatable for HTMLTextAreaElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -896,8 +896,8 @@ impl Validatable for HTMLTextAreaElement {
 
     fn perform_validation(
         &self,
+        _cx: &mut JSContext,
         validate_flags: ValidationFlags,
-        _can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 

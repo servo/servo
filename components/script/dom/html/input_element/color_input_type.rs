@@ -11,7 +11,6 @@ use markup5ever::QualName;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::selector_parser::PseudoElement;
 use style::stylesheets::CssRuleType;
@@ -252,10 +251,10 @@ impl SpecificInputType for ColorInputType {
 
     fn unbind_from_tree(
         &self,
+        _cx: &mut JSContext,
         input: &HTMLInputElement,
         _form_owner: Option<DomRoot<HTMLFormElement>>,
         _context: &UnbindContext,
-        _can_gc: CanGc,
     ) {
         input
             .owner_document()

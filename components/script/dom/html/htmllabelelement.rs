@@ -25,7 +25,6 @@ use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, 
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLLabelElement {
@@ -168,7 +167,7 @@ impl VirtualMethods for HTMLLabelElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+            self.form_attribute_mutated(cx, mutation);
         }
     }
 }

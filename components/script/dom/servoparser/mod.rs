@@ -1761,12 +1761,16 @@ impl TreeSink for Sink {
         Dom::from_ref(pi.upcast())
     }
 
+    #[expect(unsafe_code)]
     fn associate_with_form(
         &self,
         target: &Dom<Node>,
         form: &Dom<Node>,
         nodes: (&Dom<Node>, Option<&Dom<Node>>),
     ) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let (element, prev_element) = nodes;
         let tree_node = prev_element.map_or(element, |prev| {
             if self.has_parent_node(element) {
@@ -1787,7 +1791,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form, CanGc::deprecated_note());
+            control.set_form_owner_from_parser(cx, &form);
         }
     }
 
