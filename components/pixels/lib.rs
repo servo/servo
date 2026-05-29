@@ -401,8 +401,10 @@ impl RasterImage {
         self.frames.get(index)
     }
 
-    /// Returns the image descriptor needed for webrender and transforms them if necessary.
-    /// Returns if we can cache the image or not, with true meaning we can cache it.
+    /// Returns tuple containing three items:
+    ///   - An [`ImageDescriptor`] descriptor used to describe this image to WebRender
+    ///   - A [`GenericSharedMemory`] containing the image data 
+    ///  - Whether or not this image should be cached in the `Painter` animating image cache.
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
