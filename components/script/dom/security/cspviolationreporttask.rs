@@ -74,7 +74,7 @@ impl CSPViolationReportTask {
         };
         // Step 4. Return the result of serialize an infra value to JSON bytes given «[ "csp-report" → body ]».
         Some(create_request_body_with_content(
-            &serde_json::to_string(&report_body).unwrap_or("".to_owned()),
+            serde_json::to_string(&report_body).unwrap_or_default(),
         ))
     }
 
