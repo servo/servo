@@ -24,8 +24,8 @@ use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder,
-    WebViewDelegate, WebViewPoint, WebViewVector,
+    MouseMoveEvent, PrefValue, RenderingContext, Scroll, SimpleDialog, Theme, WebView,
+    WebViewBuilder, WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -1036,5 +1036,41 @@ fn test_console_log_and_error_ordering() {
         messages[1].1.contains("DocumentFragment") || messages[1].1.contains("querySelector"),
         "Expected second message to contain error info, got: {:?}",
         messages[1].1
+    );
+}
+
+#[test]
+fn test_preferences_change() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let test_page = Url::parse(
+        "data:text/html,\
+        <div style=\"display: grid;\">\
+            <div id=target style=\"grid-column: 1;\">three</div>\
+        </div>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "target.style.gridColumn = \"3\";",
+    );
+
+    servo_test
+        .servo()
+        .set_preference("layout_grid_enabled", PrefValue::Bool(true));
+
+    webview.reload();
+
+    let result = assert_eq!(
+        Ok(JSValue::String("3".into())),
+        evaluate_javascript(&servo_test, webview, "target.style.gridColumn = \"3\";")
     );
 }
