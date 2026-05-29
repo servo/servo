@@ -1313,7 +1313,7 @@ impl LayoutThread {
             .map(|tree| tree.paint_info.scroll_tree.scroll_offsets());
 
         // This will be done during `StackingContextTree::new` below
-        self.need_containing_block_calculation.set(true);
+        self.need_containing_block_calculation.set(false);
 
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
