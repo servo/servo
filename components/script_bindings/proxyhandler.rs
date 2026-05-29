@@ -26,6 +26,9 @@ use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
     SetDataPropertyDescriptor,
 };
+use js::rust::wrappers2::{
+    JS_IdToValue, JS_IsExceptionPending, JS_ValueToSource, RUST_JSID_IS_VOID,
+};
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
 };
@@ -220,20 +223,20 @@ pub fn set_property_descriptor(
     *is_none = false;
 }
 
-pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
+fn id_to_source(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
     unsafe {
-        if js::glue::RUST_JSID_IS_VOID(id) {
+        if RUST_JSID_IS_VOID(id) {
             return None;
         }
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
-        jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        rooted!(&in(cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
+        JS_IdToValue(cx, id.get(), value.handle_mut())
             .then(|| {
-                jsstr.set(jsapi::JS_ValueToSource(*cx, value.handle().into()));
+                jsstr.set(JS_ValueToSource(cx, value.handle()));
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| jsstr_to_string(*cx, jsstr).into())
+            .map(|jsstr| jsstr_to_string(cx.raw_cx(), jsstr).into())
     }
 }
 
@@ -542,10 +545,10 @@ pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHan
 /// "Throw a `SecurityError` DOMException".
 pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     cx: &mut CurrentRealm,
-    id: RawHandleId,
+    id: HandleId,
     access: &str,
 ) -> bool {
-    if let Some(id) = id_to_source(cx.into(), id) {
+    if let Some(id) = id_to_source(cx, id) {
         debug!(
             "permission denied to {} property {} on cross-origin object",
             access,
@@ -555,7 +558,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
         debug!("permission denied to {} on cross-origin object", access);
     }
     unsafe {
-        if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
+        if !JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
             // TODO: include `id` and `access` in the exception message
             <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security(None));
@@ -707,7 +710,7 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     rooted!(&in(cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
-        return report_cross_origin_denial::<D>(cx, id.into_handle(), "get");
+        return report_cross_origin_denial::<D>(cx, id, "get");
     }
 
     rooted!(&in(cx) let mut getter_jsval = UndefinedValue());
@@ -770,7 +773,7 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
     get_setter_object(&descriptor, setter.handle_mut().into());
     if setter.get().is_null() {
         // > 4. Throw a "SecurityError" DOMException.
-        return report_cross_origin_denial::<D>(cx, id.into_handle(), "set");
+        return report_cross_origin_denial::<D>(cx, id, "set");
     }
 
     rooted!(&in(cx) let mut setter_jsval = UndefinedValue());
@@ -829,6 +832,8 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
         );
         return true;
     }
+
+    let id = unsafe { Handle::from_raw(id) };
 
     // > 2. Throw a `SecurityError` `DOMException`.
     report_cross_origin_denial::<D>(cx, id, "access")

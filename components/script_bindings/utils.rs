@@ -611,8 +611,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             // FIXME: `Handle<jsid>` could have a default constructor
             //        like `Handle<Value>::null`
             rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
-            let result =
-                report_cross_origin_denial::<D>(&mut realm, void_jsid.handle().into(), "call");
+            let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle(), "call");
             return if EXCEPTION_TO_REJECTION {
                 exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
             } else {
