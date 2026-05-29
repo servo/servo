@@ -434,7 +434,10 @@ impl RasterImage {
                 (
                     WebRenderImageFormat::BGRA8,
                     GenericSharedMemory::from_bytes(&bytes),
-                    false, // The image cache will use wrong frames because we transform the frames here
+                    // As we are transforming each frame individually we cache all frames
+                    // in the painter and adjust the offset, therefore this image should not
+                    // be added to the Painter's image cache.
+                    false,
                 )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
