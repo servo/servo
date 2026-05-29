@@ -40,7 +40,7 @@ use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: ServoUrl,

@@ -1251,17 +1251,26 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
         self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
         with Devtools.connect() as devtools:
-            nav_done = Future()
+            target_destroyed = Future()
+            target_available = Future()
 
-            def on_tab_navigated(data):
-                if data.get("state") == "stop" and data.get("url").endswith("/tab/page2.html"):
-                    nav_done.set_result(None)
-                    return
+            def on_target_destroyed(_):
+                target_destroyed.set_result(None)
+
+            def on_target_available(data):
+                target = data.get("target", {})
+                if target.get("url", "").endswith("/tab/page2.html"):
+                    target_available.set_result(target)
 
             devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                "tabNavigated",
-                on_tab_navigated,
+                devtools.watcher.actor_id,
+                Events.Watcher.TARGET_DESTROYED_FORM,
+                on_target_destroyed,
+            )
+            devtools.client.add_event_listener(
+                devtools.watcher.actor_id,
+                Events.Watcher.TARGET_AVAILABLE_FORM,
+                on_target_available,
             )
             devtools.client.send_receive(
                 {
@@ -1271,10 +1280,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                     "url": f"{self.base_urls[1]}/tab/page2.html",
                 },
             )
-            # Wait for navigation to complete.
-            nav_done.result(1)
+            target_destroyed.result(1)
+            new_target = target_available.result(1)
 
-            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            inspector = InspectorActor(devtools.client, new_target["inspectorActor"])
             walker_info = inspector.get_walker()
             walker = WalkerActor(devtools.client, walker_info["actor"])
             root_node = walker_info["root"]["actor"]
@@ -1294,15 +1303,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             ]:
                 done = Future()
 
-                def on_tab_navigated(data):
-                    if data.get("state") == "stop" and data.get("url").endswith(target_path):
+                def on_target_available(data):
+                    if data.get("target", {}).get("url", "").endswith(target_path):
                         done.set_result(None)
-                        return
 
                 devtools.client.add_event_listener(
-                    devtools.targets[0]["actor"],
-                    "tabNavigated",
-                    on_tab_navigated,
+                    devtools.watcher.actor_id,
+                    Events.Watcher.TARGET_AVAILABLE_FORM,
+                    on_target_available,
                 )
                 devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
 

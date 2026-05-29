@@ -8,6 +8,7 @@ use devtools_traits::NetworkEvent;
 use serde::Serialize;
 
 use crate::actor::{ActorEncode, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::watcher::WatcherActor;
 use crate::protocol::DevtoolsConnection;
@@ -28,7 +29,9 @@ pub(crate) fn handle_network_event(
     network_event: NetworkEvent,
 ) {
     let network_event_actor = registry.find::<NetworkEventActor>(&network_event_name);
-    let watcher_actor = registry.find::<WatcherActor>(&network_event_actor.watcher_name);
+    let browsing_context_actor =
+        registry.find::<BrowsingContextActor>(&network_event_actor.browsing_context_name);
+    let watcher_actor = registry.find::<WatcherActor>(&browsing_context_actor.watcher_name);
 
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
