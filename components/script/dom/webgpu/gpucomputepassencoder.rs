@@ -4,7 +4,10 @@
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericUnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
+use script_bindings::error::Fallible;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
@@ -177,5 +180,36 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
         {
             warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
         }
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpubindingcommandsmixin-setimmediates>
+    fn SetImmediates(
+        &self,
+        range_offset: u32,
+        data: BufferSource,
+        data_offset: u64,
+        data_size: Option<u64>,
+    ) -> Fallible<()> {
+        // Step 1-7
+        let data = GenericSharedMemory::from_bytes(super::validate_and_slice_buffer_source(
+            &data,
+            data_offset,
+            data_size,
+        )?);
+        // Step 8. Issue the subsequent steps on the Device timeline of this.[[device]].
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassSetImmediates {
+                compute_pass_id: self.droppable.compute_pass.0,
+                offset: range_offset,
+                data,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassSetImmediates: {e:?}")
+        }
+        Ok(())
     }
 }

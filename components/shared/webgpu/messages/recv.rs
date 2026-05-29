@@ -263,6 +263,12 @@ pub enum WebGPURequest {
         offsets: Vec<u32>,
         device_id: DeviceId,
     },
+    ComputePassSetImmediates {
+        compute_pass_id: ComputePassId,
+        offset: u32,
+        data: GenericSharedMemory,
+        device_id: DeviceId,
+    },
     ComputePassDispatchWorkgroups {
         compute_pass_id: ComputePassId,
         x: u32,

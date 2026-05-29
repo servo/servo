@@ -5,6 +5,7 @@
 //! Render pass commands
 
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
 use wgpu_core::command::{PassStateError, RenderPass};
 use wgpu_core::global::Global;
 use wgpu_core::id::{BindGroupId, BufferId, RenderBundleId, RenderPipelineId};
@@ -17,6 +18,10 @@ pub enum RenderCommand {
         index: u32,
         bind_group_id: BindGroupId,
         offsets: Vec<u32>,
+    },
+    SetImmediates {
+        offset: u32,
+        data: GenericSharedMemory,
     },
     SetViewport {
         x: f32,
@@ -150,6 +155,9 @@ pub fn apply_render_command(
         },
         RenderCommand::ExecuteBundles(bundles) => {
             global.render_pass_execute_bundles(pass, &bundles)
+        },
+        RenderCommand::SetImmediates { offset, data } => {
+            global.render_pass_set_immediates(pass, offset, &data)
         },
     }
 }

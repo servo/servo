@@ -17,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
     GPURenderBundleEncoderMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -282,5 +283,30 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
             descriptor.parent.label.clone(),
             CanGc::deprecated_note(),
         )
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpubindingcommandsmixin-setimmediates>
+    fn SetImmediates(
+        &self,
+        range_offset: u32,
+        data: BufferSource,
+        data_offset: u64,
+        data_size: Option<u64>,
+    ) -> Fallible<()> {
+        // Step 1-7
+        let data = super::validate_and_slice_buffer_source(&data, data_offset, data_size)?;
+        // Step 8. Issue the subsequent steps on the Device timeline of this.[[device]].
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            #[expect(unsafe_code)]
+            unsafe {
+                wgpu_bundle::wgpu_render_bundle_set_immediates(
+                    encoder,
+                    range_offset,
+                    data.len() as u32,
+                    data.as_ptr(),
+                );
+            }
+        }
+        Ok(())
     }
 }
