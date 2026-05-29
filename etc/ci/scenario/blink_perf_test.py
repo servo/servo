@@ -359,65 +359,71 @@ def run_tests(port: int, cli_args: argparse.Namespace) -> None:
                     print("Starting new servo instance...")
                     cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=session_history_max_length=1"
                     hdc.cmd(cmd_str, timeout=10)
-                    with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
-                        close_usb_popup(hdc)
-                        webdriver = create_driver(timeout=1)
-                        if webdriver is None:
-                            continue
-
-                        try:
-                            result = run_single_test(
-                                filePath, webdriver, port, get_serve_path_for_file(root, filePath), cli_args=cli_args
-                            )
-
-                            verbose_print(f"result: {result}", cli_args.verbose)
-
-                            if isinstance(result, AbortReason):
+                    try:
+                        with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
+                            close_usb_popup(hdc)
+                            try:
+                                webdriver = create_driver(timeout=1)
+                            except RuntimeError as exc:
+                                print(f"Failed to create webdriver for {filePath}: {exc}")
                                 if csv_writer:
-                                    csv_writer.writerow([filePath, "error"])
-                            else:
-                                metrics: dict[str, dict[str, float]] = {}
-                                combined_result = {
-                                    "value": result.value,
-                                    "lower_value": result.lower_value,
-                                    "upper_value": result.upper_value,
-                                }
-                                parent_dir = get_serve_path_for_file(root, filePath)
+                                    csv_writer.writerow([filePath, "driver_start_failed"])
+                                continue
 
-                                bencher_unit = None
-                                if result.unit == "ms":
-                                    bencher_unit = "ms"
-                                elif result.unit == "runs/s":
-                                    bencher_unit = "throughput"
+                            try:
+                                result = run_single_test(
+                                    filePath, webdriver, port, get_serve_path_for_file(root, filePath), cli_args=cli_args
+                                )
+
+                                verbose_print(f"result: {result}", cli_args.verbose)
+
+                                if isinstance(result, AbortReason):
+                                    if csv_writer:
+                                        csv_writer.writerow([filePath, "error"])
                                 else:
-                                    bencher_unit = "other"
+                                    metrics: dict[str, dict[str, float]] = {}
+                                    combined_result = {
+                                        "value": result.value,
+                                        "lower_value": result.lower_value,
+                                        "upper_value": result.upper_value,
+                                    }
+                                    parent_dir = get_serve_path_for_file(root, filePath)
 
-                                if cli_args.memory_report and filePath not in tests_that_hang_memory_report:
-                                    memory_report = get_memory_report_str(webdriver)
-
-                                    if isinstance(memory_report, ParseError):
-                                        print(f"Test memory parsing failed: {memory_report.message}")
+                                    bencher_unit = None
+                                    if result.unit == "ms":
+                                        bencher_unit = "ms"
+                                    elif result.unit == "runs/s":
+                                        bencher_unit = "throughput"
                                     else:
-                                        verbose_print(
-                                            f"memory after test {memory_report}",
-                                            cli_args.verbose,
-                                        )
-                                        metrics = memory_report_to_bencher_metrics(memory_report)
-                                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
-                                        bencher_unit: combined_result,
-                                        **metrics,
-                                    }
-                                else:
-                                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
-                                        bencher_unit: combined_result
-                                    }
-                                if csv_writer:
-                                    csv_writer.writerow([filePath, result.value])
-                        finally:
-                            webdriver.quit()
-                        if csv_writer and csv_file:
-                            csv_file.flush()
-                    stop_servo()
+                                        bencher_unit = "other"
+
+                                    if cli_args.memory_report and filePath not in tests_that_hang_memory_report:
+                                        memory_report = get_memory_report_str(webdriver)
+
+                                        if isinstance(memory_report, ParseError):
+                                            print(f"Test memory parsing failed: {memory_report.message}")
+                                        else:
+                                            verbose_print(
+                                                f"memory after test {memory_report}",
+                                                cli_args.verbose,
+                                            )
+                                            metrics = memory_report_to_bencher_metrics(memory_report)
+                                        final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
+                                            bencher_unit: combined_result,
+                                            **metrics,
+                                        }
+                                    else:
+                                        final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
+                                            bencher_unit: combined_result
+                                        }
+                                    if csv_writer:
+                                        csv_writer.writerow([filePath, result.value])
+                            finally:
+                                webdriver.quit()
+                            if csv_writer and csv_file:
+                                csv_file.flush()
+                    finally:
+                        stop_servo()
         print(f"final_result {final_result}")
     finally:
         if csv_file:
