@@ -99,6 +99,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
+    #[expect(unsafe_code)]
     fn WriteBuffer(
         &self,
         buffer: &GPUBuffer,
@@ -108,17 +109,15 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         size: Option<GPUSize64>,
     ) -> Fallible<()> {
         // Step 1
-        let sizeof_element: usize = match data {
-            BufferSource::ArrayBufferView(ref d) => d.get_array_type().byte_size().unwrap_or(1),
-            BufferSource::ArrayBuffer(_) => 1,
-        };
-        let data = match data {
-            BufferSource::ArrayBufferView(d) => d.to_vec(),
-            BufferSource::ArrayBuffer(d) => d.to_vec(),
+        let (sizeof_element, data_len): (usize, usize) = match &data {
+            BufferSource::ArrayBufferView(d) => {
+                (d.get_array_type().byte_size().unwrap_or(1), d.len())
+            },
+            BufferSource::ArrayBuffer(d) => (1, d.len()),
         };
         // Step 2
-        let data_size: usize = data.len() / sizeof_element;
-        debug_assert_eq!(data.len() % sizeof_element, 0);
+        let data_size: usize = data_len / sizeof_element;
+        debug_assert_eq!(data_len % sizeof_element, 0);
         // Step 3
         let content_size = if let Some(s) = size {
             s
@@ -137,10 +136,20 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         }
 
         // Step 5&6
-        let contents = GenericSharedMemory::from_bytes(
-            &data[(data_offset as usize) * sizeof_element..
-                ((data_offset + content_size) as usize) * sizeof_element],
-        );
+        let byte_start = (data_offset as usize) * sizeof_element;
+        let byte_end = ((data_offset + content_size) as usize) * sizeof_element;
+        let contents = match &data {
+            BufferSource::ArrayBufferView(data) => {
+                // SAFETY: The subslice is immediately copied into GenericSharedMemory,
+                // hence there is no opportunity for the slice to invalidated.
+                GenericSharedMemory::from_bytes(unsafe { &data.as_slice()[byte_start..byte_end] })
+            },
+            BufferSource::ArrayBuffer(data) => {
+                // SAFETY: The subslice is immediately copied into GenericSharedMemory,
+                // hence there is no opportunity for the slice to invalidated.
+                GenericSharedMemory::from_bytes(unsafe { &data.as_slice()[byte_start..byte_end] })
+            },
+        };
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
