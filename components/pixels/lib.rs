@@ -403,7 +403,7 @@ impl RasterImage {
 
     /// Returns tuple containing three items:
     ///   - An [`ImageDescriptor`] descriptor used to describe this image to WebRender
-    ///   - A [`GenericSharedMemory`] containing the image data 
+    ///   - A [`GenericSharedMemory`] containing the image data
     ///  - Whether or not this image should be cached in the `Painter` animating image cache.
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
