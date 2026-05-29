@@ -485,19 +485,20 @@ pub struct ScrollTreeNodeId {
 }
 
 #[derive(MallocSizeOf)]
-pub struct AtomicOptScrollTreeNodeId(AtomicUsize);
+pub struct AtomicOptionScrollTreeNodeId(AtomicUsize);
 
-impl AtomicOptScrollTreeNodeId {
-    pub fn new(opt_id: Option<ScrollTreeNodeId>) -> Self {
-        Self(AtomicUsize::new(Self::from_opt(opt_id)))
+impl AtomicOptionScrollTreeNodeId {
+    pub fn new(option_id: Option<ScrollTreeNodeId>) -> Self {
+        Self(AtomicUsize::new(Self::from_option(option_id)))
     }
 
-    pub fn set(&self, opt_id: Option<ScrollTreeNodeId>) {
-        self.0.store(Self::from_opt(opt_id), Ordering::Relaxed);
+    pub fn set(&self, option_id: Option<ScrollTreeNodeId>) {
+        self.0
+            .store(Self::from_option(option_id), Ordering::Relaxed);
     }
 
-    fn from_opt(opt_id: Option<ScrollTreeNodeId>) -> usize {
-        if let Some(ScrollTreeNodeId { index }) = opt_id {
+    fn from_option(option_id: Option<ScrollTreeNodeId>) -> usize {
+        if let Some(ScrollTreeNodeId { index }) = option_id {
             debug_assert_ne!(index, usize::MAX);
             index
         } else {
