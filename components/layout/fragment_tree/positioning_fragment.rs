@@ -13,7 +13,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::fragment_tree::ContainingBlockCalculation;
-use crate::geom::{PhysicalRect, PhysicalRectAuCell};
+use crate::geom::{PhysicalRect, SyncPhysicalRectAu};
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
 /// itself. [`PositioningFragment`]s may be completely anonymous, or just non-painting Fragments
@@ -24,12 +24,12 @@ pub(crate) struct PositioningFragment {
     pub children: Vec<Fragment>,
 
     /// The scrollable overflow of this anonymous fragment's children.
-    scrollable_overflow: PhysicalRectAuCell,
+    scrollable_overflow: SyncPhysicalRectAu,
     scrollable_overflow_is_up_to_date: AtomicBool,
 
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: PhysicalRectAuCell,
+    pub cumulative_containing_block_rect: SyncPhysicalRectAu,
 
     /// Whether or not this [`PositioningFragment`] is a line box.
     is_line_box: bool,

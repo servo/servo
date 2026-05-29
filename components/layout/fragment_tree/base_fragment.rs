@@ -21,7 +21,7 @@ use web_atoms::local_name;
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalRectAuCell, PhysicalSize};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
 
 #[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
 #[repr(u8)]
@@ -59,7 +59,7 @@ pub(crate) struct BaseFragment {
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
-    rect: PhysicalRectAuCell,
+    rect: SyncPhysicalRectAu,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
     pub status: AtomicU8,
@@ -89,7 +89,7 @@ impl BaseFragment {
             tag: base_fragment_info.tag,
             flags: base_fragment_info.flags,
             style,
-            rect: PhysicalRectAuCell::new(rect),
+            rect: SyncPhysicalRectAu::new(rect),
             status: AtomicU8::new(FragmentStatus::New as u8),
         }
     }

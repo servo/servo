@@ -703,13 +703,13 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
 ///
 /// * Both are meant for uses where despite shared ownership, no concurrency is expected in practice.
 /// * If concurrent access does unexpectedly happen `AtomicRefCell` will panic,
-///   whereas `PhysicalRectAuCell` can tear and result in invalid/inconsistent data.
-/// * `PhysicalRectAuCell` has no space overhead, `AtomicRefCell` stores an `AtomicUsize` borrow flag
-/// * `PhysicalRectAuCell` uses relaxed atomic access for each field separately
+///   whereas `SyncPhysicalRectAu` can tear and result in invalid/inconsistent data.
+/// * `SyncPhysicalRectAu` has no space overhead, `AtomicRefCell` stores an `AtomicUsize` borrow flag
+/// * `SyncPhysicalRectAu` uses relaxed atomic access for each field separately
 #[derive(MallocSizeOf, Default)]
-pub(crate) struct PhysicalRectAuCell(PhysicalRect<AtomicI32>);
+pub(crate) struct SyncPhysicalRectAu(PhysicalRect<AtomicI32>);
 
-impl PhysicalRectAuCell {
+impl SyncPhysicalRectAu {
     #[inline]
     pub(crate) fn new(rect: PhysicalRect<Au>) -> Self {
         Self(PhysicalRect::new(
@@ -766,7 +766,7 @@ impl PhysicalRectAuCell {
     }
 }
 
-impl fmt::Debug for PhysicalRectAuCell {
+impl fmt::Debug for SyncPhysicalRectAu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.get().fmt(f)
     }

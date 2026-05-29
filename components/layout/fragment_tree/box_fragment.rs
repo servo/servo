@@ -27,8 +27,8 @@ use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalRectAuCell,
-    PhysicalSides, ToLogical,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides,
+    SyncPhysicalRectAu, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
@@ -119,7 +119,7 @@ pub(crate) struct BoxFragment {
 
     /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: PhysicalRectAuCell,
+    pub cumulative_containing_block_rect: SyncPhysicalRectAu,
 
     pub padding: PhysicalSides<Au>,
     pub border: PhysicalSides<Au>,
@@ -134,7 +134,7 @@ pub(crate) struct BoxFragment {
     /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
     /// rectangle. This does not take into account any transforms this fragment applies.
     /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
-    scrollable_overflow: PhysicalRectAuCell,
+    scrollable_overflow: SyncPhysicalRectAu,
     scrollable_overflow_is_up_to_date: AtomicBool,
 
     pub background_mode: BackgroundMode,
