@@ -73,18 +73,13 @@ impl CharacterData {
     }
 
     #[inline]
-    pub(crate) fn append_data(&self, data: &str) {
+    pub(crate) fn append_data(&self, cx: &mut JSContext, data: &str) {
         self.queue_mutation_record();
         self.data.borrow_mut().push_str(data);
-        self.content_changed();
+        self.content_changed(cx);
     }
 
-    #[expect(unsafe_code)]
-    fn content_changed(&self) {
-        // TODO https://github.com/servo/servo/issues/43234
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn content_changed(&self, cx: &mut JSContext) {
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
 
@@ -115,12 +110,12 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
-    fn SetData(&self, data: DOMString) {
+    fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record();
         let old_length = self.Length();
         let new_length = data.str().encode_utf16().count() as u32;
         *self.data.borrow_mut() = String::from(data.str());
-        self.content_changed();
+        self.content_changed(cx);
         let node = self.upcast::<Node>();
         node.ranges()
             .replace_code_units(node, 0, old_length, new_length);
@@ -167,27 +162,33 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
-    fn AppendData(&self, data: DOMString) {
+    fn AppendData(&self, cx: &mut JSContext, data: DOMString) {
         // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
         //
         // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.append_data(&data.str());
+        self.append_data(cx, &data.str());
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
-    fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(&self, cx: &mut JSContext, offset: u32, arg: DOMString) -> ErrorResult {
         // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
-        self.ReplaceData(offset, 0, arg)
+        self.ReplaceData(cx, offset, 0, arg)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
-    fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
+    fn DeleteData(&self, cx: &mut JSContext, offset: u32, count: u32) -> ErrorResult {
         // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
-        self.ReplaceData(offset, count, DOMString::new())
+        self.ReplaceData(cx, offset, count, DOMString::new())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-replacedata>
-    fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+    fn ReplaceData(
+        &self,
+        cx: &mut JSContext,
+        offset: u32,
+        count: u32,
+        arg: DOMString,
+    ) -> ErrorResult {
         let mut new_data;
         {
             let data = self.data.borrow();
@@ -240,7 +241,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             new_data.push_str(suffix);
         }
         *self.data.borrow_mut() = new_data;
-        self.content_changed();
+        self.content_changed(cx);
         // Steps 8-11.
         let node = self.upcast::<Node>();
         node.ranges().replace_code_units(

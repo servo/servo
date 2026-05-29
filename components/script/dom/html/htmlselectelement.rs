@@ -379,7 +379,7 @@ impl HTMLSelectElement {
         shadow_tree
             .selected_option
             .upcast::<CharacterData>()
-            .SetData(displayed_text.trim().into());
+            .SetData(cx, displayed_text.trim().into());
     }
 
     pub(crate) fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {

@@ -44,7 +44,7 @@ pub(crate) fn execute_delete_command(
     // Step 2. Canonicalize whitespace at the active range's start.
     active_range
         .start_container()
-        .canonicalize_whitespace(active_range.start_offset(), true);
+        .canonicalize_whitespace(cx, active_range.start_offset(), true);
 
     // Step 3. Let node and offset be the active range's start node and offset.
     let mut node = active_range.start_container();
