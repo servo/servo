@@ -3404,6 +3404,10 @@ impl Document {
 
         self.accessibility_data.borrow_mut()
     }
+
+    pub(crate) fn accessibility_active(&self) -> bool {
+        self.window().layout().accessibility_active()
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]

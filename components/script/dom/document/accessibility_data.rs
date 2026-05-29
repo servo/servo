@@ -45,22 +45,16 @@ impl AccessibilityData {
     ///   removed.
     /// - After reflow, we can safely un-root these nodes by dropping all the strong references
     ///   being held here, and allow them to potentially be GCed.
-    ///   See [`Self::unroot_all_nodes_for_accessibility()`].
-    pub(crate) fn root_removed_node_for_accessibility(
-        &mut self,
-        _no_gc: &NoGC,
-        node_to_root: &Node,
-    ) {
+    ///   See [`Self::unroot_all_removed_nodes()`].
+    pub(crate) fn root_removed_node(&mut self, _no_gc: &NoGC, node_to_root: &Node) {
         debug_assert!(pref!(accessibility_enabled));
 
         self.rooted_nodes.insert(Dom::from_ref(node_to_root));
     }
 
-    /// Clear all nodes which were rooted using [`Self::root_removed_node_for_accessibility()`].
+    /// Clear all nodes which were rooted using [`Self::root_removed_node()`].
     /// This should be called at the end of reflow.
-    pub(crate) fn unroot_all_nodes_for_accessibility(&mut self) {
-        debug_assert!(pref!(accessibility_enabled));
-
+    pub(crate) fn unroot_all_removed_nodes(&mut self) {
         self.rooted_nodes.clear();
     }
 }
