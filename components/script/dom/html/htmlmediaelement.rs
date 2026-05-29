@@ -753,9 +753,13 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut js::context::JSContext) {
         let blocker = &self.delaying_the_load_event_flag;
-        if delay && blocker.borrow().is_none() {
-            *blocker.borrow_mut() = Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
-        } else if !delay && blocker.borrow().is_some() {
+
+        if delay {
+            if blocker.borrow().is_none() {
+                *blocker.borrow_mut() =
+                    Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
+            }
+        } else {
             LoadBlocker::terminate(blocker, cx);
         }
     }
@@ -3436,6 +3440,9 @@ impl VirtualMethods for HTMLMediaElement {
 
         self.remove_controls();
 
+        // Step 1. Await a stable state, allowing the task that removed the media element from the Document to continue.
+        // The synchronous section consists of all the remaining steps of this algorithm.
+        // (Steps in the synchronous section are marked with ⌛.)
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocument {
                 elem: DomRoot::from_ref(self),
@@ -3500,10 +3507,14 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     elem.resource_selection_algorithm_sync(base_url.clone(), cx);
                 }
             },
+            // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
             MediaElementMicrotask::PauseIfNotInDocument { elem } => {
-                if !elem.upcast::<Node>().is_connected() {
-                    elem.internal_pause_steps();
+                // Step 2. ⌛ If the media element is in a document, return.
+                if elem.upcast::<Node>().is_connected() {
+                    return;
                 }
+                // Step 3. ⌛ Run the internal pause steps for the media element.
+                elem.internal_pause_steps();
             },
             &MediaElementMicrotask::Seeked {
                 ref elem,
