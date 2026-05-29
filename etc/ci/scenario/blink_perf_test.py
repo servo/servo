@@ -372,7 +372,11 @@ def run_tests(port: int, cli_args: argparse.Namespace) -> None:
 
                             try:
                                 result = run_single_test(
-                                    filePath, webdriver, port, get_serve_path_for_file(root, filePath), cli_args=cli_args
+                                    filePath,
+                                    webdriver,
+                                    port,
+                                    get_serve_path_for_file(root, filePath),
+                                    cli_args=cli_args,
                                 )
 
                                 verbose_print(f"result: {result}", cli_args.verbose)

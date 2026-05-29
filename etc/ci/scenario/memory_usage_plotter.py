@@ -234,7 +234,6 @@ class NonBlockingMemoryLogging:
 
     def __enter__(self) -> Self:
         self.start()
-        self.csv_file = None
         return self
 
     def __exit__(
