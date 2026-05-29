@@ -792,7 +792,9 @@ pub enum SerializableImageData {
 impl From<SerializableImageData> for ImageData {
     fn from(value: SerializableImageData) -> Self {
         match value {
-            SerializableImageData::Raw(shared_memory) => ImageData::new(shared_memory.to_vec()),
+            SerializableImageData::Raw(shared_memory) => {
+                ImageData::Raw(shared_memory.into_arc_vec())
+            },
             SerializableImageData::External(image) => ImageData::External(image),
         }
     }
