@@ -730,16 +730,20 @@ impl SyncPhysicalRectAu {
     #[inline]
     pub(crate) fn origin(&self) -> PhysicalPoint<Au> {
         Point2D::new(
-            Au::new(self.0.origin.x.load(Ordering::Relaxed)),
-            Au::new(self.0.origin.y.load(Ordering::Relaxed)),
+            // Bypass clamping in `Au::new`: the value originally came from another `Au`
+            // so it’s expected to already be in range
+            Au(self.0.origin.x.load(Ordering::Relaxed)),
+            Au(self.0.origin.y.load(Ordering::Relaxed)),
         )
     }
 
     #[inline]
     pub(crate) fn size(&self) -> PhysicalSize<Au> {
         Size2D::new(
-            Au::new(self.0.size.width.load(Ordering::Relaxed)),
-            Au::new(self.0.size.height.load(Ordering::Relaxed)),
+            // Bypass clamping in `Au::new`: the value originally came from another `Au`
+            // so it’s expected to already be in range
+            Au(self.0.size.width.load(Ordering::Relaxed)),
+            Au(self.0.size.height.load(Ordering::Relaxed)),
         )
     }
 
