@@ -1616,6 +1616,28 @@ impl Node {
         })
     }
 
+    pub(crate) fn inclusive_ancestors_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+        shadow_including: ShadowIncluding,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
+        UnrootedSimpleNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            move |n, no_gc| {
+                if shadow_including == ShadowIncluding::Yes &&
+                    let Some(shadow_root) = n.downcast::<ShadowRoot>()
+                {
+                    return Some(UnrootedDom::from_dom(
+                        Dom::from_ref(shadow_root.Host().upcast::<Node>()),
+                        no_gc,
+                    ));
+                }
+                n.get_parent_node_unrooted(no_gc)
+            },
+            no_gc,
+        )
+    }
+
     pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
     }
@@ -3498,6 +3520,13 @@ impl Node {
         no_gc: &'a NoGC,
     ) -> Option<UnrootedDom<'a, Node>> {
         self.first_child.get_unrooted(no_gc)
+    }
+
+    pub(crate) fn get_parent_node_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
+        self.parent_node.get_unrooted(no_gc)
     }
 
     /// Compares `other` with `self` in [tree order](https://dom.spec.whatwg.org/#concept-tree-order).
