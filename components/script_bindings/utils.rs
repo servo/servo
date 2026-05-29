@@ -223,9 +223,9 @@ pub(crate) fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match ptr::NonNull::new(unsafe { ToString(cx.raw_cx(), v) }) {
+    match ptr::NonNull::new(unsafe { ToString(cx, v) }) {
         Some(jsstr) => {
-            let search = unsafe { jsstr_to_string(cx.raw_cx(), jsstr).into() };
+            let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
             Ok((
                 pairs
                     .iter()

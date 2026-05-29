@@ -236,7 +236,7 @@ fn id_to_source(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMStri
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| jsstr_to_string(cx.raw_cx(), jsstr).into())
+            .map(|jsstr| jsstr_to_string(cx, jsstr).into())
     }
 }
 

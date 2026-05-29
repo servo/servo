@@ -165,7 +165,7 @@ impl Console {
 #[expect(unsafe_code)]
 fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
-        Some(js_str) => unsafe { jsstr_to_string(cx.raw_cx(), js_str) }.into(),
+        Some(js_str) => unsafe { jsstr_to_string(cx, js_str) }.into(),
         None => "<error converting value to string>".into(),
     }
 }
@@ -183,7 +183,7 @@ fn console_argument_from_handle_value(
     ) -> Result<DebuggerValue, ()> {
         if handle_value.is_string() {
             let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
-            let dom_string = unsafe { jsstr_to_string(cx.raw_cx(), js_string) };
+            let dom_string = unsafe { jsstr_to_string(cx, js_string) };
             return Ok(DebuggerValue::StringValue(dom_string));
         }
 
@@ -331,11 +331,10 @@ fn console_object_from_handle_value(
             let Some(js_string) = NonNull::new(js_string.get()) else {
                 continue;
             };
-            unsafe { jsstr_to_string(cx.raw_cx(), js_string) }
+            unsafe { jsstr_to_string(cx, js_string) }
         } else if id.is_symbol() || id.is_int() {
             rooted!(&in(cx) let mut key_value = UndefinedValue());
-            let raw_id: jsapi::HandleId = id.handle().into();
-            if !unsafe { JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) } {
+            if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
                 continue;
             }
             handle_value_to_string(cx, key_value.handle()).to_string()
@@ -379,10 +378,9 @@ fn console_object_from_handle_value(
                 JS_GetFunctionDisplayId(cx, fun.handle(), display_name.handle_mut());
                 arity = JS_GetFunctionArity(fun.get());
             }
-            let name =
-                ptr::NonNull::new(*name).map(|name| unsafe { jsstr_to_string(cx.raw_cx(), name) });
+            let name = ptr::NonNull::new(*name).map(|name| unsafe { jsstr_to_string(cx, name) });
             let display_name = ptr::NonNull::new(*display_name)
-                .map(|display_name| unsafe { jsstr_to_string(cx.raw_cx(), display_name) });
+                .map(|display_name| unsafe { jsstr_to_string(cx, display_name) });
 
             // TODO: We should get the actual argument names from the function
             // It's not trivial since we can't access the debugger API here
@@ -424,7 +422,7 @@ fn console_object_from_handle_value(
 pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> DOMString {
     if message.is_string() {
         let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
-        return unsafe { jsstr_to_string(cx.raw_cx(), jsstr).into() };
+        return unsafe { jsstr_to_string(cx, jsstr) }.into();
     }
     fn stringify_object_from_handle_value(
         cx: &mut JSContext,
@@ -554,15 +552,13 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
     if !is_dom_class {
         return None;
     }
-    rooted!(&in(cx) let class_name = unsafe { ToString( cx.raw_cx(), value) });
+    rooted!(&in(cx) let class_name = unsafe { ToString(cx, value) });
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return Some("<error converting DOM object to string>".into());
     };
-    let class_name = unsafe {
-        jsstr_to_string(cx.raw_cx(), class_name)
-            .replace("[object ", "")
-            .replace("]", "")
-    };
+    let class_name = unsafe { jsstr_to_string(cx, class_name) }
+        .replace("[object ", "")
+        .replace("]", "");
     let mut repr = format!("{} ", class_name);
     rooted!(&in(cx) let mut value = value.get());
 
@@ -607,7 +603,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
     debug_assert!(!messages.is_empty() && messages[0].is_string());
 
     let js_string = ptr::NonNull::new(messages[0].to_string()).unwrap();
-    let format_string = unsafe { jsstr_to_string(cx.raw_cx(), js_string) };
+    let format_string = unsafe { jsstr_to_string(cx, js_string) };
 
     let mut result = String::new();
     let mut arg_index = 1usize;
@@ -987,7 +983,7 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             );
         }
         let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstr_to_string(cx.raw_cx(), nonnull_result) }
+            unsafe { jsstr_to_string(cx, nonnull_result) }
         } else {
             "<anonymous>".into()
         };
@@ -1004,7 +1000,7 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
             );
         }
         let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstr_to_string(cx.raw_cx(), nonnull_result) }
+            unsafe { jsstr_to_string(cx, nonnull_result) }
         } else {
             "<anonymous>".into()
         };

@@ -350,11 +350,11 @@ fn object_has_to_json_property(
 #[expect(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-collection>
 fn is_arguments_object(cx: &mut JSContext, value: HandleValue) -> bool {
-    rooted!(&in(cx) let class_name = unsafe { ToString(cx.raw_cx(), value) });
+    rooted!(&in(cx) let class_name = unsafe { ToString(cx, value) });
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    let class_name = unsafe { jsstr_to_string(cx.raw_cx(), class_name) };
+    let class_name = unsafe { jsstr_to_string(cx, class_name) };
     class_name == "[object Arguments]"
 }
 
@@ -402,7 +402,7 @@ fn jsval_to_webdriver_inner(
         Ok(JSValue::Number(val.to_number()))
     } else if val.get().is_string() {
         let string = NonNull::new(val.to_string()).expect("Should have a non-Null String");
-        let string = unsafe { jsstr_to_string(cx.raw_cx(), string) };
+        let string = unsafe { jsstr_to_string(cx, string) };
         Ok(JSValue::String(string))
     } else if val.get().is_object() {
         rooted!(&in(cx) let object = match FromJSValConvertible::safe_from_jsval(cx, val, ()).unwrap() {
