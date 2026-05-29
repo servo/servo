@@ -3400,8 +3400,6 @@ impl Document {
     }
 
     pub(crate) fn accessibility_data_mut(&self) -> RefMut<'_, AccessibilityData> {
-        debug_assert!(pref!(accessibility_enabled));
-
         self.accessibility_data.borrow_mut()
     }
 
