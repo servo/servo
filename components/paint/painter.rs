@@ -1081,9 +1081,7 @@ impl Painter {
                     if let Some(epoch) = epoch {
                         self.frame_delayer.update_image(key, epoch);
                     }
-                    let image_data =
-                        self.serializable_image_data_to_image_data_maybe_caching(key, data, false);
-                    txn.update_image(key, desc, image_data, &DirtyRect::All)
+                    txn.update_image(key, desc, data.into(), &DirtyRect::All)
                 },
                 ImageUpdate::UpdateImageForAnimation(image_key, desc) => {
                     let Some(image) = self.animation_image_cache.get(&image_key) else {
