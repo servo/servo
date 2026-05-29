@@ -556,6 +556,10 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                 GenericImageDecoder::Ico(image_decoder) => {
                     decode_static_image(cors_status, *image_decoder)
                 },
+                #[cfg(feature = "avif")]
+                GenericImageDecoder::Avif(image_decoder) => {
+                    decode_static_image(cors_status, image_decoder)
+                },
             }
         },
     }
@@ -575,6 +579,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_avif(buffer) {
+        Ok(ImageFormat::Avif)
     } else {
         Err("Image Format Not Supported")
     }
@@ -697,6 +703,18 @@ fn is_ico(buffer: &[u8]) -> bool {
     buffer.starts_with(&[0x00, 0x00, 0x01, 0x00])
 }
 
+#[allow(unused)]
+fn is_avif(buffer: &[u8]) -> bool {
+    #[cfg(feature = "avif")]
+    {
+        buffer.starts_with(b"avif")
+    }
+    #[cfg(not(feature = "avif"))]
+    {
+        false
+    }
+}
+
 fn is_webp(buffer: &[u8]) -> bool {
     // https://developers.google.com/speed/webp/docs/riff_container
     // First four bytes: `RIFF`, header size 12 bytes
@@ -719,6 +737,8 @@ enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
     Jpeg(Box<jpeg::JpegDecoder<R>>),
     Bmp(Box<bmp::BmpDecoder<R>>),
     Ico(Box<ico::IcoDecoder<R>>),
+    #[cfg(feature = "avif")]
+    Avif(Box<image::codecs::avif::AvifDecoder<R>>),
 }
 
 fn make_decoder(
@@ -736,6 +756,10 @@ fn make_decoder(
         ImageFormat::Jpeg => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
         ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
         ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+        #[cfg(feature = "avif")]
+        ImageFormat::Avif => {
+            GenericImageDecoder::Avif(Box::new(image::codecs::avif::AvifDecoder::new(reader)?))
+        },
         _ => {
             return Err(ImageError::Unsupported(
                 ImageFormatHint::Exact(format).into(),

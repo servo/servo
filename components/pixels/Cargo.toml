@@ -13,6 +13,9 @@ description.workspace = true
 name = "pixels"
 path = "lib.rs"
 
+[features]
+avif = ["image/avif-native"]
+
 [dependencies]
 euclid = { workspace = true }
 image = { workspace = true }
