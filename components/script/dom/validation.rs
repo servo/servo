@@ -14,14 +14,13 @@ use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::script_runtime::CanGc;
 
 /// Trait for elements with constraint validation support
 pub(crate) trait Validatable {
     fn as_element(&self) -> &Element;
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState>;
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState>;
 
     /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
     fn is_instance_validatable(&self) -> bool;
@@ -29,20 +28,20 @@ pub(crate) trait Validatable {
     // Check if element satisfies its constraints, excluding custom errors
     fn perform_validation(
         &self,
+        _cx: &mut JSContext,
         _validate_flags: ValidationFlags,
-        _can_gc: CanGc,
     ) -> ValidationFlags {
         ValidationFlags::empty()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-fv-valid>
-    fn satisfies_constraints(&self, can_gc: CanGc) -> bool {
-        self.validity_state(can_gc).invalid_flags().is_empty()
+    fn satisfies_constraints(&self, cx: &mut JSContext) -> bool {
+        self.validity_state(cx).invalid_flags().is_empty()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-validity-steps>
     fn check_validity(&self, cx: &mut JSContext) -> bool {
-        if self.is_instance_validatable() && !self.satisfies_constraints(CanGc::from_cx(cx)) {
+        if self.is_instance_validatable() && !self.satisfies_constraints(cx) {
             self.as_element()
                 .upcast::<EventTarget>()
                 .fire_cancelable_event(cx, atom!("invalid"));
@@ -59,7 +58,7 @@ pub(crate) trait Validatable {
             return true;
         }
 
-        if self.satisfies_constraints(CanGc::from_cx(cx)) {
+        if self.satisfies_constraints(cx) {
             return true;
         }
 
@@ -73,10 +72,10 @@ pub(crate) trait Validatable {
         // Step 1.2. If `report` is true, for the element,
         // report the problem, run focusing steps, scroll into view.
         if report {
-            let flags = self.validity_state(CanGc::from_cx(cx)).invalid_flags();
+            let flags = self.validity_state(cx).invalid_flags();
             println!(
                 "Validation error: {}",
-                validation_message_for_flags(&self.validity_state(CanGc::from_cx(cx)), flags)
+                validation_message_for_flags(&self.validity_state(cx), flags)
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
                 // Run focusing steps and scroll into view.
@@ -89,12 +88,10 @@ pub(crate) trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn validation_message(&self) -> DOMString {
+    fn validation_message(&self, cx: &mut JSContext) -> DOMString {
         if self.is_instance_validatable() {
-            let flags = self
-                .validity_state(CanGc::deprecated_note())
-                .invalid_flags();
-            validation_message_for_flags(&self.validity_state(CanGc::deprecated_note()), flags)
+            let flags = self.validity_state(cx).invalid_flags();
+            validation_message_for_flags(&self.validity_state(cx), flags)
         } else {
             DOMString::new()
         }

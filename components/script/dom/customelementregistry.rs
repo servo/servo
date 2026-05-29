@@ -956,7 +956,7 @@ pub(crate) fn upgrade_element(
         // We know this element is is form-associated, so we can use the implementation of
         // `FormControl` for HTMLElement, which makes that assumption.
         // Step 9.1: Reset the form owner of element
-        html_element.reset_form_owner(CanGc::from_cx(cx));
+        html_element.reset_form_owner(cx);
         if let Some(form) = html_element.form_owner() {
             // Even though the tree hasn't structurally mutated,
             // HTMLCollections need to be invalidated.

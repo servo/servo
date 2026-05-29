@@ -27,7 +27,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -72,12 +71,12 @@ impl HTMLFieldSetElement {
         )
     }
 
-    pub(crate) fn update_validity(&self, can_gc: CanGc) {
+    pub(crate) fn update_validity(&self, cx: &mut JSContext) {
         let has_invalid_child = self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .flat_map(DomRoot::downcast::<Element>)
-            .any(|element| element.is_invalid(false, can_gc));
+            .any(|element| element.is_invalid(cx, false));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !has_invalid_child);
@@ -119,8 +118,8 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
-        self.validity_state(can_gc)
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -134,13 +133,13 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
-        self.validity_state(can_gc).set_custom_error_message(error);
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
@@ -248,7 +247,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             _ => {},
         }
@@ -274,9 +273,9 @@ impl Validatable for HTMLFieldSetElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
