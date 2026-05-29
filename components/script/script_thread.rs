@@ -1238,16 +1238,22 @@ impl ScriptThread {
             // > 9. For each doc of docs, run the scroll steps for doc.
             document.run_the_scroll_steps(cx);
 
-            // Media queries is only relevant when there are resizing.
-            if resized {
-                // 10. For each doc of docs, evaluate media queries and report changes for doc.
+            // > 10. For each doc of docs, evaluate media queries and report changes for doc.
+            //
+            // Resize is the most common cause, but media queries can also change because
+            // of the platform theme (`prefers-color-scheme`) or other media features.
+            // The window tracks those via `pending_media_query_evaluation`, so we only
+            // pay the cost when something has actually changed.
+            let media_features_changed = document.window().take_pending_media_query_evaluation();
+            if resized || media_features_changed {
                 document
                     .window()
                     .evaluate_media_queries_and_report_changes(cx);
-
+            }
+            if resized {
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
-                document.react_to_environment_changes()
+                document.react_to_environment_changes();
             }
 
             let mut realm = enter_auto_realm(cx, &*document);
@@ -2725,6 +2731,11 @@ impl ScriptThread {
         for load in loads.iter_mut() {
             load.theme = theme;
         }
+        // A theme change may flip `prefers-color-scheme` media query results
+        // and force a recascade. Make sure the next iteration of the script
+        // event loop runs "update the rendering" so the new theme is applied
+        // even when the page has no ongoing animations driving the tick loop.
+        self.set_needs_rendering_update();
     }
 
     fn handle_get_document_origin(

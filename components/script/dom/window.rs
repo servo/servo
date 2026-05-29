@@ -472,6 +472,12 @@ pub(crate) struct Window {
     /// [`VisualViewport`] dimension changed and we need to process it on the next tick.
     has_changed_visual_viewport_dimension: Cell<bool>,
 
+    /// Whether something has changed since the last "update the rendering" turn
+    /// that may affect media query results, like a theme change. Consumed
+    /// together with the `resized` signal to decide whether to re-evaluate
+    /// `MediaQueryList`s and dispatch `change` events.
+    pending_media_query_evaluation: Cell<bool>,
+
     /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
     #[no_trace]
     last_activation_timestamp: Cell<UserActivationTimestamp>,
@@ -3271,6 +3277,15 @@ impl Window {
         }
         self.Document()
             .add_restyle_reason(RestyleReason::ThemeChanged);
+        // The change in `prefers-color-scheme` may flip `MediaQueryList`
+        // results so we flag the next "update the rendering" turn to re-evaluate them.
+        self.pending_media_query_evaluation.set(true);
+    }
+
+    /// Returns true and clears the flag if a media-feature change has
+    /// occurred since the last call.
+    pub(crate) fn take_pending_media_query_evaluation(&self) -> bool {
+        self.pending_media_query_evaluation.replace(false)
     }
 
     pub(crate) fn get_url(&self) -> ServoUrl {
@@ -3817,6 +3832,7 @@ impl Window {
             visual_viewport: Default::default(),
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
+            pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
         });
