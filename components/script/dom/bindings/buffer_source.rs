@@ -963,23 +963,31 @@ impl DataBlock {
         {
             return Err(());
         }
+        assert!(range.start <= range.end);
+        assert!(range.end <= self.data.len());
+
         let cx = GlobalScope::get_cx();
         /// `freeFunc()` must be threadsafe, should be safely callable from any thread
         /// without causing conflicts, unexpected behavior.
         unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
-            // the exact same line to fix it. Doing the cast is tricky because of the use of
-            // a generic type in this parameter.
-            #[expect(clippy::from_raw_with_void_ptr)]
-            drop(unsafe { Arc::from_raw(free_user_data as *const _) });
+            let raw: *const Box<[u8]> = free_user_data.cast();
+            // SAFETY: `free_func` is called by SM and returns ownership of the Arc we
+            // leaked below with `into_raw`. Hence it is safe to reconstruct the Arc,
+            // and destroy it to release the reference count.
+            drop(unsafe { Arc::from_raw(raw) });
         }
-        let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
+        let raw: *const Box<[u8]> = Arc::into_raw(Arc::clone(&self.data));
+        // SAFETY: We leaked the Arc, so the underlying slice will stay alive
+        // until `free_func` is called. `range.start..range.end` is inside
+        // the valid range of the slice.
+        let data_ptr = unsafe { (**raw).as_ptr().add(range.start) };
         rooted!(in(*cx) let object = unsafe {
             NewExternalArrayBuffer(
                 *cx,
-                range.end - range.start,
-                // SAFETY: This is safe because we have checked there is no overlapping view
-                (&mut (*raw))[range.clone()].as_mut_ptr() as _,
+                range.end.checked_sub(range.start).expect("range end must be >= range start"),
+                // FIXME(jschwe): I believe casting to a mutable pointer is unsound.
+                // We would need interior mutability.
+                data_ptr.cast_mut().cast(),
                 Some(free_func),
                 raw as _,
             )
