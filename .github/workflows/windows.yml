@@ -174,6 +174,7 @@ jobs:
       # On self-hosted windows runners sometimes OOM for Unit tests
       - name: Set CARGO_BUILD_JOBS for self-hosted runner
         if: ${{ runner.environment == 'self-hosted' }}
+        shell: bash
         run: echo "CARGO_BUILD_JOBS=-2" >> $GITHUB_ENV
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
