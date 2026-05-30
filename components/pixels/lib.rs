@@ -416,12 +416,12 @@ impl RasterImage {
         let (format, data, should_animate) = match self.format {
             PixelFormat::BGRA8 => (
                 WebRenderImageFormat::BGRA8,
-                GenericSharedMemory::from_bytes(&self.bytes),
+                GenericSharedMemory::from_arc_vec(self.bytes.clone()),
                 self.should_animate(),
             ),
             PixelFormat::RGBA8 => (
                 WebRenderImageFormat::RGBA8,
-                GenericSharedMemory::from_bytes(&self.bytes),
+                GenericSharedMemory::from_arc_vec(self.bytes.clone()),
                 self.should_animate(),
             ),
             PixelFormat::RGB8 => {
@@ -432,7 +432,7 @@ impl RasterImage {
                 }
                 (
                     WebRenderImageFormat::BGRA8,
-                    GenericSharedMemory::from_bytes(&bytes),
+                    GenericSharedMemory::from_vec(bytes),
                     // As we are transforming each frame individually we cache all frames
                     // in the painter and adjust the offset, therefore this image should not
                     // be added to the Painter's image cache.
@@ -495,7 +495,7 @@ impl RasterImage {
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
-            bytes: Arc::new(GenericSharedMemory::from_bytes(&self.bytes)),
+            bytes: Arc::new(GenericSharedMemory::from_arc_vec(self.bytes.clone())),
             frames: self.frames.clone(),
             is_opaque: self.is_opaque,
         })

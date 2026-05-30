@@ -852,7 +852,9 @@ impl HTMLLinkElement {
             let embedder_image = embedder_traits::Image::new(
                 frame.width,
                 frame.height,
-                std::sync::Arc::new(GenericSharedMemory::from_bytes(&raster_image.bytes)),
+                std::sync::Arc::new(GenericSharedMemory::from_arc_vec(
+                    raster_image.bytes.clone(),
+                )),
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );
