@@ -48,6 +48,7 @@ pub mod structuredclone;
 pub mod trace;
 pub mod utils;
 pub mod weakref;
+pub mod wrap;
 
 #[allow(non_snake_case, unsafe_op_in_unsafe_fn)]
 pub mod codegen {
