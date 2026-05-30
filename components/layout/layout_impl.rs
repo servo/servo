@@ -1171,6 +1171,7 @@ impl LayoutThread {
             use_rayon: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
             painter_id: self.webview_id.into(),
+            font_feature_value_map: Default::default(),
         };
 
         let restyle = reflow_request
@@ -1204,6 +1205,10 @@ impl LayoutThread {
             }
 
             dirty_root = driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
+        }
+
+        if reflow_request.stylesheets_changed() {
+            layout_context.invalidate_font_feature_value_map();
         }
 
         let root_node = root_element.as_node();

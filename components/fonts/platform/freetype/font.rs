@@ -4,6 +4,7 @@
 
 use std::ffi::CString;
 use std::fs::File;
+use std::sync::OnceLock;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -20,7 +21,7 @@ use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
-use style::Zero;
+use style::{Atom, Zero};
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::library_handle::FreeTypeLibraryHandle;
@@ -59,6 +60,7 @@ pub struct PlatformFont {
     actual_face_size: Au,
     variations: Vec<FontVariation>,
     synthetic_bold: bool,
+    family_name: OnceLock<Atom>,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -94,6 +96,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
+            family_name: Default::default(),
         })
     }
 
@@ -141,6 +144,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
+            family_name: Default::default(),
         })
     }
 
@@ -394,6 +398,18 @@ impl PlatformFontMethods for PlatformFont {
 
     fn variations(&self) -> &[FontVariation] {
         &self.variations
+    }
+
+    fn family_name(&self) -> Option<Atom> {
+        if let Some(cached_name) = self.family_name.get().cloned() {
+            return Some(cached_name);
+        }
+        let name: Atom = self.face.lock().family_name()?.into();
+
+        // If this fails then we lost a race with another thread, which can
+        // safely be ignored.
+        let _ = self.family_name.set(name.clone());
+        Some(name)
     }
 }
 
