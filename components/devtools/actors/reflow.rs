@@ -46,8 +46,6 @@ impl Actor for ReflowActor {
         };
         Ok(())
     }
-
-    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl ReflowActor {

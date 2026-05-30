@@ -4,27 +4,23 @@
 
 use std::any::{Any, type_name};
 use std::borrow::Borrow;
-use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use atomic_refcell::AtomicRefCell;
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use servo_base::id::PipelineId;
 
 use crate::StreamId;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
-
-std::thread_local! {
-    static ALREADY_REGISTERING: Cell<bool> = const { Cell::new(false) };
-}
 
 /// Error replies.
 ///
@@ -162,108 +158,86 @@ impl Borrow<str> for RegisteredActor {
     }
 }
 
-#[derive(Default)]
-struct ActorRegistryType(AtomicRefCell<HashSet<RegisteredActor>>);
-
-impl MallocSizeOf for ActorRegistryType {
+impl MallocSizeOf for RegisteredActor {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        self.0
-            .borrow()
-            .iter()
-            .map(|wrapper| wrapper.0.size_of(ops))
-            .sum()
+        self.0.size_of(ops)
     }
 }
 
-/// A list of known, owned actors.
+#[cfg(debug_assertions)]
+thread_local! {
+    static REENTRANCY_GUARD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+struct WriteGuard<'a>(RwLockWriteGuard<'a, ActorRegistryInner>);
+
+impl<'a> Deref for WriteGuard<'a> {
+    type Target = ActorRegistryInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for WriteGuard<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<'a> Drop for WriteGuard<'a> {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        REENTRANCY_GUARD.with(|cell| cell.set(false));
+    }
+}
+
 #[derive(Default, MallocSizeOf)]
-pub(crate) struct ActorRegistry {
-    actors: ActorRegistryType,
-    script_actors: AtomicRefCell<HashMap<String, String>>,
-    /// Lookup table for SourceActor names associated with a given PipelineId.
-    source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
-    /// Lookup table for inline source content associated with a given PipelineId.
-    inline_source_content: AtomicRefCell<HashMap<PipelineId, String>>,
+struct ActorRegistryInner {
+    actors: HashSet<RegisteredActor>,
+    script_to_actor: HashMap<String, String>,
+    actor_to_script: HashMap<String, String>,
+    source_actor_names: HashMap<PipelineId, Vec<String>>,
+    inline_source_content: HashMap<PipelineId, String>,
+}
+
+#[derive(Default, MallocSizeOf)]
+pub(crate) struct ActorRegistry(RwLock<ActorRegistryInner>);
+
+impl ActorRegistry {
+    fn read(&self) -> RwLockReadGuard<'_, ActorRegistryInner> {
+        self.0.read()
+    }
+
+    fn write(&self) -> WriteGuard<'_> {
+        #[cfg(debug_assertions)]
+        REENTRANCY_GUARD.with(|cell| {
+            assert!(
+                !cell.get(),
+                "Reentrant write operation detected on the same thread for ActorRegistry"
+            );
+            cell.set(true);
+        });
+        WriteGuard(self.0.write())
+    }
 }
 
 impl ActorRegistry {
-    pub(crate) fn cleanup(&self, stream_id: StreamId) {
-        let actors: Vec<Arc<dyn Actor>> = {
-            let guard = self.actors.0.borrow();
-            guard.iter().map(|r| r.0.clone()).collect()
-        };
-
-        for actor in actors {
-            actor.cleanup(stream_id);
-        }
-    }
-
-    pub fn register_script_actor(&self, script_id: String, actor: String) {
-        debug!("registering {} ({})", actor, script_id);
-        let mut script_actors = self.script_actors.borrow_mut();
-        script_actors.insert(script_id, actor);
-    }
-
-    pub fn script_to_actor(&self, script_id: &str) -> String {
-        if script_id.is_empty() {
-            return "".to_owned();
-        }
-        self.script_actors.borrow().get(script_id).unwrap().clone()
-    }
-
-    pub fn script_actor_registered(&self, script_id: &str) -> bool {
-        self.script_actors.borrow().contains_key(script_id)
-    }
-
-    pub fn actor_to_script(&self, actor: String) -> String {
-        for (key, value) in &*self.script_actors.borrow() {
-            if *value == actor {
-                return key.to_owned();
-            }
-        }
-        panic!("couldn't find actor named {}", actor)
-    }
-
     /// Add an actor to the registry of known actors that can receive messages.
-    pub(crate) fn register<T: Actor>(&self, actor: T) -> Arc<T> {
-        #[cfg(debug_assertions)]
-        let _guard = {
-            struct RegisterGuard;
-            impl Drop for RegisterGuard {
-                fn drop(&mut self) {
-                    ALREADY_REGISTERING.with(|in_reg| in_reg.set(false));
-                }
-            }
-            ALREADY_REGISTERING.with(|already| {
-                assert!(
-                    !already.replace(true),
-                    "ActorRegistry::register() called reentrantly on the same thread"
-                );
-            });
-            RegisterGuard
-        };
-
+    pub fn register<T: Actor>(&self, actor: T) -> Arc<T> {
         let actor = Arc::new(actor);
-        self.actors
-            .0
-            .borrow_mut()
-            .insert(RegisteredActor(actor.clone()));
-
-        #[cfg(debug_assertions)]
-        ALREADY_REGISTERING.with(|already| already.set(false));
+        self.write().actors.insert(RegisteredActor(actor.clone()));
         actor
     }
 
     /// Find an actor by registered name
     pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
-        let actor = {
-            let guard = self.actors.0.borrow();
-            guard
-                .get(name)
-                .expect("Should never look for a nonexistent actor")
-                .0
-                .clone()
-        }; // Read guard is dropped here!
+        let actor = self
+            .read()
+            .actors
+            .get(name)
+            .expect("Should never look for a nonexistent actor")
+            .0
+            .clone();
         DowncastableActorArc {
             actor,
             _phantom: PhantomData,
@@ -277,32 +251,29 @@ impl ActorRegistry {
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not found, does not support the
     /// message, or failed to handle the message, send an error reply instead.
-    pub(crate) fn handle_message(
+    pub fn handle_message(
         &self,
         msg: &Map<String, Value>,
         stream: &mut DevtoolsConnection,
         stream_id: StreamId,
     ) -> Result<(), ()> {
-        let to = match msg.get("to") {
-            Some(to) => to.as_str().unwrap(),
-            None => {
-                log::warn!("Received unexpected message: {:?}", msg);
-                return Err(());
-            },
+        let Some(to) = msg.get("to").and_then(|v| v.as_str()) else {
+            warn!("Received unexpected message: {msg:?}");
+            return Err(());
         };
 
-        let actor = {
-            let actors_map = self.actors.0.borrow();
-            actors_map.get(to).map(|r| r.0.clone())
-        };
+        let actor = self.read().actors.get(to).map(|r| r.0.clone());
         match actor {
             None => {
                 // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#packets>
-                let msg = json!({ "from": to, "error": "noSuchActor" });
-                let _ = stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&json!({ "from": to, "error": "noSuchActor" }));
             },
             Some(actor) => {
-                let msg_type = msg.get("type").unwrap().as_str().unwrap();
+                let Some(msg_type) = msg.get("type").and_then(|v| v.as_str()) else {
+                    let _ = stream
+                        .write_json_packet(&json!({ "from": to, "error": "missingParameter" }));
+                    return Ok(());
+                };
                 if let Err(error) = ClientRequest::handle(stream.clone(), to, |req| {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
@@ -318,22 +289,48 @@ impl ActorRegistry {
         Ok(())
     }
 
-    pub fn remove(&self, name: &str) {
-        let mut guard = self.actors.0.borrow_mut();
-        guard.remove(name);
+    pub fn register_script_actor(&self, script_id: String, actor: String) {
+        debug!("Registering {} ({})", actor, script_id);
+        let mut lock = self.write();
+        lock.script_to_actor
+            .insert(script_id.clone(), actor.clone());
+        lock.actor_to_script.insert(actor, script_id);
+    }
+
+    pub fn script_to_actor(&self, script_id: &str) -> String {
+        if script_id.is_empty() {
+            return "".to_owned();
+        }
+        self.read()
+            .script_to_actor
+            .get(script_id)
+            .unwrap_or_else(|| panic!("No actor for script id {}", script_id))
+            .clone()
+    }
+
+    pub fn script_actor_registered(&self, script_id: &str) -> bool {
+        self.read().script_to_actor.contains_key(script_id)
+    }
+
+    pub fn actor_to_script(&self, actor: String) -> String {
+        self.read()
+            .actor_to_script
+            .get(&actor)
+            .unwrap_or_else(|| panic!("No script id for actor {}", actor))
+            .clone()
     }
 
     pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {
-        self.source_actor_names
-            .borrow_mut()
+        self.write()
+            .source_actor_names
             .entry(pipeline_id)
             .or_default()
             .push(actor_name.to_owned());
     }
 
     pub fn source_actor_names_for_pipeline(&self, pipeline_id: PipelineId) -> Vec<String> {
-        self.source_actor_names
-            .borrow_mut()
+        self.read()
+            .source_actor_names
             .get(&pipeline_id)
             .cloned()
             .unwrap_or_default()
@@ -341,17 +338,17 @@ impl ActorRegistry {
 
     pub fn set_inline_source_content(&self, pipeline_id: PipelineId, content: String) {
         assert!(
-            self.inline_source_content
-                .borrow_mut()
+            self.write()
+                .inline_source_content
                 .insert(pipeline_id, content)
                 .is_none()
         );
     }
 
     pub fn inline_source_content(&self, pipeline_id: PipelineId) -> Option<String> {
-        self.inline_source_content
-            .borrow()
-            .get(&pipeline_id)
-            .cloned()
+        self.read().inline_source_content.get(&pipeline_id).cloned()
     }
+
+    // TODO: Handle removal and cleanup
+    pub(crate) fn cleanup(&self, _: StreamId) {}
 }
