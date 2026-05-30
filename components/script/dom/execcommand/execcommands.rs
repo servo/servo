@@ -18,7 +18,6 @@ use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::selection::Selection;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#miscellaneous-commands>
 fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool {
@@ -251,6 +250,7 @@ impl DocumentExecCommandSupport for Document {
             // Step 4.2. Fire an event named "beforeinput" at affected editing host using InputEvent,
             // with its bubbles and cancelable attributes initialized to true, and its data attribute initialized to null
             let event = InputEvent::new(
+                cx,
                 window,
                 None,
                 atom!("beforeinput"),
@@ -261,7 +261,6 @@ impl DocumentExecCommandSupport for Document {
                 None,
                 false,
                 "".into(),
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             // Step 4.3. If the value returned by the previous step is false, return false.
@@ -298,6 +297,7 @@ impl DocumentExecCommandSupport for Document {
         // inputType attribute initialized to the mapped value of command, and its data attribute initialized to null.
         if let Some(affected_editing_host) = affected_editing_host {
             let event = InputEvent::new(
+                cx,
                 window,
                 None,
                 atom!("input"),
@@ -308,7 +308,6 @@ impl DocumentExecCommandSupport for Document {
                 None,
                 false,
                 mapped_value_of_command(command),
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);

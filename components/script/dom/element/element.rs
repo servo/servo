@@ -963,12 +963,12 @@ impl Element {
 
     pub(crate) fn ensure_contenteditable_selection_range(
         &self,
+        cx: &mut JSContext,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<Range> {
         self.ensure_rare_data()
             .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(document, None, can_gc))
+            .or_init(|| Range::new_with_doc(document, None, CanGc::from_cx(cx)))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
