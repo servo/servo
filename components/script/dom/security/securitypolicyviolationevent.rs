@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/webappsec-csp/#securitypolicyviolationevent
 #[dom_struct]
@@ -57,21 +57,22 @@ impl SecurityPolicyViolationEvent {
     }
 
     pub(crate) fn new_initialized(
+        cx: &mut JSContext,
         global: &GlobalScope,
         init: &SecurityPolicyViolationEventInit,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SecurityPolicyViolationEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(SecurityPolicyViolationEvent::new_inherited(init)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -79,9 +80,8 @@ impl SecurityPolicyViolationEvent {
         cancelable: EventCancelable,
         composed: EventComposed,
         init: &SecurityPolicyViolationEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let ev = SecurityPolicyViolationEvent::new_initialized(global, init, proto, can_gc);
+        let ev = SecurityPolicyViolationEvent::new_initialized(cx, global, init, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -91,30 +91,29 @@ impl SecurityPolicyViolationEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         composed: EventComposed,
         init: &SecurityPolicyViolationEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, composed, init, can_gc,
-        )
+        Self::new_with_proto(cx, global, None, type_, bubbles, cancelable, composed, init)
     }
 }
 
 impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolicyViolationEvent {
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-securitypolicyviolationevent>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &SecurityPolicyViolationEventInit,
     ) -> DomRoot<Self> {
         SecurityPolicyViolationEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -122,7 +121,6 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
             EventCancelable::from(init.parent.cancelable),
             EventComposed::from(init.parent.composed),
             init,
-            can_gc,
         )
     }
 
