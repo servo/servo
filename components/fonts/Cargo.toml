@@ -20,9 +20,11 @@ tracing = ["dep:tracing"]
 
 [dependencies]
 app_units = { workspace = true }
+atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 content-security-policy = { workspace = true }
 euclid = { workspace = true }
+font-types = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { workspace = true }
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`

@@ -7929,6 +7929,7 @@ dependencies = [
  "content-security-policy",
  "dwrote",
  "euclid",
+ "font-types",
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",

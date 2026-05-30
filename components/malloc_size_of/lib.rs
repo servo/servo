@@ -1332,6 +1332,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontFeatureSett
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantAlternates);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantLigatures);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantNumeric);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantEastAsian);
@@ -1344,6 +1345,9 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecoration
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_optical_sizing::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_kerning::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::SingleValue);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::PairValues);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::VectorValues);
 
 impl<T> MallocSizeOf for GenericLengthPercentageOrAuto<T>
 where

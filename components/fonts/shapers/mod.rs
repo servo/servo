@@ -13,8 +13,9 @@ use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 
 use crate::{
-    AFRC, CALT, CLIG, DLIG, FRAC, FWID, GlyphId, HLIG, JP04, JP78, JP83, JP90, KERN, LIGA, LNUM,
-    ONUM, ORDN, PNUM, PWID, RUBY, SMPL, SUBS, SUPS, ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
+    AFRC, CALT, CLIG, CWSH, DLIG, FRAC, FWID, GlyphId, HIST, HLIG, JP04, JP78, JP83, JP90, KERN,
+    LIGA, LNUM, NALT, ONUM, ORDN, ORNM, PNUM, PWID, RUBY, SALT, SMPL, SUBS, SUPS, SWSH,
+    ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
 };
 
 /// Utility function to convert a `unicode_script::Script` enum into the corresponding `c_uint` tag that
@@ -196,6 +197,55 @@ fn compute_used_font_features(options: &ShapingOptions) -> impl Iterator<Item = 
         FontVariantPosition::Normal => {},
         FontVariantPosition::Sub => add_feature(SUBS, 1),
         FontVariantPosition::Super => add_feature(SUPS, 1),
+    }
+
+    if options.alternates.historical_forms {
+        add_feature(HIST, 1);
+    }
+
+    if let Some(stylistic) = &options.alternates.stylistic {
+        add_feature(SALT, stylistic.0);
+    }
+
+    for styleset in &options.alternates.styleset {
+        if *styleset > 99 {
+            continue;
+        }
+
+        let tag = Tag::new(&[
+            b's',
+            b's',
+            b'0' + (*styleset / 10) as u8,
+            b'0' + (*styleset % 10) as u8,
+        ]);
+        add_feature(tag, 1);
+    }
+
+    for character_variant in &options.alternates.character_variant {
+        if character_variant.0 > 99 {
+            continue;
+        }
+
+        let tag = Tag::new(&[
+            b'c',
+            b'v',
+            b'0' + (character_variant.0 / 10) as u8,
+            b'0' + (character_variant.0 % 10) as u8,
+        ]);
+        add_feature(tag, character_variant.1.unwrap_or(1));
+    }
+
+    if let Some(swash) = &options.alternates.swash {
+        add_feature(SWSH, swash.0);
+        add_feature(CWSH, swash.0);
+    }
+
+    if let Some(ornaments) = &options.alternates.ornaments {
+        add_feature(ORNM, ornaments.0);
+    }
+
+    if let Some(annotation) = &options.alternates.annotation {
+        add_feature(NALT, annotation.0);
     }
 
     if options

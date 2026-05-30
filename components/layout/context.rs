@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
-use fonts::FontContext;
+use fonts::{FontContext, FontRef, ResolvedFontVariantAlternates};
 use layout_api::{
     AnimatingImages, IFrameSizes, LayoutImageDestination, LayoutNode, PendingImage,
     PendingImageState, PendingRasterizationImage,
@@ -21,10 +21,15 @@ use pixels::RasterImage;
 use script::layout_dom::ServoLayoutNode;
 use servo_base::id::PainterId;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::Atom;
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+use style::values::computed::FontVariantAlternates;
 use style::values::computed::image::{Gradient, Image};
+use style::values::specified::font::VariantAlternates;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
+
+use crate::font_feature_value::{FontFeatureValue, FontFeatureValueKind, FontFeatureValueMap};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
@@ -46,6 +51,157 @@ pub(crate) struct LayoutContext<'a> {
 
     /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
     pub painter_id: PainterId,
+
+    /// A lazily-computed map of feature names from `@font-feature-value` rules.
+    pub font_feature_value_map: RwLock<Option<FontFeatureValueMap>>,
+}
+
+impl<'a> LayoutContext<'a> {
+    pub(crate) fn resolve_font_variant_alternate_identifiers_for(
+        &self,
+        font: &FontRef,
+        alternates: &FontVariantAlternates,
+    ) -> ResolvedFontVariantAlternates {
+        let mut resolved_alternates = ResolvedFontVariantAlternates::default();
+        if alternates.is_empty() {
+            return resolved_alternates;
+        }
+        let Some(family_name) = font.family_name() else {
+            return resolved_alternates;
+        };
+
+        for alternate in alternates.iter() {
+            match alternate {
+                VariantAlternates::Stylistic(stylistic) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            FontFeatureValueKind::Stylistic,
+                            stylistic.0.clone(),
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.stylistic = Some(value);
+                },
+                VariantAlternates::Styleset(styleset_list) => {
+                    for styleset in styleset_list.iter() {
+                        let Some(FontFeatureValue::Vector(value)) = self
+                            .look_up_font_feature_alternate_name(
+                                family_name.clone(),
+                                FontFeatureValueKind::Styleset,
+                                styleset.0.clone(),
+                            )
+                        else {
+                            continue;
+                        };
+
+                        resolved_alternates.styleset.extend(value.0.iter());
+                    }
+                },
+                VariantAlternates::CharacterVariant(character_variant_list) => {
+                    for character_variant in character_variant_list.iter() {
+                        let Some(FontFeatureValue::Pair(value)) = self
+                            .look_up_font_feature_alternate_name(
+                                family_name.clone(),
+                                FontFeatureValueKind::CharacterVariant,
+                                character_variant.0.clone(),
+                            )
+                        else {
+                            continue;
+                        };
+
+                        resolved_alternates.character_variant.push(value);
+                    }
+                },
+                VariantAlternates::Swash(swash) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            FontFeatureValueKind::Swash,
+                            swash.0.clone(),
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.swash = Some(value);
+                },
+                VariantAlternates::Ornaments(ornaments) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            FontFeatureValueKind::Ornaments,
+                            ornaments.0.clone(),
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.ornaments = Some(value);
+                },
+                VariantAlternates::Annotation(annotation) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            FontFeatureValueKind::Annotation,
+                            annotation.0.clone(),
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.annotation = Some(value);
+                },
+                VariantAlternates::HistoricalForms => {
+                    resolved_alternates.historical_forms = true;
+                },
+            }
+        }
+
+        resolved_alternates
+    }
+
+    fn look_up_font_feature_alternate_name(
+        &self,
+        family_name: Atom,
+        kind: FontFeatureValueKind,
+        name: Atom,
+    ) -> Option<FontFeatureValue> {
+        // First, check if the map was initialized previously by acquiring a read lock.
+        let read_guard = self.font_feature_value_map.read();
+        if let Some(map) = &*read_guard {
+            // This is the cheap case, we just need to read from the map
+            map.lookup(family_name, kind, name)
+        } else {
+            // Map was not initialized yet - need to acquire a write lock and initialize it.
+            drop(read_guard);
+            let mut write_guard = self.font_feature_value_map.write();
+            if let Some(map) = &*write_guard {
+                // We lost a race, some other thread initialized the map while we were waiting
+                // on the lock.
+                return map.lookup(family_name, kind, name);
+            }
+
+            log::debug!("Initializing @font-feature-values map");
+            let mut map = FontFeatureValueMap::default();
+            self.style_context
+                .stylist
+                .iter_extra_data_origins_rev()
+                .flat_map(|(extra_data, _)| extra_data.font_feature_values.iter())
+                .for_each(|(rule, _)| map.add_rule(rule));
+            let map = &*write_guard.insert(map);
+            // Finally, perform the actual lookup
+            map.lookup(family_name, kind, name)
+        }
+    }
+
+    /// This should be called whenever the stylesheets changed, after a restyle.
+    pub(crate) fn invalidate_font_feature_value_map(&self) {
+        log::debug!("Stylesheets changed, invalidating @font-feature-values map");
+        self.font_feature_value_map.write().take();
+    }
 }
 
 pub enum ResolvedImage<'a> {
