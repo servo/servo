@@ -68,7 +68,7 @@ impl GenericSharedMemory {
         }
     }
 
-    /// Build a `GenericSharedMemory` from a `Vec<u8>`
+    /// Build a `GenericSharedMemory` from a `Vec<u8>`.
     ///
     /// In single-process mode this allows reusing the Vec and the only cost is
     /// allocating a new Arc. Prefer over `Self::from_bytes` if ownership is
@@ -83,7 +83,7 @@ impl GenericSharedMemory {
         }
     }
 
-    /// Build a `GenericSharedMemory` from an `Arc<Vec<u8>>`
+    /// Build a `GenericSharedMemory` from an `Arc<Vec<u8>>`.
     ///
     /// In single-process mode this allows creating shared memory without copying.
     pub fn from_arc_vec(arc: Arc<Vec<u8>>) -> Self {
