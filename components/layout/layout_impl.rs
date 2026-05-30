@@ -84,6 +84,7 @@ use crate::accessibility_tree::AccessibilityTree;
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
+use crate::font_feature_value::FontFeatureValueMap;
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request,
@@ -229,6 +230,11 @@ pub struct LayoutThread {
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
+
+    /// A map of `@font-feature-values` rules if it has been computed by a previous reflow
+    /// and not been invalidated yet. This is given to the [LayoutContext] before the reflow
+    /// starts and passed back afterwards.
+    cached_font_feature_values_map: RefCell<Option<FontFeatureValueMap>>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -826,6 +832,7 @@ impl LayoutThread {
             needs_accessibility_update: Cell::new(false),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
+            cached_font_feature_values_map: Default::default(),
         }
     }
 
@@ -1101,10 +1108,12 @@ impl LayoutThread {
 
         let invalidation_set = self.stylist.flush(guards);
 
-        // Load new @font-face rules and remove old ones if necessary.
-        // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
         let changed_web_fonts =
             if need_user_agent_stylesheet_addition || reflow_request.stylesheets_changed() {
+                *self.cached_font_feature_values_map.borrow_mut() = None;
+
+                // Load new @font-face rules and remove old ones if necessary.
+                // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
                 self.font_context.rebuild_font_face_set(
                     self.webview_id,
                     &self.stylist,
@@ -1196,6 +1205,9 @@ impl LayoutThread {
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
             device_size: reflow_request.viewport_details.device_size.cast_unit(),
+            font_feature_value_map: RwLock::new(
+                self.cached_font_feature_values_map.borrow_mut().take(),
+            ),
         };
 
         let restyle = reflow_request
@@ -1259,6 +1271,8 @@ impl LayoutThread {
                 compute_damage_and_build_box_tree()
             }
         };
+        *self.cached_font_feature_values_map.borrow_mut() =
+            layout_context.take_font_feature_values_map();
 
         if damage.contains(LayoutDamage::RebuildStackingContextTree) {
             self.need_new_stacking_context_tree.set(true);

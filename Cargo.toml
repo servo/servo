@@ -88,6 +88,7 @@ env_filter = "0.1.4"
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
+font-types = "0.12"
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 fontsan = { version = "0.7", default-features = false, features = ["libz-sys", "wuff"] }
 freetype-sys = "0.23"
@@ -452,15 +453,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-# [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo = { path = "../stylo/style" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
-# stylo_traits = { path = "../stylo/style_traits" }
+[patch."https://github.com/servo/stylo"]
+selectors = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+servo_arc = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo_atoms = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo_dom = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo_malloc_size_of = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo_static_prefs = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
+stylo_traits = { git = "https://github.com/simonwuelker/stylo", branch = "font-variant-alternates" }
 #
 # Or for another Git dependency:
 #

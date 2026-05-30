@@ -10,24 +10,31 @@ use std::sync::{Arc, OnceLock};
 use std::{iter, str};
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
+use font_types::NameId;
 use fonts_traits::FontDescriptor;
 use icu_locid::subtags::Language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
+use read_fonts::FontRead;
+use read_fonts::tables::name::Name as NameTable;
 use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
+use skrifa::string::LocalizedString;
 use smallvec::SmallVec;
+use style::Atom;
 use style::computed_values::font_variant_caps;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::stylesheets::font_feature_values_rule::{PairValues, SingleValue};
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
@@ -53,11 +60,13 @@ pub(crate) const CALT: Tag = Tag::new(b"calt");
 pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
 pub(crate) const CLIG: Tag = Tag::new(b"clig");
 pub(crate) const COLR: Tag = Tag::new(b"COLR");
+pub(crate) const CWSH: Tag = Tag::new(b"cwsh");
 pub(crate) const FRAC: Tag = Tag::new(b"frac");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
 pub(crate) const FWID: Tag = Tag::new(b"fwid");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
+pub(crate) const HIST: Tag = Tag::new(b"hist");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
 pub(crate) const JP04: Tag = Tag::new(b"jp04");
 pub(crate) const JP78: Tag = Tag::new(b"jp78");
@@ -66,15 +75,20 @@ pub(crate) const JP90: Tag = Tag::new(b"jp90");
 pub(crate) const KERN: Tag = Tag::new(b"kern");
 pub(crate) const LIGA: Tag = Tag::new(b"liga");
 pub(crate) const LNUM: Tag = Tag::new(b"lnum");
+pub(crate) const NALT: Tag = Tag::new(b"nalt");
+pub(crate) const NAME: Tag = Tag::new(b"name");
 pub(crate) const ONUM: Tag = Tag::new(b"onum");
+pub(crate) const ORNM: Tag = Tag::new(b"ornm");
 pub(crate) const ORDN: Tag = Tag::new(b"ordn");
 pub(crate) const PNUM: Tag = Tag::new(b"pnum");
 pub(crate) const PWID: Tag = Tag::new(b"pwid");
 pub(crate) const RUBY: Tag = Tag::new(b"ruby");
+pub(crate) const SALT: Tag = Tag::new(b"salt");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
 pub(crate) const SMPL: Tag = Tag::new(b"smpl");
 pub(crate) const SUBS: Tag = Tag::new(b"subs");
 pub(crate) const SUPS: Tag = Tag::new(b"sups");
+pub(crate) const SWSH: Tag = Tag::new(b"swsh");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
 pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
@@ -269,7 +283,19 @@ pub struct Font {
     /// FIXME: This should be removed entirely in favor of better caching if necessary.
     /// See <https://github.com/servo/servo/pull/11273#issuecomment-222332873>.
     can_do_fast_shaping: OnceLock<bool>,
+
+    /// The family name of the font.
+    ///
+    /// This is the name as it is declared in the `name` table, *not* the name provided by the system
+    /// font service.
+    family_name: OnceLock<Result<Atom, NoUsableFamilyName>>,
 }
+
+/// An error indicating that the `name` table contained no usable family names.
+///
+/// For example, this can happen if the family name uses an incompatible or unknown encoding.
+#[derive(Clone)]
+struct NoUsableFamilyName;
 
 impl std::fmt::Debug for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -333,6 +359,7 @@ impl Font {
             synthesized_small_caps,
             has_color_bitmap_or_colr_table: OnceLock::new(),
             can_do_fast_shaping: OnceLock::new(),
+            family_name: Default::default(),
         })
     }
 
@@ -396,6 +423,28 @@ bitflags! {
     }
 }
 
+/// Stores the value of the [`font-variant-alternates`] property, with identifiers
+/// resolved to font-specific values.
+///
+/// [`font-variant-alternates`]: https://drafts.csswg.org/css-fonts/#font-variant-alternates-prop
+#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct ResolvedFontVariantAlternates {
+    /// <https://drafts.csswg.org/css-fonts/#valdef-font-variant-alternates-historical-forms>
+    pub historical_forms: bool,
+    /// <https://drafts.csswg.org/css-fonts/#stylistic>
+    pub stylistic: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#styleset>
+    pub styleset: Vec<u32>,
+    /// <https://drafts.csswg.org/css-fonts/#character-variant>
+    pub character_variant: Vec<PairValues>,
+    /// <https://drafts.csswg.org/css-fonts/#swash>
+    pub swash: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#ornaments>
+    pub ornaments: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#annotation>
+    pub annotation: Option<SingleValue>,
+}
+
 /// Various options that control text shaping.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
@@ -420,6 +469,8 @@ pub struct ShapingOptions {
     pub feature_settings: FontFeatureSettings,
     /// The value of the `font-variant-position` property.
     pub position: FontVariantPosition,
+    /// The value of the `font-variant-alternates` property.
+    pub alternates: ResolvedFontVariantAlternates,
     /// Various flags.
     pub flags: ShapingFlags,
 }
@@ -613,6 +664,65 @@ impl Font {
         _: &FallbackFontSelectionOptions,
     ) -> Option<FontRef> {
         None
+    }
+
+    fn get_family_name_from_font_data(&self) -> Result<Atom, NoUsableFamilyName> {
+        let name_table = self.table_for_tag(NAME).ok_or(NoUsableFamilyName)?;
+        let name_table = NameTable::read(read_fonts::FontData::new(name_table.buffer()))
+            .map_err(|_| NoUsableFamilyName)?;
+
+        // Find the most usable family name entry, preferring "en-US" > "en" > "everything else".
+        // TODO: If we ever have a way to get a read_fonts::FontRef out of a PlatformFont then skrifa can
+        // do this for us with LocalizedStrings::english_or_first.
+        //
+        // https://docs.rs/skrifa/latest/skrifa/string/struct.LocalizedStrings.html#method.english_or_first
+        let mut best_rank = -1;
+        let mut best_string = None;
+        for (index, name_record) in name_table
+            .name_record()
+            .iter()
+            .filter(|name_record| name_record.name_id() == NameId::FAMILY_NAME)
+            .enumerate()
+        {
+            let localized_string = LocalizedString::new(&name_table, name_record);
+            let rank = match (index, localized_string.language()) {
+                (_, Some("en-US")) => {
+                    best_string = Some(localized_string);
+                    break;
+                },
+                (_, Some("en")) => 2,
+                (_, None) => 1,
+                (0, _) => 0,
+                _ => continue,
+            };
+            if rank > best_rank {
+                best_rank = rank;
+                best_string = Some(localized_string);
+            }
+        }
+
+        best_string
+            .map(|best_string| best_string.chars().collect::<String>().into())
+            .ok_or(NoUsableFamilyName)
+    }
+
+    /// Return the font's declared family name:
+    ///  - Platform: fonts: A value from OpenType `name` table, or `None` if either the platform
+    ///    does not support that query or the font does not have a usable name.
+    ///  - Web fonts: the family name specified in the `@font-face` rule
+    pub fn family_name(&self) -> Option<Atom> {
+        self.template
+            .font_face_rule()
+            .and_then(|font_face_rule| {
+                AtomicRef::filter_map(font_face_rule, |rule| rule.font_family.as_ref())
+            })
+            .map(|font_family| font_family.name.clone())
+            .or_else(|| {
+                self.family_name
+                    .get_or_init(|| self.get_family_name_from_font_data())
+                    .clone()
+                    .ok()
+            })
     }
 }
 

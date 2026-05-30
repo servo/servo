@@ -7573,7 +7573,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.39.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "bitflags 2.13.0",
  "cssparser",
@@ -8175,11 +8175,13 @@ name = "servo-fonts"
 version = "0.4.0"
 dependencies = [
  "app_units",
+ "atomic_refcell",
  "bitflags 2.13.0",
  "byteorder",
  "content-security-policy",
  "dwrote",
  "euclid",
+ "font-types 0.12.1",
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
@@ -9348,7 +9350,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -9847,7 +9849,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -9903,7 +9905,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -9912,7 +9914,7 @@ dependencies = [
 [[package]]
 name = "stylo_derive"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -9924,7 +9926,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "bitflags 2.13.0",
  "stylo_malloc_size_of",
@@ -9933,7 +9935,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "app_units",
  "cssparser",
@@ -9950,7 +9952,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "toml",
 ]
@@ -9958,7 +9960,7 @@ dependencies = [
 [[package]]
 name = "stylo_traits"
 version = "0.19.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "app_units",
  "bitflags 2.13.0",
@@ -10377,7 +10379,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -10390,7 +10392,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=5173fcd4455b99cc42777f81715a1bd68ed5b32c#5173fcd4455b99cc42777f81715a1bd68ed5b32c"
+source = "git+https://github.com/simonwuelker/stylo?branch=font-variant-alternates#1bee210608cea4e2a19a8a9e719ce1fc110cebad"
 dependencies = [
  "darling",
  "proc-macro2",
