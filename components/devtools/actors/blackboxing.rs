@@ -102,7 +102,7 @@ impl BlackboxingActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
         let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
         registry.register::<Self>(actor)

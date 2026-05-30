@@ -181,7 +181,7 @@ impl TabDescriptorActor {
         let root_actor = registry.find::<RootActor>("root");
         root_actor.tabs.borrow_mut().push(name.clone());
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
         registry.register::<Self>(actor)
