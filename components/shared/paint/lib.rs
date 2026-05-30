@@ -27,7 +27,7 @@ pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
 pub mod viewport_description;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
@@ -551,7 +551,7 @@ pub struct PainterSurfmanDetails {
 }
 
 #[derive(Clone, Default)]
-pub struct PainterSurfmanDetailsMap(Arc<Mutex<HashMap<PainterId, PainterSurfmanDetails>>>);
+pub struct PainterSurfmanDetailsMap(Arc<StdMutex<HashMap<PainterId, PainterSurfmanDetails>>>);
 
 impl PainterSurfmanDetailsMap {
     pub fn get(&self, painter_id: PainterId) -> Option<PainterSurfmanDetails> {
