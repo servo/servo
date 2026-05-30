@@ -1286,8 +1286,8 @@ pub fn convert_header_names_to_sorted_lowercase_set(
     ordered_set.into_iter().cloned().collect()
 }
 
-pub fn create_request_body_with_content(content: &str) -> RequestBody {
-    let content_bytes = GenericSharedMemory::from_bytes(content.as_bytes());
+pub fn create_request_body_with_content(content: String) -> RequestBody {
+    let content_bytes = GenericSharedMemory::from_vec(content.into_bytes());
     let content_len = content_bytes.len();
 
     let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
