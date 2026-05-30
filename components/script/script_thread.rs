@@ -2196,7 +2196,7 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
+                devtools::handle_get_computed_style(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(cx, &self.devtools_state, id, &node_id, reply)
@@ -2594,7 +2594,14 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
+                webdriver_handlers::handle_get_css(
+                    cx,
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                )
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(cx, &documents, pipeline_id, node_id, reply)

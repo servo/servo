@@ -48,7 +48,6 @@ use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement};
 use crate::realms::enter_realm;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
@@ -308,13 +307,13 @@ pub(crate) fn handle_get_children(
     let mut pipeline_state = state.mut_pipeline_state_for(pipeline).unwrap();
 
     let inline: Vec<_> = parent
-        .children_unrooted(cx.no_gc())
+        .children()
         .map(|child| {
             let window = child.owner_window();
             let Some(elem) = child.downcast::<Element>() else {
                 return false;
             };
-            let computed_style = window.GetComputedStyle(elem, None);
+            let computed_style = window.GetComputedStyle(cx, elem, None);
             let display = computed_style.Display();
             display == "inline"
         })
@@ -364,7 +363,7 @@ pub(crate) fn handle_get_attribute_style(
         reply.send(None).unwrap();
         return;
     };
-    let style = elem.Style(CanGc::from_cx(cx));
+    let style = elem.Style(cx);
 
     let msg = (0..style.Length())
         .map(|i| {
@@ -544,6 +543,7 @@ pub(crate) fn handle_get_stylesheet_style(
 }
 
 pub(crate) fn handle_get_computed_style(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
@@ -558,7 +558,7 @@ pub(crate) fn handle_get_computed_style(
     let elem = node
         .downcast::<Element>()
         .expect("This should be an element");
-    let computed_style = window.GetComputedStyle(elem, None);
+    let computed_style = window.GetComputedStyle(cx, elem, None);
 
     let msg = (0..computed_style.Length())
         .map(|i| {
@@ -595,7 +595,7 @@ pub(crate) fn handle_get_layout(
     let height = rect.Height() as f32;
 
     let window = node.owner_window();
-    let computed_style = window.GetComputedStyle(element, None);
+    let computed_style = window.GetComputedStyle(cx, element, None);
     let computed_layout = ComputedNodeLayout {
         display: computed_style.Display().into(),
         position: computed_style.Position().into(),
@@ -744,7 +744,7 @@ pub(crate) fn handle_modify_rule(
     let elem = node
         .downcast::<HTMLElement>()
         .expect("This should be an HTMLElement");
-    let style = elem.Style(CanGc::from_cx(cx));
+    let style = elem.Style(cx);
 
     for modification in modifications {
         let _ = style.SetProperty(

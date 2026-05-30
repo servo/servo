@@ -1726,7 +1726,7 @@ impl Node {
         let window = self.owner_window();
         let element = self.downcast::<Element>();
         let display = element
-            .map(|elem| window.GetComputedStyle(elem, None))
+            .map(|elem| window.GetComputedStyle(cx, elem, None))
             .map(|style| style.Display().into());
 
         // It is not entirely clear when this should be set to false.

@@ -1737,6 +1737,7 @@ pub(crate) fn handle_get_property(
 }
 
 pub(crate) fn handle_get_css(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1749,7 +1750,7 @@ pub(crate) fn handle_get_css(
                 let window = element.owner_window();
                 String::from(
                     window
-                        .GetComputedStyle(&element, None)
+                        .GetComputedStyle(cx, &element, None)
                         .GetPropertyValue(DOMString::from(name)),
                 )
             }),

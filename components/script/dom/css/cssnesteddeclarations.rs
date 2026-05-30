@@ -20,7 +20,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSNestedDeclarations {
@@ -93,6 +92,7 @@ impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclaration
         self.style_declaration.or_init(|| {
             let guard = self.css_rule.shared_lock().read();
             CSSStyleDeclaration::new(
+                cx,
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
@@ -106,7 +106,6 @@ impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclaration
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::from_cx(cx),
             )
         })
     }

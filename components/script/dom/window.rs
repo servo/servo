@@ -1880,6 +1880,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle>
     fn GetComputedStyle(
         &self,
+        cx: &mut JSContext,
         element: &Element,
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
@@ -1932,6 +1933,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         //
         // Step 6:  Return a live CSSStyleProperties object with the following properties:
         CSSStyleDeclaration::new(
+            cx,
             self,
             if is_null {
                 CSSStyleOwner::Null
@@ -1940,7 +1942,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             pseudo,
             CSSModificationAccess::Readonly,
-            CanGc::deprecated_note(),
         )
     }
 
