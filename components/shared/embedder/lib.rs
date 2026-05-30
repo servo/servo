@@ -64,6 +64,7 @@ pub enum WebViewPoint {
 }
 
 impl WebViewPoint {
+    #[doc(hidden)]
     pub fn as_device_point(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DevicePoint {
         match self {
             Self::Device(point) => *point,
@@ -100,6 +101,7 @@ pub enum WebViewRect {
 }
 
 impl WebViewRect {
+    #[doc(hidden)]
     pub fn as_device_rect(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DeviceRect {
         match self {
             Self::Device(rect) => *rect,
@@ -129,6 +131,9 @@ impl From<Box2D<f32, CSSPixel>> for WebViewRect {
     }
 }
 
+/// A 2D vector in a `WebView`, either expressed in device pixels or page pixels.
+/// Page pixels are CSS pixels, which take into account device pixel scale,
+/// page zoom, and pinch zoom.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum WebViewVector {
     Device(DeviceVector2D),
@@ -136,6 +141,7 @@ pub enum WebViewVector {
 }
 
 impl WebViewVector {
+    #[doc(hidden)]
     pub fn as_device_vector(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DeviceVector2D {
         match self {
             Self::Device(vector) => *vector,
@@ -162,10 +168,15 @@ impl From<Vector2D<f32, CSSPixel>> for WebViewVector {
     }
 }
 
+/// Represents the destination of a scroll operation.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Scroll {
+    /// An offset to scroll by, with positive offsets revealing more content on the bottom
+    /// and right of the scrollable area.
     Delta(WebViewVector),
+    /// Scroll to the start of the scrollable area.
     Start,
+    /// Scroll to the end of the scrollable area.
     End,
 }
 
@@ -283,11 +294,12 @@ pub trait RefreshDriver {
     fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
 }
 
+/// Credentials to use in an HTTP authentication challenge.
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
-    /// Username for http request authentication
+    /// Username for HTTP request authentication
     pub username: String,
-    /// Password for http request authentication
+    /// Password for HTTP request authentication
     pub password: String,
 }
 
@@ -305,13 +317,16 @@ pub enum RegisterOrUnregister {
     Unregister,
 }
 
+/// A request from Servo to embedder to register or unregister a custom
+/// protocol handler for a scheme, typically triggered by web content.
+/// See <https://html.spec.whatwg.org/multipage/#custom-handlers>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProtocolHandlerUpdateRegistration {
-    /// The scheme for the protocol handler
+    /// The scheme for the protocol handler.
     pub scheme: String,
-    /// The URL to navigate to when handling requests for scheme
+    /// The URL to navigate to when handling requests for scheme.
     pub url: ServoUrl,
-    /// Whether this update is to register or unregister the protocol handler
+    /// Whether this update is to register or unregister the protocol handler.
     pub register_or_unregister: RegisterOrUnregister,
 }
 
@@ -354,6 +369,7 @@ impl TraversalId {
     }
 }
 
+/// The pixel format of the buffer representing a raster image.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
@@ -381,6 +397,12 @@ pub struct Image {
 }
 
 impl Image {
+    /// Creates a new [`Image`] with the given `width` and `height`.
+    ///
+    /// `data` is a shared memory block containing the pixel data of one or more image frames, in
+    /// the given `format`.
+    ///
+    /// `range` is the byte offset within `data` that is the start of the first frame.
     pub fn new(
         width: u32,
         height: u32,
@@ -403,6 +425,7 @@ impl Image {
     }
 }
 
+/// The severity level of a message logged by page content.
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
@@ -427,9 +450,12 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
+/// Information about a single Bluetooth device.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct BluetoothDeviceDescription {
+    /// The unique address of this device.
     pub address: String,
+    /// A human-readable name for this device.
     pub name: String,
 }
 
@@ -1000,6 +1026,7 @@ impl Display for FocusSequenceNumber {
 #[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct JavaScriptEvaluationId(pub usize);
 
+/// A JavaScript value produced by evaluation of a script.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum JSValue {
     Undefined,
@@ -1015,6 +1042,7 @@ pub enum JSValue {
     Object(HashMap<String, JSValue>),
 }
 
+/// Information about a JavaScript error that occured during the evaluation of a script.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct JavaScriptErrorInfo {
     pub message: String,

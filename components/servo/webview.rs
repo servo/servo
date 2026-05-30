@@ -519,8 +519,8 @@ impl WebView {
         traversal_id
     }
 
-    /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more
-    /// content on the bottom and right of the page.
+    /// Ask the [`WebView`] to scroll the scrollable area under `point` to the
+    /// given `scroll` destination.
     pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
             .servo

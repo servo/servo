@@ -160,7 +160,7 @@ pub struct FilePickerRequest {
     pub accept_current_paths_for_testing: bool,
 }
 
-/// Response from the embedder to an [`EmbedderControlRequest`].
+/// Request to the embedder to display a control for a `<select>` element.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SelectElementRequest {
     pub options: Vec<SelectElementOptionOrOptgroup>,
@@ -168,6 +168,7 @@ pub struct SelectElementRequest {
     pub allow_select_multiple: bool,
 }
 
+/// Response from the embedder to an [`EmbedderControlRequest`].
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
     SelectElement(Vec<usize>),
