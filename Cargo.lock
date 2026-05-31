@@ -8344,6 +8344,7 @@ dependencies = [
  "servo-url",
  "servo_arc",
  "sha2",
+ "smallvec",
  "time",
  "tokio",
  "tokio-rustls",

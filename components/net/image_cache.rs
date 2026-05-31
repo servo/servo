@@ -1184,6 +1184,10 @@ impl ImageCache for ImageCacheImpl {
         store.insert_keys_and_load_images(image_keys);
     }
 
+    fn clear(&self) {
+        self.store.lock().clear();
+    }
+
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
         let store = self.store.lock();
         store
@@ -1202,9 +1206,10 @@ impl ImageCache for ImageCacheImpl {
     }
 }
 
-impl Drop for ImageCacheStore {
-    fn drop(&mut self) {
-        let image_updates = self
+impl ImageCacheStore {
+    /// Clear the image cache.
+    fn clear(&mut self) {
+        let deletions: smallvec::SmallVec<_> = self
             .completed_loads
             .values()
             .filter_map(|load| match &load.image_response {
@@ -1218,9 +1223,30 @@ impl Drop for ImageCacheStore {
                     .values()
                     .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
             )
+            .chain(
+                self.broken_image_icon_image
+                    .get()
+                    .and_then(|icon| icon.as_ref())
+                    .and_then(|icon| icon.id)
+                    .map(ImageUpdate::DeleteImage),
+            )
             .collect();
-        self.paint_api
-            .update_images(self.webview_id.into(), image_updates);
+        if !deletions.is_empty() {
+            self.paint_api
+                .update_images(self.webview_id.into(), deletions);
+        }
+        // Clear these fields, since `clear()` will be called multiple times,
+        // explicitly on pipeline close, and again on Drop (as a safeguard,
+        // since we could forget to explicitly clear).
+        self.completed_loads.clear();
+        self.rasterized_vector_images.clear();
+        let _ = self.broken_image_icon_image.take();
+    }
+}
+
+impl Drop for ImageCacheStore {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 
