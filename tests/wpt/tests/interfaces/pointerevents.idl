@@ -87,6 +87,7 @@ interface WheelEvent : MouseEvent {
   readonly attribute double deltaY;
   readonly attribute double deltaZ;
   readonly attribute unsigned long deltaMode;
+  readonly attribute boolean momentum;
 };
 
 dictionary WheelEventInit : MouseEventInit {

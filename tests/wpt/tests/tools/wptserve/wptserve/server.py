@@ -611,9 +611,9 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             # wire. Flush the headers here.
             try:
                 h2response.write_status_headers()
-            except StreamClosedError:
+            except (StreamClosedError, ProtocolError):
                 # work around https://github.com/web-platform-tests/wpt/issues/27786
-                # The stream was already closed.
+                # The stream or connection was already closed.
                 return
 
             request_wrapper._dispatcher = dispatcher
@@ -741,9 +741,12 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             if getattr(frame, "stream_ended", False):
                 try:
                     self.finish_handling(request, response, req_handler)
-                except StreamClosedError:
-                    self.logger.debug('(%s - %s) Unable to write response; stream closed' %
-                                    (self.uid, stream_id))
+                except (StreamClosedError, ProtocolError):
+                    # The stream or connection was closed before we could
+                    # finish writing the response.
+                    self.logger.debug(
+                        '(%s - %s) Unable to write response; stream or '
+                        'connection closed' % (self.uid, stream_id))
                 break
 
         cleanup()

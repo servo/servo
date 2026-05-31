@@ -21,11 +21,7 @@
 
   promise_test(async t => {
     // Without reading-flow, should follow DOM order: item1, item2, item3
-    const elementsInDOMOrder = [
-      document.getElementById("item1"),
-      document.getElementById("item2"),
-      document.getElementById("item3")
-    ];
+    const elementsInDOMOrder = [item1, item2, item3];
 
     await assert_directional_navigation_bidirectional(elementsInDOMOrder);
   }, "Focusgroup navigation should fall back to DOM order when no reading-flow is specified.");

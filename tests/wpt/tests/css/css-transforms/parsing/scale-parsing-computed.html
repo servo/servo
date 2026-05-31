@@ -39,6 +39,25 @@ test_computed_value("scale", "100% 200% 1", "1 2");
 test_computed_value("scale", "100 200 300");
 test_computed_value("scale", "100 100 2", "100 100 2");
 test_computed_value("scale", "100% 200% 300%", "1 2 3");
+
+test_computed_value("scale", "calc(200%)", "2");
+test_computed_value("scale", "calc(2 * 100%)", "2");
+test_computed_value("scale", "calc(1 + 1)", "2");
+test_computed_value("scale", "calc(200%) calc(300%)", "2 3");
+test_computed_value("scale", "calc(200%) calc(300%) calc(400%)", "2 3 4");
+test_computed_value("scale", "calc(2) calc(3)", "2 3");
+test_computed_value("scale", "calc(200%) 3", "2 3");
+test_computed_value("scale", "2 calc(300%)", "2 3");
+
+// calc() expressions that are resolvable at computed value time
+test_computed_value("scale", "calc(2 * sign(1em - 1px))", "2");
+test_computed_value("scale", "calc(200% * sign(1em - 1px))", "2");
+test_computed_value("scale", "calc(1 + sign(1em - 1px))", "2");
+test_computed_value("scale", "calc(200%) calc(300% * sign(1em - 1px))", "2 3");
+test_computed_value("scale", "calc(200%) calc(300%) calc(400% * sign(1em - 1px))", "2 3 4");
+test_computed_value("scale", "calc(2 * sign(1em - 1px)) calc(3)", "2 3");
+test_computed_value("scale", "calc(200% * sign(1em - 1px)) 3", "2 3");
+test_computed_value("scale", "2 calc(300% * sign(1em - 1px)", "2 3");
 </script>
 </body>
 </html>

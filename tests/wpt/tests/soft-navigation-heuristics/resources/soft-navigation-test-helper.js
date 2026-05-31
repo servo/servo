@@ -154,9 +154,11 @@ class SoftNavigationTestHelper {
 
     const icps = await this.withTimeoutMessage(
         icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
-    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
-    assert_equals(icps[0].id, targetId, `Expected ICP candidate to be "${targetId}"`);
+    assert_greater_than_equal(icps.length, 1, 'Expected at least one ICP entry.');
+    const validIcp = icps.filter(i => !!i.largestContentfulPaint).at(-1);
+    assert_true(!!validIcp, "Expected at least one ICP entry with a valid largestContentfulPaint sub-object");
+    assert_equals(validIcp.largestContentfulPaint.id, targetId, `Expected ICP candidate to be "${targetId}"`);
 
-    return {softNav: softNavs[0], icp: icps[0]};
+    return {softNav: softNavs[0], icp: validIcp};
   }
 }

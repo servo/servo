@@ -37,6 +37,20 @@ test_valid_value("scale", "100% 200% 1", "1 2");
 test_valid_value("scale", "100 200 300");
 test_valid_value("scale", "100 100 2", "100 100 2");
 test_valid_value("scale", "100% 200% 300%", "1 2 3");
+
+// calc() expressions preserve units
+test_valid_value("scale", "calc(200%)");
+test_valid_value("scale", "calc(2)");
+test_valid_value("scale", "calc(200%) calc(3)");
+test_valid_value("scale", "calc(2 * 1) 3 calc(4 * 100%)", "calc(2) 3 calc(400%)");
+test_valid_value("scale", "calc(-100%)");
+
+// calc() expressions that are resolvable at computed value time
+test_valid_value("scale", "calc(200% * sign(1em - 1px))");
+test_valid_value("scale", "calc(2 * sign(1em - 1px))");
+test_valid_value("scale", "calc(200%) calc(3 * sign(1em - 1px))");
+test_valid_value("scale", "calc(2 * sign(1em - 1px)) 3 calc(4 * 100%)", "calc(2 * sign(1em - 1px)) 3 calc(400%)");
+test_valid_value("scale", "calc(-100% * sign(1em - 1px))");
 </script>
 </body>
 </html>

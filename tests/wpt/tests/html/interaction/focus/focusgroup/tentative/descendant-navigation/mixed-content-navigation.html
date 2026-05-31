@@ -46,12 +46,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-    var item4 = document.getElementById("item4");
-    var item5 = document.getElementById("item5");
-
     await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should skip non-focusable content and navigate to item2");
 
@@ -66,12 +60,6 @@
   }, "Navigation should skip non-focusable descendants and only move between focusable items");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-    var item4 = document.getElementById("item4");
-    var item5 = document.getElementById("item5");
-
     await focusAndWait(item5);
     await focusAndSendDirectionalInput(item5, kLeft);
     assert_equals(document.activeElement, item4, "Should navigate backward to link");
@@ -87,9 +75,6 @@
   }, "Backward navigation should skip non-focusable descendants");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2, "Vertical navigation should work with mixed content");
   }, "Vertical navigation should work correctly with mixed focusable/non-focusable content");

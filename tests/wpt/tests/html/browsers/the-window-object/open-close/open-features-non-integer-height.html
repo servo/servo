@@ -31,18 +31,34 @@ setup (() => {
 });
 
 function runWindowTests (baselineDimensions) {
+  function openWindowAndWaitForDimensions(t, feature, expectedHeight) {
+    return new Promise(resolve => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var win;
+      var url = prefixedMessage.url(windowURL) +
+          '&expected_innerHeight=' + expectedHeight;
+
+      t.add_cleanup(() => {
+        if (win && !win.closed) {
+          win.close();
+        }
+      });
+      prefixedMessage.onMessage((data, e) => {
+        e.source.close();
+        t.step_timeout(() => resolve(data), 0);
+      });
+      win = window.open(url, '', feature);
+    });
+  }
+
   // The absence of the sizing feature should have the same behavior
   // as that feature set to 0
   [ featuresPrefix,
     'top=0,left=0',
   ].forEach(feature => {
-    async_test(t => {
-      var prefixedMessage = new PrefixedMessageTest();
-      prefixedMessage.onMessage(t.step_func_done((data, e) => {
-        e.source.close();
-        assert_equals(data.height, baselineDimensions.height);
-      }));
-      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=' + baselineDimensions.height, '', feature);
+    promise_test(async t => {
+      var data = await openWindowAndWaitForDimensions(t, feature, baselineDimensions.height);
+      assert_equals(data.height, baselineDimensions.height);
     }, `${feature}: absence of feature "height" should be treated same as "height=0"`);
   });
 
@@ -52,14 +68,10 @@ function runWindowTests (baselineDimensions) {
     'height=_404',
     'height=L404'
   ].forEach(feature => {
-    async_test(t => {
-      var prefixedMessage = new PrefixedMessageTest();
+    promise_test(async t => {
       var featureString = `${featuresPrefix}${feature}`;
-      prefixedMessage.onMessage(t.step_func_done((data, e) => {
-        e.source.close();
-        assert_equals(data.height, baselineDimensions.height, `"${feature} begins with an invalid character and should be ignored"`);
-      }));
-      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=' + baselineDimensions.height, '', featureString);
+      var data = await openWindowAndWaitForDimensions(t, featureString, baselineDimensions.height);
+      assert_equals(data.height, baselineDimensions.height, `"${feature} begins with an invalid character and should be ignored"`);
     }, `features "${feature}" should NOT set "height=404"`);
   });
 
@@ -75,14 +87,10 @@ function runWindowTests (baselineDimensions) {
     'height=405e1',
     'height=405e-1'
   ].forEach(feature => {
-    async_test(t => {
-      var prefixedMessage = new PrefixedMessageTest();
+    promise_test(async t => {
       var featureString = `${featuresPrefix}${feature}`;
-      prefixedMessage.onMessage(t.step_func_done((data, e) => {
-        e.source.close();
-        assert_equals(data.height, 405, `"${featureString} value after first non-digit will be ignored"`);
-      }));
-      var win = window.open(prefixedMessage.url(windowURL) + "&expected_innerHeight=405", '', featureString);
+      var data = await openWindowAndWaitForDimensions(t, featureString, 405);
+      assert_equals(data.height, 405, `"${featureString} value after first non-digit will be ignored"`);
     }, `features "${feature}" should set "height=405"`);
   });
 

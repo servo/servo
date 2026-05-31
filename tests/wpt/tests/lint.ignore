@@ -214,6 +214,10 @@ SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
 SET TIMEOUT: html/canvas/resources/draw-element-image-utils.js
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/intersection-observer-visibility.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-css-animation.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/requestPaint.tentative.html
 SET TIMEOUT: html/cross-origin-opener-policy/resources/fully-loaded.js
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/media-elements/track/track-element/crashtests/*

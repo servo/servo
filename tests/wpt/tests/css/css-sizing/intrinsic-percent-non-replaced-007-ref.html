@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Reference</title>
+<style>
+.ref {
+  width: 200px;
+  height: 100px;
+}
+
+.left {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+.right {
+  overflow: hidden;
+  height: 100px;
+  background: blue;
+}
+</style>
+<p>Test passes if there is a 200x100 rectangle (green left half, blue right half).</p>
+<div class="ref">
+  <div class="left"></div>
+  <div class="right"></div>
+</div>

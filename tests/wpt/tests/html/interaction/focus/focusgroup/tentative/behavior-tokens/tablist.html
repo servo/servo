@@ -35,84 +35,84 @@
 <script>
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl1'), kRight);
+    await focusAndSendDirectionalInput(tl1, kRight);
     assert_equals(document.activeElement.id, 'tl2');
   }, "tablist: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl2'), kLeft);
+    await focusAndSendDirectionalInput(tl2, kLeft);
     assert_equals(document.activeElement.id, 'tl1');
   }, "tablist: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl1'), kDown);
+    await focusAndSendDirectionalInput(tl1, kDown);
     assert_equals(document.activeElement.id, 'tl1');
   }, "tablist: Down blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl1'), kUp);
+    await focusAndSendDirectionalInput(tl1, kUp);
     assert_equals(document.activeElement.id, 'tl1');
   }, "tablist: Up blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl3'), kRight);
+    await focusAndSendDirectionalInput(tl3, kRight);
     assert_equals(document.activeElement.id, 'tl1');
   }, "tablist: Right wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tl1'), kLeft);
+    await focusAndSendDirectionalInput(tl1, kLeft);
     assert_equals(document.activeElement.id, 'tl3');
   }, "tablist: Left wraps at start");
 
   // --- tablist block: explicit block overrides default inline ---
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb1'), kDown);
+    await focusAndSendDirectionalInput(tlb1, kDown);
     assert_equals(document.activeElement.id, 'tlb2');
   }, "tablist block: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb2'), kUp);
+    await focusAndSendDirectionalInput(tlb2, kUp);
     assert_equals(document.activeElement.id, 'tlb1');
   }, "tablist block: Up navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb1'), kRight);
+    await focusAndSendDirectionalInput(tlb1, kRight);
     assert_equals(document.activeElement.id, 'tlb1');
   }, "tablist block: Right blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb1'), kLeft);
+    await focusAndSendDirectionalInput(tlb1, kLeft);
     assert_equals(document.activeElement.id, 'tlb1');
   }, "tablist block: Left blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb3'), kDown);
+    await focusAndSendDirectionalInput(tlb3, kDown);
     assert_equals(document.activeElement.id, 'tlb1');
   }, "tablist block: Down wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlb1'), kUp);
+    await focusAndSendDirectionalInput(tlb1, kUp);
     assert_equals(document.activeElement.id, 'tlb3');
   }, "tablist block: Up wraps at start");
 
   // --- tablist nowrap: suppresses default wrap ---
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlnw1'), kRight);
+    await focusAndSendDirectionalInput(tlnw1, kRight);
     assert_equals(document.activeElement.id, 'tlnw2');
   }, "tablist nowrap: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlnw2'), kLeft);
+    await focusAndSendDirectionalInput(tlnw2, kLeft);
     assert_equals(document.activeElement.id, 'tlnw1');
   }, "tablist nowrap: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlnw3'), kRight);
+    await focusAndSendDirectionalInput(tlnw3, kRight);
     assert_equals(document.activeElement.id, 'tlnw3');
   }, "tablist nowrap: Right does not wrap at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('tlnw1'), kLeft);
+    await focusAndSendDirectionalInput(tlnw1, kLeft);
     assert_equals(document.activeElement.id, 'tlnw1');
   }, "tablist nowrap: Left does not wrap at start");
 

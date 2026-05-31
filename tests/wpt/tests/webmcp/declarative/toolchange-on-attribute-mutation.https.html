@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolchange event and getTools() update on form attribute mutation</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+
+<form id="f1" toolname="my_tool" tooltitle="My Title" tooldescription="desc">
+  <input id="input1" type="text" name="input_name">
+</form>
+
+<script>
+function waitForToolChange() {
+  return new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+}
+
+promise_test(async t => {
+  const form = document.getElementById('f1');
+
+  // Wait for initial registration to complete.
+  await waitForTool('my_tool');
+
+  let tools = await navigator.modelContext.getTools();
+  assert_equals(tools.length, 1, "Initially registered tool");
+  assert_equals(tools[0].name, 'my_tool');
+  assert_equals(tools[0].title, 'My Title');
+  assert_equals(tools[0].description, 'desc');
+
+  // Test updating tooltitle attribute
+  {
+    const changePromise = waitForToolChange();
+    form.setAttribute('tooltitle', 'New Title');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1, "Still one tool");
+    assert_equals(tools[0].title, 'New Title', "Title is updated");
+  }
+
+  // Test updating tooldescription attribute
+  {
+    const changePromise = waitForToolChange();
+    form.setAttribute('tooldescription', 'New Description');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1);
+    assert_equals(tools[0].description, 'New Description', "Description is updated");
+  }
+
+  // Test updating toolname attribute
+  {
+    const changePromise = waitForToolChange();
+    form.setAttribute('toolname', 'new_tool_name');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1);
+    assert_equals(tools[0].name, 'new_tool_name', "Name is updated");
+  }
+
+  // Test removing tooltitle attribute (should fall back to empty string)
+  {
+    const changePromise = waitForToolChange();
+    form.removeAttribute('tooltitle');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1);
+    assert_equals(tools[0].title, '', "Title should fall back to empty string");
+  }
+
+  // Test removing tooldescription attribute (should unregister the tool since it's required)
+  {
+    const changePromise = waitForToolChange();
+    form.removeAttribute('tooldescription');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 0, "Tool should be unregistered when description is removed");
+  }
+
+  // Restore the description attribute to re-register the tool
+  {
+    const changePromise = waitForToolChange();
+    form.setAttribute('tooldescription', 'Restored Description');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1);
+    assert_equals(tools[0].name, 'new_tool_name');
+    assert_equals(tools[0].description, 'Restored Description');
+  }
+
+  // Test removing toolname attribute (should unregister the tool since it's required)
+  {
+    const changePromise = waitForToolChange();
+    form.removeAttribute('toolname');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 0, "Tool should be unregistered when name is removed");
+  }
+}, "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle) fires toolchange and updates getTools() correctly");
+</script>
+</body>

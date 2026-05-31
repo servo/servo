@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Canvas.drawElementImage should not crash when drawing scrollers</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://crbug.com/490343465">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+  }
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    scrollbar-gutter: stable;
+  }
+  #scroller::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+  }
+  #contents {
+    width: 200px;
+    height: 200px;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="target">
+    <div id="scroller">
+      <div id="contents"></div>
+    </div>
+  </div>
+</canvas>
+
+<script>
+  canvas.onpaint = () => {
+    const ctx = canvas.getContext('2d');
+    ctx.reset();
+    ctx.drawElementImage(target, 0, 0);
+    takeScreenshot();
+  }
+  canvas.requestPaint();
+</script>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<style>
+  #container {
+    width: 200px;
+    height: 200px;
+    background: lightgray;
+    position: relative;
+  }
+  #anchor {
+    width: 100px;
+    height: 100px;
+    background: green;
+    anchor-name: --anchor;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+  }
+  #anchored {
+    position-anchor: --anchor;
+    position-visibility: always;
+    position-area: bottom center;
+    width: 100px;
+    height: 100px;
+    background: lightgreen;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id=container>
+  <div id=anchor></div>
+</div>
+<div id=anchored></div>

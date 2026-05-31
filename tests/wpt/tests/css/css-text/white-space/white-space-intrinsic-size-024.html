@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: max-content trims trailing whitespace before a forced line break</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="match" href="reference/white-space-intrinsic-size-024-ref.html">
+<meta name="assert" content="When pre-line introduces a forced line break inside an inline, the trailing whitespace at the end of the previous line is trimmed and does not contribute to the containing block's max-content width.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  div {
+    width: max-content;
+    outline: 2px solid green;
+    font: 20px/1 Ahem;
+  }
+  span {
+    white-space: pre-line;
+  }
+</style>
+<p>Test passes if the green outline tightly hugs the two X glyphs (no extra space on the right).</p>
+<div><img>X <span>
+X</span></div>

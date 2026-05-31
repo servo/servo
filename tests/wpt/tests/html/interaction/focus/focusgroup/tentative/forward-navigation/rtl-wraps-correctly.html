@@ -21,9 +21,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item3 = document.getElementById("item3");
-
     // Left wraps forward: from last item should wrap to first.
     await focusAndSendDirectionalInput(item3, kLeft);
     assert_equals(document.activeElement, item1,
@@ -31,9 +28,6 @@
   }, "Left at last item wraps to first item in RTL focusgroup.");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item3 = document.getElementById("item3");
-
     // Right wraps backward: from first item should wrap to last.
     await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item3,

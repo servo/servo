@@ -8,6 +8,6 @@ test(() => {
   };
 
   const controller = new AbortController();
-  navigator.modelContext.registerTool(tool, { signal: controller.signal });
+  document.modelContext.registerTool(tool, { signal: controller.signal });
   controller.abort();
 }, 'register tool with only required params');

@@ -47,16 +47,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-    var item4 = document.getElementById("item4");
-    var item5 = document.getElementById("item5");
-    var item6 = document.getElementById("item6");
-    var item7 = document.getElementById("item7");
-    var item8 = document.getElementById("item8");
-    var item9 = document.getElementById("item9");
-
     await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to nested item");
 
@@ -83,10 +73,6 @@
   }, "Navigation should work with items in various container types");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item8 = document.getElementById("item8");
-    var item9 = document.getElementById("item9");
-
     await focusAndWait(item9);
     await focusAndSendDirectionalInput(item9, kLeft);
     assert_equals(document.activeElement, item8, "Should navigate backward from final item");
@@ -97,15 +83,11 @@
   }, "Backward navigation should work with various container types");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2, "Vertical navigation should work with different container types");
   }, "Vertical navigation should work with various container types");
 
   promise_test(async t => {
-    var root = document.getElementById("root");
     var expectedElements = [
       "item1", "item2", "item3", "item4", "item5",
       "item6", "item7", "item8", "item9"

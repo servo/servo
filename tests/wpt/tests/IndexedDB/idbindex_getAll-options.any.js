@@ -101,6 +101,22 @@ index_get_all_values_with_options_test(
     'Direction: prevunique');
 
 index_get_all_values_with_options_test(
+    /*storeName=*/ 'out-of-line-not-unique', /*options=*/ {direction: 'nextunique'},
+    'Direction: nextunique with duplicate index keys');
+
+index_get_all_values_with_options_test(
+    /*storeName=*/ 'out-of-line-not-unique', /*options=*/ {direction: 'prevunique'},
+    'Direction: prevunique with duplicate index keys');
+
+index_get_all_values_with_options_test(
+    /*storeName=*/ 'out-of-line-multi', /*options=*/ {direction: 'nextunique'},
+    'Direction: nextunique with multi-entry index');
+
+index_get_all_values_with_options_test(
+    /*storeName=*/ 'out-of-line-multi', /*options=*/ {direction: 'prevunique'},
+    'Direction: prevunique with multi-entry index');
+
+index_get_all_values_with_options_test(
     /*storeName=*/ 'out-of-line', /*options=*/ {
       direction: 'prev',
       query: IDBKeyRange.bound('b', 'x'),

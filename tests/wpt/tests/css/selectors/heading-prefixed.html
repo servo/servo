@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>:heading(N) matches prefixed HTML headings</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#headings">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host"></div>
+
+<script>
+const xhtml = "http://www.w3.org/1999/xhtml";
+
+for (let level = 1; level <= 6; level++) {
+  test(t => {
+    const el = document.createElementNS(xhtml, `h:h${level}`);
+    document.getElementById("host").append(el);
+    t.add_cleanup(() => el.remove());
+    assert_true(el.matches(`:heading(${level})`), `:heading(${level}) matches`);
+    assert_true(el.matches(":heading"), ":heading matches");
+  }, `:heading(${level}) matches <h:h${level}> in the HTML namespace`);
+}
+</script>

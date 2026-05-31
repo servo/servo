@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: non opaque element with compositing op</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="compositing-op-non-opaque-element-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: transparent;
+}
+#canvas {
+  background: grey;
+}
+.grandchild {
+  background: green;
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child>
+    <div class="grandchild" style="left: 0px; top: 0px"></div>
+    <div class="grandchild" style="left: 80px; top: 0px"></div>
+    <div class="grandchild" style="left: 0px; top: 80px"></div>
+    <div class="grandchild" style="left: 80px; top: 80px"></div>
+  </div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  var context = canvas.getContext("2d");
+  context.fillStyle = "blue";
+  context.fillRect(10, 10, 180, 180);
+  context.globalCompositeOperation = "destination-out";
+  context.drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

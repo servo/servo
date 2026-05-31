@@ -28,53 +28,53 @@
 <script>
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb1'), kDown);
+    await focusAndSendDirectionalInput(lb1, kDown);
     assert_equals(document.activeElement.id, 'lb2');
   }, "listbox: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb2'), kUp);
+    await focusAndSendDirectionalInput(lb2, kUp);
     assert_equals(document.activeElement.id, 'lb1');
   }, "listbox: Up navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb1'), kRight);
+    await focusAndSendDirectionalInput(lb1, kRight);
     assert_equals(document.activeElement.id, 'lb1');
   }, "listbox: Right blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb1'), kLeft);
+    await focusAndSendDirectionalInput(lb1, kLeft);
     assert_equals(document.activeElement.id, 'lb1');
   }, "listbox: Left blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb3'), kDown);
+    await focusAndSendDirectionalInput(lb3, kDown);
     assert_equals(document.activeElement.id, 'lb3');
   }, "listbox: Down does not wrap at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lb1'), kUp);
+    await focusAndSendDirectionalInput(lb1, kUp);
     assert_equals(document.activeElement.id, 'lb1');
   }, "listbox: Up does not wrap at start");
 
   // --- listbox wrap: adds wrapping to non-wrapping default ---
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lw1'), kDown);
+    await focusAndSendDirectionalInput(lw1, kDown);
     assert_equals(document.activeElement.id, 'lw2');
   }, "listbox wrap: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lw3'), kDown);
+    await focusAndSendDirectionalInput(lw3, kDown);
     assert_equals(document.activeElement.id, 'lw1');
   }, "listbox wrap: Down wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lw1'), kUp);
+    await focusAndSendDirectionalInput(lw1, kUp);
     assert_equals(document.activeElement.id, 'lw3');
   }, "listbox wrap: Up wraps at start");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('lw1'), kRight);
+    await focusAndSendDirectionalInput(lw1, kRight);
     assert_equals(document.activeElement.id, 'lw1');
   }, "listbox wrap: Right still blocked");
 

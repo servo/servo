@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: three consecutive block-in-inlines with cascading margins</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="three-block-in-inlines-cascading-margins-ref.html">
+<meta name="assert" content="Three block-in-inlines in different spans collapse adjacent margins as flat blocks would.">
+<style>
+.container { width: 100px; }
+.a { width: 100px; height: 20px; margin-bottom: 30px; background: blue; }
+.b { width: 100px; height: 20px; margin-top: 20px; margin-bottom: 40px; background: green; }
+.c { width: 100px; height: 20px; margin-top: 50px; background: orange; }
+</style>
+<p>Three rectangles separated by 30px and 50px gaps respectively.</p>
+<div class="container">
+    <span><div class="a"></div></span>
+    <span><div class="b"></div></span>
+    <span><div class="c"></div></span>
+</div>

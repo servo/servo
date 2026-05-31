@@ -18,13 +18,14 @@ img { display: block; object-fit: cover }
 <script>
 const params = new URLSearchParams(location.search);
 const id = params.get("id") || token();
+const revalidated = location.search.includes("revalidate");
 
 window.onload = () => {
   const image = document.createElement("img");
+  image.onload = () => revalidated || (location.search = `?id=${id}&revalidate`);
   image.src = `support/object-fit-stale-image.py?id=${id}`;
 
-  if (!location.search.includes("revalidate")) {
-    image.onload = () => location.search = `?id=${id}&revalidate`;
+  if (!revalidated) {
     return;
   }
 

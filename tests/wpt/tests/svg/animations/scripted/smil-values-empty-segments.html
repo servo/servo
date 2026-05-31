@@ -1,0 +1,85 @@
+<!doctype html>
+<title>Empty values in SMIL 'values' attribute should be preserved</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<link rel="help" href="https://svgwg.org/specs/animations/#ValuesAttribute">
+<style>
+  .red   { fill: red; }
+  .green { fill: green; }
+</style>
+<svg id="svg" width="400" height="400">
+  <!-- values: length with trailing semicolon (2 values: "0", "100") -->
+  <rect id="rect-values-length" x="0" width="100" height="100" fill="green">
+    <animate attributeName="x" values="0;100;" dur="4s" fill="freeze"/>
+  </rect>
+
+  <!-- values: class with trailing semicolon (2 values: "red", "green") -->
+  <rect id="rect-values-class-trailing" width="100" height="100">
+    <animate attributeName="class" values="red;green;" dur="4s"
+             fill="freeze" calcMode="discrete"/>
+  </rect>
+
+  <!-- values: class with double trailing semicolon (3 values: "red", "green", "") -->
+  <rect id="rect-values-class-double" width="100" height="100">
+    <animate attributeName="class" values="red;green;;" dur="3s"
+             fill="freeze" calcMode="discrete"/>
+  </rect>
+
+  <!-- values: class with empty value in the middle (3 values: "red", "", "green") -->
+  <rect id="rect-values-class-middle" width="100" height="100">
+    <animate attributeName="class" values="red;;green" dur="3s"
+             fill="freeze" calcMode="discrete"/>
+  </rect>
+</svg>
+<script>
+  const svg = document.getElementById('svg');
+
+  promise_test(async t => {
+    svg.pauseAnimations();
+    svg.setCurrentTime(4);
+    await waitForAtLeastOneFrame();
+    const rect = document.getElementById('rect-values-length');
+    assert_equals(rect.x.animVal.value, 100,
+      'values="0;100;" with trailing semicolon should animate x to 100');
+  }, 'Trailing semicolon in values attribute is ignored for length animation');
+
+  promise_test(async t => {
+    svg.pauseAnimations();
+    svg.setCurrentTime(3);
+    await waitForAtLeastOneFrame();
+    const rect = document.getElementById('rect-values-class-trailing');
+    const fill = getComputedStyle(rect).fill;
+    assert_equals(fill, 'rgb(0, 128, 0)',
+      'values="red;green;" should end on "green" (trailing semicolon ignored)');
+  }, 'Trailing semicolon in values attribute is ignored for class animation');
+
+  promise_test(async t => {
+    svg.pauseAnimations();
+    // Seek well past the 2/3 boundary of dur=3s. With 3 values in discrete mode,
+    // index = floor(percent * 3). At t=2.5s, percent=5/6, index=floor(2.5)=2.
+    // The 3rd value is "" (empty class = default black fill).
+    svg.setCurrentTime(2.5);
+    await waitForAtLeastOneFrame();
+    const rect = document.getElementById('rect-values-class-double');
+    const fill = getComputedStyle(rect).fill;
+    assert_not_equals(fill, 'rgb(255, 0, 0)',
+      'Should not be red — empty class value should clear the class');
+    assert_not_equals(fill, 'rgb(0, 128, 0)',
+      'Should not be green — empty class value should clear the class');
+  }, 'Double trailing semicolon in values preserves empty value between them');
+
+  promise_test(async t => {
+    svg.pauseAnimations();
+    // At t=1.5s (percent=0.5), index = floor(0.5 * 3) = 1.
+    // The 2nd value is "" (empty class = default black fill).
+    svg.setCurrentTime(1.5);
+    await waitForAtLeastOneFrame();
+    const rect = document.getElementById('rect-values-class-middle');
+    const fill = getComputedStyle(rect).fill;
+    assert_not_equals(fill, 'rgb(255, 0, 0)',
+      'Should not be red — empty class value should clear the class');
+    assert_not_equals(fill, 'rgb(0, 128, 0)',
+      'Should not be green — empty class value should clear the class');
+  }, 'Empty value in the middle of values attribute is preserved');
+</script>

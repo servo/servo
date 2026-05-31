@@ -45,24 +45,24 @@ Notes:
     if (test_driver) {
       test_driver.click(document.getElementById("click-target"));
     }
-    const [softNavigationEntries, elementEntries, softLcpEntries] = await helper.withTimeoutMessage(
+    const [softNavigationEntries, elementEntries, icpEntries] = await helper.withTimeoutMessage(
       promise,
       "Failed to get performance entries.",
     );
 
     assert_equals(1, softNavigationEntries.length, "There should be one soft navigation entry.");
     assert_equals(1, elementEntries.length, "There should be one element entry.");
-    assert_equals(1, softLcpEntries.length, "There should be one soft LCP entry.");
+    assert_equals(1, icpEntries.length, "There should be one ICP entry.");
 
     assert_less_than_equal(
       softNavigationEntries[0].startTime,
-      softLcpEntries[0].renderTime,
-      "Soft LCP should be after soft navigation.",
+      icpEntries[0].largestContentfulPaint.renderTime,
+      "ICP entry should be after soft navigation.",
     );
     assert_equals(
-      softLcpEntries[0].renderTime,
+      icpEntries[0].largestContentfulPaint.renderTime,
       elementEntries[0].renderTime,
-      "Soft LCP and element entry should be at the same time.",
+      "ICP entry and element entry should be at the same time.",
     );
 
     assert_not_equals(
@@ -72,13 +72,13 @@ Notes:
     );
     assert_equals(
       softNavigationEntries[0].navigationId,
-      softLcpEntries[0].navigationId,
-      "Soft navigation and soft LCP have the same navigation ID.",
+      icpEntries[0].navigationId,
+      "Soft navigation and ICP entry have the same navigation ID.",
     );
     assert_equals(
-      softLcpEntries[0].navigationId,
+      icpEntries[0].navigationId,
       elementEntries[0].navigationId,
-      "Soft LCP and element entry have the same navigation ID.",
+      "ICP entry and element entry have the same navigation ID.",
     );
   }, "FCP and LCP after soft navigation are the same when there is a single text element in the page.");
 </script>

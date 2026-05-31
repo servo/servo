@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src=/common/media.js></script>
+<script src=/picture-in-picture/resources/picture-in-picture-helpers.js></script>
+<script>
+'use strict';
+
+// Loads a video, calls requestPictureInPicture(), and reports back whether
+// the permissions policy allows the feature. A SecurityError means the policy
+// blocked the call; a NotAllowedError means user activation was missing but
+// the policy itself allows PiP.
+window.addEventListener('load', () => {
+  const video = document.createElement('video');
+  video.src = getVideoURI('/media/movie_5');
+  video.onloadedmetadata = () => {
+    video.requestPictureInPicture()
+      .then(() => {
+        window.parent.postMessage({ type: 'pip-policy-result', allowed: true }, '*');
+      })
+      .catch(e => {
+        const allowed = e.name === 'NotAllowedError';
+        window.parent.postMessage({ type: 'pip-policy-result', allowed }, '*');
+      });
+  };
+  document.body.appendChild(video);
+}, { once: true });
+</script>

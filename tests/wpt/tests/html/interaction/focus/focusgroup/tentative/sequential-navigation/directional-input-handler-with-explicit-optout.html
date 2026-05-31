@@ -22,16 +22,12 @@
 <script>
 
   promise_test(async t => {
-    const btn1 = document.getElementById("btn1");
-    const search = document.getElementById("search");
-    const btn2 = document.getElementById("btn2");
 
     // Element with focusgroup="none" is excluded from directional navigation entirely.
     await assert_directional_navigation_bidirectional([btn1, btn2]);
   }, "Explicit focusgroup=none excludes element from directional navigation");
 
   promise_test(async t => {
-    const search = document.getElementById("search");
 
     await focusAndWait(search);
     assert_equals(document.activeElement, search, "Can manually focus opted-out element");
@@ -41,11 +37,6 @@
   }, "Directional input does not work from explicitly opted-out native directional input handler");
 
   promise_test(async t => {
-    const before = document.getElementById("before");
-    const btn1 = document.getElementById("btn1");
-    const search = document.getElementById("search");
-    const btn2 = document.getElementById("btn2");
-    const after = document.getElementById("after");
 
     // Explicit opt-out means element is in normal Tab order regardless of focus state.
     // Native directional input handlers (without explicit opt-out) remain focusgroup items

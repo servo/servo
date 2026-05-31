@@ -37,14 +37,14 @@
         await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
     assert_equals(lcpEntries.length, 1);
     assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
-    const softLcpPromise =
+    const icpPromise =
         SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
     if (test_driver) {
       test_driver.click(document.getElementById("click-target"));
     }
-    const softLcpEntries = await softLcpPromise;
-    assert_equals(softLcpEntries.length, 1);
-    const entry = softLcpEntries[0];
+    const icpEntries = await icpPromise;
+    assert_equals(icpEntries.length, 1);
+    const entry = icpEntries[0];
     const url = "http://{{domains[www]}}:{{ports[http][1]}}/images/blue.png";
     // blue.png is 133 x 106.
     const size = 133 * 106;

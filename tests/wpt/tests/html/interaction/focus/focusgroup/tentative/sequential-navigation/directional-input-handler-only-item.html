@@ -21,7 +21,6 @@
 <script>
 
   promise_test(async t => {
-    const search = document.getElementById("search");
 
     await focusAndWait(search);
 
@@ -30,9 +29,6 @@
   }, "Directional input does not work from native directional input handler even when it's the only item");
 
   promise_test(async t => {
-    const before = document.getElementById("before");
-    const search = document.getElementById("search");
-    const after = document.getElementById("after");
 
     // Tab navigation: enter at search, exit to after.
     await assert_focusgroup_tab_navigation([before, search, after]);

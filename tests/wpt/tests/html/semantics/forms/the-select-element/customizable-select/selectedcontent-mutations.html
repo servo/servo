@@ -402,12 +402,8 @@ const testIdToExpectations = {
     html:
 `<select multiple="" size="1">
     <button>
-      <selectedcontent>
-        <selectedcontent></selectedcontent>
-      </selectedcontent>
-      <selectedcontent>
-        <selectedcontent></selectedcontent>
-      </selectedcontent>
+      <selectedcontent></selectedcontent>
+      <selectedcontent></selectedcontent>
     </button>
     <option>option</option>
   </select>`,
@@ -431,6 +427,8 @@ const testIdToExpectations = {
       "Type: childList | Target: select | Added: [option] | After: #text: \"\"",
       "Type: childList | Target: option | Added: [#text: \"option\"]",
       "Type: childList | Target: select | Added: [#text: \"\"] | After: option",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"\", selectedcontent, #text: \"\"]",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"\", selectedcontent, #text: \"\"]",
       "Type: childList | Target: div#test6 | Added: [#text: \"\"] | After: select"
     ]
   },

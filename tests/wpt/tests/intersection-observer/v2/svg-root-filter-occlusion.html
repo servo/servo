@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #target1 { left: 10px; top: 10px; }
+  #target2 { left: 10px; top: 200px; }
+  svg {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+  }
+  #svg1 { left: 150px; top: 150px; }
+  #svg2 { left: 110px; top: 300px; }
+</style>
+
+<div id="target1" class="target"></div>
+<svg id="svg1">
+  <g>
+    <rect id="grandchild" x="0" y="0" width="10" height="10" fill="blue"/>
+  </g>
+</svg>
+
+<div id="target2" class="target"></div>
+<svg id="svg2">
+  <rect width="100" height="100" fill="blue"/>
+</svg>
+
+<script>
+async_test(t => {
+  const target = document.getElementById("target1");
+  const grandchild = document.getElementById("grandchild");
+  let observation_count = 0;
+
+  const observer = new IntersectionObserver(t.step_func(entries => {
+    entries.forEach(entry => {
+      observation_count++;
+      if (observation_count === 1) {
+        assert_true(entry.isVisible, "Initially visible");
+        grandchild.style.filter = "drop-shadow(-140px -140px red)";
+      } else if (observation_count === 2) {
+        assert_false(entry.isVisible, "Should be occluded by grandchild filter");
+        observer.disconnect();
+        t.done();
+      }
+    });
+  }), {trackVisibility: true, delay: 100});
+
+  observer.observe(target);
+}, "IntersectionObserver observes visibility changes from SVG grandchild filter changes");
+
+async_test(t => {
+  const target = document.getElementById("target2");
+  const svg2 = document.getElementById("svg2");
+  let observation_count = 0;
+
+  const observer = new IntersectionObserver(t.step_func(entries => {
+    entries.forEach(entry => {
+      observation_count++;
+      if (observation_count === 1) {
+        assert_true(entry.isVisible, "Initially visible");
+        svg2.style.filter = "drop-shadow(-100px -100px red)";
+      } else if (observation_count === 2) {
+        assert_false(entry.isVisible, "Should be occluded by filter on svg root");
+        observer.disconnect();
+        t.done();
+      }
+    });
+  }), {trackVisibility: true, delay: 100});
+
+  observer.observe(target);
+}, "IntersectionObserver observes visibility changes from SVG root filter changes");
+</script>

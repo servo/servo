@@ -7,7 +7,7 @@
 <menubar>
   <menuitem id="menubaritem">More commands</menuitem>
   <menuitem>Command 2</menuitem>
-  <menuitem id="opencheckable" commandfor="checkable" command="show-menu">Open checkable menu</menuitem>
+  <menuitem id="opencheckable" commandfor="checkable" command="show-popover">Open checkable menu</menuitem>
 </menubar>
 
 <menulist id="more">
@@ -85,28 +85,26 @@ test(() => {
  assert_true(menulist.matches(':popover-open'),
     'toggle-menu opens the menulist');
 
- menubaritem.click();
- assert_false(menulist.matches(':popover-open'),
-    "toggle-menu closes the menulist");
+ menulist.hidePopover();
 
- menubaritem.setAttribute("command", "show-menu");
+ menubaritem.setAttribute("command", "show-popover");
  menubaritem.click();
  assert_true(menulist.matches(':popover-open'),
-    "show-menu opens the menulist");
+    "show-popover opens the menulist");
 
- menubaritem.setAttribute("command", "hide-menu");
+ menubaritem.setAttribute("command", "hide-popover");
  menubaritem.click();
  assert_false(menulist.matches(':popover-open'),
-    "hide-menu hides the menulist");
-}, "Menuitem with toggle-menu, show-menu, hide-menu commands can invoke menulist popover.");
+    "hide-popover hides the menulist");
+}, "Menuitem with toggle-menu, show-popover, hide-popover commands can invoke menulist popover.");
 
 test(() => {
- menubaritem.command = "show-menu";
+ menubaritem.command = "toggle-menu";
  menubaritem.commandForElement = menulist;
 
  menubaritem.click();
  assert_true(menulist.matches(':popover-open'),
-    'show-menu opens the menulist.');
+    'toggle-menu opens the menulist.');
 
  menulist.hidePopover();
  assert_false(menulist.matches(':popover-open'),
@@ -153,6 +151,5 @@ test(() => {
   assert_true(menulist.matches(":popover-open"), "menulist is open");
   checkableMenuitem.click();
   assert_false(checkableMenuitem.checked, "still not checked");
-  assert_false(menulist.matches(":popover-open"), "menulist closes");
 }, "menuitems that invoke menulists cannot be checkable");
 </script>

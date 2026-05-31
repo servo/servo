@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage with out-of-canvas anchored element</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="anchor-positioning-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+    background: lightgray;
+  }
+  #anchor {
+    width: 100px;
+    height: 100px;
+    background: green;
+    anchor-name: --anchor;
+  }
+  #anchored {
+    position-anchor: --anchor;
+    position-visibility: always;
+    position-area: bottom center;
+    width: 100px;
+    height: 100px;
+    background: lightgreen;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=anchor></div>
+</canvas>
+<div id=anchored></div>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  var context = canvas.getContext('2d');
+  let matrix = context.drawElementImage(anchor, 50, 50);
+  anchor.style.transform = matrix.toString();
+  takeScreenshot();
+};
+</script>
+</html>

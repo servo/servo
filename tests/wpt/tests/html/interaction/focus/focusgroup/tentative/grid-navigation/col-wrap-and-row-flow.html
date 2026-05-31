@@ -27,33 +27,21 @@
 <script>
 
   promise_test(async t => {
-    var r1c3 = document.getElementById("r1c3");
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r1c3, kRight);
     assert_equals(document.activeElement, r2c1);
   }, "When on the last column, navigating right should move the focus to first column and next row if the focusgroup flows horizontally.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r2c1, kDown);
     assert_equals(document.activeElement, r1c1);
   }, "When on the last row, navigating down should move the focus to first row if the focusgroup wraps vertically.");
 
   promise_test(async t => {
-    var r1c3 = document.getElementById("r1c3");
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r2c1, kLeft);
     assert_equals(document.activeElement, r1c3);
   }, "When on the first column, navigating left should move the focus to last column and previous row if the focusgroup flows horizontally.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r2c1);
   }, "When on the first row, navigating up should move the focus to last row if the focusgroup wraps vertically.");

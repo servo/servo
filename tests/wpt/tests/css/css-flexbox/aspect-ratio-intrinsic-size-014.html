@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A float (shrink-to-fit) containing a flex container with percent height and a stretched aspect-ratio flex item must recompute its width when its height changes.">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="float: left; height: 50px; background: green;">
+  <div style="display: flex; height: 100%; background: green;">
+    <div style="aspect-ratio: 1/1;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>

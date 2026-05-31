@@ -27,7 +27,7 @@ async function setupIframe(t) {
 
 promise_test(async t => {
   const controller = new AbortController();
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'parent_tool_exposed',
     description: 'Parent tool exposed to child',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
@@ -59,7 +59,7 @@ promise_test(async t => {
 
   const child_unreg_promise = waitForIframeMessage('toolchange_result');
   const parent_unreg_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   controller.abort();
@@ -87,10 +87,10 @@ promise_test(async t => {
   }, '*');
 
   await new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
-  let tools = await navigator.modelContext.getTools();
+  let tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'iframe_tool_exposed');
   assert_true(toolsAreEqual(tool, {
     name: 'iframe_tool_exposed',
@@ -100,24 +100,24 @@ promise_test(async t => {
   }), 'Tool details should match');
 
   // Parent executes iframe's tool.
-  const result = await navigator.modelContext.executeTool(tool, '{}');
+  const result = await document.modelContext.executeTool(tool, '{}');
   assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Tell the iframe to unregister its tool, and confirm that `toolchange` fires here.
   const toolchange_promise  = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_exposed' }, '*');
   await toolchange_promise;
 
-  tools = await navigator.modelContext.getTools();
+  tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent should no longer see cross-origin iframe tool after unregistration');
 }, 'Cross-origin child exposes tool to parent');
 
 promise_test(async t => {
   // Parent exposes tool to an origin that is neither its own, nor its cross-origin iframe's.
   const controller = new AbortController();
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'parent_tool',
     description: 'Parent tool exposed',
     execute: async () => 'hello'
@@ -136,7 +136,7 @@ promise_test(async t => {
 
   const child_unreg_promise = waitForIframeMessage('toolchange_result');
   const parent_unreg_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   controller.abort();
@@ -151,8 +151,8 @@ promise_test(async t => {
   // No `toolchange` events should be fired in the parent during this test.
   const toolchange_promise = new Promise((resolve, reject) => {
     const listener = () => reject('Parent should not receive toolchange event');
-    navigator.modelContext.addEventListener('toolchange', listener);
-    t.add_cleanup(() => navigator.modelContext.removeEventListener('toolchange', listener));
+    document.modelContext.addEventListener('toolchange', listener);
+    t.add_cleanup(() => document.modelContext.removeEventListener('toolchange', listener));
   });
   const timeout_promise = () => new Promise(resolve => t.step_timeout(resolve, 4000));
 
@@ -167,14 +167,14 @@ promise_test(async t => {
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  let tools = await navigator.modelContext.getTools();
+  let tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent should not see iframe tool');
 
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_to_c' }, '*');
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  tools = await navigator.modelContext.getTools();
+  tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent should not see iframe tool after unregistration');
 }, "Iframe exposes tool to origin that is neither its own nor its parent's");
 
@@ -194,7 +194,7 @@ promise_test(async t => {
   const timeout_promise = () => new Promise(resolve => t.step_timeout(() => resolve({ result: 'timeout' }), 4000));
 
   const controller = new AbortController();
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'parent_tool_no_policy',
     description: 'Parent tool',
     execute: async () => 'hello'

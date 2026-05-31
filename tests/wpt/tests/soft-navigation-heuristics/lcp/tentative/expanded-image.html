@@ -47,9 +47,9 @@ Notes:
     if (test_driver) {
       test_driver.click(document.getElementById("click-target"));
     }
-    const [softLcpEntries, softNavigationEntries] = await promise;
-    assert_equals(softLcpEntries.length, 1);
-    const entry = softLcpEntries[0];
+    const [icpEntries, softNavigationEntries] = await promise;
+    assert_equals(icpEntries.length, 1);
+    const entry = icpEntries[0];
     const url = window.location.origin + "/images/black-rectangle.png";
     // black-rectangle.png is 100 x 50. It occupies 300 x 300 so size will be bounded by the intrinsic size.
     const size = 100 * 50;

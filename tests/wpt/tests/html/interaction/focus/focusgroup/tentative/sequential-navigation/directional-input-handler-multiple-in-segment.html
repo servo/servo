@@ -26,10 +26,6 @@
 <script>
 
   promise_test(async t => {
-    const btn1 = document.getElementById("btn1");
-    const input1 = document.getElementById("input1");
-    const btn2 = document.getElementById("btn2");
-    const select1 = document.getElementById("select1");
 
     // Directional navigation TO native directional input handlers works.
     await focusAndSendDirectionalInput(btn1, kRight);

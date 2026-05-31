@@ -9,7 +9,6 @@
     <title>CSS Test: Testing min-height:auto & 'overflow' interaction</title>
     <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
     <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto">
-    <link rel="match" href="flexbox-min-height-auto-004-ref.html">
 <!--
      This testcase checks how "overflow-x" indirectly impacts the sizing
      behavior of flex items with "min-height:auto" (the new initial value
@@ -23,6 +22,8 @@
        http://www.w3.org/TR/css-overflow-3/#overflow-properties
      So, "overflow-x" has an indirect effect (via "overflow-y") here.
 -->
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
     <style>
       .flexbox {
         display: flex;
@@ -55,9 +56,56 @@
          the flex item has "overflow-x: visible", but not for any other
          overflow-x values (because of overflow-x's influence on overflow-y).
     -->
-    <div class="flexbox"><div class="xvisible"><div></div></div></div>
-    <div class="flexbox"><div class="xhidden"><div></div></div></div>
-    <div class="flexbox"><div class="xscroll"><div></div></div></div>
-    <div class="flexbox"><div class="xauto"><div></div></div></div>
+    <div class="flexbox" id="visible"><div class="xvisible"><div></div></div></div>
+    <div class="flexbox" id="hidden"><div class="xhidden"><div></div></div></div>
+    <div class="flexbox" id="scroll"><div class="xscroll"><div></div></div></div>
+    <div class="flexbox" id="auto"><div class="xauto"><div></div></div></div>
+    <script>
+      function verticalScrollbarWidth() {
+        const probe = document.createElement("div");
+        probe.style.cssText =
+          "position:absolute;visibility:hidden;width:100px;height:100px;overflow-y:scroll;";
+        document.body.appendChild(probe);
+        const w = probe.offsetWidth - probe.clientWidth;
+        probe.remove();
+        return w;
+      }
+      const SCROLLBAR = verticalScrollbarWidth();
+
+      // Flex item border-box height: 80px content + 2*2px border = 84px.
+      const INTRINSIC_HEIGHT = 84;
+      // Shrunk to fit the 30px container.
+      const SHRUNK_HEIGHT = 30;
+      // Flex item border-box width without scrollbar gutter:
+      //   40px content + 2*2px border = 44px.
+      const BASE_WIDTH = 44;
+
+      test(() => {
+        const item = document.querySelector("#visible > *");
+        assert_equals(item.offsetHeight, INTRINSIC_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH, "offsetWidth");
+      }, "overflow-x:visible: overflow-y stays visible; min-height:auto holds; no scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#hidden > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH + SCROLLBAR, "offsetWidth");
+        assert_equals(item.scrollWidth, item.clientWidth, "no horizontal overflow");
+      }, "overflow-x:hidden: forces overflow-y to auto; min-height:auto resolves to 0; width includes scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#scroll > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH + SCROLLBAR, "offsetWidth");
+        assert_equals(item.scrollWidth, item.clientWidth, "no horizontal overflow");
+      }, "overflow-x:scroll: forces overflow-y to auto; min-height:auto resolves to 0; width includes scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#auto > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH + SCROLLBAR, "offsetWidth");
+        assert_equals(item.scrollWidth, item.clientWidth, "no horizontal overflow");
+      }, "overflow-x:auto: forces overflow-y to auto; min-height:auto resolves to 0; width includes scrollbar gutter");
+    </script>
   </body>
 </html>

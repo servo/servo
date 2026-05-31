@@ -349,13 +349,10 @@ interface HTMLDivElement : HTMLElement {
 interface HTMLAnchorElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions, Reflect] attribute DOMString target;
   [CEReactions, Reflect] attribute DOMString download;
   [CEReactions, Reflect] attribute USVString ping;
   [CEReactions, Reflect] attribute DOMString rel;
   [SameObject, PutForwards=value, Reflect="rel"] readonly attribute DOMTokenList relList;
-  [CEReactions, Reflect] attribute DOMString hreflang;
-  [CEReactions, Reflect] attribute DOMString type;
 
   [CEReactions] attribute DOMString text;
 
@@ -403,10 +400,14 @@ interface mixin HyperlinkElementUtils {
   [CEReactions] attribute USVString pathname;
   [CEReactions] attribute USVString search;
   [CEReactions] attribute USVString hash;
+
+  [CEReactions, Reflect] attribute DOMString hreflang;
+  [CEReactions, Reflect] attribute DOMString type;
 };
 
 interface mixin HTMLHyperlinkElementUtils {
   [CEReactions, ReflectSetter] stringifier attribute USVString href;
+  [CEReactions, Reflect] attribute DOMString target;
 };
 
 [Exposed=Window]
@@ -763,7 +764,6 @@ interface HTMLAreaElement : HTMLElement {
   [CEReactions, Reflect] attribute DOMString alt;
   [CEReactions, Reflect] attribute DOMString coords;
   [CEReactions, Reflect] attribute DOMString shape;
-  [CEReactions, Reflect] attribute DOMString target;
   [CEReactions, Reflect] attribute DOMString download;
   [CEReactions, Reflect] attribute USVString ping;
   [CEReactions, Reflect] attribute DOMString rel;

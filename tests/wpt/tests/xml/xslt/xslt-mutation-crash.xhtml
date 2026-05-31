@@ -9,7 +9,7 @@
 <script><![CDATA[
 function go() {
   // Unique URL to avoid memory cache returning synchronously.
-  var slow = 'xslt-mutation-crash-slow.xsl?pipe=trickle(d1)&t=' + Date.now() + Math.random();
+  var slow = 'xslt-mutation-crash-slow.xsl?pipe=trickle(d1)&amp;t=' + Date.now() + Math.random();
 
   // 1. Create an xml-stylesheet PI pointing at an external (delayed) XSL.
   var pi = document.createProcessingInstruction(

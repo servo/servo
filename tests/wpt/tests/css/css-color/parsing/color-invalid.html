@@ -22,6 +22,7 @@ test_invalid_value("color", "rgb(1,2,3,4,5)");
 test_invalid_value("color", "hsla(1,2,3,4,5)");
 test_invalid_value("color", "rgb(10%, 20, 30%)");
 test_invalid_value("color", "rgba(-2, 300, 400%, -0.5)");
+test_invalid_value("color", "hsl(calc(0.56turn * -0.43turn), 47%, 4884.6%)");
 </script>
 </body>
 </html>

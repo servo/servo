@@ -27,7 +27,7 @@ async function setupIframe(t) {
 
 promise_test(async t => {
   const controller = new AbortController();
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     execute: async () => 'hello'
@@ -46,7 +46,7 @@ promise_test(async t => {
 
   const child_unreg_promise = waitForIframeMessage('toolchange_result');
   const parent_unreg_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   controller.abort();
@@ -57,7 +57,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const controller = new AbortController();
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
     execute: async () => 'hello'
@@ -75,7 +75,7 @@ promise_test(async t => {
 
   const child_unreg_promise = waitForIframeMessage('toolchange_result');
   const parent_unreg_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   controller.abort();
@@ -90,8 +90,8 @@ promise_test(async t => {
   // No `toolchange` events should be fired in the parent during this test.
   const toolchange_promise = new Promise((resolve, reject) => {
     const listener = () => reject('Parent should not receive toolchange event');
-    navigator.modelContext.addEventListener('toolchange', listener);
-    t.add_cleanup(() => navigator.modelContext.removeEventListener('toolchange', listener));
+    document.modelContext.addEventListener('toolchange', listener);
+    t.add_cleanup(() => document.modelContext.removeEventListener('toolchange', listener));
   });
   const timeout_promise = () => new Promise(resolve => t.step_timeout(resolve, 4000));
 
@@ -106,13 +106,13 @@ promise_test(async t => {
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  let tools = await navigator.modelContext.getTools();
+  let tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent should see no tools');
 
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_default' }, '*');
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  tools = await navigator.modelContext.getTools();
+  tools = await document.modelContext.getTools();
   assert_false(tools.some(t => t.name === 'iframe_tool_default'), 'Parent should not see cross-origin iframe tool after unregistration');
 }, 'Cross-origin iframe tool with default exposure is not visible to parent');
 
@@ -122,8 +122,8 @@ promise_test(async t => {
   // No `toolchange` events should be fired in the parent during this test.
   const toolchange_promise = new Promise((resolve, reject) => {
     const listener = () => reject('Parent should not receive toolchange event');
-    navigator.modelContext.addEventListener('toolchange', listener);
-    t.add_cleanup(() => navigator.modelContext.removeEventListener('toolchange', listener));
+    document.modelContext.addEventListener('toolchange', listener);
+    t.add_cleanup(() => document.modelContext.removeEventListener('toolchange', listener));
   });
   const timeout_promise = () => new Promise(resolve => t.step_timeout(resolve, 4000));
 
@@ -139,13 +139,13 @@ promise_test(async t => {
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  let tools = await navigator.modelContext.getTools();
+  let tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent should see no tools');
 
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_empty' }, '*');
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  tools = await navigator.modelContext.getTools();
+  tools = await document.modelContext.getTools();
   assert_false(tools.some(t => t.name === 'iframe_tool_empty'), 'Parent should not see cross-origin iframe tool after unregistration');
 }, 'Cross-origin iframe tool with empty exposedTo array is not visible to parent');
 </script>

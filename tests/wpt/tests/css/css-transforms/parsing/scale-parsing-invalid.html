@@ -18,6 +18,9 @@ test_invalid_value("scale", "100 200 300 400");
 test_invalid_value("scale", "1 junk");
 test_invalid_value("scale", "1 2 junk");
 test_invalid_value("scale", "1 2 3 junk");
+test_invalid_value("scale", "calc(100px)");
+test_invalid_value("scale", "calc(1s) 2");
+test_invalid_value("scale", "calc(180deg) 2 3");
 </script>
 </body>
 </html>

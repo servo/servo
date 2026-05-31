@@ -9,13 +9,13 @@
 <script>
 promise_test(async t => {
   // Register a legitimate tool first to retrieve a valid template.
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: "legit_tool",
     description: "Legitimate tool description",
     execute: async (args) => "success"
   });
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const legit = tools.find(t => t.name === "legit_tool");
   assert_true(!!legit, "Legitimate tool must be successfully discovered");
 
@@ -31,7 +31,7 @@ promise_test(async t => {
   await promise_rejects_js(
     t,
     TypeError,
-    navigator.modelContext.executeTool(invalidTool, '{}'),
+    document.modelContext.executeTool(invalidTool, '{}'),
     "executeTool() must reject with TypeError if 'origin' member is omitted"
   );
 }, "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted");

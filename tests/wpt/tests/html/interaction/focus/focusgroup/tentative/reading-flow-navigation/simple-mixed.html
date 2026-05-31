@@ -32,12 +32,7 @@
   promise_test(async t => {
     // Visual order due to flex-direction: row-reverse and reading-flow: flex-visual
     // Visual order: btn1, btn2, btn3, btn4
-    const elementsInVisualOrder = [
-      document.getElementById("btn1"),
-      document.getElementById("btn2"),
-      document.getElementById("btn3"),
-      document.getElementById("btn4")
-    ];
+    const elementsInVisualOrder = [btn1, btn2, btn3, btn4];
 
     await assert_directional_navigation_bidirectional(elementsInVisualOrder);
   }, "Simple mixed reading flow test.");

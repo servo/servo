@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>CSS Conditional Test: @supports font-tech()</title>
+<title>CSS Conditional Test: @supports named-feature()</title>
 <link rel="author" title="L. David Baron" href="https://dbaron.org/">
 <link rel="author" title="Google" href="http://www.google.com/">
 <link rel="help" href="https://drafts.csswg.org/css-conditional-5/#support-definition-named-features">
@@ -33,30 +33,51 @@ function test_supports_condition(condition, expected) {
   }, `@supports ${condition} should be ${Boolean.prototype.toString(expected)}`);
 }
 
-let is_align_content_on_display_block_supported;
+let is_anchor_position_follows_transforms_supported;
 
 test(() => {
   let outer = document.createElement("div");
-  outer.style = "height: 200px; border: thin solid; position:relative; align-content: center";
-  let inner = document.createElement("div");
-  outer.append(inner);
+  outer.innerHTML = `
+    <style>
+
+    body { margin: 0; }
+    .container { position: absolute; top: 50px; left: 50px; }
+    .transform { transform: translateX(7px); }
+    .anchor { position: absolute; top: 0; left: 11px; anchor-name: --a; }
+    .anchorpos { position: absolute; top: 0; left: 13px; left: anchor(--a left);
+                 height: 10px; width: 10px; background: orange; }
+
+    </style>
+
+    <div class="container">
+      <div class="transform">
+        <div class="anchor"></div>
+      </div>
+      <div class="anchorpos"></div>
+    </div>
+  `;
   document.body.append(outer);
   let expected;
-  if (inner.offsetTop == 0) {
-    is_align_content_on_display_block_supported = false;
+  // left should be:
+  //  * 63 if anchor positioning is not supported
+  //  * 61 if anchor positioning is supported but it doesn't follow transforms
+  //  * 68 if anchor positioning follows stransforms
+  let left = outer.querySelector(".anchorpos").getBoundingClientRect().left;
+  if (left == 61 || left == 63) {
+    is_anchor_position_follows_transforms_supported = false;
     expected = true;
-  } else if (inner.offsetTop == 100) {
-    is_align_content_on_display_block_supported = true;
+  } else if (left == 68) {
+    is_anchor_position_follows_transforms_supported = true;
     expected = true;
   } else {
     expected = false;
   }
   outer.remove();
   assert_true(expected);
-}, "can detect whether align-content is supported on display:block");
+}, "can detect whether anchor position follows transforms");
 
-test_supports_condition("named-feature(align-content-on-display-block)", is_align_content_on_display_block_supported);
-test_supports_condition("named-feature( align-content-on-display-block )", is_align_content_on_display_block_supported);
+test_supports_condition("named-feature(anchor-position-follows-transforms)", is_anchor_position_follows_transforms_supported);
+test_supports_condition("named-feature( anchor-position-follows-transforms )", is_anchor_position_follows_transforms_supported);
 test_supports_condition("named-feature(unknown-feature)", false);
 test_supports_condition("named-feature(named-feature)", false);
 test_supports_condition("named-feature(color)", false);

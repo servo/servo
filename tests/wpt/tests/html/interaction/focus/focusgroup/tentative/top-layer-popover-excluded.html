@@ -22,7 +22,7 @@
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("popover_simple");
+  const pop = popover_simple;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -30,7 +30,7 @@ promise_test(async t => {
 }, "Arrow navigation skips a shown popover in ancestor focusgroup");
 
 promise_test(async t => {
-  const pop = document.getElementById("popover_simple");
+  const pop = popover_simple;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -59,7 +59,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("first_pop");
+  const pop = first_pop;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -95,7 +95,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("seg_pop");
+  const pop = seg_pop;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -125,7 +125,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("sib_pop");
+  const pop = sib_pop;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -157,7 +157,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("none_pop");
+  const pop = none_pop;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 

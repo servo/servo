@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex item image with intrinsic ratio and padding should size correctly in column flex</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="flex-aspect-ratio-intrinsic-padding-001-ref.html">
+<meta name="assert" content="An image with intrinsic 2:1 ratio, auto width, and padding in a column flex container should compute its height from the content-box cross size, not the border-box.">
+<style>
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+}
+
+img {
+    padding: 20px;
+}
+</style>
+<div class="container">
+    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100'><rect fill='green' width='200' height='100'/></svg>">
+</div>

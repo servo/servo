@@ -20,8 +20,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item3 = document.getElementById("item3");
 
     await focusAndSendDirectionalInput(item1, kUp);
     assert_equals(document.activeElement, item3);

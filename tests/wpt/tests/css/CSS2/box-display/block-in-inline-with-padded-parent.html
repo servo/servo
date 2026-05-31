@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: padding on parent prevents block-in-inline margin-bottom from collapsing out</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-with-padded-parent-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="When parent has bottom padding, block-in-inline's margin-bottom does not collapse with parent and remains inside the parent's content area.">
+<style>
+.parent { width: 100px; padding-bottom: 20px; background: cyan; font: 20px/1 Ahem; }
+.inner { width: 100px; height: 20px; margin-bottom: 40px; background: green; }
+.sibling { width: 100px; height: 20px; background: green; }
+</style>
+<p>Green square inside cyan parent with 40px gap below to padding edge, then 20px padding, then a green square.</p>
+<div class="parent">
+    <span><div class="inner"></div></span>
+</div>
+<div class="sibling"></div>

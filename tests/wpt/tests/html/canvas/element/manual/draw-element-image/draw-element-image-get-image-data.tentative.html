@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>drawElementImage should not taint the canvas</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: #01ff02;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child></div>
+</canvas>
+
+<script>
+  promise_test(async () => {
+    await waitForCanvasPaint(canvas);
+    let ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgb(3, 4, 5)';
+    ctx.fillRect(0, 0, 200, 200);
+    ctx.drawElementImage(child, 20, 30);
+
+    const image_data = ctx.getImageData(19, 35, 2, 1);
+    assert_equals(image_data.width, 2);
+    assert_equals(image_data.height, 1);
+
+    const data = image_data.data;
+    // The background pixel.
+    assert_equals(data[0], 3);
+    assert_equals(data[1], 4);
+    assert_equals(data[2], 5);
+    assert_equals(data[3], 255);
+
+    // The drawn element pixel.
+    assert_equals(data[4], 1);
+    assert_equals(data[5], 255);
+    assert_equals(data[6], 2);
+    assert_equals(data[7], 255);
+  }, 'canvas drawElementImage readback');
+</script>

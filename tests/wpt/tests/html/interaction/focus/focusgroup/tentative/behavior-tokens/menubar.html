@@ -21,32 +21,32 @@
 <script>
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb1'), kRight);
+    await focusAndSendDirectionalInput(mb1, kRight);
     assert_equals(document.activeElement.id, 'mb2');
   }, "menubar: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb2'), kLeft);
+    await focusAndSendDirectionalInput(mb2, kLeft);
     assert_equals(document.activeElement.id, 'mb1');
   }, "menubar: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb1'), kDown);
+    await focusAndSendDirectionalInput(mb1, kDown);
     assert_equals(document.activeElement.id, 'mb1');
   }, "menubar: Down blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb1'), kUp);
+    await focusAndSendDirectionalInput(mb1, kUp);
     assert_equals(document.activeElement.id, 'mb1');
   }, "menubar: Up blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb3'), kRight);
+    await focusAndSendDirectionalInput(mb3, kRight);
     assert_equals(document.activeElement.id, 'mb1');
   }, "menubar: Right wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('mb1'), kLeft);
+    await focusAndSendDirectionalInput(mb1, kLeft);
     assert_equals(document.activeElement.id, 'mb3');
   }, "menubar: Left wraps at start");
 

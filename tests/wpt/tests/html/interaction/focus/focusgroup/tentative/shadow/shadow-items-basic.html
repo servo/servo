@@ -26,7 +26,6 @@
     return a;
   }
   promise_test(async t => {
-    const host = document.getElementById('host');
     const sr = host.attachShadow({mode: 'open'});
     sr.innerHTML = `
       <button id=item1 tabindex=0>One</button>

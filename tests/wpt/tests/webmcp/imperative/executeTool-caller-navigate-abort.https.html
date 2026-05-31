@@ -46,7 +46,7 @@ function run_test(origin) {
     });
 
     const controller = new AbortController();
-    navigator.modelContext.registerTool({
+    document.modelContext.registerTool({
       name: 'parent_tool',
       description: 'Parent tool',
       execute: async (input, opts) => {
@@ -68,7 +68,7 @@ function run_test(origin) {
     t.add_cleanup(() => controller.abort());
 
     await new Promise(resolve => {
-      navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+      document.modelContext.addEventListener('toolchange', resolve, {once: true});
     });
 
     iframe.contentWindow.postMessage({action: 'invoke', name: 'parent_tool'}, '*');

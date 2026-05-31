@@ -49,12 +49,7 @@
     // Visual order due to flex order property and reading-flow: flex-visual
     // DOM order: item1, item2, item3, item4
     // Visual order: item2 (order:1), item4 (order:2), item3 (order:3), item1 (order:4)
-    const elementsInVisualOrder = [
-      document.getElementById("item2"),
-      document.getElementById("item4"),
-      document.getElementById("item3"),
-      document.getElementById("item1")
-    ];
+    const elementsInVisualOrder = [item2, item4, item3, item1];
 
     await assert_directional_navigation_bidirectional(elementsInVisualOrder);
   }, "Focusgroup navigation should follow explicit visual reordering via CSS order property.");

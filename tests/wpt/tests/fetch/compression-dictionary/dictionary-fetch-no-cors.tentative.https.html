@@ -38,5 +38,16 @@ compression_dictionary_promise_test(async (t) => {
   assert_false("available-dictionary" in headers);
 }, 'Fetch cross-origin no-cors request does not include Available-Dictionary header');
 
+compression_dictionary_promise_test(async (t) => {
+  const dictionary_url = `${CROSS_ORIGIN_RESOURCES_URL}/register-dictionary.py`;
+  const redirect_url = `/common/redirect.py?location=${encodeURIComponent(dictionary_url)}`;
+  try {
+    await fetch(redirect_url, {mode: 'no-cors'});
+  } catch (e) {}
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch(`${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py`)).json();
+  assert_false("available-dictionary" in headers);
+}, 'Opaque responses resulting from cross-origin redirects in no-cors mode do not register dictionary');
+
 </script>
 </body>

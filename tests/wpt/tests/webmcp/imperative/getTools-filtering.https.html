@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP getTools() Origin Filtering</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+async function setupIframe(t, origin) {
+  const iframe = document.createElement('iframe');
+  iframe.src = origin + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+  return iframe;
+}
+
+promise_test(async t => {
+  // 1. Parent (origin A: self.origin) registers tool T_A
+  const controller_a = new AbortController();
+  document.modelContext.registerTool({
+    name: 'parent_tool',
+    description: 'Parent tool',
+    execute: async () => 'hello'
+  }, { signal: controller_a.signal });
+
+  // 2. Setup cross-origin child B
+  const iframe_b = await setupIframe(t, host_info.HTTPS_REMOTE_ORIGIN);
+
+  // 3. Tell B to register tool T_B exposed to A
+  const b_reg_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+  iframe_b.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool_b',
+      description: 'Tool from B exposed to parent',
+    },
+    options: { exposedTo: [self.origin] }
+  }, '*');
+  await b_reg_promise;
+
+  // 4. Setup cross-origin child C
+  const iframe_c = await setupIframe(t, host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN);
+
+  // 5. Tell C to register tool T_C exposed to A
+  const c_reg_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+  iframe_c.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool_c',
+      description: 'Tool from C exposed to parent',
+    },
+    options: { exposedTo: [self.origin] }
+  }, '*');
+  await c_reg_promise;
+
+  // Check base case: getTools() with empty/omitted options should ONLY return parent_tool (same-origin)
+  let tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1, 'Should return 1 tool when getTools() is called with no arguments');
+  assert_equals(tools[0].name, 'parent_tool');
+
+  // Filter case 1: fromOrigins is empty/omitted in options (same as base case)
+  tools = await document.modelContext.getTools({});
+  assert_equals(tools.length, 1, 'Should return 1 tool when fromOrigins is empty');
+  assert_equals(tools[0].name, 'parent_tool');
+
+  // Filter case 2: fromOrigins = [origin_B] -> should return T_A (same-origin) and T_B (matches origin), but NOT T_C
+  tools = await document.modelContext.getTools({ fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN] });
+  assert_equals(tools.length, 2, 'Should return 2 tools when filtered by B\'s origin');
+  assert_equals(tools[0].name, 'parent_tool');
+  assert_equals(tools[1].name, 'iframe_tool_b');
+
+  // Filter case 3: fromOrigins = [origin_B, origin_C] -> should return T_A, T_B, T_C
+  tools = await document.modelContext.getTools({ fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN, host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN] });
+  assert_equals(tools.length, 3, 'Should return all 3 tools when filtered by both B and C\'s origins');
+  assert_equals(tools[0].name, 'parent_tool');
+  assert_equals(tools[1].name, 'iframe_tool_b');
+  assert_equals(tools[2].name, 'iframe_tool_c');
+
+  // Clean up registered tools
+  controller_a.abort();
+}, 'getTools() correctly filters returned tools by fromOrigins origins while preserving same-origin tools');
+
+promise_test(async t => {
+  await promise_rejects_dom(t, 'SecurityError', document.modelContext.getTools({ fromOrigins: ['http://insecure.com'] }));
+}, 'getTools() rejects with SecurityError if an insecure origin is supplied in fromOrigins');
+</script>
+</body>
+</html>

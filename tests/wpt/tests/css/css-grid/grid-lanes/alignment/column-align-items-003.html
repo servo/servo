@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-items stretch in column direction stacking axis</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-align-items-003-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(3, 80px);
+      height: 500px;
+      gap: 10px;
+      padding: 2px;
+      margin: 5px;
+      align-items: stretch;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <item style="background: #f4a0a0;">1</item>
+  <item style="height: 80px; background: #aad4f5;">2</item>
+  <item style="height: 200px; background: #2ca02c;">3</item>
+  <item style="background: #f4a0a0; grid-column: span 2;">4</item>
+  <item style="height: 50px; background: #2ca02c; grid-column: span 3;">5</item>
+</div>
+
+</body>
+</html>

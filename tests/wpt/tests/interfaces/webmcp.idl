@@ -4,12 +4,14 @@
 // Source: WebMCP (https://webmachinelearning.github.io/webmcp/)
 
 partial interface Navigator {
-  [SecureContext, SameObject] readonly attribute ModelContext modelContext;
+  [SecureContext] readonly attribute ModelContext modelContext;
 };
 
 [Exposed=Window, SecureContext]
-interface ModelContext {
+interface ModelContext : EventTarget {
   undefined registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
+
+  attribute EventHandler ontoolchange;
 };
 
 dictionary ModelContextTool {
@@ -32,6 +34,7 @@ callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient cl
 
 dictionary ModelContextRegisterToolOptions {
   AbortSignal signal;
+  sequence<USVString> exposedTo;
 };
 
 [Exposed=Window, SecureContext]

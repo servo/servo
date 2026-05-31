@@ -26,7 +26,7 @@ promise_test(async t => {
   await load_promise;
 
   const toolchange_promise = new Promise((resolve) => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   iframe.contentWindow.postMessage({

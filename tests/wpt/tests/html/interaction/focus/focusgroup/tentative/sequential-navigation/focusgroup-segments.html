@@ -46,12 +46,6 @@
 
 <script>
   promise_test(async t => {
-    var before = document.getElementById("before");
-    var bold = document.getElementById("bold");
-    var help = document.getElementById("help");
-    var shortcuts = document.getElementById("shortcuts");
-    var underline = document.getElementById("underline");
-    var after = document.getElementById("after");
 
     await focusAndWait(before);
     await sendTabForward();
@@ -71,12 +65,6 @@
   }, "Tab navigation through focusgroup segments - forward direction");
 
   promise_test(async t => {
-    var before = document.getElementById("before");
-    var italic = document.getElementById("italic");
-    var help = document.getElementById("help");
-    var shortcuts = document.getElementById("shortcuts");
-    var underline = document.getElementById("underline");
-    var after = document.getElementById("after");
 
     await focusAndWait(help);
     await navigateFocusBackward();
@@ -87,9 +75,6 @@
   }, "Shift+Tab navigation through focusgroup segments - backward direction");
 
   promise_test(async t => {
-    var bold = document.getElementById("bold");
-    var italic = document.getElementById("italic");
-    var underline = document.getElementById("underline");
 
     await focusAndWait(bold);
 
@@ -104,13 +89,10 @@
   }, "Directional input navigation treats opted-out elements as if they don't exist");
 
   promise_test(async t => {
-    var before2 = document.getElementById("before2");
-    var item1 = document.getElementById("item1");
+
     var optedOut1 = document.getElementById("opted-out-1");
     var deeplyOptedOut = document.getElementById("deeply-opted-out");
     var optedOut2 = document.getElementById("opted-out-2");
-    var item2 = document.getElementById("item2");
-    var after2 = document.getElementById("after2");
 
     await focusAndWait(before2);
     await sendTabForward();
@@ -133,8 +115,6 @@
   }, "Complex nested opt-out creates proper focusgroup segments");
 
   promise_test(async t => {
-    var help = document.getElementById("help");
-    var shortcuts = document.getElementById("shortcuts");
 
     await focusAndWait(help);
 

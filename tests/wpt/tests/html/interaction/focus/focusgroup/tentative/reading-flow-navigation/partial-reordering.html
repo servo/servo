@@ -68,19 +68,8 @@
     // Second container (with explicit order): btn6, btn7, btn8, nested container (btn9, btn10, btn11), btn12
     // Regular DOM: btn13
     const buttonsInVisualOrder = [
-      document.getElementById("btn1"),
-      document.getElementById("btn2"),
-      document.getElementById("btn3"),
-      document.getElementById("btn4"),
-      document.getElementById("btn5"),
-      document.getElementById("btn6"),
-      document.getElementById("btn7"),
-      document.getElementById("btn8"),
-      document.getElementById("btn9"),
-      document.getElementById("btn10"),
-      document.getElementById("btn11"),
-      document.getElementById("btn12"),
-      document.getElementById("btn13")
+      btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8,
+      btn9, btn10, btn11, btn12, btn13
     ];
 
     await assert_directional_navigation_bidirectional(buttonsInVisualOrder, true);

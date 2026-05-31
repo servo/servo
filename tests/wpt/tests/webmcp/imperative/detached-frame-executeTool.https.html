@@ -17,7 +17,7 @@ promise_test(async t => {
   await load_promise;
 
   const iDOMException = iframe.contentWindow.DOMException;
-  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+  const iframe_modelContext = iframe.contentWindow.document.modelContext;
 
   // Register a dummy tool so we have a valid tool object before detaching the frame.
   const toolchange_promise = new Promise(resolve => {

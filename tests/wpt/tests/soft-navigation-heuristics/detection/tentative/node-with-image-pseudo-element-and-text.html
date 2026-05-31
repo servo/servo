@@ -68,12 +68,12 @@
         icpPromise, 'ICPs not detected.', /*timeout=*/ 3000);
     assert_equals(icps.length, 2, 'Expected exactly two ICP entries.');
 
-    assert_equals(icps[0].id, 'content', 'Expected first ICP candidate to be "content"');
-    assert_equals(icps[0].url, '', 'Expected first ICP url to be empty');
+    assert_equals(icps[0].largestContentfulPaint.id, 'content', 'Expected first ICP candidate to be "content"');
+    assert_equals(icps[0].largestContentfulPaint.url, '', 'Expected first ICP url to be empty');
 
-    assert_equals(icps[1].id, 'content', 'Expected second ICP candidate to be "content"');
+    assert_equals(icps[1].largestContentfulPaint.id, 'content', 'Expected second ICP candidate to be "content"');
     assert_true(
-        icps[1].url.endsWith('/images/lcp-256x256.png'),
+        icps[1].largestContentfulPaint.url.endsWith('/images/lcp-256x256.png'),
         'Expected second ICP url to be the image url');
   }, 'Soft Navigation Detection supports adding nodes with image pseudo elements and text')
 </script>

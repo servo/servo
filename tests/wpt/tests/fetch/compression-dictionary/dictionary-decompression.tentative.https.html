@@ -54,5 +54,29 @@ compression_dictionary_promise_test(async (t) => {
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Decompresion of a cross origin resource works as expected');
 
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb&hash_mismatch=true`;
+  const res = await fetch(data_url);
+  await promise_rejects_js(t, TypeError, res.text());
+}, 'Decompresion using Brotli fails when dictionary hash mismatches');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  const data_url = `${kCompressedDataPath}?content_encoding=dcz&hash_mismatch=true`;
+  const res = await fetch(data_url);
+  await promise_rejects_js(t, TypeError, res.text());
+}, 'Decompresion using Zstandard fails when dictionary hash mismatches');
+
 </script>
 </body>

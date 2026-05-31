@@ -26,22 +26,20 @@
 
 <script>
   promise_test(async t => {
-    const host = inner_host;
     await assert_focusgroup_tab_navigation([
       inner_before,
-      host,
+      inner_host,
     ]);
-    assert_equals(host.shadowRoot.activeElement.id, "ish2",
+    assert_equals(inner_host.shadowRoot.activeElement.id, "ish2",
       "Tab should land on focusgroupstart inside the shadow tree");
   }, "Tab into focusgroup with focusgroupstart inside tabindex=-1 shadow host");
 
   promise_test(async t => {
-    const host = inner_host;
     await assert_focusgroup_shift_tab_navigation([
       inner_after,
-      host,
+      inner_host,
     ]);
-    assert_equals(host.shadowRoot.activeElement.id, "ish2",
+    assert_equals(inner_host.shadowRoot.activeElement.id, "ish2",
       "Shift+Tab should also land on the focusgroupstart entry");
   }, "Shift+Tab into focusgroup with focusgroupstart inside tabindex=-1 shadow host");
 </script>
@@ -84,9 +82,8 @@
 
 <script>
   promise_test(async t => {
-    const host = mem_host;
     await focusAndSendDirectionalInput(mem_outer, kRight);
-    assert_equals(host.shadowRoot.activeElement.id, "mem_inner",
+    assert_equals(mem_host.shadowRoot.activeElement.id, "mem_inner",
       "Precondition: arrow nav reached the inner item");
 
     await sendTabForward();
@@ -94,9 +91,9 @@
       "Precondition: Tab from remembered item exits the focusgroup");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, host,
+    assert_equals(document.activeElement, mem_host,
       "Shift+Tab returns to the host containing the remembered item");
-    assert_equals(host.shadowRoot.activeElement.id, "mem_inner",
+    assert_equals(mem_host.shadowRoot.activeElement.id, "mem_inner",
       "Remembered inner item gets focus on re-entry");
   }, "Memory item inside tabindex=-1 shadow host is honored on re-entry");
 </script>

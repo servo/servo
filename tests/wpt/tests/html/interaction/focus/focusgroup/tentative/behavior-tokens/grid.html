@@ -26,42 +26,42 @@
 <script>
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g1'), kRight);
+    await focusAndSendDirectionalInput(g1, kRight);
     assert_equals(document.activeElement.id, 'g2');
   }, "grid: Right moves to next column");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g2'), kLeft);
+    await focusAndSendDirectionalInput(g2, kLeft);
     assert_equals(document.activeElement.id, 'g1');
   }, "grid: Left moves to previous column");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g1'), kDown);
+    await focusAndSendDirectionalInput(g1, kDown);
     assert_equals(document.activeElement.id, 'g3');
   }, "grid: Down moves to same column next row");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g3'), kUp);
+    await focusAndSendDirectionalInput(g3, kUp);
     assert_equals(document.activeElement.id, 'g1');
   }, "grid: Up moves to same column previous row");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g2'), kRight);
+    await focusAndSendDirectionalInput(g2, kRight);
     assert_equals(document.activeElement.id, 'g2');
   }, "grid: Right does not wrap at row end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g1'), kLeft);
+    await focusAndSendDirectionalInput(g1, kLeft);
     assert_equals(document.activeElement.id, 'g1');
   }, "grid: Left does not wrap at row start");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g3'), kDown);
+    await focusAndSendDirectionalInput(g3, kDown);
     assert_equals(document.activeElement.id, 'g3');
   }, "grid: Down does not wrap at column end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('g1'), kUp);
+    await focusAndSendDirectionalInput(g1, kUp);
     assert_equals(document.activeElement.id, 'g1');
   }, "grid: Up does not wrap at column start");
 

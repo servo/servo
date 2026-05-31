@@ -1,0 +1,132 @@
+<!DOCTYPE HTML>
+<title>canvas.captureElementImage returns a snapshot of an element that can be drawn into the canvas</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  t.add_cleanup(() => {
+    child.style.width = '100px';
+  });
+
+  await waitForCanvasPaint(canvas);
+
+  let elementImageA = canvas.captureElementImage(child);
+  assert_equals(elementImageA.width, 100);
+  assert_equals(elementImageA.height, 100);
+
+  // Change the child size.
+  child.style.width = '150px';
+
+  // `captureElementImage` should still return the last painted element image.
+  let elementImageB = canvas.captureElementImage(child);
+  assert_equals(elementImageB.width, 100);
+  assert_equals(elementImageB.height, 100);
+
+  await waitForCanvasPaint(canvas);
+
+  // `captureElementImage` should return the updated element image size.
+  let elementImageC = canvas.captureElementImage(child);
+  assert_equals(elementImageC.width, 150);
+  assert_equals(elementImageC.height, 100);
+
+  // The previous element images should not be affected by the changed size.
+  assert_equals(elementImageA.width, 100);
+  assert_equals(elementImageA.height, 100);
+  assert_equals(elementImageB.width, 100);
+  assert_equals(elementImageB.height, 100);
+}, 'captureElementImage size should be the most recently painted size');
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  t.add_cleanup(() => {
+    child.style.background = 'green';
+  });
+
+  let context = canvas.getContext('2d', { willReadFrequently: true });
+  context.reset();
+
+  await waitForCanvasPaint(canvas);
+
+  let greenElementImage = canvas.captureElementImage(child);
+  assert_equals(greenElementImage.width, 100);
+  assert_equals(greenElementImage.height, 100);
+  context.drawElementImage(greenElementImage, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 128, 0, 255]);
+
+  // Change the child to blue.
+  child.style.background = 'blue';
+
+  await waitForCanvasPaint(canvas);
+
+  let blueElementImage = canvas.captureElementImage(child);
+  assert_equals(blueElementImage.width, 100);
+  assert_equals(blueElementImage.height, 100);
+  context.drawElementImage(blueElementImage, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 0, 255, 255]);
+
+  // `greenElementImage` should still be green.
+  assert_equals(greenElementImage.width, 100);
+  assert_equals(greenElementImage.height, 100);
+  context.drawElementImage(greenElementImage, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 128, 0, 255],
+    'greenElementImage should still draw green');
+}, 'captureElementImage should return an object that can be drawn');
+
+promise_test(async t => {
+  await waitForCanvasPaint(canvas);
+
+  let elementImage = canvas.captureElementImage(child);
+  assert_equals(elementImage.width, 100);
+  assert_equals(elementImage.height, 100);
+
+  assert_true('close' in elementImage,
+    'ElementImage should have a close method');
+
+  // Ensure an ElementImage cannot be drawn after `close()`.
+  elementImage.close();
+  assert_equals(elementImage.width, 0);
+  assert_equals(elementImage.height, 0);
+  assert_throws_dom('InvalidStateError',
+    () => canvas.getContext('2d').drawElementImage(elementImage, 0, 0),
+    'A closed ElementImage cannot be drawn.');
+}, 'ElementImage.close() invalidates the image for drawing');
+
+promise_test(async t => {
+  const nestedCanvas = document.createElement('canvas');
+  nestedCanvas.layoutSubtree = true;
+  nestedCanvas.width = 100;
+  nestedCanvas.height = 100;
+  const childDiv = document.createElement('div');
+  childDiv.style.width = '100px';
+  childDiv.style.height = '100px';
+  nestedCanvas.appendChild(childDiv);
+
+  const outerCanvas = document.getElementById('canvas');
+  outerCanvas.appendChild(nestedCanvas);
+
+  t.add_cleanup(() => {
+    nestedCanvas.remove();
+  });
+
+  await waitForCanvasPaint(canvas);
+
+  assert_throws_dom('NotSupportedError',
+    () => nestedCanvas.captureElementImage(childDiv),
+    'captureElementImage on a nested canvas should throw NotSupportedError.');
+}, 'captureElementImage should throw if called on a nested canvas');
+</script>

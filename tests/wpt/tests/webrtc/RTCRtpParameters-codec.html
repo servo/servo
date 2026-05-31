@@ -530,10 +530,6 @@ if (interop2026) {
     assert_array_equals(codecs, [vp8.mimeType]);
   }, `Stats output-rtp should match the selected codec in non-simulcast usecase on a video sender`);
 
-}
-
-if (rest) {
-
   promise_test(async (t) => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -579,6 +575,10 @@ if (rest) {
 
     assert_array_equals(codecs, [vp8.mimeType, vp8.mimeType, vp8.mimeType]);
   }, `Stats output-rtp should match the selected codec in simulcast usecase on a video sender`);
+
+}
+
+if (rest) {
 
   promise_test(async (t) => {
     const pc1 = new RTCPeerConnection();

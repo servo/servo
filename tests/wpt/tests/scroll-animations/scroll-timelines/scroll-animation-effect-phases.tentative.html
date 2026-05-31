@@ -319,7 +319,7 @@
     // |                              |                                |
     // |---- 33.3% before ----|----  66.7% active ---------------------|
     animation.effect.updateTiming({ endDelay: 0 });
-    assert_phase(animation, 'active');
+    assert_phase(animation, 'after');
 
     //                           scroll pos                        start time
     //                           current time                           |
@@ -349,6 +349,8 @@
     // |                                                                  |
     // |---------------------  100% active -------------------------------|
     animation.effect.updateTiming({ delay: 0 });
+    assert_phase(animation, 'before');
+    animation.playbackRate = -1;
     assert_phase(animation, 'active');
 
     // Finally, switch to a document timeline.  The before-active boundary

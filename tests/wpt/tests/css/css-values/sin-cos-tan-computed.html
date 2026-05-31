@@ -46,4 +46,10 @@ test_math_used('calc(tan(pi * sibling-index())', '0', {type:'number', approx:0.1
 test_math_used('calc(sin(180deg * sibling-index())', '0', {type:'number', approx:0.1});
 test_math_used('calc(cos(180deg * sibling-index())', '-1', {type:'number', approx:0.1});
 test_math_used('calc(tan(180deg * sibling-index())', '0', {type:'number', approx:0.1});
+test_math_used('calc(sin(pi * sign(1em - 1px))', '0', {type:'number', approx:0.1});
+test_math_used('calc(cos(pi * sign(1em - 1px))', '-1', {type:'number', approx:0.1});
+test_math_used('calc(tan(pi * sign(1em - 1px))', '0', {type:'number', approx:0.1});
+test_math_used('calc(sin(180deg * sign(1em - 1px))', '0', {type:'number', approx:0.1});
+test_math_used('calc(cos(180deg * sign(1em - 1px))', '-1', {type:'number', approx:0.1});
+test_math_used('calc(tan(180deg * sign(1em - 1px))', '0', {type:'number', approx:0.1});
 </script>
