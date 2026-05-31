@@ -139,7 +139,7 @@ itertools = "0.14"
 jni = "0.22"
 js = { package = "mozjs", version = "=0.15.14", default-features = false, features = ["intl", "libz-sys"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
-kurbo = { version = "0.12", features = ["euclid"] }
+kurbo = { version = "0.13.1", features = ["euclid"] }
 libc = "0.2"
 log = "0.4.30"
 mach2 = "0.6"
@@ -183,7 +183,7 @@ p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
-peniko = "0.5"
+peniko = "0.6"
 percent-encoding = "2.3"
 petgraph = "0.8.3"
 phf = "0.13"
@@ -200,7 +200,7 @@ quote = "1"
 rand = "0.9"
 raw-window-handle = "0.6"
 rayon = "1"
-read-fonts = "0.35.0"
+read-fonts = "0.39.2"
 regex = "1.12"
 resvg = "0.47.0"
 rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
@@ -224,7 +224,7 @@ sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
 signal-hook-registry = "1.4.8"
-skrifa = "0.37.0"
+skrifa = "0.42.1"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
 string_cache = "0.9"
@@ -263,8 +263,8 @@ unicode_categories = "0.1.1"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.23.1", features = ["v4", "v5"] }
-vello = "0.6"
-vello_cpu = "0.0.4"
+vello = "0.9"
+vello_cpu = "0.0.9"
 warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
