@@ -1181,6 +1181,71 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     Ok(result)
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for ML-KEM
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "importKey" operation for supported usages
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
+                .into(),
+        )));
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let public_key_handle = match key.handle() {
+        Handle::MlKem512PrivateKey(seed) => {
+            let (_decapsulation_key, encapsulate_key) =
+                MlKem512::generate_deterministic(&seed.0, &seed.1);
+            Handle::MlKem512PublicKey(Box::new(encapsulate_key.as_bytes()))
+        },
+        Handle::MlKem768PrivateKey(seed) => {
+            let (_decapsulation_key, encapsulate_key) =
+                MlKem768::generate_deterministic(&seed.0, &seed.1);
+            Handle::MlKem768PublicKey(Box::new(encapsulate_key.as_bytes()))
+        },
+        Handle::MlKem1024PrivateKey(seed) => {
+            let (_decapsulation_key, encapsulate_key) =
+                MlKem1024::generate_deterministic(&seed.0, &seed.1);
+            Handle::MlKem1024PublicKey(Box::new(encapsulate_key.as_bytes()))
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "[[handle]] internal slot of key is not an ML-KEM private key".into(),
+            )));
+        },
+    };
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        public_key_handle,
+    );
+
+    Ok(public_key)
+}
+
 /// Convert seed bytes to an ML-KEM private key handle and an ML-KEM public key handle. If private
 /// key bytes and/or public key bytes are provided, it runs a consistency check against the seed.
 /// If the length in bits of seed bytes is not 512, the conversion fails, or the consistency check
