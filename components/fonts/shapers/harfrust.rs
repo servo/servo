@@ -5,8 +5,8 @@
 use app_units::Au;
 use euclid::default::Point2D;
 use harfrust::{
-    Feature, FontRef as HarfRustFontRef, GlyphBuffer, Script, ShapeOptions, ShaperData,
-    ShaperInstance, Tag, UnicodeBuffer, Variation, funcs,
+    BufferClusterLevel, Feature, FontRef as HarfRustFontRef, GlyphBuffer, Language, Script,
+    ShapeOptions, ShaperData, ShaperInstance, Tag, UnicodeBuffer, Variation, funcs,
 };
 use num_traits::Zero as _;
 use read_fonts::TableProvider;
@@ -171,6 +171,9 @@ impl Shaper {
     ) -> HarfrustGlyphShapingResult {
         let mut buffer = UnicodeBuffer::new();
 
+        // Set cluster level
+        buffer.set_cluster_level(BufferClusterLevel::MonotoneCharacters);
+
         // Set direction
         buffer.set_direction(if options.flags.contains(ShapingFlags::RTL_FLAG) {
             harfrust::Direction::RightToLeft
@@ -182,6 +185,10 @@ impl Shaper {
         let script_tag = Tag::from_u32(unicode_script_to_iso15924_tag(options.script));
         let script = Script::from_iso15924_tag(script_tag).unwrap();
         buffer.set_script(script);
+
+        // Set language
+        let language = options.language.as_str().parse::<Language>().unwrap();
+        buffer.set_language(language);
 
         // Push text
         buffer.push_str(text);
