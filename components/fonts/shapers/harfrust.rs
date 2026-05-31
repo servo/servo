@@ -29,7 +29,6 @@ fn wr_variation_to_hr_varation(wr_variation: webrender_api::FontVariation) -> ha
 
 pub(crate) struct HarfrustGlyphShapingResult {
     data: GlyphBuffer,
-    // scale: f64,
 }
 
 struct ShapedGlyphIterator<'a> {
