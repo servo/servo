@@ -484,6 +484,9 @@ impl ImageCacheStore {
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
+                if self.pending_loads.get_by_key_mut(&pending_id).is_none() {
+                    return;
+                }
                 set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
             },
