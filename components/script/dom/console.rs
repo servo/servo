@@ -157,11 +157,7 @@ impl Console {
     }
 
     // Directly logs a string message, without processing the message
-    // TODO: https://github.com/servo/servo/issues/45202
-    #[expect(unsafe_code)]
-    pub(crate) fn internal_warn(global: &GlobalScope, message: String) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
+    pub(crate) fn internal_warn(cx: &mut JSContext, global: &GlobalScope, message: String) {
         Console::send_string_message(cx, global, ConsoleLogLevel::Warn, message);
     }
 }
@@ -841,9 +837,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
-    fn CountReset(global: &GlobalScope, label: DOMString) {
+    fn CountReset(cx: &mut JSContext, global: &GlobalScope, label: DOMString) {
         if global.reset_console_count(&label).is_err() {
-            Self::internal_warn(global, format!("Counter “{label}” doesn’t exist."))
+            Self::internal_warn(cx, global, format!("Counter “{label}” doesn’t exist."))
         }
     }
 }

@@ -330,106 +330,96 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
-    fn Listener(&self, can_gc: CanGc) -> DomRoot<AudioListener> {
+    fn Listener(&self, cx: &mut JSContext) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
         self.listener
-            .or_init(|| AudioListener::new(window, self, can_gc))
+            .or_init(|| AudioListener::new(cx, window, self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
-    fn CreateOscillator(&self, can_gc: CanGc) -> Fallible<DomRoot<OscillatorNode>> {
+    fn CreateOscillator(&self, cx: &mut JSContext) -> Fallible<DomRoot<OscillatorNode>> {
         OscillatorNode::new(
+            cx,
             self.global().as_window(),
             self,
             &OscillatorOptions::empty(),
-            can_gc,
         )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
-    fn CreateGain(&self, can_gc: CanGc) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new(
-            self.global().as_window(),
-            self,
-            &GainOptions::empty(),
-            can_gc,
-        )
+    fn CreateGain(&self, cx: &mut JSContext) -> Fallible<DomRoot<GainNode>> {
+        GainNode::new(cx, self.global().as_window(), self, &GainOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
-    fn CreatePanner(&self, can_gc: CanGc) -> Fallible<DomRoot<PannerNode>> {
-        PannerNode::new(
-            self.global().as_window(),
-            self,
-            &PannerOptions::empty(),
-            can_gc,
-        )
+    fn CreatePanner(&self, cx: &mut JSContext) -> Fallible<DomRoot<PannerNode>> {
+        PannerNode::new(cx, self.global().as_window(), self, &PannerOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
-    fn CreateAnalyser(&self, can_gc: CanGc) -> Fallible<DomRoot<AnalyserNode>> {
+    fn CreateAnalyser(&self, cx: &mut JSContext) -> Fallible<DomRoot<AnalyserNode>> {
         AnalyserNode::new(
+            cx,
             self.global().as_window(),
             self,
             &AnalyserOptions::empty(),
-            can_gc,
         )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter>
-    fn CreateBiquadFilter(&self, can_gc: CanGc) -> Fallible<DomRoot<BiquadFilterNode>> {
+    fn CreateBiquadFilter(&self, cx: &mut JSContext) -> Fallible<DomRoot<BiquadFilterNode>> {
         BiquadFilterNode::new(
+            cx,
             self.global().as_window(),
             self,
             &BiquadFilterOptions::empty(),
-            can_gc,
         )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner>
-    fn CreateStereoPanner(&self, can_gc: CanGc) -> Fallible<DomRoot<StereoPannerNode>> {
+    fn CreateStereoPanner(&self, cx: &mut JSContext) -> Fallible<DomRoot<StereoPannerNode>> {
         StereoPannerNode::new(
+            cx,
             self.global().as_window(),
             self,
             &StereoPannerOptions::empty(),
-            can_gc,
         )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource>
-    fn CreateConstantSource(&self, can_gc: CanGc) -> Fallible<DomRoot<ConstantSourceNode>> {
+    fn CreateConstantSource(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(
+            cx,
             self.global().as_window(),
             self,
             &ConstantSourceOptions::empty(),
-            can_gc,
         )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger>
     fn CreateChannelMerger(
         &self,
+        cx: &mut JSContext,
         count: u32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
-        ChannelMergerNode::new(self.global().as_window(), self, &opts, can_gc)
+        ChannelMergerNode::new(cx, self.global().as_window(), self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>
     fn CreateChannelSplitter(
         &self,
+        cx: &mut JSContext,
         count: u32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let mut opts = ChannelSplitterOptions::empty();
         opts.numberOfOutputs = count;
-        ChannelSplitterNode::new(self.global().as_window(), self, &opts, can_gc)
+        ChannelSplitterNode::new(cx, self.global().as_window(), self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
@@ -458,12 +448,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource>
-    fn CreateBufferSource(&self, can_gc: CanGc) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+    fn CreateBufferSource(&self, cx: &mut JSContext) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new(
+            cx,
             self.global().as_window(),
             self,
             &AudioBufferSourceOptions::empty(),
-            can_gc,
         )
     }
 
@@ -590,16 +580,16 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createiirfilter>
     fn CreateIIRFilter(
         &self,
+        cx: &mut JSContext,
         feedforward: Vec<Finite<f64>>,
         feedback: Vec<Finite<f64>>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         let opts = IIRFilterOptions {
             parent: AudioNodeOptions::empty(),
             feedback,
             feedforward,
         };
-        IIRFilterNode::new(self.global().as_window(), self, &opts, can_gc)
+        IIRFilterNode::new(cx, self.global().as_window(), self, &opts)
     }
 }
 

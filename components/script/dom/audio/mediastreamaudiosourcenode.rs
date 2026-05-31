@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::node::AudioNodeInit;
@@ -28,6 +29,7 @@ pub(crate) struct MediaStreamAudioSourceNode {
 impl MediaStreamAudioSourceNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         context: &AudioContext,
         stream: &MediaStream,
     ) -> Fallible<MediaStreamAudioSourceNode> {
@@ -38,6 +40,7 @@ impl MediaStreamAudioSourceNode {
             .ok_or(Error::InvalidState(None))?
             .id();
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::MediaStreamSourceNode(track),
             context.upcast(),
             Default::default(),
@@ -51,7 +54,7 @@ impl MediaStreamAudioSourceNode {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         context: &AudioContext,
         stream: &MediaStream,
@@ -61,13 +64,13 @@ impl MediaStreamAudioSourceNode {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         stream: &MediaStream,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
+        let node = MediaStreamAudioSourceNode::new_inherited(cx, context, stream)?;
         Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
@@ -80,7 +83,7 @@ impl MediaStreamAudioSourceNode {
 impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiosourcenode-mediastreamaudiosourcenode>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,

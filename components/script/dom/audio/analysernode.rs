@@ -5,10 +5,11 @@
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Uint8Array};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
@@ -26,7 +27,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AnalyserNode {
@@ -39,6 +39,7 @@ pub(crate) struct AnalyserNode {
 impl AnalyserNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         _: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
@@ -69,6 +70,7 @@ impl AnalyserNode {
         };
 
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::AnalyserNode(Box::new(callback)),
             context,
             node_options,
@@ -92,24 +94,24 @@ impl AnalyserNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<AnalyserNode>> {
-        Self::new_with_proto(window, None, context, options, can_gc)
+        Self::new_with_proto(cx, window, None, context, options)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<AnalyserNode>> {
-        let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
-        let object = reflect_dom_object_with_proto(Box::new(node), window, proto, can_gc);
+        let (node, recv) = AnalyserNode::new_inherited(cx, window, context, options)?;
+        let object = reflect_dom_object_with_proto_and_cx(Box::new(node), window, proto, cx);
         let task_source = window
             .as_global_scope()
             .task_manager()
@@ -138,13 +140,13 @@ impl AnalyserNode {
 impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
     ) -> Fallible<DomRoot<AnalyserNode>> {
-        AnalyserNode::new_with_proto(window, proto, context, options, can_gc)
+        AnalyserNode::new_with_proto(cx, window, proto, context, options)
     }
 
     #[expect(unsafe_code)]
