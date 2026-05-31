@@ -30,7 +30,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AudioBufferSourceNode {
@@ -63,6 +62,7 @@ impl AudioBufferSourceNode {
         )?;
         let node_id = source_node.node().node_id();
         let playback_rate = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -72,9 +72,9 @@ impl AudioBufferSourceNode {
             *options.playbackRate,
             f32::MIN,
             f32::MAX,
-            CanGc::from_cx(cx),
         );
         let detune = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -84,7 +84,6 @@ impl AudioBufferSourceNode {
             *options.detune,
             f32::MIN,
             f32::MAX,
-            CanGc::from_cx(cx),
         );
         let node = AudioBufferSourceNode {
             source_node,

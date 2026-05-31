@@ -25,7 +25,6 @@ use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct StereoPannerNode {
@@ -63,6 +62,7 @@ impl StereoPannerNode {
         )?;
         let node_id = source_node.node().node_id();
         let pan = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -72,7 +72,6 @@ impl StereoPannerNode {
             pan,
             -1.,
             1.,
-            CanGc::from_cx(cx),
         );
 
         Ok(StereoPannerNode {

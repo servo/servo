@@ -23,7 +23,6 @@ use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ConstantSourceNode {
@@ -51,6 +50,7 @@ impl ConstantSourceNode {
         )?;
         let node_id = source_node.node().node_id();
         let offset = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -60,7 +60,6 @@ impl ConstantSourceNode {
             offset,
             f32::MIN,
             f32::MAX,
-            CanGc::from_cx(cx),
         );
 
         Ok(ConstantSourceNode {

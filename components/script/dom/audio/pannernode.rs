@@ -33,7 +33,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PannerNode {
@@ -100,6 +99,7 @@ impl PannerNode {
         )?;
         let id = node.node_id();
         let position_x = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -109,9 +109,9 @@ impl PannerNode {
             options.position_x, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
-            CanGc::from_cx(cx),
         );
         let position_y = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -121,9 +121,9 @@ impl PannerNode {
             options.position_y, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
-            CanGc::from_cx(cx),
         );
         let position_z = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -133,9 +133,9 @@ impl PannerNode {
             options.position_z, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
-            CanGc::from_cx(cx),
         );
         let orientation_x = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -145,9 +145,9 @@ impl PannerNode {
             options.orientation_x, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
-            CanGc::from_cx(cx),
         );
         let orientation_y = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -157,9 +157,9 @@ impl PannerNode {
             options.orientation_y, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
-            CanGc::from_cx(cx),
         );
         let orientation_z = AudioParam::new(
+            cx,
             window,
             context,
             id,
@@ -169,7 +169,6 @@ impl PannerNode {
             options.orientation_z, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
-            CanGc::from_cx(cx),
         );
         Ok(PannerNode {
             node,

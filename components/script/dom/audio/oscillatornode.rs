@@ -31,7 +31,6 @@ use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct OscillatorNode {
@@ -63,6 +62,7 @@ impl OscillatorNode {
         )?;
         let node_id = source_node.node().node_id();
         let frequency = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -72,9 +72,9 @@ impl OscillatorNode {
             440.,
             f32::MIN,
             f32::MAX,
-            CanGc::from_cx(cx),
         );
         let detune = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -84,7 +84,6 @@ impl OscillatorNode {
             0.,
             -440. / 2.,
             440. / 2.,
-            CanGc::from_cx(cx),
         );
         Ok(OscillatorNode {
             source_node,

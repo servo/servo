@@ -29,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct BiquadFilterNode {
@@ -64,6 +63,7 @@ impl BiquadFilterNode {
             1, // outputs
         )?;
         let gain = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -73,9 +73,9 @@ impl BiquadFilterNode {
             options.gain, // default value
             f32::MIN,     // min value
             f32::MAX,     // max value
-            CanGc::from_cx(cx),
         );
         let q = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -85,9 +85,9 @@ impl BiquadFilterNode {
             options.q, // default value
             f32::MIN,  // min value
             f32::MAX,  // max value
-            CanGc::from_cx(cx),
         );
         let frequency = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -97,9 +97,9 @@ impl BiquadFilterNode {
             options.frequency, // default value
             f32::MIN,          // min value
             f32::MAX,          // max value
-            CanGc::from_cx(cx),
         );
         let detune = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -109,7 +109,6 @@ impl BiquadFilterNode {
             options.detune, // default value
             f32::MIN,       // min value
             f32::MAX,       // max value
-            CanGc::from_cx(cx),
         );
         Ok(BiquadFilterNode {
             node,

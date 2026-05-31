@@ -330,11 +330,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
-    fn Listener(&self, can_gc: CanGc) -> DomRoot<AudioListener> {
+    fn Listener(&self, cx: &mut JSContext) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
         self.listener
-            .or_init(|| AudioListener::new(window, self, can_gc))
+            .or_init(|| AudioListener::new(cx, window, self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange

@@ -24,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{GainNodeMethods, 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GainNode {
@@ -54,6 +53,7 @@ impl GainNode {
             1, // outputs
         )?;
         let gain = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -63,7 +63,6 @@ impl GainNode {
             gain,     // default value
             f32::MIN, // min value
             f32::MAX, // max value
-            CanGc::from_cx(cx),
         );
         Ok(GainNode {
             node,
