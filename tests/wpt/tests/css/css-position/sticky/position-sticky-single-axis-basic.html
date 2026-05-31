@@ -42,6 +42,11 @@ test(() => {
 
   assert_equals(rSticky.left - rOuter.left, 20, "Left constraint applies to inner scroller");
   assert_equals(rSticky.top - rOuter.top, 10, "Top constraint applies to outer scroller");
+  // This assert_true about CSS.supports() should only pass if the
+  // previous assert_equals passes.  (If it fails, the test will fail
+  // before getting here.)
+  assert_true(CSS.supports("named-feature(single-axis-scroll-container)"),
+              "named-feature() detects support correctly");
 }, "Constraints apply independently across nested single-axis scrollers");
 
 test(() => {

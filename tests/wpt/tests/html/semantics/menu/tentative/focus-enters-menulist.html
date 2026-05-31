@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1439">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<button id=nothing>nothing</button>
+<button commandfor=menulist command=toggle-menu>toggle-menu</button>
+<menubar>
+  <menuitem commandfor=menulist command=toggle-menu>toggle-menu</menuitem>
+</menubar>
+<menulist id=menulist>
+  <menuitem>menuitem</menuitem>
+</menulist>
+
+<style>
+button, menuitem {
+  interest-delay: 99999s;
+}
+body.interest button,
+body.interest menuitem {
+  interest-delay: 0s;
+}
+</style>
+
+<script>
+// Returns a promise to press the provided key
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+const keyMap = {
+  enter: '\uE007',
+  space: '\uE00D',
+  arrowRight: '\uE014',
+  tab: '\uE004'
+};
+
+const menulist = document.getElementById('menulist');
+const menulistChild = menulist.querySelector('menuitem');
+
+for (const useInterest of [true, false]) {
+  for (const keyName of ['enter', 'space']) {
+    document.querySelectorAll('[commandfor]').forEach(invoker => {
+      // interest invoking is only supported on <menuitem command=toggle-menu>
+      if (useInterest && invoker.localName == "button") {
+        return;
+      }
+
+      promise_test(async () => {
+        if (useInterest) {
+          document.body.classList.add('interest');
+        } else {
+          document.body.classList.remove('interest');
+        }
+
+        document.activeElement.blur();
+        menulist.hidePopover();
+
+        await new Promise(requestAnimationFrame);
+        nothing.focus();
+        await new Promise(requestAnimationFrame);
+        invoker.focus();
+        await new Promise(requestAnimationFrame);
+        if (useInterest) {
+          assert_equals(getComputedStyle(invoker).interestDelay, '0s',
+            'Invoker should have zero interest-delay.');
+          assert_true(menulist.matches(':popover-open'),
+            'With zero interest-delay, submenu should open when focusing invoker.');
+        }
+
+        assert_equals(document.activeElement, invoker,
+          'Invoker should be focused after calling invoker.focus() before pressing the activation key.');
+        await pressKey(keyMap[keyName]);
+        assert_true(menulist.matches(':popover-open'),
+          `Submenu should open when pressing ${keyName}.`);
+        assert_equals(document.activeElement, menulistChild,
+          `Submenu should get focus after invoking with ${keyName}.`);
+
+        document.activeElement.blur();
+        menulist.hidePopover();
+      }, `Focus should move into menulist when invoking it. useInterest: ${useInterest}, key: ${keyName}, invoker: ${invoker.outerHTML}`);
+    });
+  }
+}
+</script>

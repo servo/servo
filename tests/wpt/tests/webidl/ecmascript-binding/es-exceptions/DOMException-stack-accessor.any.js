@@ -1,4 +1,4 @@
-// META: global=window,dedicatedworker,shadowrealm
+// META: global=window,dedicatedworker
 
 // https://tc39.es/proposal-error-stack-accessor/
 // https://github.com/whatwg/webidl/pull/1421

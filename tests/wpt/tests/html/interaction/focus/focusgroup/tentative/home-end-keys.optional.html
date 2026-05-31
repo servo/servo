@@ -83,128 +83,128 @@
   // --- Basic Home/End in toolbar (inline, no wrap) ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('tb2'));
+    await focusAndSendHomeInput(tb2);
     assert_equals(document.activeElement.id, 'tb1');
   }, "Home moves focus to first item in toolbar");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('tb2'));
+    await focusAndSendEndInput(tb2);
     assert_equals(document.activeElement.id, 'tb3');
   }, "End moves focus to last item in toolbar");
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('tb1'));
+    await focusAndSendHomeInput(tb1);
     assert_equals(document.activeElement.id, 'tb1');
   }, "Home on first item stays on first item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('tb3'));
+    await focusAndSendEndInput(tb3);
     assert_equals(document.activeElement.id, 'tb3');
   }, "End on last item stays on last item");
 
   // --- Home/End in wrapping tablist ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('tl3'));
+    await focusAndSendHomeInput(tl3);
     assert_equals(document.activeElement.id, 'tl1');
   }, "Home in tablist moves to first item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('tl1'));
+    await focusAndSendEndInput(tl1);
     assert_equals(document.activeElement.id, 'tl3');
   }, "End in tablist moves to last item");
 
   // --- Home/End in block-only menu ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('m3'));
+    await focusAndSendHomeInput(m3);
     assert_equals(document.activeElement.id, 'm1');
   }, "Home in block-only menu moves to first item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('m1'));
+    await focusAndSendEndInput(m1);
     assert_equals(document.activeElement.id, 'm3');
   }, "End in block-only menu moves to last item");
 
   // --- Home/End in nested focusgroups ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('i3'));
+    await focusAndSendHomeInput(i3);
     assert_equals(document.activeElement.id, 'i1');
   }, "Home in nested focusgroup moves to first item of inner group");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('i1'));
+    await focusAndSendEndInput(i1);
     assert_equals(document.activeElement.id, 'i3');
   }, "End in nested focusgroup moves to last item of inner group");
 
   // --- Home/End ignores focusgroupstart ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('fs3'));
+    await focusAndSendHomeInput(fs3);
     assert_equals(document.activeElement.id, 'fs1');
   }, "Home goes to first item, not focusgroupstart item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('fs1'));
+    await focusAndSendEndInput(fs1);
     assert_equals(document.activeElement.id, 'fs3');
   }, "End goes to last item, not focusgroupstart item");
 
   // --- Home/End with opted-out elements ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('oo4'));
+    await focusAndSendHomeInput(oo4);
     assert_equals(document.activeElement.id, 'oo1');
   }, "Home skips opted-out elements and reaches first item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('oo1'));
+    await focusAndSendEndInput(oo1);
     assert_equals(document.activeElement.id, 'oo4');
   }, "End skips opted-out elements and reaches last item");
 
   // --- Home/End blocked inside key conflict elements ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('kc2'));
+    await focusAndSendHomeInput(kc2);
     assert_equals(document.activeElement.id, 'kc2');
   }, "Home inside text input does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('kc2'));
+    await focusAndSendEndInput(kc2);
     assert_equals(document.activeElement.id, 'kc2');
   }, "End inside text input does not navigate focusgroup");
 
   // --- Home/End from a non-key-conflict element works ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('kc3'));
+    await focusAndSendHomeInput(kc3);
     assert_equals(document.activeElement.id, 'kc1');
   }, "Home from button navigates past key conflict element to first item");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('kc1'));
+    await focusAndSendEndInput(kc1);
     assert_equals(document.activeElement.id, 'kc3');
   }, "End from button navigates past key conflict element to last item");
 
   // --- Home/End blocked inside other key conflict element types ---
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('hc2'));
+    await focusAndSendHomeInput(hc2);
     assert_equals(document.activeElement.id, 'hc2');
   }, "Home inside select does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('hc2'));
+    await focusAndSendEndInput(hc2);
     assert_equals(document.activeElement.id, 'hc2');
   }, "End inside select does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndSendHomeInput(document.getElementById('hc3'));
+    await focusAndSendHomeInput(hc3);
     assert_equals(document.activeElement.id, 'hc3');
   }, "Home inside textarea does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndSendEndInput(document.getElementById('hc3'));
+    await focusAndSendEndInput(hc3);
     assert_equals(document.activeElement.id, 'hc3');
   }, "End inside textarea does not navigate focusgroup");
 </script>

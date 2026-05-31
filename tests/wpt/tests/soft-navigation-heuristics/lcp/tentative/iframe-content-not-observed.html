@@ -40,20 +40,20 @@ Notes:
     .then((entries) => {
       assert_unreached("Should not have received a soft navigation entry!");
     });
-    const softLcpPromise =
+    const icpPromise =
         SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint")
     .then((entries) => {
-      assert_unreached("Should not have received an a soft LCP entry!");
+      assert_unreached("Should not have received an ICP entry!");
     });
 
     if (test_driver) {
       test_driver.click(document.getElementById("click-target"));
     }
 
-    // If neither the soft navigation nor the soft LCP are received within 3 seconds, we're ok.
+    // If neither the soft navigation nor the ICP entry are received within 3 seconds, we're ok.
     await Promise.race([
       softNavigationPromise,
-      softLcpPromise,
+      icpPromise,
       new Promise((resolve) => t.step_timeout(resolve(), 2000)),
     ]);
   }, "Element in child iframe is not observed for lcp or soft navigation, even if same-origin.");

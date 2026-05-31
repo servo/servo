@@ -1308,7 +1308,7 @@ navigation-api/ordering-and-transition/anchor-download-aborts-previous-navigatio
 navigation-api/ordering-and-transition/anchor-download-intercept-reject.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/anchor-download-intercept.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/anchor-download.html @web-platform-tests/interop
-navigation-api/ordering-and-transition/back-cross-document-event-order.html @web-platform-tests/interop
+navigation-api/ordering-and-transition/back-cross-document-event-order-with-pagehide.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document-intercept-reject.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document-intercept.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document.html @web-platform-tests/interop
@@ -1323,7 +1323,7 @@ navigation-api/ordering-and-transition/location-href-intercept.html @web-platfor
 navigation-api/ordering-and-transition/navigate-204-205-download-then-same-document.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/navigate-canceled.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/navigate-cross-document-double.html @web-platform-tests/interop
-navigation-api/ordering-and-transition/navigate-cross-document-event-order.html @web-platform-tests/interop
+navigation-api/ordering-and-transition/navigate-cross-document-event-order-with-pagehide.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/navigate-double-intercept.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/navigate-in-transition-finished.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/navigate-intercept-precommitHandler-redirect.html @web-platform-tests/interop
@@ -1607,10 +1607,8 @@ webrtc/protocol/candidate-exchange.https.html @web-platform-tests/interop
 webrtc/protocol/codecs-subsequent-offer.https.html @web-platform-tests/interop
 webrtc/protocol/crypto-suite.https.html @web-platform-tests/interop
 webrtc/protocol/dtls-setup.https.html @web-platform-tests/interop
-webrtc/protocol/h264-profile-levels.https.html @web-platform-tests/interop
 webrtc/protocol/handover-datachannel.html @web-platform-tests/interop
 webrtc/protocol/handover.html @web-platform-tests/interop
-webrtc/protocol/ice-ufragpwd.html @web-platform-tests/interop
 webrtc/protocol/rtp-demuxing.html @web-platform-tests/interop
 webrtc/protocol/rtp-extension-support.html @web-platform-tests/interop
 webrtc/protocol/rtp-headerextensions.html @web-platform-tests/interop
@@ -1625,17 +1623,7 @@ webrtc/simulcast/screenshare.https.html @web-platform-tests/interop
 webrtc/simulcast/vp9-scalability-mode.https.html @web-platform-tests/interop
 webrtc/toJSON.html @web-platform-tests/interop
 webrtc/transfer-datachannel.html @web-platform-tests/interop
-webrtc-encoded-transform/RTCRtpScriptTransform-bad-chunk.https.html @web-platform-tests/interop
-webrtc-encoded-transform/RTCRtpScriptTransform-encoded-transform.https.html @web-platform-tests/interop
-webrtc-encoded-transform/RTCRtpScriptTransform-sender-worker-single-frame.https.html @web-platform-tests/interop
-webrtc-encoded-transform/idlharness.https.window.js @web-platform-tests/interop
-webrtc-encoded-transform/script-audio-transform.https.html @web-platform-tests/interop
-webrtc-encoded-transform/script-change-transform.https.html @web-platform-tests/interop
-webrtc-encoded-transform/script-metadata-transform.https.html @web-platform-tests/interop
 webrtc-encoded-transform/script-transform-generateKeyFrame.https.html @web-platform-tests/interop
-webrtc-encoded-transform/script-transform-sendKeyFrameRequest.https.html @web-platform-tests/interop
-webrtc-encoded-transform/script-transform.https.html @web-platform-tests/interop
-webrtc-encoded-transform/script-write-twice-transform.https.html @web-platform-tests/interop
 webtransport/back-forward-cache-with-closed-webtransport-connection.https.window.js @web-platform-tests/interop
 webtransport/close.https.any.js @web-platform-tests/interop
 webtransport/connect.https.any.js @web-platform-tests/interop

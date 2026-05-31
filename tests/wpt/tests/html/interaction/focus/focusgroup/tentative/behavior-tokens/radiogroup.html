@@ -35,74 +35,74 @@
 <script>
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg1'), kRight);
+    await focusAndSendDirectionalInput(rg1, kRight);
     assert_equals(document.activeElement.id, 'rg2');
   }, "radiogroup: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg2'), kLeft);
+    await focusAndSendDirectionalInput(rg2, kLeft);
     assert_equals(document.activeElement.id, 'rg1');
   }, "radiogroup: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg1'), kDown);
+    await focusAndSendDirectionalInput(rg1, kDown);
     assert_equals(document.activeElement.id, 'rg2');
   }, "radiogroup: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg2'), kUp);
+    await focusAndSendDirectionalInput(rg2, kUp);
     assert_equals(document.activeElement.id, 'rg1');
   }, "radiogroup: Up navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg3'), kRight);
+    await focusAndSendDirectionalInput(rg3, kRight);
     assert_equals(document.activeElement.id, 'rg1');
   }, "radiogroup: Right wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg1'), kLeft);
+    await focusAndSendDirectionalInput(rg1, kLeft);
     assert_equals(document.activeElement.id, 'rg3');
   }, "radiogroup: Left wraps at start");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg3'), kDown);
+    await focusAndSendDirectionalInput(rg3, kDown);
     assert_equals(document.activeElement.id, 'rg1');
   }, "radiogroup: Down wraps at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rg1'), kUp);
+    await focusAndSendDirectionalInput(rg1, kUp);
     assert_equals(document.activeElement.id, 'rg3');
   }, "radiogroup: Up wraps at start");
 
   // --- radiogroup inline: restricts both-axes fallback to inline only ---
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgi1'), kRight);
+    await focusAndSendDirectionalInput(rgi1, kRight);
     assert_equals(document.activeElement.id, 'rgi2');
   }, "radiogroup inline: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgi1'), kDown);
+    await focusAndSendDirectionalInput(rgi1, kDown);
     assert_equals(document.activeElement.id, 'rgi1');
   }, "radiogroup inline: Down blocked");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgi3'), kRight);
+    await focusAndSendDirectionalInput(rgi3, kRight);
     assert_equals(document.activeElement.id, 'rgi1');
   }, "radiogroup inline: Right wraps at end");
 
   // --- radiogroup nowrap: suppresses default wrap in both axes ---
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgnw1'), kRight);
+    await focusAndSendDirectionalInput(rgnw1, kRight);
     assert_equals(document.activeElement.id, 'rgnw2');
   }, "radiogroup nowrap: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgnw3'), kRight);
+    await focusAndSendDirectionalInput(rgnw3, kRight);
     assert_equals(document.activeElement.id, 'rgnw3');
   }, "radiogroup nowrap: Right does not wrap at end");
 
   promise_test(async t => {
-    await focusAndSendDirectionalInput(document.getElementById('rgnw3'), kDown);
+    await focusAndSendDirectionalInput(rgnw3, kDown);
     assert_equals(document.activeElement.id, 'rgnw3');
   }, "radiogroup nowrap: Down does not wrap at end");
 

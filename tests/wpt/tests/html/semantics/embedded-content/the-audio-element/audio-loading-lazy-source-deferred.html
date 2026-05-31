@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+
+<audio class="below-viewport" loading="lazy" controls>
+  <source src="/media/sine440.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  async_test(t => {
+    const audio = document.querySelector("audio");
+    let loadStarted = false;
+    audio.addEventListener("loadstart", () => {
+      loadStarted = true;
+    });
+
+    t.step_timeout(() => {
+      assert_false(loadStarted, "Audio load should not start while offscreen");
+      assert_equals(audio.readyState, HTMLMediaElement.HAVE_NOTHING);
+
+      audio.addEventListener("loadstart", t.step_func_done(() => {}),
+                             {once: true});
+      audio.scrollIntoView();
+    }, 1000);
+  }, "Audio with loading=lazy and source does not load until visible");
+</script>

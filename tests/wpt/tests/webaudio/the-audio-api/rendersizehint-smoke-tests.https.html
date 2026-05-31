@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<title>Smoke tests for standard nodes with renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const TEST_CONFIGS = [
+  // Stress test very low rate & tiny block sizes.
+  {sampleRate: 3000, renderSizeHint: 1, length: 128},
+  // Stress test very high rate & massive block sizes.
+  {sampleRate: 768000, renderSizeHint: 4608000, length: 4608000},
+  // Standard baseline verification.
+  {sampleRate: 48000, renderSizeHint: 128, length: 128},
+  // Non-power-of-two block size verification.
+  {sampleRate: 48000, renderSizeHint: 100, length: 200}
+];
+
+const createTestContext = config => new OfflineAudioContext({
+  length: config.length,
+  sampleRate: config.sampleRate,
+  renderSizeHint: config.renderSizeHint
+});
+
+const createEmptyBuffer = context => new AudioBuffer({
+  length: 128,
+  sampleRate: context.sampleRate
+});
+
+/**
+ * Runs smoke tests for a given AudioNode source type across multiple
+ * combinations of sampleRate and renderSizeHint.
+ *
+ * @param {string} nodeName The name of the node being tested.
+ * @param {function(OfflineAudioContext): AudioNode} createNodeFn A factory
+ *     function to create the node.
+ */
+const runSourceNodeTest = (nodeName, createNodeFn) => {
+  for (const config of TEST_CONFIGS) {
+    const {sampleRate, renderSizeHint} = config;
+    promise_test(async () => {
+      const context = createTestContext(config);
+      const node = createNodeFn(context);
+      node.connect(context.destination);
+      node.start();
+      const renderedBuffer = await context.startRendering();
+      const data = renderedBuffer.getChannelData(0);
+      assert_false(
+          data.includes(NaN), 'Output should not contain NaN');
+      assert_false(
+          data.includes(Infinity), 'Output should not contain Infinity');
+      assert_false(
+          data.includes(-Infinity), 'Output should not contain -Infinity');
+    }, `${nodeName} smoke test at ${sampleRate}Hz & hint ` +
+       `${renderSizeHint}`);
+  }
+};
+
+const SOURCE_NODE_TESTS = {
+  'OscillatorNode': context => new OscillatorNode(context),
+  'AudioBufferSourceNode': context => new AudioBufferSourceNode(context, {
+    buffer: createEmptyBuffer(context)
+  }),
+  'ConstantSourceNode': context => new ConstantSourceNode(context)
+};
+
+for (const name in SOURCE_NODE_TESTS) {
+  runSourceNodeTest(name, SOURCE_NODE_TESTS[name]);
+}
+
+
+/**
+ * Runs smoke tests for a given AudioNode processor/router type across multiple
+ * combinations of sampleRate and renderSizeHint.
+ *
+ * @param {string} nodeName The name of the node being tested.
+ * @param {function(OfflineAudioContext): AudioNode} createNodeFn A factory
+ *     function to create the node.
+ */
+const runProcessorNodeTest = (nodeName, createNodeFn) => {
+  for (const config of TEST_CONFIGS) {
+    const {sampleRate, renderSizeHint} = config;
+    promise_test(async () => {
+      const context = createTestContext(config);
+      const source = new ConstantSourceNode(context);
+      const node = createNodeFn(context);
+      source.connect(node).connect(context.destination);
+      source.start();
+      const renderedBuffer = await context.startRendering();
+      const data = renderedBuffer.getChannelData(0);
+      assert_false(
+          data.includes(NaN), 'Output should not contain NaN');
+      assert_false(
+          data.includes(Infinity), 'Output should not contain Infinity');
+      assert_false(
+          data.includes(-Infinity), 'Output should not contain -Infinity');
+    }, `${nodeName} smoke test at ${sampleRate}Hz & hint ` +
+       `${renderSizeHint}`);
+  }
+};
+
+const PROCESSOR_NODE_TESTS = {
+  'GainNode': context => new GainNode(context),
+  'BiquadFilterNode': context => new BiquadFilterNode(context),
+  'DelayNode': context => new DelayNode(context),
+  'DynamicsCompressorNode': context => new DynamicsCompressorNode(context),
+  'WaveShaperNode': context => new WaveShaperNode(context),
+  'PannerNode': context => new PannerNode(context),
+  'StereoPannerNode': context => new StereoPannerNode(context),
+  'AnalyserNode': context => new AnalyserNode(context),
+  'IIRFilterNode': context => new IIRFilterNode(context, {
+    feedforward: [1],
+    feedback: [1, -0.5]
+  }),
+  'ConvolverNode': context => new ConvolverNode(context, {
+    buffer: createEmptyBuffer(context)
+  }),
+  'ChannelMergerNode': context => new ChannelMergerNode(context),
+  'ChannelSplitterNode': context => new ChannelSplitterNode(context)
+};
+
+for (const [name, fn] of Object.entries(PROCESSOR_NODE_TESTS)) {
+  runProcessorNodeTest(name, fn);
+}
+</script>

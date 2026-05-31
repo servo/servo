@@ -26,7 +26,7 @@ test(t => {
 
   for (const test of test_cases) {
     const register = () => {
-       navigator.modelContext.registerTool({
+      document.modelContext.registerTool({
         name: 'test_tool_' + Math.random(),
         description: 'Test tool',
         execute: async () => 'hello'

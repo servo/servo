@@ -327,6 +327,8 @@ if (rest) {
       }] }));
   }, 'with http url should throw SyntaxError');
 
+}
+if (interop2026) {
   config_test(makePc => {
     assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
@@ -336,8 +338,6 @@ if (rest) {
       }] }));
   }, 'with invalid turn url should throw SyntaxError');
 
-}
-if (interop2026) {
   config_test(makePc => {
     assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{

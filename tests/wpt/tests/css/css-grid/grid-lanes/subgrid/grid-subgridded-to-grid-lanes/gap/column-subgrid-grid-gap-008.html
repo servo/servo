@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: nested orthogonal writing-mode column-direction subgrid with percentage column-gap</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-grid-gap-008-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+html,body {
+  color:black; background-color:white; font:24px/1 Ahem; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display:inline-grid-lanes;
+  grid-template-columns:200px auto;
+  border:3px solid;
+  background:grey;
+  width: 300px;
+  height: 500px;
+}
+.subgrid {
+  display: grid;
+  grid-template-rows: 50px;
+  grid-template-columns: subgrid;
+  column-gap: 10%;
+  grid-column: span 2;
+  align-content: end;
+  background:lightgrey;
+}
+span { background:cyan; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+</style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="subgrid vlr">
+    <span class="hl">ccc</span>
+    <span class="hl">ddd</span>
+  </div>
+</div>
+</body>
+</html>

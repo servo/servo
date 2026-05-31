@@ -19,9 +19,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2);
   }, "When the focus is set on an item of a focusgroup that only supports the axis of the directional input the focus should move.");

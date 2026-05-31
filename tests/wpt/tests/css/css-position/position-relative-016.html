@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<title>CSS Position: percentage top on relatively positioned elements whose containing block is out-of-flow positioned</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-top-percentage">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<meta name="assert" content="A relatively positioned box with a percentage top resolves against its containing block's height when that containing block is out-of-flow positioned and has a non-auto height (percent, stretch, calc, or implicit from top+bottom). Out-of-flow containing blocks always have computed used dimensions, so the percentage resolves even when an ancestor's style height is auto.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+
+.fixed-cb {
+    position: relative;
+    height: 200px;
+}
+
+.auto-cb {
+    position: relative;
+    font: 20px/1 Ahem;
+}
+</style>
+
+<!-- 1. abspos with height: 100%, top: 50% -->
+<div class="fixed-cb">
+    <div id="t1-cb" style="position: absolute; height: 100%;">
+        <div class="green" id="t1" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 2. abspos with height: 50%, top: 50% -->
+<div class="fixed-cb">
+    <div id="t2-cb" style="position: absolute; height: 50%;">
+        <div class="green" id="t2" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 3. abspos with height: stretch, top: 50% -->
+<div class="fixed-cb">
+    <div id="t3-cb" style="position: absolute; height: stretch;">
+        <div class="green" id="t3" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 4. abspos with height: calc(100% - 0px), top: 50% -->
+<div class="fixed-cb">
+    <div id="t4-cb" style="position: absolute; height: calc(100% - 0px);">
+        <div class="green" id="t4" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 5. abspos with height: calc(50% + 50px), top: 50% -->
+<div class="fixed-cb">
+    <div id="t5-cb" style="position: absolute; height: calc(50% + 50px);">
+        <div class="green" id="t5" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 6. abspos with height: 100%, display: inline, top: 50% -->
+<div class="fixed-cb">
+    <div id="t6-cb" style="position: absolute; height: 100%; display: inline;">
+        <div class="green" id="t6" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 7. abspos with height: 100%, display: inline-block, top: 50% -->
+<div class="fixed-cb">
+    <div id="t7-cb" style="position: absolute; height: 100%; display: inline-block;">
+        <div class="green" id="t7" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 8. abspos in auto-height ancestor (Ahem 20px line), height: 100%, top: 50% -->
+<div class="auto-cb">x<div id="t8-cb" style="position: absolute; height: 100%;">
+    <div class="green" id="t8" style="top: 50%;"></div>
+</div></div>
+
+<!-- 9. abspos in auto-height ancestor, height: 100%, display: inline, top: 100% (regression case) -->
+<div class="auto-cb">x<div id="t9-cb" style="position: absolute; height: 100%; display: inline;">
+    <div class="green" id="t9" style="top: 100%;"></div>
+</div></div>
+
+<!-- 10. Nested abspos containing blocks, top: 50% -->
+<div class="fixed-cb">
+    <div style="position: absolute; height: 100%;">
+        <div id="t10-cb" style="position: absolute; height: 100%;">
+            <div class="green" id="t10" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 11. abspos inside abspos with fixed height, top: 50% -->
+<div class="fixed-cb">
+    <div style="position: absolute; height: 100px;">
+        <div id="t11-cb" style="position: absolute; height: 100%;">
+            <div class="green" id="t11" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 12. abspos in percentage chain, top: 50% -->
+<div class="fixed-cb">
+    <div style="position: relative; height: 50%;">
+        <div id="t12-cb" style="position: absolute; height: 100%;">
+            <div class="green" id="t12" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 13. abspos with bottom: auto, top: 50% (negative -- NOT definite) -->
+<div class="fixed-cb">
+    <div id="t13-cb" style="position: absolute; top: 0;">
+        <div class="green" id="t13" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 14. abspos with min-height: 100%, height: auto, top: 50% (negative -- NOT definite) -->
+<div class="fixed-cb">
+    <div id="t14-cb" style="position: absolute; min-height: 100%;">
+        <div class="green" id="t14" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 15. abspos with bottom: auto + height: auto + top: auto (default OOF) -->
+<div class="fixed-cb">
+    <div id="t15-cb" style="position: absolute;">
+        <div class="green" id="t15" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 16. abspos with height: 100%, child bottom: 50% -->
+<div class="fixed-cb">
+    <div id="t16-cb" style="position: absolute; height: 100%;">
+        <div class="green" id="t16" style="bottom: 50%;"></div>
+    </div>
+</div>
+
+<!-- 17. abspos with height: 50%, child bottom: 50% -->
+<div class="fixed-cb">
+    <div id="t17-cb" style="position: absolute; height: 50%;">
+        <div class="green" id="t17" style="bottom: 50%;"></div>
+    </div>
+</div>
+
+<!-- 18. abspos with height: stretch, child bottom: 50% -->
+<div class="fixed-cb">
+    <div id="t18-cb" style="position: absolute; height: stretch;">
+        <div class="green" id="t18" style="bottom: 50%;"></div>
+    </div>
+</div>
+
+<script>
+function offsetFromParent(greenId, parentId) {
+    var green = document.getElementById(greenId);
+    var parent = document.getElementById(parentId);
+    return green.getBoundingClientRect().top - parent.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(offsetFromParent('t1', 't1-cb'), 100);
+}, 'abspos containing block, height: 100%, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t2', 't2-cb'), 50);
+}, 'abspos containing block, height: 50%, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t3', 't3-cb'), 100);
+}, 'abspos containing block, height: stretch, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t4', 't4-cb'), 100);
+}, 'abspos containing block, height: calc(100% - 0px), child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t5', 't5-cb'), 75);
+}, 'abspos containing block, height: calc(50% + 50px), child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t6', 't6-cb'), 100);
+}, 'abspos containing block, height: 100%, display: inline, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t7', 't7-cb'), 100);
+}, 'abspos containing block, height: 100%, display: inline-block, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t8', 't8-cb'), 10);
+}, 'abspos containing block in auto-height ancestor, height: 100%, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t9', 't9-cb'), 20);
+}, 'abspos containing block in auto-height ancestor, height: 100%, display: inline, child top: 100%');
+
+test(function() {
+    assert_equals(offsetFromParent('t10', 't10-cb'), 100);
+}, 'Nested abspos containing blocks, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t11', 't11-cb'), 50);
+}, 'abspos containing block inside abspos with fixed height, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t12', 't12-cb'), 50);
+}, 'abspos containing block in percentage chain, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t13', 't13-cb'), 0);
+}, 'abspos containing block with top: 0 only (auto height), child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t14', 't14-cb'), 0);
+}, 'abspos containing block with min-height: 100% only (auto height), child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t15', 't15-cb'), 0);
+}, 'abspos containing block with all-auto sizing, child top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t16', 't16-cb'), -100);
+}, 'abspos containing block, height: 100%, child bottom: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t17', 't17-cb'), -50);
+}, 'abspos containing block, height: 50%, child bottom: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t18', 't18-cb'), -100);
+}, 'abspos containing block, height: stretch, child bottom: 50%');
+</script>

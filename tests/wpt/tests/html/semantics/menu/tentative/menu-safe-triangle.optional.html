@@ -74,9 +74,11 @@ promise_test(async (t) => {
   let zoom_menu = document.getElementById("zoom-menu");
   let actions = new test_driver.Actions();
 
-  assert_false(view_item.matches(":open"), "view menu closed before click");
+  view_menu.hidePopover();
+  assert_false(view_menu.matches(':popover-open'), 'view menu closed before click');
+  assert_false(view_item.matches(":open"), "view menu invoker closed before click");
   await clickOn(view_item);
-  t.add_cleanup(async () => { await clickOn(view_item); });
+  t.add_cleanup(async () => { view_menu.hidePopover() });
   assert_true(view_item.matches(":open"), "view menu open after click");
   assert_false(zoom_item.matches(":open"), "zoom menu closed before hover");
   await hoverOver(zoom_item);

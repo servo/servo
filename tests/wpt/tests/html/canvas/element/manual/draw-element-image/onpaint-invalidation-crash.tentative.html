@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/common/reftest-wait.js"></script>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="target" tabindex="0">
+    pass if no crash.
+  </div>
+</canvas>
+
+<script>
+  const gl = this.canvas.getContext('webgl');
+  let initialPaint = true;
+  canvas.onpaint = () => {
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    if (initialPaint) {
+      initialPaint = false;
+      canvas.requestPaint();
+    } else {
+      takeScreenshot();
+    }
+  }
+  canvas.requestPaint();
+</script>
+</html>

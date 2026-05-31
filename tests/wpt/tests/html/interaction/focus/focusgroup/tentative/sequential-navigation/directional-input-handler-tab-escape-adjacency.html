@@ -57,50 +57,38 @@
 
 <script>
   promise_test(async t => {
-    const b = document.getElementById("end_B");
-    const input = document.getElementById("end_input");
-
-    await focusAndWait(input);
-    assert_equals(document.activeElement, input, "Precondition: focus starts on input");
+    await focusAndWait(end_input);
+    assert_equals(document.activeElement, end_input, "Precondition: focus starts on input");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, b,
+    assert_equals(document.activeElement, end_B,
                   "Shift+Tab from directional input handler at end should go to adjacent item (B), not first item (A)");
   }, "Shift+Tab from directional input handler at end goes to immediately previous item");
 
   promise_test(async t => {
-    const b = document.getElementById("mid_B");
-    const sel = document.getElementById("mid_select");
-
-    await focusAndWait(sel);
-    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+    await focusAndWait(mid_select);
+    assert_equals(document.activeElement, mid_select, "Precondition: focus starts on select");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, b,
+    assert_equals(document.activeElement, mid_B,
                   "Shift+Tab from directional input handler in middle should go to adjacent item (B), not first item (A)");
   }, "Shift+Tab from directional input handler in middle goes to immediately previous item");
 
   promise_test(async t => {
-    const sel = document.getElementById("fwd_select");
-    const optedout = document.getElementById("fwd_optedout");
-
-    await focusAndWait(sel);
-    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+    await focusAndWait(fwd_select);
+    assert_equals(document.activeElement, fwd_select, "Precondition: focus starts on select");
 
     await sendTabForward();
-    assert_equals(document.activeElement, optedout,
+    assert_equals(document.activeElement, fwd_optedout,
                   "Tab from directional input handler should not skip focusable opted-out content");
   }, "Tab from directional input handler does not skip focusable content in opted-out subtree");
 
   promise_test(async t => {
-    const sel = document.getElementById("back_select");
-    const optedout = document.getElementById("back_optedout");
-
-    await focusAndWait(sel);
-    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+    await focusAndWait(back_select);
+    assert_equals(document.activeElement, back_select, "Precondition: focus starts on select");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, optedout,
+    assert_equals(document.activeElement, back_optedout,
                   "Shift+Tab from directional input handler should not skip focusable opted-out content");
   }, "Shift+Tab from directional input handler does not skip focusable content in opted-out subtree");
 </script>

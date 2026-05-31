@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - 'none' anywhere in token list opts out</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-focusgroup-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div id=none-after focusgroup="toolbar none">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=0>item2</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item1, kRight);
+    assert_equals(document.activeElement, item1,
+      "'toolbar none' should opt out; arrow key should not move focus");
+  }, "'none' after a behavior token opts out of focusgroup navigation");
+</script>
+
+<div id=none-between focusgroup="toolbar wrap none block">
+  <span id=item3 tabindex=0>item3</span>
+  <span id=item4 tabindex=0>item4</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item3, kRight);
+    assert_equals(document.activeElement, item3,
+      "'toolbar wrap none block' should opt out; arrow key should not move focus");
+  }, "'none' between other tokens opts out of focusgroup navigation");
+</script>
+
+<div id=none-alone focusgroup="none">
+  <span id=item5 tabindex=0>item5</span>
+  <span id=item6 tabindex=0>item6</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item5, kRight);
+    assert_equals(document.activeElement, item5,
+      "'none' alone should opt out; arrow key should not move focus");
+  }, "'none' alone opts out of focusgroup navigation (baseline)");
+</script>

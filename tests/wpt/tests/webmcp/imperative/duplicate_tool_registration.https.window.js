@@ -8,13 +8,13 @@ test(() => {
   assert_throws_dom(
     'InvalidStateError',
     () => {
-      navigator.modelContext.registerTool({
+      document.modelContext.registerTool({
         name: 'empty',
         description: 'echo empty',
         execute: empty,
       });
 
-      navigator.modelContext.registerTool({
+      document.modelContext.registerTool({
         name: 'empty',
         description: 'echo empty',
         execute: empty,

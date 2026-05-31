@@ -1,0 +1,21 @@
+<!doctype html>
+<html class=reftest-wait>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/common/reftest-wait.js"></script>
+
+<div id="outside">Pass if no crash.</div>
+<canvas id=canvas width="1" height="1" layoutsubtree>
+  <div id="inside"></div>
+</canvas>
+
+<script>
+  canvas.onpaint = () => {
+    // Modify an element outside the canvas.
+    outside.style.opacity = '.1';
+    // Ensure there is no crash if we force an update for hit testing.
+    document.elementsFromPoint(50, 50);
+    takeScreenshot();
+  };
+  canvas.requestPaint();
+</script>
+</html>

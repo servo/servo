@@ -28,36 +28,28 @@
 
 <script>
   promise_test(async t => {
-    const a = document.getElementById("vid_A");
-    const vid = document.getElementById("vid");
-    const b = document.getElementById("vid_B");
+    await focusAndWait(vid_A);
+    assert_equals(document.activeElement, vid_A, "Precondition: focus on A");
 
-    await focusAndWait(a);
-    assert_equals(document.activeElement, a, "Precondition: focus on A");
-
-    await focusAndSendDirectionalInput(a, kRight);
+    await focusAndSendDirectionalInput(vid_A, kRight);
     assert_equals(document.activeElement, vid,
         "Right from A should navigate to video");
 
     await sendTabForward();
-    assert_equals(document.activeElement, b,
+    assert_equals(document.activeElement, vid_B,
         "Tab from video should escape to adjacent item B");
   }, "Tab escape from video element inside focusgroup goes to adjacent item");
 
   promise_test(async t => {
-    const a = document.getElementById("vid_A");
-    const vid = document.getElementById("vid");
-    const b = document.getElementById("vid_B");
+    await focusAndWait(vid_B);
+    assert_equals(document.activeElement, vid_B, "Precondition: focus on B");
 
-    await focusAndWait(b);
-    assert_equals(document.activeElement, b, "Precondition: focus on B");
-
-    await focusAndSendDirectionalInput(b, kLeft);
+    await focusAndSendDirectionalInput(vid_B, kLeft);
     assert_equals(document.activeElement, vid,
         "Left from B should navigate to video");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, a,
+    assert_equals(document.activeElement, vid_A,
         "Shift+Tab from video should escape to adjacent item A");
   }, "Shift+Tab escape from video element inside focusgroup goes to adjacent item");
 
@@ -65,47 +57,39 @@
   // video's internal controls normally, without focusgroup Tab escape
   // interfering.
   promise_test(async t => {
-    const before = document.getElementById("standalone_before");
-    const vid = document.getElementById("standalone_vid");
-    const after = document.getElementById("standalone_after");
-
-    await focusAndWait(before);
-    assert_equals(document.activeElement, before, "Precondition: focus on Before");
+    await focusAndWait(standalone_before);
+    assert_equals(document.activeElement, standalone_before, "Precondition: focus on Before");
 
     let maxTabs = 10;
-    while (document.activeElement !== vid && maxTabs-- > 0) {
+    while (document.activeElement !== standalone_vid && maxTabs-- > 0) {
       await sendTabForward();
     }
-    assert_equals(document.activeElement, vid,
+    assert_equals(document.activeElement, standalone_vid,
         "Should reach video controls via Tab");
 
     maxTabs = 20;
-    while (document.activeElement !== after && maxTabs-- > 0) {
+    while (document.activeElement !== standalone_after && maxTabs-- > 0) {
       await sendTabForward();
     }
-    assert_equals(document.activeElement, after,
+    assert_equals(document.activeElement, standalone_after,
         "Tab should exit video controls and reach After button via normal tab order");
   }, "Tab through video controls outside focusgroup follows normal tab order");
 
   promise_test(async t => {
-    const a = document.getElementById("vid_A");
-    const vid = document.getElementById("vid");
-    const b = document.getElementById("vid_B");
+    await focusAndWait(vid_A);
+    assert_equals(document.activeElement, vid_A, "Precondition: focus on A");
 
-    await focusAndWait(a);
-    assert_equals(document.activeElement, a, "Precondition: focus on A");
-
-    await focusAndSendDirectionalInput(a, kRight);
+    await focusAndSendDirectionalInput(vid_A, kRight);
     assert_equals(document.activeElement, vid,
         "Right from A should navigate to video");
 
     // Tab enters the video's internal controls (shadow DOM).
     await sendTabForward();
     let maxTabs = 20;
-    while (document.activeElement !== b && maxTabs-- > 0) {
+    while (document.activeElement !== vid_B && maxTabs-- > 0) {
       await sendTabForward();
     }
-    assert_equals(document.activeElement, b,
+    assert_equals(document.activeElement, vid_B,
         "Tab from inside video controls should escape to adjacent focusgroup item B");
   }, "Tab escape from inside video shadow DOM controls reaches adjacent focusgroup item");
 </script>

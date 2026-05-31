@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.block {
+  display: block;
+  height: 400px;
+  border: 2px solid black;
+}
+svg {
+  background: teal;
+  height: max-content;
+}
+</style>
+
+<body onload="checkLayout('svg')">
+  No intrinsic attributes:
+  <div class="block">
+    <svg data-expected-client-width="300" data-expected-client-height="150"></svg>
+  </div>
+
+  viewBox and width:
+  <div class="block">
+    <svg width="40" viewBox="0 0 4 1"
+         data-expected-client-width="40" data-expected-client-height="10"></svg>
+  </div>
+
+  viewBox and height:
+  <div class="block">
+    <svg height="40" viewBox="0 0 4 1"
+         data-expected-client-width="160" data-expected-client-height="40"></svg>
+  </div>
+
+  viewBox, width, height:
+  <div class="block">
+    <svg width="40" height="40" viewBox="0 0 4 1"
+         data-expected-client-width="40" data-expected-client-height="40"></svg>
+  </div>
+
+  Just viewBox:
+  <div class="block">
+    <svg viewBox="0 0 4 1"
+         data-expected-client-width="300" data-expected-client-height="75"></svg>
+  </div>
+</body>

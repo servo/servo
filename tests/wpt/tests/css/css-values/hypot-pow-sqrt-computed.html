@@ -47,6 +47,11 @@ test_math_used('hypot(0% + 600px, 0% + 800px)', '1000px');
 test_math_used('sqrt(sibling-index())', '2', {type: 'integer'});
 test_math_used('calc(1px * sqrt(sibling-index()))', '2px');
 test_math_used('sqrt(pow(sibling-index(), 2))', '4', {type: 'integer'});
+test_math_used('hypot(3, sibling-index())', '5', {type: 'integer'});
+test_math_used('sqrt(4 * sign(1em - 1px))', '2', {type: 'integer'});
+test_math_used('calc(1px * sqrt(4 * sign(1em - 1px)))', '2px');
+test_math_used('sqrt(pow(4 * sign(1em - 1px), 2))', '4', {type: 'integer'});
+test_math_used('hypot(3, 4 * sign(1em - 1px))', '5', {type: 'integer'});
 
 //Type checking hypot
 test_math_used('hypot(1px)', '1px');

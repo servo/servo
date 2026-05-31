@@ -22,7 +22,7 @@ promise_test(async t => {
   await load_promise;
 
   const toolchange_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
   // Have the iframe register a tool (it will never execute though).
@@ -39,7 +39,7 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'iframe_tool');
   assert_true(!!tool, 'Tool should be retrieved successfully');
 
@@ -53,7 +53,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'InvalidStateError',
-    navigator.modelContext.executeTool(tool, '{}'),
+    document.modelContext.executeTool(tool, '{}'),
     'Promise should be rejected with InvalidStateError when target frame is detached before execution'
   );
 }, 'executeTool() rejects when target frame is detached before execution');
@@ -69,7 +69,7 @@ promise_test(async t => {
   await load_promise;
 
   const toolchange_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
   // The iframe tool hangs forever, because it must be executing *while* we
@@ -88,12 +88,12 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'iframe_tool_hanging');
   assert_true(!!tool, 'Tool should be retrieved successfully');
 
   // Execute the tool (hangs forever).
-  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
 
   iframe.remove();
 

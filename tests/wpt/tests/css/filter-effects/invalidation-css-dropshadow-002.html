@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS filter: drop-shadow updates when currentcolor changes</title>
+<link rel="help" href="https://drafts.fxtf.org/css-backgrounds-3/#color-property">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="match" href="invalidation-css-dropshadow-002-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<svg width="100" height="100">
+  <rect id="target" width="50" height="100" fill="black"
+        style="color: rgb(255, 0, 0); filter: drop-shadow(50px 0px 0px color-mix(in srgb, currentcolor 100%, black));"/>
+</svg>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const target = document.getElementById('target');
+      target.style.color = 'rgb(0, 255, 0)'; // Change color to lime
+      takeScreenshot();
+    });
+  });
+</script>
+</html>

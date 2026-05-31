@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>SVG image flex item with no intrinsic dimensions falls back to 150px height in column flex container</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="flex-svg-no-intrinsic-column-001-ref.html">
+<style>
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 150px;
+  height: 0;
+}
+img {
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <img src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" />'>
+</div>

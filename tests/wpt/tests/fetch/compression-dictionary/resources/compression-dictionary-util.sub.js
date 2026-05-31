@@ -143,3 +143,14 @@ function compression_dictionary_promise_test(func, name, properties) {
     await func(test);
   }, name, properties);
 }
+
+// Registers an alternative dictionary and waits for its registration to
+// complete. This is used in tests to confirm that another dictionary's
+// registration process has fully finished.
+async function registerAltDictionaryAndWait(t) {
+  const pattern = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers2.py";
+  await fetch(`${kRegisterDictionaryPath}?id=id2&match=${pattern}`);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {use_alt_path: true}),
+      kDefaultDictionaryHashBase64);
+}

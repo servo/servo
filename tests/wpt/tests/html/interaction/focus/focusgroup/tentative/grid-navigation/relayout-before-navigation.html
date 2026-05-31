@@ -30,9 +30,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item3 = document.getElementById("item3");
-
     await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item3);
   }, "Since |item1| removes the middle row on directional input, the grid focusgroup should check for a relayout before navigating to the next row.");

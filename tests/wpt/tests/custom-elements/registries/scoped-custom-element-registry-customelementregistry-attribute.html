@@ -7,6 +7,25 @@
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
+<!-- Elements with customelementregistry attribute parsed during initial document load -->
+<div id="builtin-with-attr" customelementregistry></div>
+<custom-elem id="candidate-with-attr" customelementregistry></custom-elem>
+<div id="parent-with-attr" customelementregistry>
+  <div id="child-of-attr"></div>
+  <custom-elem id="candidate-child-of-attr"></custom-elem>
+  <div id="nested-parent">
+    <custom-elem id="deep-nested-candidate"></custom-elem>
+  </div>
+</div>
+
+<!-- Elements without customelementregistry attribute for comparison -->
+<div id="builtin-without-attr"></div>
+<custom-elem id="candidate-without-attr"></custom-elem>
+
+<!-- Elements for upgrade testing -->
+<upgrade-elem id="upgrade-with-attr" customelementregistry></upgrade-elem>
+<upgrade-elem id="upgrade-without-attr"></upgrade-elem>
+
 <script>
 
 function makeIframe(test) {
@@ -97,6 +116,116 @@ test((test) => {
     assert_equals(customElementRegistryDuringConstruction, win.customElements);
     assert_equals(element.customElementRegistry, win.customElements);
 }, `Setting customelementregistry content attribute during constructor should not make it use null registry`);
+
+function iframeFromSrcdoc(test, srcdoc) {
+    return new Promise((resolve) => {
+        const iframe = document.createElement('iframe');
+        iframe.srcdoc = srcdoc;
+        iframe.onload = () => resolve([iframe.contentDocument, iframe.contentWindow]);
+        document.body.appendChild(iframe);
+        test.add_cleanup(() => iframe.remove());
+    });
+}
+
+// Tests for customelementregistry attribute on body tag during initial document parse.
+
+promise_test(async (test) => {
+    const [doc, win] = await iframeFromSrcdoc(test,
+        '<!DOCTYPE html><body customelementregistry><div></div></body>');
+    assert_equals(doc.body.getAttribute('customelementregistry'), '',
+        'body should have the customelementregistry attribute');
+    assert_equals(doc.body.customElementRegistry, null,
+        'body should have null registry');
+    assert_equals(doc.querySelector('div').customElementRegistry, null,
+        'div child of body with customelementregistry should have null registry');
+}, 'Body with customelementregistry attribute during initial parse should have null registry and propagate to children');
+
+promise_test(async (test) => {
+    const [doc, win] = await iframeFromSrcdoc(test,
+        '<!DOCTYPE html><body customelementregistry><a-b></a-b></body>');
+    const ab = doc.querySelector('a-b');
+    assert_equals(ab.customElementRegistry, null,
+        'custom element candidate child of body with customelementregistry should have null registry');
+}, 'Custom element candidate child of body with customelementregistry should have null registry during initial parse');
+
+promise_test(async (test) => {
+    const [doc, win] = await iframeFromSrcdoc(test,
+        '<!DOCTYPE html><body customelementregistry><div><a-b></a-b></div></body>');
+    assert_equals(doc.querySelector('div').customElementRegistry, null,
+        'div child should have null registry');
+    assert_equals(doc.querySelector('a-b').customElementRegistry, null,
+        'nested custom element candidate should have null registry');
+}, 'Descendants of body with customelementregistry should all have null registry during initial parse');
+
+promise_test(async (test) => {
+    const [doc, win] = await iframeFromSrcdoc(test,
+        '<!DOCTYPE html><html><head></head><body customelementregistry><div></div></body></html>');
+    assert_equals(doc.body.customElementRegistry, null,
+        'body should have null registry');
+    assert_equals(doc.querySelector('div').customElementRegistry, null,
+        'div child should have null registry');
+}, 'Body with customelementregistry in a complete document structure should have null registry');
+
+// Tests for customelementregistry attribute on elements during initial document parse.
+
+test(() => {
+  const element = document.getElementById('builtin-with-attr');
+  assert_equals(element.customElementRegistry, null,
+    'Built-in element with customelementregistry attribute should have null registry');
+}, 'Initial parse: built-in element with customelementregistry has null registry');
+
+test(() => {
+  const element = document.getElementById('candidate-with-attr');
+  assert_equals(element.customElementRegistry, null,
+    'Custom element candidate with customelementregistry attribute should have null registry');
+}, 'Initial parse: custom element candidate with customelementregistry has null registry');
+
+test(() => {
+  const element = document.getElementById('builtin-without-attr');
+  assert_equals(element.customElementRegistry, window.customElements,
+    'Built-in element without customelementregistry should use the global registry');
+}, 'Initial parse: built-in element without customelementregistry uses global registry');
+
+test(() => {
+  const element = document.getElementById('candidate-without-attr');
+  assert_equals(element.customElementRegistry, window.customElements,
+    'Custom element candidate without customelementregistry should use the global registry');
+}, 'Initial parse: custom element candidate without customelementregistry uses global registry');
+
+// Tests for descendants inheriting null registry.
+
+test(() => {
+  const child = document.getElementById('child-of-attr');
+  assert_equals(child.customElementRegistry, null,
+    'Child of element with customelementregistry should have null registry');
+}, 'Initial parse: child of element with customelementregistry inherits null registry');
+
+test(() => {
+  const child = document.getElementById('candidate-child-of-attr');
+  assert_equals(child.customElementRegistry, null,
+    'Custom element candidate child of element with customelementregistry should have null registry');
+}, 'Initial parse: custom element candidate child inherits null registry from parent');
+
+test(() => {
+  const child = document.getElementById('deep-nested-candidate');
+  assert_equals(child.customElementRegistry, null,
+    'Deeply nested custom element candidate should have null registry');
+}, 'Initial parse: deeply nested descendant inherits null registry');
+
+// Test that custom element with a definition is NOT upgraded when customelementregistry is present.
+
+test(() => {
+  const withAttr = document.getElementById('upgrade-with-attr');
+  assert_equals(withAttr.constructor, HTMLElement,
+    'Custom element candidate with null registry should not be upgraded');
+  customElements.define('upgrade-elem', class extends HTMLElement {});
+  assert_equals(withAttr.constructor, HTMLElement,
+    'Custom element candidate with null registry should still not be upgraded after defining in global registry');
+
+  const withoutAttr = document.getElementById('upgrade-without-attr');
+  assert_true(withoutAttr instanceof customElements.get('upgrade-elem'),
+    'Custom element candidate without customelementregistry should be upgraded');
+}, 'Initial parse: global registry define only upgrades elements without customelementregistry');
 
 </script>
 </body>

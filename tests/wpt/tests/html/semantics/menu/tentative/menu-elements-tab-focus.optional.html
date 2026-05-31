@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1438">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- This test is marked as optional because this tab key behavior is not
+     explicitly specified. -->
+
+<button id=beforemenu>before menus</button>
+
+<menubar id=menubar>
+  <menuitem id=menubaritem1 commandfor=menulist1 command=show-menu>open menulist1</menuitem>
+  <menuitem id=menubaritem2>menuitem two</menuitem>
+</menubar>
+
+<menulist id=menulist1>
+  <menuitem id=menulist1item1 commandfor=menulist2 command=show-menu>open menulist2</menuitem>
+  <menuitem id=menulist1item2>menuitem two</menuitem>
+</menulist>
+
+<menulist id=menulist2>
+  <menuitem id=menulist2item1>menuitem one</menuitem>
+  <menuitem id=menulist2item2>menuitem two</menuitem>
+</menulist>
+
+<button id=aftermenu>after menus</button>
+
+<script>
+const tab = '\uE004';
+const enter = '\uE007';
+const shift = '\uE008';
+function pressKey(firstKey, secondKey) {
+  const actions = new test_driver.Actions();
+  actions.keyDown(firstKey);
+  if (secondKey) {
+    actions.keyDown(secondKey);
+    actions.keyUp(secondKey);
+  }
+  actions.keyUp(firstKey);
+  return actions.send();
+}
+
+const beforemenu = document.getElementById('beforemenu');
+const aftermenu = document.getElementById('aftermenu');
+const menubar = document.getElementById('menubar');
+const menulist1 = document.getElementById('menulist1');
+const menulist2 = document.getElementById('menulist2');
+const menubaritem1 = document.getElementById('menubaritem1');
+const menulist1item1 = document.getElementById('menulist1item1');
+const menulist2item1 = document.getElementById('menulist2item1');
+
+promise_test(async () => {
+  beforemenu.focus();
+  await pressKey(tab);
+  assert_equals(document.activeElement, menubaritem1,
+    'Tabbing into a menubar should focus the first focusable menuitem.');
+  await pressKey(tab);
+  assert_equals(document.activeElement, aftermenu,
+    'Tabbing out of a menubar should focus the next focusable item after the menubar.');
+  await pressKey(shift, tab);
+  assert_equals(document.activeElement, menubaritem1,
+    'Shift+tabbing into a menubar should focus the first focusable menuitem.');
+
+  menulist1.showPopover({source: menubaritem1});
+  menulist1item1.focus();
+  await pressKey(tab);
+  assert_false(menulist1.matches(':popover-open'),
+    'Tab key should close menulist.');
+  assert_equals(document.activeElement, aftermenu,
+    'Tab key should move focus to next focusable item after menus.');
+
+  menulist1.showPopover({source: menubaritem1});
+  menulist1item1.focus();
+  await pressKey(shift, tab);
+  assert_false(menulist1.matches(':popover-open'),
+    'Shift+tab key should close menulist.');
+  assert_equals(document.activeElement, beforemenu,
+    'Shift+tab key should move focus to previous item before menus.');
+
+  menulist1.showPopover({source: menubaritem1});
+  menulist2.showPopover({source: menulist1item1});
+  menulist2item1.focus();
+  await pressKey(tab);
+  assert_false(menulist2.matches(':popover-open'),
+    'Tab key should close outer menulist.');
+  assert_false(menulist1.matches(':popover-open'),
+    'Tab key should close inner menulist.');
+  assert_equals(document.activeElement, aftermenu,
+    'Tab key should move focus to the next focusable item after menus in nested case.');
+}, 'Tab and shift+tab behavior in and around menu elements.');
+</script>

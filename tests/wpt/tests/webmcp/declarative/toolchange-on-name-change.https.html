@@ -17,7 +17,7 @@
   <script>
     function waitForToolChange() {
       return new Promise(resolve => {
-        navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+        document.modelContext.addEventListener('toolchange', resolve, { once: true });
       });
     }
 

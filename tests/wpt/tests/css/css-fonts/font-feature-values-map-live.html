@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Fonts Test: CSSFontFeatureValuesMap is live and reflect changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#cssfontfeaturevaluesmap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @font-feature-values MyFamily {
+    @annotation { black-boxed: 3 }
+  }
+</style>
+<!-- Two identical stylesheets exposes a stylesheet sharing issue in Chrome -->
+<style>
+  @font-feature-values MyFamily {
+    @annotation { circled: 1; black-boxed: 3; }
+  }
+</style>
+<script>
+  test(() => {
+    const a1 = document.styleSheets[0].cssRules[0].annotation;
+    a1.set("black-boxed", 42);
+    const a2 = document.styleSheets[0].cssRules[0].annotation;
+    assert_array_equals(a1.get("black-boxed"), [42]);
+    assert_array_equals(a2.get("black-boxed"), [42]);
+  }, "Two retreived maps for CSSFontFeatureValuesRule.annotation should reflect the same values");
+
+  test(() => {
+    assert_array_equals(document.styleSheets[1].cssRules[0].annotation.get("black-boxed"), [3]);
+  }, "The second stylesheet should not be affected by modifications in the first");
+
+</script>

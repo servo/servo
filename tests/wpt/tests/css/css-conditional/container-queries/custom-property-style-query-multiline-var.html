@@ -1,0 +1,88 @@
+<!doctype html>
+<title>CSS Container Queries Test: style() query against custom property with multi-line var() fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#using-variables">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  /*
+    Each container declares the same logical value:
+        var(<undefined-var>, "my-default-value")
+    once on a single line and several times split across multiple lines
+    (the shapes a code formatter such as Prettier produces). The container
+    query asks whether the custom property equals "my-default-value", which
+    is the fallback every container is expected to resolve to.
+  */
+
+  .single-line {
+    --my-container-var: var(--my-undefined-var, "my-default-value");
+  }
+
+  .multi-line {
+    --my-container-var: var(
+      --my-undefined-var,
+      "my-default-value"
+    );
+  }
+
+  .multi-line-newline-after-comma {
+    --my-container-var: var(--my-undefined-var,
+      "my-default-value");
+  }
+
+  .multi-line-newline-before-paren {
+    --my-container-var: var(--my-undefined-var, "my-default-value"
+    );
+  }
+
+  .multi-line-mixed {
+    --my-container-var:
+      var(
+        --my-undefined-var,
+        "my-default-value"
+      )
+    ;
+  }
+
+  @container style(--my-container-var: "my-default-value") {
+    .target { --matched: true; }
+  }
+</style>
+
+<div class="single-line">
+  <div class="target" id="t-single"></div>
+</div>
+<div class="multi-line">
+  <div class="target" id="t-multi"></div>
+</div>
+<div class="multi-line-newline-after-comma">
+  <div class="target" id="t-multi-after-comma"></div>
+</div>
+<div class="multi-line-newline-before-paren">
+  <div class="target" id="t-multi-before-paren"></div>
+</div>
+<div class="multi-line-mixed">
+  <div class="target" id="t-multi-mixed"></div>
+</div>
+
+<script>
+  setup(() => {
+    assert_implements_style_container_queries();
+  });
+
+  function assertMatched(id, label) {
+    test(() => {
+      const value = getComputedStyle(document.getElementById(id))
+                      .getPropertyValue("--matched").trim();
+      assert_equals(value, "true",
+        `style(--my-container-var: "my-default-value") should match for ${label}`);
+    }, label);
+  }
+
+  assertMatched("t-single", "single-line var() fallback");
+  assertMatched("t-multi", "multi-line var() fallback");
+  assertMatched("t-multi-after-comma", "newline after comma in var() fallback");
+  assertMatched("t-multi-before-paren", "newline before closing parentheses in var() fallback");
+  assertMatched("t-multi-mixed", "newline before var() and around fallback");
+</script>

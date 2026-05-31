@@ -45,9 +45,9 @@ const ArrowDown = '\uE015';
   const description = useInterest ? ' (no delays)' : ' (long delays)';
   promise_test(async (t) => {
     await test_driver.click(btn);
-    assert_equals(document.activeElement, btn);
-    await test_driver.send_keys(document.activeElement, Enter);
-    assert_equals(document.activeElement, btn, 'btn invoked menulist, but focus is still on btn.');
+    // Opening a submenu with a pointer input doesn't move focus:
+    // https://github.com/openui/open-ui/issues/1439
+    assert_equals(document.activeElement, btn, 'clicking btn should not move focus.');
     await test_driver.send_keys(document.activeElement, ArrowDown);
     assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
     await test_driver.send_keys(document.activeElement, ArrowDown);

@@ -17,7 +17,7 @@ let key1, key2, key3, key4;
 
 promise_test(async (test) => {
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
-    const transform = new SFrameTransform;
+    const transform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
 
     await transform.setEncryptionKey(key);
     await transform.setEncryptionKey(key, 1);
@@ -42,16 +42,16 @@ promise_test(async (test) => {
     const stream = await new Promise((resolve, reject) => {
         const connections = createConnections(test, (firstConnection) => {
             sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
-            let transform = new SFrameTransform;
+            let transform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
             transform.setEncryptionKey(key1);
             sender.transform = transform;
         }, (secondConnection) => {
             secondConnection.ontrack = (trackEvent) => {
-                let transform = new SFrameTransform;
-                transform.setEncryptionKey(key1);
-                transform.setEncryptionKey(key2);
-                transform.setEncryptionKey(key3, 1000);
-                transform.setEncryptionKey(key4, BigInt('18446744073709551615'));
+                let transform = new RTCRtpSFrameDecrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+                transform.addDecryptionKey(key1);
+                transform.addDecryptionKey(key2);
+                transform.addDecryptionKey(key3, 1000);
+                transform.addDecryptionKey(key4, BigInt('18446744073709551615'));
                 receiver = trackEvent.receiver;
                 receiver.transform = transform;
                 resolve(trackEvent.streams[0]);

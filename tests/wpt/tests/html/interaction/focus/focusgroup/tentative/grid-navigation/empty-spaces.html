@@ -47,13 +47,6 @@
   // r3c5, r3c6, r3c7 and r4c7.
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c4 = document.getElementById("r1c4");
-    var r1c5 = document.getElementById("r1c5");
-    var r2c3 = document.getElementById("r2c3");
-    var r3c2 = document.getElementById("r3c2");
-    var r4c6 = document.getElementById("r4c6");
-
     await focusAndSendDirectionalInput(r3c2, kRight);
     assert_equals(document.activeElement, r1c4);
 
@@ -68,15 +61,6 @@
   }, "Navigating right should move the focus to the next column, dealing correctly with the empty spaces.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c4 = document.getElementById("r1c4");
-    var r1c5 = document.getElementById("r1c5");
-    var r1c6 = document.getElementById("r1c6");
-    var r1c7 = document.getElementById("r1c7");
-    var r2c3 = document.getElementById("r2c3");
-    var r4c1 = document.getElementById("r4c1");
-    var r4c6 = document.getElementById("r4c6");
-
     await focusAndSendDirectionalInput(r2c3, kDown);
     assert_equals(document.activeElement, r4c1);
 
@@ -99,13 +83,6 @@
   }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with empty spaces.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c3 = document.getElementById("r1c3");
-    var r1c4 = document.getElementById("r1c4");
-    var r3c1 = document.getElementById("r3c1");
-    var r4c1 = document.getElementById("r4c1");
-    var r4c6 = document.getElementById("r4c6");
-
     await focusAndSendDirectionalInput(r1c1, kLeft);
     assert_equals(document.activeElement, r4c6);
 
@@ -120,13 +97,6 @@
   }, "Navigating left should move to the previous column, dealing correctly with the empty spaces.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c6 = document.getElementById("r1c6");
-    var r1c7 = document.getElementById("r1c7");
-    var r3c1 = document.getElementById("r3c1");
-    var r4c1 = document.getElementById("r4c1");
-    var r4c6 = document.getElementById("r4c6");
-
     await focusAndSendDirectionalInput(r1c7, kUp);
     assert_equals(document.activeElement, r4c6);
 

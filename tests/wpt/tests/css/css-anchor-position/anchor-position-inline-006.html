@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: Resolve anchor() in inline containing block() when the anchor element is split across multiple lines</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-resolution">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#absolute-cb">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1886762">
+<link rel="match" href="anchor-position-inline-006-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.rel {
+  position: relative;
+  background: lightgray;
+  line-height: 2;
+}
+
+.anchor {
+  anchor-name: --a;
+  color: red;
+}
+
+.target {
+  position: absolute;
+  left: anchor(--a left);
+  right: anchor(--a right);
+  top: anchor(--a top);
+  bottom: anchor(--a bottom);
+  background: green;
+}
+</style>
+
+<div style="font: 20px/1 Ahem; width: 11em">
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum <span class="anchor">dolor<br> sit amet</span>
+      <span class="target"></span>
+    </span>
+    .
+  </div>
+</div>

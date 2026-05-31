@@ -41,7 +41,7 @@
     const icps = await helper.withTimeoutMessage(
         icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
     assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
-    assert_equals(icps[0].id, targetId, `Expected ICP candidate to be "${targetId}"`);
+    assert_equals(icps[0].largestContentfulPaint.id, targetId, `Expected ICP candidate to be "${targetId}"`);
   }
 
   promise_test(t => {

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Nested abspos flex with intermediate percentage-height containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="match" href="flex-abspos-inset-nested-001-ref.html">
+<style>
+.outer-flex {
+  display: flex;
+  height: 200px;
+}
+
+.flex-item {
+  width: 100%;
+}
+
+.intermediate {
+  position: relative;
+  height: 100%;
+}
+
+.inner-flex {
+  display: flex;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+img {
+  display: block;
+}
+</style>
+<p>Test passes if there is a 200x200 green square.</p>
+<div class="outer-flex">
+  <div class="flex-item">
+    <div class="intermediate">
+      <div class="inner-flex">
+        <img src="../support/1x1-green.png">
+      </div>
+    </div>
+  </div>
+</div>

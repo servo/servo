@@ -9,7 +9,6 @@
     <title>CSS Test: Testing min-height:auto & 'overflow' interaction</title>
     <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
     <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto">
-    <link rel="match" href="flexbox-min-height-auto-003-ref.html">
 <!--
      This testcase checks how "overflow-y" impacts the sizing behavior of flex
      items with "min-height:auto" (the new initial value for "min-height").
@@ -18,6 +17,8 @@
      supposed to be disabled (e.g. we end up with min-height:0) when
      "overflow-y" is non-"visible".
 -->
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
     <style>
       .flexbox {
         display: flex;
@@ -49,9 +50,55 @@
     <!-- min-height:auto should prevent shrinking below intrinsic height when
          the flex item has "overflow-y: visible", but not for any other
          overflow-y values. -->
-    <div class="flexbox"><div class="yvisible"><div></div></div></div>
-    <div class="flexbox"><div class="yhidden"><div></div></div></div>
-    <div class="flexbox"><div class="yscroll"><div></div></div></div>
-    <div class="flexbox"><div class="yauto"><div></div></div></div>
+    <div class="flexbox" id="visible"><div class="yvisible"><div></div></div></div>
+    <div class="flexbox" id="hidden"><div class="yhidden"><div></div></div></div>
+    <div class="flexbox" id="scroll"><div class="yscroll"><div></div></div></div>
+    <div class="flexbox" id="auto"><div class="yauto"><div></div></div></div>
+    <script>
+      function verticalScrollbarWidth() {
+        const probe = document.createElement("div");
+        probe.style.cssText =
+          "position:absolute;visibility:hidden;width:100px;height:100px;overflow-y:scroll;";
+        document.body.appendChild(probe);
+        const w = probe.offsetWidth - probe.clientWidth;
+        probe.remove();
+        return w;
+      }
+      const SCROLLBAR = verticalScrollbarWidth();
+
+      // Flex item border-box height: 80px content + 2*2px border = 84px.
+      const INTRINSIC_HEIGHT = 84;
+      // Shrunk to fit the 30px container.
+      const SHRUNK_HEIGHT = 30;
+      // Flex item border-box width without scrollbar gutter:
+      //   40px content + 2*2px border = 44px.
+      const BASE_WIDTH = 44;
+
+      test(() => {
+        const item = document.querySelector("#visible > *");
+        assert_equals(item.offsetHeight, INTRINSIC_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH, "offsetWidth");
+      }, "overflow-y:visible: min-height:auto holds; width has no scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#hidden > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH, "offsetWidth");
+      }, "overflow-y:hidden: min-height:auto resolves to 0; no scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#scroll > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH + SCROLLBAR, "offsetWidth");
+        assert_equals(item.scrollWidth, item.clientWidth, "no horizontal overflow");
+      }, "overflow-y:scroll: min-height:auto resolves to 0; width includes scrollbar gutter");
+
+      test(() => {
+        const item = document.querySelector("#auto > *");
+        assert_equals(item.offsetHeight, SHRUNK_HEIGHT, "offsetHeight");
+        assert_equals(item.offsetWidth, BASE_WIDTH + SCROLLBAR, "offsetWidth");
+        assert_equals(item.scrollWidth, item.clientWidth, "no horizontal overflow");
+      }, "overflow-y:auto: min-height:auto resolves to 0; width includes scrollbar gutter");
+    </script>
   </body>
 </html>

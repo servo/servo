@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AudioBufferSourceNode Dynamic PlaybackRate Direction</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async () => {
+    let context = new OfflineAudioContext(1, 256, 44100);
+    let buffer = context.createBuffer(1, 256, 44100);
+    let data = buffer.getChannelData(0);
+    for (let i = 0; i < 256; ++i) {
+        data[i] = i;
+    }
+    let source = context.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(-1.0, 0);
+    // flip to positive halfway (at quantum boundary)
+    source.playbackRate.setValueAtTime(1.0, 128 / 44100);
+    source.connect(context.destination);
+
+    source.start(0, 255);
+
+    let renderedBuffer = await context.startRendering();
+    let renderedData = renderedBuffer.getChannelData(0);
+
+    // Initial direction is negative (-1.0).
+    // T=0 to T=127: playhead goes 255 down to 128.
+    assert_equals(renderedData[0], 255, 'Frame 0 (negative rate)');
+    assert_equals(renderedData[127], 128, 'Frame 127 (negative rate)');
+
+    // Flip to positive (1.0) at T=128.
+    // T=128 to T=255: playhead goes 127 up to 254.
+    assert_equals(renderedData[128], 127, 'Frame 128 (positive rate)');
+    assert_equals(renderedData[255], 254, 'Frame 255 (positive rate)');
+}, 'Dynamic direction switch negative to positive honors duration');
+
+promise_test(async () => {
+    let context = new OfflineAudioContext(1, 256, 44100);
+    let buffer = context.createBuffer(1, 256, 44100);
+    let data = buffer.getChannelData(0);
+    for (let i = 0; i < 256; ++i) {
+        data[i] = i;
+    }
+    let source = context.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(1.0, 0);
+    // flip to negative halfway (at quantum boundary)
+    source.playbackRate.setValueAtTime(-1.0, 128 / 44100);
+    source.connect(context.destination);
+
+    source.start(0, 0);
+
+    let renderedBuffer = await context.startRendering();
+    let renderedData = renderedBuffer.getChannelData(0);
+
+    // Initial direction is positive (1.0).
+    // T=0 to T=127: playhead goes 0 up to 127.
+    assert_equals(renderedData[0], 0, 'Frame 0 (positive rate)');
+    assert_equals(renderedData[127], 127, 'Frame 127 (positive rate)');
+
+    // Flip to negative (-1.0) at T=128.
+    // T=128 to T=255: playhead goes 128 down to 1.
+    assert_equals(renderedData[128], 128, 'Frame 128 (negative rate)');
+    assert_equals(renderedData[255], 1, 'Frame 255 (negative rate)');
+}, 'Dynamic direction switch positive to negative honors duration');
+</script>
+</body>
+</html>

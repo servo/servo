@@ -30,11 +30,7 @@
   promise_test(async t => {
     // Expected visual order due to flex-direction: row-reverse and reading-flow: flex-visual
     // Visual order: item3, item2, item1
-    const elementsInVisualOrder = [
-      document.getElementById("item3"),
-      document.getElementById("item2"),
-      document.getElementById("item1")
-    ];
+    const elementsInVisualOrder = [item3, item2, item1];
 
     await assert_directional_navigation_bidirectional(elementsInVisualOrder);
   }, "Focusgroup navigation should respect reading-flow: flex-visual order instead of DOM order.");

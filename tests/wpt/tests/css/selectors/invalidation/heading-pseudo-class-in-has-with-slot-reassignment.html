@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :heading() pseudo-class in :has() argument with slot reassignment</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#headings">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: grey }
+  #ancestor:has(:heading(1)) ~ #has_heading_1 { color: red }
+  #ancestor:has(:heading(3)) ~ #has_heading_3 { color: yellow }
+  #ancestor:has(:heading(5)) ~ #has_heading_5 { color: green }
+</style>
+<div id="ancestor">
+  <template shadowrootmode="open">
+    <div headingoffset="2">
+      <slot id="slot_a" name="a"></slot>
+    </div>
+    <div headingoffset="4">
+      <slot id="slot_b" name="b"></slot>
+    </div>
+  </template>
+  <h1 id="h1" slot="a"></h1>
+</div>
+<div id="has_heading_1"></div>
+<div id="has_heading_3"></div>
+<div id="has_heading_5"></div>
+<script>
+const grey = "rgb(128, 128, 128)";
+const red = "rgb(255, 0, 0)";
+const yellow = "rgb(255, 255, 0)";
+const green = "rgb(0, 128, 0)";
+
+const slotA = ancestor.shadowRoot.getElementById("slot_a");
+const slotB = ancestor.shadowRoot.getElementById("slot_b");
+const slotAContainer = slotA.parentElement;
+
+function testColors(test_name,
+                    has_heading_1_color,
+                    has_heading_3_color,
+                    has_heading_5_color) {
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_1).color, has_heading_1_color);
+  }, test_name + ": #has_heading_1");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_3).color, has_heading_3_color);
+  }, test_name + ": #has_heading_3");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_5).color, has_heading_5_color);
+  }, test_name + ": #has_heading_5");
+}
+
+// Initial: h1 slotted into slot_a (offset 2), level 3.
+testColors("Initial (h1 slotted into slot_a)", grey, yellow, grey);
+
+// Move h1 to slot_b (offset 4): level 5.
+h1.slot = "b";
+testColors("h1.slot = 'b'", grey, grey, green);
+
+// Point h1 at a non-existent slot: unslotted, level 1.
+h1.slot = "nonexistent";
+testColors("h1.slot = 'nonexistent'", red, grey, grey);
+
+// Back to slot_a: level 3.
+h1.slot = "a";
+testColors("h1.slot = 'a'", grey, yellow, grey);
+
+// Rename slot_a so h1 no longer matches: unslotted, level 1.
+slotA.name = "c";
+testColors("slotA.name = 'c'", red, grey, grey);
+
+// Rename slot_b to 'a' so h1 now slots into it (offset 4): level 5.
+slotB.name = "a";
+testColors("slotB.name = 'a'", grey, grey, green);
+
+// Reset names: h1.slot is still 'a', so it goes back to slot_a (offset 2): level 3.
+slotA.name = "a";
+slotB.name = "b";
+testColors("Reset slot names", grey, yellow, grey);
+
+// Remove slot_a from the shadow tree: h1 unslotted, level 1.
+slotA.remove();
+testColors("slotA.remove()", red, grey, grey);
+
+// Re-insert slot_a: h1 slots back, level 3.
+slotAContainer.appendChild(slotA);
+testColors("Re-insert slot_a", grey, yellow, grey);
+</script>

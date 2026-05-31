@@ -21,8 +21,6 @@
 <script>
   // Directional input CAN navigate TO a radio button (entry works).
   promise_test(async t => {
-    const btn1 = document.getElementById("btn1");
-    const r1 = document.getElementById("r1");
 
     await focusAndWait(btn1);
     assert_equals(document.activeElement, btn1, "Precondition: focus starts on btn1");
@@ -37,9 +35,6 @@
   // r1 moves to r2 (native behavior) rather than to btn2 (which would mean
   // focusgroup incorrectly overrode the native handler).
   promise_test(async t => {
-    const r1 = document.getElementById("r1");
-    const r2 = document.getElementById("r2");
-    const btn2 = document.getElementById("btn2");
 
     await focusAndWait(r1);
     assert_equals(document.activeElement, r1, "Precondition: focus starts on r1");
@@ -59,8 +54,6 @@
   // rather than btn2. Setting r1 back to checked makes r2 non-keyboard-
   // focusable, so btn2 becomes the entry instead.
   promise_test(async t => {
-    const r1 = document.getElementById("r1");
-    const btn2 = document.getElementById("btn2");
 
     r1.checked = true;
     await focusAndWait(r1);
@@ -74,8 +67,6 @@
   // Shift+Tab from radio: moves to the previous segment's entry element (btn1).
   // Reset checked state for the same reason as the previous test.
   promise_test(async t => {
-    const r1 = document.getElementById("r1");
-    const btn1 = document.getElementById("btn1");
 
     r1.checked = true;
     await focusAndWait(r1);
@@ -91,8 +82,6 @@
   // fix where a focused but non-keyboard-focusable element (unchecked radio)
   // must still act as a segment barrier.
   promise_test(async t => {
-    const r2 = document.getElementById("r2");
-    const btn2 = document.getElementById("btn2");
 
     await focusAndWait(r2);
     assert_equals(document.activeElement, r2, "Precondition: focus starts on r2");

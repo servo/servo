@@ -43,6 +43,11 @@ test_math_used('calc(atan2(-1,1))', '-45deg', {type:'angle', approx:0.1});
 test_math_used('calc(asin(sin(180deg * sibling-index())))', '0deg', {type:'angle', approx:0.1});
 test_math_used('calc(acos(cos(180deg * sibling-index())))', '180deg', {type:'angle', approx:0.1});
 test_math_used('calc(atan(tan(180deg * sibling-index())))', '0deg', {type:'angle', approx:0.1});
+test_math_used('calc(atan2(1, sibling-index()))', '45deg', {type:'angle', approx:0.1});
+test_math_used('calc(asin(sin(180deg * sign(1em - 1px))))', '0deg', {type:'angle', approx:0.1});
+test_math_used('calc(acos(cos(180deg * sign(1em - 1px))))', '180deg', {type:'angle', approx:0.1});
+test_math_used('calc(atan(tan(180deg * sign(1em - 1px))))', '0deg', {type:'angle', approx:0.1});
+test_math_used('calc(atan2(1, sign(1em - 1px)))', '45deg', {type:'angle', approx:0.1});
 
 // Test nesting
 test_math_used('calc(cos(sin(acos(cos(pi)))))', '1', {type:'number', approx:0.1});

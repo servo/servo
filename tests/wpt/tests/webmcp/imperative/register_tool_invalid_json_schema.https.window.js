@@ -5,7 +5,7 @@ function test_register_tool_schema_error(inputSchema, expectedError, testName) {
     assert_throws_js(
       expectedError,
       () => {
-        navigator.modelContext.registerTool({
+        document.modelContext.registerTool({
           name: 'empty',
           description: 'empty',
           inputSchema,
@@ -48,7 +48,7 @@ test(() => {
   assert_throws_js(
     TypeError,
     () => {
-      navigator.modelContext.registerTool(
+      document.modelContext.registerTool(
         {
           name: 'aborted_invalid_schema',
           description: 'empty',

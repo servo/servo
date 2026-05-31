@@ -81,3 +81,23 @@ test(() => {
   assert_equals(element.firstChild.customElementRegistry, registry);
   assert_equals(element.firstChild.shadowRoot.customElementRegistry, customElements);
 }, "A declarative shadow root gets its default registry from its node document");
+
+test(() => {
+  const name = "declarative-shadow-upgrade-el";
+  let connectedCount = 0;
+  class TestElement extends HTMLElement {
+    connectedCallback() { connectedCount++; }
+  }
+  customElements.define(name, TestElement);
+
+  const template = document.createElement("template");
+  template.setHTMLUnsafe(
+      `<div><template shadowrootmode="open"><${name}></${name}></template></div>`);
+  document.body.appendChild(template.content);
+
+  const host = document.body.lastElementChild;
+  const el = host.shadowRoot.querySelector(name);
+  assert_true(el instanceof TestElement);
+  assert_equals(connectedCount, 1);
+  host.remove();
+}, "Custom element upgrades inside a declarative shadow root parsed via template.setHTMLUnsafe()");

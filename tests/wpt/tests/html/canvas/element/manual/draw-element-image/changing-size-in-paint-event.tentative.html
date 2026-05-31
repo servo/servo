@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas size changes made in the paint event should be reflected in the current frame</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#the-canvas-element">
+<link rel="match" href="changing-size-in-paint-event-ref.html" />
+
+<canvas id="canvas" style="width: 100px; height: 100px;" width="50" height="200" layoutsubtree></canvas>
+<canvas id="other_canvas" style="width: 100px; height: 100px;" width="50" height="200" layoutsubtree></canvas>
+
+<script>
+  // Loop to update both canvas elements every requestAnimationFrame by
+  // changing the size and painting red.
+  function rafUpdate() {
+    canvas.width = 50;
+    canvas.height = 200;
+    canvas.getContext('2d').fillStyle = 'red';
+    canvas.getContext('2d').fillRect(0, 0, 50, 200);
+
+    other_canvas.width = 50;
+    other_canvas.height = 200;
+    other_canvas.getContext('2d').fillStyle = 'red';
+    other_canvas.getContext('2d').fillRect(0, 0, 50, 200);
+
+    requestAnimationFrame(rafUpdate);
+  }
+  requestAnimationFrame(rafUpdate);
+
+  // Loop to update both canvas elements every canvas paint event:
+  //   #canvas will change size and paint green.
+  //   #other_canvas will only change size (which resets the rendering).
+  canvas.onpaint = () => {
+    canvas.width = 100;
+    canvas.height = 100;
+    canvas.getContext('2d').fillStyle = 'green';
+    canvas.getContext('2d').fillRect(0, 0, 100, 100);
+
+    other_canvas.width = 100;
+    other_canvas.height = 100;
+
+    canvas.requestPaint();
+  }
+  canvas.requestPaint();
+
+  window.onload = async () => {
+    // Wait four frames, then end the test. The test should end with #canvas
+    // painting green, and #other_canvas painting nothing.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    document.documentElement.classList.remove('reftest-wait');
+  };
+</script>

@@ -34,13 +34,13 @@ promise_test(async t => {
 
   // Wait for toolchange.
   await new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   // Invoke tool and immediately navigate iframe away.
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'iframe_tool');
-  const promise = navigator.modelContext.executeTool(tool, '{}');
+  const promise = document.modelContext.executeTool(tool, '{}');
   iframe.src = 'about:blank';
 
   // The promise should be rejected because the target document died.

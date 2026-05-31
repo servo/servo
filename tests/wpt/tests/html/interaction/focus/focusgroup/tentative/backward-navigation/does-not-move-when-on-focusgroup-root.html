@@ -19,7 +19,6 @@
 <script>
 
   promise_test(async t => {
-    var root = document.getElementById("root");
 
     await focusAndSendDirectionalInput(root, kUp);
     assert_equals(document.activeElement, root);

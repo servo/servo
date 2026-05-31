@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: justify-items start and end in row direction stacking axis</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="row-justify-items-002-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row;
+      grid-template-rows: repeat(3, 80px);
+      width: 240px;
+      gap: 5px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes" style="justify-items: start;">
+  <item style="width: 70px; background: #f4a0a0;">1</item>
+  <item style="width: 40px; background: #2ca02c;">2</item>
+  <item style="width: 120px; background: #ff7f0e;">3</item>
+  <item style="width: 60px; background: #ffbb78;">4</item>
+  <item style="width: 50px; background: #aad4f5;">5</item>
+  <item style="width: 80px; background: #c5b0d5;">6</item>
+  <item style="width: 40px; background: #d62728;">7</item>
+  <item style="width: 50px; background: #98df8a;">8</item>
+  <item style="width: 35px; background: #9edae5;">9</item>
+</div>
+
+<div class="grid-lanes" style="justify-items: end;">
+  <item style="width: 70px; background: #f4a0a0;">1</item>
+  <item style="width: 40px; background: #2ca02c;">2</item>
+  <item style="width: 120px; background: #ff7f0e;">3</item>
+  <item style="width: 60px; background: #ffbb78;">4</item>
+  <item style="width: 50px; background: #aad4f5;">5</item>
+  <item style="width: 80px; background: #c5b0d5;">6</item>
+  <item style="width: 40px; background: #d62728;">7</item>
+  <item style="width: 50px; background: #98df8a;">8</item>
+  <item style="width: 35px; background: #9edae5;">9</item>
+</div>
+
+</body>
+</html>

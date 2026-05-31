@@ -19,10 +19,10 @@ promise_test(async t => {
 
   // Register tool directly in window B using synchronous scripting.
   const toolchange_promise = new Promise(resolve => {
-    windowB.navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    windowB.document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
-  windowB.navigator.modelContext.registerTool({
+  windowB.document.modelContext.registerTool({
     name: 'target_tool',
     description: 'Target tool in other window',
     execute: async () => 'test'
@@ -30,12 +30,12 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], "We do not see the other document's tool");
 
-  const [tool] = await windowB.navigator.modelContext.getTools();
+  const [tool] = await windowB.document.modelContext.getTools();
   assert_equals(tool.window, windowB);
-  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
 
   await promise_rejects_dom(t, 'UnknownError', execute_promise);
 }, 'executeTool() rejects when the tool is hosted in another frame tree');

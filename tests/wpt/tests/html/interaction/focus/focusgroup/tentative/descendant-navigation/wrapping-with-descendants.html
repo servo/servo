@@ -32,30 +32,18 @@
 <script>
 
   promise_test(async t => {
-    var first = document.getElementById("first");
-    var middle = document.getElementById("middle");
-    var last = document.getElementById("last");
-
     await focusAndWait(last);
     await focusAndSendDirectionalInput(last, kRight);
     assert_equals(document.activeElement, first, "Should wrap from last nested item to first item");
   }, "Forward wrapping should work from nested descendants to first item");
 
   promise_test(async t => {
-    var first = document.getElementById("first");
-    var middle = document.getElementById("middle");
-    var last = document.getElementById("last");
-
     await focusAndWait(first);
     await focusAndSendDirectionalInput(first, kLeft);
     assert_equals(document.activeElement, last, "Should wrap from first item to last nested item");
   }, "Backward wrapping should work from first item to nested descendants");
 
   promise_test(async t => {
-    var first = document.getElementById("first");
-    var middle = document.getElementById("middle");
-    var last = document.getElementById("last");
-
     await focusAndWait(first);
     await focusAndSendDirectionalInput(first, kRight);
     assert_equals(document.activeElement, middle, "Should navigate normally to middle nested item");
@@ -65,9 +53,6 @@
   }, "Normal navigation should still work correctly with nested items");
 
   promise_test(async t => {
-    var first = document.getElementById("first");
-    var last = document.getElementById("last");
-
     await focusAndWait(last);
     await focusAndSendDirectionalInput(last, kDown);
     assert_equals(document.activeElement, first, "Vertical wrapping should work with nested descendants");

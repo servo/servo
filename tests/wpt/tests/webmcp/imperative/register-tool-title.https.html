@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tool title is exposed correctly</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+promise_test(async () => {
+  navigator.modelContext.registerTool({
+    name: 'with-title',
+    title: 'My Custom Title',
+    description: 'tool with title',
+    execute: async () => 'empty'
+  });
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'with-title');
+
+  assert_equals(tool.title, 'My Custom Title', 'Title is preserved');
+}, 'Tool title is preserved when provided');
+
+promise_test(async () => {
+  navigator.modelContext.registerTool({
+    name: 'without-title',
+    description: 'tool without title',
+    execute: async () => 'empty'
+  });
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'without-title');
+
+  // If not provided upon registration, `title` should be empty string in the
+  // dictionary.
+  assert_equals(tool.title, '', 'Title is empty string when not provided');
+}, 'Missing tool title in registration is exposed as empty string');
+
+promise_test(async () => {
+  // \uD800 is an unpaired high surrogate.
+  navigator.modelContext.registerTool({
+    name: 'with-unpaired-surrogate',
+    title: 'Title with \uD800 unpaired surrogate',
+    description: 'tool with unpaired surrogate in title',
+    execute: async () => 'empty'
+  });
+
+  const tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'with-unpaired-surrogate');
+
+  // USVString replaces unpaired surrogates with U+FFFD.
+  assert_equals(tool.title, 'Title with \uFFFD unpaired surrogate');
+}, 'Tool title with unpaired surrogate is fixed up by USVString');
+</script>
+</body>
+</html>

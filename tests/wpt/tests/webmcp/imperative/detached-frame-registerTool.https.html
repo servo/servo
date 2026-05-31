@@ -17,7 +17,7 @@ promise_test(async t => {
   const iframe_navigator = iframe.contentWindow.navigator;
   // Cache the iframe's `modelContext` object, even though we never use it. This
   // is just so that internally, it gets allocated.
-  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+  const iframe_modelContext = iframe.contentWindow.document.modelContext;
 
   assert_equals(iframe_navigator.modelContext, iframe_modelContext)
   iframe.remove();
@@ -34,7 +34,7 @@ promise_test(async t => {
   await load_promise;
 
   const iDOMException = iframe.contentWindow.DOMException;
-  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+  const iframe_modelContext = iframe.contentWindow.document.modelContext;
   iframe.remove();
 
   assert_throws_dom('InvalidStateError', iDOMException, () => {

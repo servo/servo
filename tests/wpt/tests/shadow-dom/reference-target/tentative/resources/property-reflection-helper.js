@@ -70,18 +70,18 @@ function test_idl_setter(element_creation_method, test_name_suffix, referencing_
 
     if (expected_behavior === Behavior.ReflectsHost) {
       referencing_element[reflected_property] = host;
-      // For element reflecting properties, the IDL getter should return null when the explicitly
-      // set element has an invalid reference target.
-      assert_equals(referencing_element[reflected_property], null);
+      // For element reflecting properties, the IDL getter returns the element even
+      // if it has an invalid reference target.
+      assert_equals(referencing_element[reflected_property], host);
     } else if (expected_behavior === Behavior.ReflectsHostReadOnly) {
       referencing_element[reflected_property] = host;
       // Setting a read-only property has no effect.
       assert_equals(referencing_element[reflected_property], null);
     } else if (expected_behavior === Behavior.ReflectsHostInArray) {
       referencing_element[reflected_property] = [ host ];
-      // For element reflecting properties, the IDL getter should not return explicitly set elements
-      // if they have an invalid reference target.
-      assert_array_equals(referencing_element[reflected_property], []);
+      // For element reflecting properties, the IDL getter returns the elements even if they have
+      // invalid reference targets.
+      assert_array_equals(referencing_element[reflected_property], [host]);
     } else if (expected_behavior === Behavior.IsNull) {
       referencing_element[reflected_property] = host;
       assert_equals(referencing_element[reflected_property], null);

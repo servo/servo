@@ -45,7 +45,7 @@
       extraValidations: async (t) => {
         await new Promise(r => step_timeout(r, 100));
         const icps = await getBufferedEntries('interaction-contentful-paint');
-        assert_not_equals(icps[icps.length - 1].id,
+        assert_not_equals(icps[icps.length - 1].largestContentfulPaint.id,
                           "visited",
                           "Soft Nav ICP ID should not be visited");
       },

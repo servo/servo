@@ -27,40 +27,40 @@
 
 <script>
   promise_test(async t => {
-    await focusAndWait(document.getElementById("before1"));
+    await focusAndWait(before1);
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("outer1"),
+    assert_equals(document.activeElement, outer1,
                   "Tab enters outer focusgroup at focusgroupstart element");
 
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("inner1"),
+    assert_equals(document.activeElement, inner1,
                   "Tab enters nested inner focusgroup at focusgroupstart element");
 
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("outer2"),
+    assert_equals(document.activeElement, outer2,
                   "Tab moves to second segment of outer focusgroup");
 
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("after1"),
+    assert_equals(document.activeElement, after1,
                   "Tab moves outside both focusgroups");
   }, "Forward Tab navigation through nested focusgroups");
 
   promise_test(async t => {
-    await focusAndWait(document.getElementById("after1"));
+    await focusAndWait(after1);
     await navigateFocusBackward();
-    assert_equals(document.activeElement, document.getElementById("outer2"),
+    assert_equals(document.activeElement, outer2,
                   "Shift+Tab enters second segment of outer focusgroup");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, document.getElementById("inner1"),
+    assert_equals(document.activeElement, inner1,
                   "Shift+Tab enters nested focusgroup at focusgroupstart element");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, document.getElementById("outer1"),
+    assert_equals(document.activeElement, outer1,
                   "Shift+Tab moves to outer focusgroup");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, document.getElementById("before1"),
+    assert_equals(document.activeElement, before1,
                   "Shift+Tab exits both focusgroups");
   }, "Reverse Shift+Tab navigation through nested focusgroups");
 </script>
