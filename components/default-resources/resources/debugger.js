@@ -10,6 +10,7 @@ const frameActorsToFrames = new Map;
 const environmentActorsToEnvironments = new Map;
 const environmentsToEnvironmentActors = new Map;
 const blackboxing = new Map;
+const visitedObjects = new Set;
 let suspendedFrame = null;
 let lastPauseLocation = null;
 let debuggerPaused = false;
@@ -81,6 +82,9 @@ addEventListener("addDebuggee", event => {
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
 function createValueGrip(value, depth = 0) {
+    if (depth === 0) {
+        visitedObjects.clear();
+    }
     switch (typeof value) {
         case "undefined":
             return { valueType: "undefined" };
@@ -107,16 +111,21 @@ function createValueGrip(value, depth = 0) {
             if (value.optimizedOut || value.uninitialized || value.missingArguments) {
                 return { valueType: "null" };
             }
-            // TODO: handle typed arrays and storage independently
-            const ownPropertyLength = value.getOwnPropertyNamesLength();
-            // Debugger.Object - get preview using registered previewers
-            // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
-            return {
+            let msg = {
                 valueType: "object",
                 objectClass: value.class,
-                ownPropertyLength: Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined,
-                preview: getPreview(value, depth),
             };
+            if (visitedObjects.has(value)) {
+                return msg;
+            }
+            visitedObjects.add(value);
+            // TODO: handle typed arrays and storage independently
+            const ownPropertyLength = value.getOwnPropertyNamesLength();
+            msg.ownPropertyLength = Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined;
+            // Debugger.Object - get preview using registered previewers
+            // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
+            msg.preview = getPreview(value, depth);
+            return msg;
         default:
             return { valueType: "string", stringValue: String(value) };
     }
