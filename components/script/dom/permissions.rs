@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature};
+use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature, WakeLockType};
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -407,7 +407,9 @@ impl Convert<PermissionFeature> for PermissionName {
             PermissionName::Background_sync => PermissionFeature::BackgroundSync,
             PermissionName::Bluetooth => PermissionFeature::Bluetooth,
             PermissionName::Persistent_storage => PermissionFeature::PersistentStorage,
-            PermissionName::Screen_wake_lock => PermissionFeature::ScreenWakeLock,
+            PermissionName::Screen_wake_lock => {
+                PermissionFeature::ScreenWakeLock(WakeLockType::Screen)
+            },
         }
     }
 }
