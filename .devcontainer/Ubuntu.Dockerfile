@@ -48,3 +48,28 @@ COPY --from=rust_builder \
     /usr/local/cargo/bin/taplo \
     /usr/local/cargo/bin/
 COPY --from=uv /uv /uvx /bin/
+
+
+# Image with Android SDK
+FROM final AS android
+
+# Keep versions in sync with build.gradle.kts
+ARG JAVA_VERSION=21
+ARG ANDROID_SDK_VERSION=34
+ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
+ARG ANDROID_NDK_VERSION=28.2.13676358
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-${JAVA_VERSION}-jdk unzip \
+    && android_cmdline_tools_url="$(curl https://developer.android.com/studio | grep -o "https:\/\/dl.google.com\/android\/repository\/commandlinetools\-linux\-[0-9]*_latest\.zip")" \
+    && curl "${android_cmdline_tools_url}" -sSLf -o /tmp/android-commandlinetools-linux.zip \
+    && unzip -q /tmp/android-commandlinetools-linux.zip -d ${ANDROID_SDK_ROOT} \
+    && rm /tmp/android-commandlinetools-linux.zip \
+    && mv ${ANDROID_SDK_ROOT}/cmdline-tools ${ANDROID_SDK_ROOT}/latest && mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && mv ${ANDROID_SDK_ROOT}/latest ${ANDROID_SDK_ROOT}/cmdline-tools/
+RUN yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses \
+    && ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install \
+    "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+    "ndk;${ANDROID_NDK_VERSION}" \
+    "platform-tools" \
+    "platforms;android-${ANDROID_SDK_VERSION}"
