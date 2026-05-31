@@ -168,6 +168,7 @@ impl Shaper {
         &self,
         text: &str,
         options: &crate::ShapingOptions,
+        font_features: &[(Tag, u32)],
     ) -> HarfrustGlyphShapingResult {
         let mut buffer = UnicodeBuffer::new();
 
@@ -193,8 +194,9 @@ impl Shaper {
         // Push text
         buffer.push_str(text);
 
-        let features: Vec<_> = compute_used_font_features(options)
-            .map(|(tag, value)| Feature::new(tag, value, ..))
+        let features: Vec<_> = font_features
+            .iter()
+            .map(|(tag, value)| Feature::new(*tag, *value, ..))
             .collect();
 
         let hr_font =
@@ -228,8 +230,18 @@ impl Shaper {
         unsafe { &(*self.font) }
     }
 
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        ShapedText::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
+    #[allow(dead_code)]
+    pub(crate) fn shape_text(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+        font_features: &[(Tag, u32)],
+    ) -> ShapedText {
+        ShapedText::with_shaped_glyph_data(
+            text,
+            options,
+            &self.shaped_glyph_data(text, options, font_features),
+        )
     }
 
     pub(crate) fn baseline(&self) -> Option<crate::FontBaseline> {

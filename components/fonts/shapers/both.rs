@@ -27,15 +27,21 @@ impl Shaper {
         &self,
         text: &str,
         options: &ShapingOptions,
+        font_features: &[(Tag, u32)],
     ) -> ShapedGlyphData {
         ShapedGlyphData {
-            buzz: self.buzz.shaped_glyph_data(text, options),
-            rust: self.rust.shaped_glyph_data(text, options),
+            buzz: self.buzz.shaped_glyph_data(text, options, font_features),
+            rust: self.rust.shaped_glyph_data(text, options, font_features),
         }
     }
 
-    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        let glyph_data = self.shaped_glyph_data(text, options);
+    pub fn shape_text(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+        font_features: &[(Tag, u32)],
+    ) -> ShapedText {
+        let glyph_data = self.shaped_glyph_data(text, options, font_features);
         let equal = shape_data_eq(&glyph_data.buzz, &glyph_data.rust);
         if !equal {
             println!("SHAPING DATA DIFFERENT:");
