@@ -16,7 +16,7 @@ use super::{GlyphShapingResult, unicode_script_to_iso15924_tag};
 use crate::shapers::compute_used_font_features;
 use crate::{
     Font, FontBaseline, FontData, ShapedGlyph, ShapedText, ShapingFlags, ShapingOptions,
-    float_to_fixed,
+    fixed_to_float, float_to_fixed,
 };
 
 /// Convert a `webrender_api::FontVariation` to a `harfrust::Variation`
@@ -29,7 +29,7 @@ fn wr_variation_to_hr_varation(wr_variation: webrender_api::FontVariation) -> ha
 
 pub(crate) struct HarfrustGlyphShapingResult {
     data: GlyphBuffer,
-    scale: f64,
+    // scale: f64,
 }
 
 struct ShapedGlyphIterator<'a> {
@@ -46,21 +46,18 @@ impl<'a> Iterator for ShapedGlyphIterator<'a> {
             return None;
         }
 
-        let glyph_info_i = &self
-            .shaped_glyph_data
-            .data
-            .glyph_infos()
-            .get(self.current_glyph_offset)?;
-        let pos_info_i = &self
-            .shaped_glyph_data
-            .data
-            .glyph_positions()
-            .get(self.current_glyph_offset)?;
+        // Increment current_glyph_offset before the potential early returns
+        // when accessing the glyph info below
+        let offset = self.current_glyph_offset;
+        self.current_glyph_offset += 1;
 
-        let x_offset = Au::from_f64_px(pos_info_i.x_offset as f64 * self.shaped_glyph_data.scale);
-        let y_offset = Au::from_f64_px(pos_info_i.y_offset as f64 * self.shaped_glyph_data.scale);
-        let x_advance = Au::from_f64_px(pos_info_i.x_advance as f64 * self.shaped_glyph_data.scale);
-        let y_advance = Au::from_f64_px(pos_info_i.y_advance as f64 * self.shaped_glyph_data.scale);
+        let glyph_info_i = &self.shaped_glyph_data.data.glyph_infos().get(offset)?;
+        let pos_info_i = &self.shaped_glyph_data.data.glyph_positions().get(offset)?;
+
+        let x_offset = Au::from_f64_px(Shaper::fixed_to_float(pos_info_i.x_offset));
+        let y_offset = Au::from_f64_px(Shaper::fixed_to_float(pos_info_i.y_offset));
+        let x_advance = Au::from_f64_px(Shaper::fixed_to_float(pos_info_i.x_advance));
+        let y_advance = Au::from_f64_px(Shaper::fixed_to_float(pos_info_i.y_advance));
 
         let offset = if x_offset.is_zero() && y_offset.is_zero() && y_advance.is_zero() {
             None
@@ -73,7 +70,6 @@ impl<'a> Iterator for ShapedGlyphIterator<'a> {
             Some(Point2D::new(x_offset, self.y_position - y_offset))
         };
 
-        self.current_glyph_offset += 1;
         Some(ShapedGlyph {
             glyph_id: glyph_info_i.glyph_id,
             string_byte_offset: glyph_info_i.cluster as usize,
@@ -115,12 +111,11 @@ pub(crate) struct Shaper {
     /// The index of a font in it's collection (.ttc)
     /// If the font file is not a collection then this is 0
     font_index: u32,
-    // Used for scaling HarfRust's output
-    scale: f64,
+    // Point-per-em (i.e. the font size)
+    ppem: f64,
 
     /// Pre-computed data for shaping a font
     shaper_data: ShaperData,
-
     /// Pre-computed data for shaping a variable font with a particular set of variations.
     /// If there are no variations then we don't create a ShaperInstance.
     shaper_instance: Option<ShaperInstance>,
@@ -142,9 +137,6 @@ impl Shaper {
 
         // Set points-per-em. if zero, performs no hinting in that direction
         let ppem = font.descriptor.pt_size.to_f64_px();
-        let font_ref = read_fonts::FontRef::from_index(font_data.as_ref(), font_index).unwrap();
-        let units_per_em = font_ref.head().unwrap().units_per_em();
-        let scale = ppem / (units_per_em as f64);
 
         // Create cached shaping data for the font
         let hr_font = HarfRustFontRef::from_index(font_data.as_ref(), font_index).unwrap();
@@ -164,7 +156,7 @@ impl Shaper {
             font: font as *const Font,
             font_data,
             font_index,
-            scale,
+            ppem,
             shaper_data,
             shaper_instance,
         }
@@ -210,21 +202,16 @@ impl Shaper {
         let glyph_buffer = shaper.shape(
             buffer,
             ShapeOptions::new()
+                .scale(Some(Shaper::float_to_fixed(self.ppem)))
                 .features(&features)
                 .font_funcs(Some(&mut font_funcs)),
         );
 
-        HarfrustGlyphShapingResult {
-            data: glyph_buffer,
-            scale: self.scale,
-        }
+        HarfrustGlyphShapingResult { data: glyph_buffer }
     }
 
     fn font_funcs(&self) -> FontFuncs<'_> {
-        FontFuncs {
-            font: self.font(),
-            scale: self.scale,
-        }
+        FontFuncs { font: self.font() }
     }
 
     #[allow(unsafe_code)]
@@ -286,7 +273,7 @@ impl Shaper {
             base_coords
                 .get(idx)
                 .ok()
-                .map(|coord| coord.coordinate() as f32 * self.scale as f32)
+                .map(|coord| fixed_to_float(8, coord.coordinate() as i32) as f32)
         };
 
         Some(FontBaseline {
@@ -299,11 +286,14 @@ impl Shaper {
     fn float_to_fixed(f: f64) -> i32 {
         float_to_fixed(16, f)
     }
+
+    fn fixed_to_float(i: i32) -> f64 {
+        fixed_to_float(16, i)
+    }
 }
 
 struct FontFuncs<'a> {
     font: &'a Font,
-    scale: f64,
 }
 
 impl funcs::FontFuncs for FontFuncs<'_> {
@@ -319,6 +309,6 @@ impl funcs::FontFuncs for FontFuncs<'_> {
     /// See "Metrics scaling" in the [trait-level docs](FontFuncs) for details
     /// on what value this method should return.
     fn advance_width(&mut self, _builtin: &funcs::BuiltinFontFuncs, glyph: GlyphId) -> i32 {
-        Shaper::float_to_fixed(self.font.glyph_h_advance(glyph.to_u32()) * self.scale)
+        Shaper::float_to_fixed(self.font.glyph_h_advance(glyph.to_u32()))
     }
 }
