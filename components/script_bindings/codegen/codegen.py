@@ -6568,7 +6568,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         if self.descriptor.supportsNamedProperties():
             body += dedent(
                 """
-                for name in (*unwrapped_proxy).SupportedPropertyNames() {
+                for name in (*unwrapped_proxy).SupportedPropertyNames(cx) {
                     let cstring = CString::new(name).unwrap();
                     let jsstring = JS_AtomizeAndPinString(cx.raw_cx(), cstring.as_ptr());
                     rooted!(&in(cx) let rooted = jsstring);
@@ -7159,7 +7159,7 @@ class CGInterfaceTrait(CGThing):
                         # WebIDL, Second Draft, section 3.2.4.5
                         # https://heycam.github.io/webidl/#idl-named-properties
                         if operation.isNamed():
-                            yield "SupportedPropertyNames", [], "Vec<DOMString>", False
+                            yield "SupportedPropertyNames", [("cx", "&mut JSContext")], "Vec<DOMString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,

@@ -180,6 +180,7 @@ impl xpath::Document for XPathWrapper<DomRoot<Document>> {
 
     fn get_elements_with_id(
         &self,
+        cx: &mut JSContext,
         id: &str,
     ) -> impl Iterator<Item = XPathWrapper<DomRoot<Element>>> {
         struct ElementIterator<'a> {
@@ -198,7 +199,7 @@ impl xpath::Document for XPathWrapper<DomRoot<Document>> {
         }
 
         ElementIterator {
-            elements: self.0.get_elements_with_id(&Atom::from(id)),
+            elements: self.0.get_elements_with_id(cx, &Atom::from(id)),
             position: 0,
         }
     }

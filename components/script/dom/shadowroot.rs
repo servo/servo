@@ -72,6 +72,7 @@ pub(crate) enum IsUserAgentWidget {
 /// <https://dom.spec.whatwg.org/#interface-shadowroot>
 #[dom_struct]
 pub(crate) struct ShadowRoot {
+    /// The [`DocumentFragment`] that this [`ShadowRoot`] inherits from.
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
@@ -289,27 +290,13 @@ impl ShadowRoot {
 
     /// Remove any existing association between the provided id and any elements
     /// in this shadow tree.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, _can_gc: CanGc) {
-        self.document_or_shadow_root.unregister_named_element(
-            self.document_fragment.id_map(),
-            to_unregister,
-            &id,
-        );
+    pub(crate) fn unregister_element_id(&self, id: &Atom) {
+        self.document_fragment.id_map().remove(id);
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, _can_gc: CanGc) {
-        let root = self
-            .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        self.document_or_shadow_root.register_named_element(
-            self.document_fragment.id_map(),
-            element,
-            &id,
-            root,
-        );
+    pub(crate) fn register_element_id(&self, element: &Element, id: &Atom, _can_gc: CanGc) {
+        self.document_fragment.id_map().add(id, element)
     }
 
     pub(crate) fn register_slot(&self, slot: &HTMLSlotElement) {

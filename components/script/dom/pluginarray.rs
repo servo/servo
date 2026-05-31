@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
@@ -59,7 +60,7 @@ impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut JSContext) -> Vec<DOMString> {
         vec![]
     }
 }

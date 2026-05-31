@@ -25,8 +25,8 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.document.SupportedPropertyNames()
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+        self.document.SupportedPropertyNames(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
