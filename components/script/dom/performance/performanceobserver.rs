@@ -142,7 +142,11 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()>
-    fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
+    fn Observe(
+        &self,
+        cx: &mut js::context::JSContext,
+        options: &PerformanceObserverInit,
+    ) -> Fallible<()> {
         // Step 1 is self
 
         // Step 2 is self.global()
@@ -192,7 +196,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
 
             // Step 6.3
             if entry_types.is_empty() {
-                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             }
 
@@ -206,7 +210,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
             let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
-                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             };
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::node::AudioNodeInit;
@@ -27,10 +28,12 @@ pub(crate) struct MediaStreamTrackAudioSourceNode {
 impl MediaStreamTrackAudioSourceNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         context: &AudioContext,
         track: &MediaStreamTrack,
     ) -> Fallible<MediaStreamTrackAudioSourceNode> {
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::MediaStreamSourceNode(track.id()),
             context.upcast(),
             Default::default(),
@@ -54,13 +57,13 @@ impl MediaStreamTrackAudioSourceNode {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         track: &MediaStreamTrack,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        let node = MediaStreamTrackAudioSourceNode::new_inherited(context, track)?;
+        let node = MediaStreamTrackAudioSourceNode::new_inherited(cx, context, track)?;
         Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
@@ -75,7 +78,7 @@ impl MediaStreamTrackAudioSourceNodeMethods<crate::DomTypeHolder>
 {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamtrackaudiosourcenode-mediastreamtrackaudiosourcenode>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,

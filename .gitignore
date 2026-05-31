@@ -64,6 +64,9 @@ Sessionx.vim
 # Zed
 /.zed
 
+# NeoVim
+.nvim.lua
+
 /unminified-js
 /unminified-css
 
