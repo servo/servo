@@ -387,7 +387,7 @@ impl WalkerActor {
 pub fn find_child(
     script_chan: &GenericSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
-    name: &str,
+    walker_name: &str,
     registry: &ActorRegistry,
     node_name: &str,
     mut hierarchy: Vec<NodeActorMsg>,
@@ -404,7 +404,7 @@ pub fn find_child(
     let children = rx.recv().unwrap().ok_or(vec![])?;
 
     for child in children {
-        let msg = child.encode(registry, script_chan.clone(), pipeline, name.into());
+        let msg = child.encode(registry, script_chan.clone(), pipeline, walker_name.into());
         if compare_fn(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);
@@ -417,7 +417,7 @@ pub fn find_child(
         match find_child(
             script_chan,
             pipeline,
-            name,
+            walker_name,
             registry,
             &msg.actor,
             hierarchy,
