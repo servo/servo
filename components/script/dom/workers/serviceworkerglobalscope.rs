@@ -384,6 +384,7 @@ impl ServiceWorkerGlobalScope {
                 let devtools_mpsc_port = devtools_receiver.route_preserving_errors();
 
                 let resource_threads_sender = init.resource_threads.sender();
+                let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
                     script_url.clone(),
@@ -405,12 +406,14 @@ impl ServiceWorkerGlobalScope {
                 let worker_scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
-                debugger_global.fire_add_debuggee(
-                    cx,
-                    global_scope,
-                    pipeline_id,
-                    Some(worker_scope.worker_id()),
-                );
+                if devtools_enabled {
+                    debugger_global.fire_add_debuggee(
+                        cx,
+                        global_scope,
+                        pipeline_id,
+                        Some(worker_scope.worker_id()),
+                    );
+                }
 
                 let referrer = referrer_url
                     .map(Referrer::ReferrerUrl)
