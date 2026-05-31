@@ -6090,6 +6090,7 @@ enum GetPublicKeyAlgorithm {
     Ecdh(SubtleAlgorithm),
     Ed25519(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
+    MlKem(SubtleAlgorithm),
 }
 
 impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
@@ -6120,6 +6121,11 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             CryptoAlgorithm::X25519 => Ok(GetPublicKeyAlgorithm::X25519(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
+                Ok(GetPublicKeyAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
+            },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"getPublicKey\" operation",
                 algorithm_name.as_str()
@@ -6136,6 +6142,7 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::MlKem(algorithm) => algorithm.name,
         }
     }
 }
@@ -6170,6 +6177,9 @@ impl GetPublicKeyAlgorithm {
             },
             GetPublicKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::MlKem(_algorithm) => {
+                ml_kem_operation::get_public_key(cx, global, key, algorithm, usages)
             },
         }
     }
