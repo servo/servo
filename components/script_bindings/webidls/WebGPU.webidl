@@ -875,7 +875,7 @@ dictionary GPUTexelCopyTextureInfo {
     GPUTextureAspect aspect = "all";
 };
 
-dictionary GPUTexelCopyTextureInfoTagged : GPUTexelCopyTextureInfo {
+dictionary GPUCopyExternalImageDestInfo : GPUTexelCopyTextureInfo {
     //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
     boolean premultipliedAlpha = false;
 };
@@ -1125,7 +1125,7 @@ interface GPUQueue {
     //[Throws]
     //undefined copyExternalImageToTexture(
     //  GPUImageCopyExternalImage source,
-    //  GPUTexelCopyTextureInfoTagged destination,
+    //  GPUCopyExternalImageDestInfo destination,
     //  GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;
