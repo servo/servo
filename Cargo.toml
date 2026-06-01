@@ -237,7 +237,7 @@ stylo_dom = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d2
 stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
 stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
 stylo_traits = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-surfman = { version = "0.12.1", features = ["chains"] }
+surfman = { version = "0.12.2", features = ["chains"] }
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
