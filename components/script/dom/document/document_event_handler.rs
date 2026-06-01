@@ -2238,7 +2238,7 @@ impl DocumentEventHandler {
             return false;
         }
 
-        for node in node.inclusive_ancestors(ShadowIncluding::Yes) {
+        for node in node.inclusive_ancestors_unrooted(cx.no_gc(), ShadowIncluding::Yes) {
             if node
                 .downcast::<HTMLElement>()
                 .is_some_and(|html_element| html_element.Hidden())
