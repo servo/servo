@@ -12,7 +12,7 @@ use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExtent3D, GPUImageCopyTexture, GPUImageDataLayout, GPUQueueMethods, GPUSize64,
+    GPUExtent3D, GPUImageCopyTexture, GPUTexelCopyBufferLayout, GPUQueueMethods, GPUSize64,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -169,7 +169,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         &self,
         destination: &GPUImageCopyTexture,
         data: BufferSource,
-        data_layout: &GPUImageDataLayout,
+        data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
         let (bytes, len) = match data {

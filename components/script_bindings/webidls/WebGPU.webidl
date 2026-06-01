@@ -858,13 +858,13 @@ dictionary GPUVertexAttribute {
     required GPUIndex32 shaderLocation;
 };
 
-dictionary GPUImageDataLayout {
+dictionary GPUTexelCopyBufferLayout {
     GPUSize64 offset = 0;
     GPUSize32 bytesPerRow;
     GPUSize32 rowsPerImage;
 };
 
-dictionary GPUImageCopyBuffer : GPUImageDataLayout {
+dictionary GPUImageCopyBuffer : GPUTexelCopyBufferLayout {
     required GPUBuffer buffer;
 };
 
@@ -1119,7 +1119,7 @@ interface GPUQueue {
     undefined writeTexture(
       GPUImageCopyTexture destination,
       BufferSource data,
-      GPUImageDataLayout dataLayout,
+      GPUTexelCopyBufferLayout dataLayout,
       GPUExtent3D size);
 
     //[Throws]

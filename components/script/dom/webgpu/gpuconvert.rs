@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
     GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
+    GPUImageCopyTexture, GPUTexelCopyBufferLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
     GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
     GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
     GPUStoreOp, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
@@ -247,7 +247,7 @@ impl TryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
     }
 }
 
-impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUImageDataLayout {
+impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
     fn convert(self) -> wgpu_types::TexelCopyBufferLayout {
         wgpu_types::TexelCopyBufferLayout {
             offset: self.offset as wgpu_types::BufferAddress,
