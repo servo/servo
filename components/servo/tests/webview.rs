@@ -1069,7 +1069,7 @@ fn test_preferences_change() {
 
     webview.reload();
 
-    let result = assert_eq!(
+    assert_eq!(
         Ok(JSValue::String("3".into())),
         evaluate_javascript(&servo_test, webview, "target.style.gridColumn = \"3\";")
     );
