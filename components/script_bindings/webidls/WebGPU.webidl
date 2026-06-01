@@ -896,9 +896,9 @@ dictionary GPUCommandBufferDescriptor : GPUObjectDescriptorBase {
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 interface GPUCommandEncoder {
-    GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
     [Throws]
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
+    GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
 
     undefined copyBufferToBuffer(
         GPUBuffer source,
