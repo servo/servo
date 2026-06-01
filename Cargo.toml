@@ -124,7 +124,7 @@ http = "1.4"
 http-body-util = "0.1"
 http02 = { package = "http", version = "0.2" }
 httparse = "1.9"
-hyper = "1.9"
+hyper = "1.10"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http2", "tokio"] }
 icu_locid = "1.5.0"
