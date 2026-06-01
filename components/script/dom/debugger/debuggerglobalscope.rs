@@ -24,10 +24,8 @@ use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
-use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::{
-    EnvironmentInfo, EnvironmentVariable,
-};
-use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::{self};
+use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
+use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
@@ -530,8 +528,9 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
+        let previews = result.previews.as_deref();
         let reply = EvaluateJSReply {
-            value: parse_debugger_value(&result.value, result.preview.as_ref()),
+            value: parse_debugger_value(&result.value, previews),
             has_exception: result.hasException.unwrap_or(false),
         };
 
@@ -617,6 +616,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
+        let previews = environment.previews.as_deref();
         let environment = devtools_traits::EnvironmentInfo {
             type_: environment.type_.clone().map(String::from),
             scope_kind: environment.scopeKind.clone().map(String::from),
@@ -626,9 +626,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 .as_deref()
                 .into_iter()
                 .flatten()
-                .map(|EnvironmentVariable { property, preview }| {
-                    parse_property_descriptor(property, preview.as_ref())
-                })
+                .map(|property| parse_property_descriptor(property, previews))
                 .collect(),
         };
 
@@ -655,11 +653,11 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
 
 fn parse_property_descriptor(
     property: &PropertyDescriptor,
-    preview: Option<&ObjectPreview>,
+    previews: Option<&[ObjectPreview]>,
 ) -> devtools_traits::PropertyDescriptor {
     devtools_traits::PropertyDescriptor {
         name: property.name.to_string(),
-        value: parse_debugger_value(&property.value, preview),
+        value: parse_debugger_value(&property.value, previews),
         configurable: property.configurable,
         enumerable: property.enumerable,
         writable: property.writable,
@@ -667,13 +665,18 @@ fn parse_property_descriptor(
     }
 }
 
-fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPreview {
-    devtools_traits::ObjectPreview {
+fn parse_object_preview(
+    preview_id: Option<usize>,
+    previews: Option<&[ObjectPreview]>,
+) -> Option<devtools_traits::ObjectPreview> {
+    let preview_id = preview_id?;
+    let preview = previews?.get(preview_id)?;
+    Some(devtools_traits::ObjectPreview {
         kind: preview.kind.clone().into(),
         own_properties: preview.ownProperties.as_ref().map(|properties| {
             properties
                 .iter()
-                .map(|property| parse_property_descriptor(property, None))
+                .map(|property| parse_property_descriptor(property, previews))
                 .collect()
         }),
         own_properties_length: preview.ownPropertiesLength,
@@ -695,15 +698,15 @@ fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPrevi
         items: preview.items.as_ref().map(|items| {
             items
                 .iter()
-                .map(|item| parse_debugger_value(item, None))
+                .map(|item| parse_debugger_value(item, previews))
                 .collect()
         }),
-    }
+    })
 }
 
 fn parse_debugger_value(
     value: &DebuggerValue,
-    preview: Option<&ObjectPreview>,
+    previews: Option<&[ObjectPreview]>,
 ) -> devtools_traits::DebuggerValue {
     use devtools_traits::DebuggerValue::*;
     match &*value.valueType.str() {
@@ -731,12 +734,11 @@ fn parse_debugger_value(
                 .as_ref()
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| "Object".to_string());
-
             ObjectValue {
                 uuid: uuid::Uuid::new_v4().to_string(),
                 class,
                 own_property_length: value.ownPropertyLength,
-                preview: preview.map(parse_object_preview),
+                preview: parse_object_preview(value.previewId.map(|m| m as usize), previews),
             }
         },
         _ => unreachable!(),
