@@ -81,25 +81,23 @@ pub(crate) mod module {
         HandleObject as RawHandleObject, JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById,
         JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm,
         JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
-        JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSJitGetterCallArgs,
-        JSJitInfo, JSJitInfo__bindgen_ty_1, JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3,
-        JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType, JSJitMethodCallArgs,
-        JSJitSetterCallArgs, JSNativeWrapper, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
-        JSPropertySpec, JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
+        JSFunctionSpec, JSJitGetterCallArgs, JSJitInfo, JSJitInfo__bindgen_ty_1,
+        JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3, JSJitInfo_AliasSet, JSJitInfo_ArgType,
+        JSJitInfo_OpType, JSJitMethodCallArgs, JSJitSetterCallArgs, JSNativeWrapper,
+        JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPropertySpec,
+        JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
         JSPropertySpec_AccessorsOrValue_Accessors, JSPropertySpec_Kind, JSPropertySpec_Name,
         JSPropertySpec_ValueWrapper, JSPropertySpec_ValueWrapper__bindgen_ty_1,
         JSPropertySpec_ValueWrapper_Type, JSTracer, JSTypedMethodJitInfo, JSValueType,
         MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
         MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-        ObjectOpResult, PropertyDescriptor, SymbolCode, UndefinedHandleValue, jsid,
+        ObjectOpResult, PropertyDescriptor, SymbolCode, jsid,
     };
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers::{
-        AppendToIdVector, Call, GetPropertyKeys, JS_CopyOwnPropertiesAndPrivateFields,
-        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty,
-        JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithGivenProto,
-        JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype,
-        JS_WrapObject, NewProxyObject, RUST_SYMBOL_TO_JSID, int_to_jsid,
+        Call, JS_CopyOwnPropertiesAndPrivateFields, JS_DefineProperty, JS_DefinePropertyById2,
+        JS_GetProperty, JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty,
+        JS_SetPrototype, RUST_SYMBOL_TO_JSID,
     };
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{

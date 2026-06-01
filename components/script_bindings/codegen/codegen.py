@@ -6534,14 +6534,14 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             cross_origin = "None"
         if self.descriptor.operations['IndexedGetter']:
             if "Length" in self.descriptor.cxMethods:
-                length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx)))"
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx))"
             else:
-                length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length()))"
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length())"
         else:
             length = "None"
 
         if self.descriptor.supportsNamedProperties():
-            properties = f"Some(Box::new(|unwrapped_proxy: *const {self.descriptor.concreteType}, cx| (*unwrapped_proxy).SupportedPropertyNames(cx)))"
+            properties = f"Some(|unwrapped_proxy: *const {self.descriptor.concreteType}, cx| (*unwrapped_proxy).SupportedPropertyNames(cx))"
         else:
             properties = "None"
 

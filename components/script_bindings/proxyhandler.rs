@@ -29,10 +29,8 @@ use js::rust::wrappers::{
     SetDataPropertyDescriptor,
 };
 use js::rust::wrappers2::{
-    JS_IdToValue, JS_IsExceptionPending, JS_ValueToSource, RUST_JSID_IS_VOID,
-};
-use js::rust::wrappers2::{
-    GetPropertyKeys, JS_AtomizeAndPinString, RUST_INTERNED_STRING_TO_JSID, int_to_jsid,
+    GetPropertyKeys, JS_AtomizeAndPinString, JS_IdToValue, JS_IsExceptionPending, JS_ValueToSource,
+    RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -850,12 +848,11 @@ pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
 where
     T: DomObject,
 {
-    #[expect(clippy::type_complexity)]
-    pub(crate) indexed_getter_and_length:
-        Option<Box<dyn Fn(&T, &mut js::context::JSContext) -> u32>>,
+    pub(crate) indexed_getter_and_length: Option<fn(&T, &mut js::context::JSContext) -> u32>,
     pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
-    pub(crate) supported_named_properties: Option<Box<dyn Fn(*const T) -> Vec<DOMString>>>,
+    pub(crate) supported_named_properties:
+        Option<fn(*const T, &mut js::context::JSContext) -> Vec<DOMString>>,
 }
 
 /// Helper type to keep AutoRealm and &mut CurrentRealm alive with Deref to JSContext
@@ -929,7 +926,7 @@ where
         }
 
         if let Some(properties) = config.supported_named_properties {
-            for name in properties(unwrapped_proxy) {
+            for name in properties(unwrapped_proxy, &mut cx) {
                 let cstring = CString::new(name).unwrap();
                 let jsstring = JS_AtomizeAndPinString(&cx, cstring.as_ptr());
                 rooted!(&in(cx) let rooted = jsstring);
