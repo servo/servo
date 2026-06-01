@@ -9,9 +9,10 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
-    FT_ULong, FT_Vector,
+    FT_F26Dot6, FT_Fixed, FT_GLYPH_FORMAT_OUTLINE, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot,
+    FT_GlyphSlot_Embolden, FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph,
+    FT_Long, FT_MulFix, FT_Outline_Embolden, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_ULong,
+    FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -34,6 +35,20 @@ const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
 fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
     fixed as f64 / 64.0
+}
+
+/// Convert FreeType-style 16.16 fixed point to an [`f64`].
+/// This is the method described here:
+/// From <https://stackoverflow.com/questions/8638792/how-to-convert-packed-integer-16-16-fixed-point-to-float>.
+fn fixed_16_dot_16_to_float(fixed: FT_Fixed) -> f64 {
+    fixed as f64 / 65536.0
+}
+
+/// Convert an [`f64`] to a FreeType-style 16.16 fixed point.
+/// This is the inverse of the method described here:
+/// <https://stackoverflow.com/questions/8638792/how-to-convert-packed-integer-16-16-fixed-point-to-float>.
+fn float_to_fixed_16_dot_16(float: f64) -> FT_Fixed {
+    (float * 65536.0).round() as FT_Fixed
 }
 
 #[derive(Debug)]
@@ -193,7 +208,7 @@ impl PlatformFontMethods for PlatformFont {
         let load_flags = face.glyph_load_flags();
         let result = unsafe { FT_Load_Glyph(face.as_ptr(), glyph as FT_UInt, load_flags) };
         if 0 != result {
-            debug!("Unable to load glyph {}. reason: {:?}", glyph, result);
+            debug!("Unable to load glyph {glyph}: {result:?}");
             return None;
         }
 
@@ -207,8 +222,24 @@ impl PlatformFontMethods for PlatformFont {
             mozilla_glyphslot_embolden_less(slot);
         }
 
-        let advance = unsafe { (*slot).metrics.horiAdvance };
-        Some(fixed_26_dot_6_to_float(advance) * self.unscalable_font_metrics_scale())
+        // There are two kinds of horizontal metrics that FreeType provides:
+        //  - FT_GlyphMetrics.horiAdvance: This is the horizontal distance in 26.6 floating
+        //    point used to increment the pen position when drawing glyphs. According to
+        //    the FreeType documentation this is normally rounded to integer pixel coordinates
+        //    by the font driver.
+        //  - FT_GlyphSlotRec.linearHoriAdavnce: This is similar to `horiAdvance`, but is a
+        //    "16.16 fixed-point number that gives the value of the original glyph advance
+        //    width in 1/65536 of pixels."
+        //
+        // As we are laying out in floating point, we do not want glyph advance to be snapped
+        // to pixel boundaries. This value is only available if the font is scalable.
+        let advance = if !face.scalable() {
+            fixed_26_dot_6_to_float(unsafe { (*slot).metrics.horiAdvance })
+        } else {
+            fixed_16_dot_16_to_float(unsafe { (*slot).linearHoriAdvance })
+        };
+
+        Some(advance * self.unscalable_font_metrics_scale())
     }
 
     fn metrics(&self) -> FontMetrics {
@@ -447,10 +478,6 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
 // Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
 // fonts than the default implementation in FreeType.
 fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
-    use freetype_sys::{
-        FT_GLYPH_FORMAT_OUTLINE, FT_GlyphSlot_Embolden, FT_Long, FT_MulFix, FT_Outline_Embolden,
-    };
-
     if slot.is_null() {
         return;
     }
@@ -465,8 +492,7 @@ fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
 
     let face_ = unsafe { &*slot_.face };
 
-    // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
-    // bold.
+    // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as bold.
     let size_ = unsafe { &*face_.size };
     let strength = unsafe { FT_MulFix(face_.units_per_EM as FT_Long, size_.metrics.y_scale) / 48 };
     unsafe { FT_Outline_Embolden(&raw mut slot_.outline, strength) };
@@ -483,4 +509,6 @@ fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
     slot_.metrics.horiAdvance += strength;
     slot_.metrics.vertAdvance += strength;
     slot_.metrics.horiBearingY += strength;
+
+    slot_.linearHoriAdvance += float_to_fixed_16_dot_16(fixed_26_dot_6_to_float(strength));
 }
