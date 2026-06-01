@@ -20,8 +20,8 @@ window.onload = () => {
 
         let result = ServoTestUtils.forceLayout();
 
-        // text fragment + p1 + div + body + root
-        assert_equals(result.rebuiltFragmentCount, 5, "rebuiltFragmentCount");
+        // text fragment + linebox + p1 + div + body + root
+        assert_equals(result.rebuiltFragmentCount, 6, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
         // p2 + p3 + p4 + p5
         assert_equals(result.onlyDescendantsChangedCount, 0, "onlyDescendantsChangedCount");

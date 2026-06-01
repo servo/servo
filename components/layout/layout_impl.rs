@@ -584,13 +584,12 @@ impl Layout for LayoutThread {
     fn query_elements_from_point(
         &self,
         point: webrender_api::units::LayoutPoint,
-        flags: layout_api::ElementsFromPointFlags,
     ) -> Vec<layout_api::ElementsFromPointResult> {
         with_layout_state(|| {
             self.stacking_context_tree
                 .borrow_mut()
                 .as_mut()
-                .map(|tree| HitTest::run(tree, point, flags))
+                .map(|tree| HitTest::run(tree, point))
                 .unwrap_or_default()
         })
     }

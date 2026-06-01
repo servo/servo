@@ -43,11 +43,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointFlags, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult, FragmentType, Layout,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -3119,10 +3119,9 @@ impl Window {
     pub(crate) fn elements_from_point_query(
         &self,
         point: LayoutPoint,
-        flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult> {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
-        self.layout().query_elements_from_point(point, flags)
+        self.layout().query_elements_from_point(point)
     }
 
     pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
@@ -3154,7 +3153,7 @@ impl Window {
         point_in_frame: Point2D<f32, CSSPixel>,
     ) -> Option<HitTestResult> {
         let result = self
-            .elements_from_point_query(point_in_frame.cast_unit(), ElementsFromPointFlags::empty())
+            .elements_from_point_query(point_in_frame.cast_unit())
             .into_iter()
             .nth(0)?;
 
