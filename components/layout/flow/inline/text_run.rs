@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
@@ -20,6 +21,7 @@ use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::computed_values::text_rendering::T as TextRendering;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
@@ -267,16 +269,10 @@ impl TextRunSegment {
         &mut self,
         parent_style: &ComputedValues,
         formatting_context_text: &str,
-        linebreaker: &mut LineBreaker,
+        linebreaker: &mut LazyCell<LineBreaker, impl FnOnce() -> LineBreaker>,
         old_text_run_item: Option<TextRunItem>,
     ) {
-        // Gather the linebreaks that apply to this segment from the inline formatting context's collection
-        // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
-        // piece of text is processed.
         let range = self.byte_range.clone();
-        let linebreaks = linebreaker.advance_to_linebreaks_in_range(self.byte_range.clone());
-        let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
-
         let options: ShapingOptions = (&*self.info).into();
         let shaped_text = old_text_run_item
             .and_then(|old_text_run_item| {
@@ -293,6 +289,25 @@ impl TextRunSegment {
                     .font
                     .shape_text(&formatting_context_text[range.clone()], &options)
             });
+
+        match parent_style.get_inherited_text().text_wrap_mode {
+            TextWrapMode::Nowrap => {
+                // Since this `TextRunSegment` is unbreakable,
+                // return early with a single `ShapedTextSlice` for the entire segment
+                let is_whitespace = formatting_context_text.chars().all(char_is_whitespace);
+                self.runs.push(shaped_text.slice_full_nowrap(is_whitespace));
+                return;
+            },
+            TextWrapMode::Wrap => {
+                // Break the segment into slices at soft wrap/break opportunities below
+            },
+        }
+
+        // Gather the linebreaks that apply to this segment from the inline formatting context's collection
+        // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
+        // piece of text is processed.
+        let linebreaks = linebreaker.advance_to_linebreaks_in_range(self.byte_range.clone());
+        let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
 
         let mut shaped_text_slicer = ShapedTextSlicer::new(shaped_text);
 
@@ -471,7 +486,7 @@ impl TextRun {
         &mut self,
         formatting_context_text: &str,
         layout_context: &LayoutContext,
-        linebreaker: &mut LineBreaker,
+        linebreaker: &mut LazyCell<LineBreaker, impl FnOnce() -> LineBreaker>,
         bidi_levels: &BidiLevels,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
