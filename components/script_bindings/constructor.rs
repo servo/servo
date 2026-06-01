@@ -5,18 +5,22 @@
 use std::ffi::CStr;
 use std::ptr;
 
-use js::gc::RootedGuard;
-use js::jsapi::{CallArgs, JSFunctionSpec, JSObject};
+use js::gc::{MutableHandle, RootedGuard};
+use js::jsapi::{CallArgs, JSClass, JSFunctionSpec, JSObject, JSPropertySpec};
 use js::rooted;
 use js::rust::HandleObject;
-use js::rust::wrappers2::{GetRealmObjectPrototype, JS_NewPlainObject};
+use js::rust::wrappers2::{
+    GetRealmErrorPrototype, GetRealmIteratorPrototype, GetRealmObjectPrototype, JS_NewPlainObject,
+};
 
 use crate::DomTypes;
 use crate::codegen::PrototypeList::{self};
 use crate::constant::ConstantSpec;
 use crate::error::throw_constructor_without_new;
 use crate::guard::Guard;
-use crate::interface::{create_callback_interface_object, get_desired_proto};
+use crate::interface::{
+    create_callback_interface_object, create_interface_prototype_object, get_desired_proto,
+};
 use crate::js::rust::GCMethods;
 use crate::namespace::{NamespaceObjectClass, create_namespace_object};
 use crate::utils::ProtoOrIfaceArray;
@@ -81,6 +85,30 @@ pub(crate) struct CallbackInit {
     pub(crate) name: &'static CStr,
 }
 
+pub(crate) enum InitType {
+    RealmErrorPrototype,
+    RealmIteratorPrototype,
+    RealmObjectPrototype,
+    Parent(ParentFn),
+}
+
+type HasPropertyFn =
+    Box<dyn Fn(crate::script_runtime::JSContext, HandleObject, MutableHandle<'_, *mut JSObject>)>;
+
+type ParentFn =
+    Box<dyn Fn(&mut js::context::JSContext, HandleObject, MutableHandle<'_, *mut JSObject>)>;
+
+pub(crate) struct OtherInit {
+    pub(crate) init_type: InitType,
+    pub(crate) has_named_properties_object: Option<HasPropertyFn>,
+    pub(crate) prototype_class: &'static JSClass,
+    pub(crate) methods: &'static [Guard<&'static [JSFunctionSpec]>],
+    pub(crate) attrs: &'static [Guard<&'static [JSPropertySpec]>],
+    pub(crate) consts: &'static [Guard<&'static [ConstantSpec]>],
+    pub(crate) unscopables: &'static [&'static CStr],
+    pub(crate) prototype_id: PrototypeList::ID,
+}
+
 /// SAFETY: cache is a non-null pointer to a valid ProtoOrIfaceArray object.
 pub(crate) unsafe fn create_namespace_interface_objects<D: DomTypes>(
     cx: &mut js::context::JSContext,
@@ -133,5 +161,65 @@ pub(crate) unsafe fn create_callback_interface_objects<D: DomTypes>(
     );
     unsafe {
         post_barrier(init.constructor_name, cache, interface);
+    }
+}
+
+/// SAFETY: cache is a non-null pointer to a valid ProtoOrIfaceArray object.
+/// The returned object needs to be rooted.c
+pub(crate) unsafe fn create_other<D: DomTypes>(
+    cx: &mut js::context::JSContext,
+    init: OtherInit,
+    global: HandleObject,
+    cache: *mut ProtoOrIfaceArray,
+) -> *mut JSObject {
+    unsafe {
+        rooted!(&in(cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
+        match init.init_type {
+            InitType::RealmErrorPrototype => {
+                prototype_proto.set(GetRealmErrorPrototype(cx));
+            },
+            InitType::RealmIteratorPrototype => {
+                prototype_proto.set(GetRealmIteratorPrototype(cx));
+            },
+            InitType::RealmObjectPrototype => {
+                prototype_proto.set(GetRealmObjectPrototype(cx));
+            },
+            InitType::Parent(f) => f(cx, global, prototype_proto.handle_mut()),
+        };
+        assert!(!prototype_proto.is_null());
+
+        if let Some(f) = init.has_named_properties_object {
+            rooted!(&in(cx) let mut prototype_proto_proto = prototype_proto.get());
+            f(
+                cx.into(),
+                prototype_proto_proto.handle(),
+                prototype_proto.handle_mut(),
+            );
+            // this was changed from the generated script which tests prototype_proto again.
+            assert!(!prototype_proto_proto.is_null());
+        }
+
+        rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
+        create_interface_prototype_object::<D>(
+            cx.into(),
+            global,
+            prototype_proto.handle(),
+            init.prototype_class,
+            init.methods,
+            init.attrs,
+            init.consts,
+            init.unscopables,
+            prototype.handle_mut(),
+        );
+        assert!(!prototype.is_null());
+        assert!((*cache)[init.prototype_id as usize].is_null());
+        (*cache)[init.prototype_id as usize] = prototype.get();
+        <*mut JSObject>::post_barrier(
+            (*cache).as_mut_ptr().offset(init.prototype_id as isize),
+            ptr::null_mut(),
+            prototype.get(),
+        );
+
+        *prototype
     }
 }

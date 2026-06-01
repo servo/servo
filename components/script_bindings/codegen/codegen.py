@@ -3754,32 +3754,28 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 """)
 
 
+
         name = self.descriptor.interface.identifier.name
         parentName = self.descriptor.getParentName()
         if not parentName:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
-                protoGetter = "GetRealmErrorPrototype"
+                protoGetter = "InitType::RealmErrorPrototype"
             elif self.descriptor.interface.isIteratorInterface():
-                protoGetter = "GetRealmIteratorPrototype"
+                protoGetter = "InitType::RealmIteratorPrototype"
             else:
-                protoGetter = "GetRealmObjectPrototype"
-            getPrototypeProto = f"prototype_proto.set({protoGetter}(cx.raw_cx()))"
+                protoGetter = "InitType::RealmObjectPrototype"
         else:
-            getPrototypeProto = (
-                f"{toBindingNamespace(parentName)}::GetProtoObject::<D>(cx, global, prototype_proto.handle_mut())"
-            )
+            protoGetter = (
+                          f"InitType::Parent(Box::new({toBindingNamespace(parentName)}::GetProtoObject::<D>))"
+                      )
 
-        code: list = [CGGeneric(f"""
-rooted!(&in(cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
-{getPrototypeProto};
-assert!(!prototype_proto.is_null());""")]
 
         if self.descriptor.hasNamedPropertiesObject():
             assert not self.haveUnscopables
-            code.append(CGGeneric(f"""
-rooted!(&in(cx) let mut prototype_proto_proto = prototype_proto.get());
-D::{name}::create_named_properties_object(cx.into(), prototype_proto_proto.handle(), prototype_proto.handle_mut());
-assert!(!prototype_proto.is_null());"""))
+            proto_proto_fn = f"Some(Box::new(D::{name}::create_named_properties_object))"
+        else:
+            proto_proto_fn = "None"
+
 
         properties = {
             "id": name,
@@ -3805,24 +3801,23 @@ assert!(!prototype_proto.is_null());"""))
         else:
             proto_properties = properties
 
-        code.append(CGGeneric(f"""
-rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object::<D>(cx.into(),
-                                  global,
-                                  prototype_proto.handle(),
-                                  &PrototypeClass,
-                                  {proto_properties['methods']},
-                                  {proto_properties['attrs']},
-                                  {proto_properties['consts']},
-                                  {proto_properties['unscopables']},
-                                  prototype.handle_mut());
-assert!(!prototype.is_null());
-assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null());
-(*cache)[PrototypeList::ID::{proto_properties['id']} as usize] = prototype.get();
-<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::{proto_properties['id']} as isize),
-                              ptr::null_mut(),
-                              prototype.get());
-"""))
+        code: list = [CGGeneric(f"""
+                    let init = OtherInit {{
+                        init_type: {protoGetter},
+                        has_named_properties_object: {proto_proto_fn},
+                        prototype_class: &PrototypeClass,
+                        methods: {proto_properties['methods']},
+                        attrs: {proto_properties['attrs']},
+                        consts: {proto_properties['consts']},
+                        unscopables: {proto_properties['unscopables']},
+                        prototype_id: PrototypeList::ID::{proto_properties['id']},
+                    }};
+                    // Safety rooting
+                    rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
+                    prototype.set(create_other::<D>(cx, init, global, cache));
+                    """)]
+        if self.descriptor.hasNamedPropertiesObject():
+                 assert not self.haveUnscopables
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_cstr(name)
