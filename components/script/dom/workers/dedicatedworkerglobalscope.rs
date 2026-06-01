@@ -471,6 +471,7 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 let worker_id = init.worker_id;
+                let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
@@ -493,12 +494,14 @@ impl DedicatedWorkerGlobalScope {
                     &debugger_global,
                     cx,
                 );
-                debugger_global.fire_add_debuggee(
-                    cx,
-                    global.upcast(),
-                    pipeline_id,
-                    Some(worker_id),
-                );
+                if devtools_enabled {
+                    debugger_global.fire_add_debuggee(
+                        cx,
+                        global.upcast(),
+                        pipeline_id,
+                        Some(worker_id),
+                    );
+                }
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 

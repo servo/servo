@@ -3489,8 +3489,14 @@ impl ScriptThread {
             incomplete.theme,
             self.this.clone(),
         );
-        self.debugger_global
-            .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
+        if self.senders.devtools_server_sender.is_some() {
+            self.debugger_global.fire_add_debuggee(
+                cx,
+                window.upcast(),
+                incomplete.pipeline_id,
+                None,
+            );
+        }
 
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;

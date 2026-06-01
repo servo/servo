@@ -379,6 +379,7 @@ impl SharedWorkerGlobalScope {
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
                 let worker_id = init.worker_id;
+                let devtools_enabled = init.to_devtools_sender.is_some();
                 // Creating the worker global scope initializes its name (step 8)
                 // and, for shared workers, its type (step 10.3 of run a worker).
                 let global = SharedWorkerGlobalScope::new(
@@ -403,7 +404,14 @@ impl SharedWorkerGlobalScope {
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
-                debugger_global.fire_add_debuggee(cx, global_scope, pipeline_id, Some(worker_id));
+                if devtools_enabled {
+                    debugger_global.fire_add_debuggee(
+                        cx,
+                        global_scope,
+                        pipeline_id,
+                        Some(worker_id),
+                    );
+                }
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
