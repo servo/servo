@@ -16,12 +16,12 @@ use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
-    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
-    GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
-    GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
-    GPUStoreOp, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-    GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
+    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUIndexFormat,
+    GPULoadOp, GPUMipmapFilterMode, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState,
+    GPUPrimitiveTopology, GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation,
+    GPUStorageTextureAccess, GPUStoreOp, GPUTexelCopyBufferInfo, GPUTexelCopyBufferLayout,
+    GPUTexelCopyTextureInfo, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension,
+    GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUTextureOrGPUTextureView;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -247,7 +247,7 @@ impl TryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
     }
 }
 
-impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUImageDataLayout {
+impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
     fn convert(self) -> wgpu_types::TexelCopyBufferLayout {
         wgpu_types::TexelCopyBufferLayout {
             offset: self.offset as wgpu_types::BufferAddress,
@@ -458,7 +458,7 @@ impl Convert<wgpu_types::StencilOperation> for GPUStencilOperation {
     }
 }
 
-impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUImageCopyBuffer {
+impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo {
     fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
         wgpu_com::TexelCopyBufferInfo {
             buffer: self.buffer.id().0,
@@ -495,7 +495,7 @@ impl TryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
     }
 }
 
-impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUImageCopyTexture {
+impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo {
     type Error = Error;
 
     fn try_convert(self) -> Result<wgpu_com::TexelCopyTextureInfo, Self::Error> {
