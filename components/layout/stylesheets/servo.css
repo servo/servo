@@ -10,6 +10,10 @@ textarea {
   color: black;
 }
 
+input[type="radio"] {
+  border: none;
+}
+
 textarea {
     padding: 2px;
 }
@@ -40,6 +44,10 @@ textarea:disabled {
   cursor: unset;
   color: grey;
   border-color: lightgrey;
+}
+
+input[type="radio"]:disabled {
+  border: none;
 }
 
 /* FIXME(#36982): Use `display: block; align-content: center` instead of flex. */
@@ -150,7 +158,8 @@ input[type="color"]:focus,
 input[type="range"]:focus,
 input[type="reset"]:focus,
 input[type="submit"]:focus,
-input[type="file"]:focus::file-selector-button {
+input[type="file"]:focus::file-selector-button,
+input[type="radio"]:focus {
   outline: none;
 }
 
@@ -261,7 +270,6 @@ input[type="range"]:disabled::slider-thumb {
 /* Checkbox and radio button inputs */
 input[type="checkbox"],
 input[type="radio"] {
-  border: 1px solid grey;
   margin-inline: 4px 2px;
 
   /* Offset the outline a bit so that it doesn't just make the rounded border thicker. */
@@ -271,8 +279,11 @@ input[type="radio"] {
   position: relative;
 }
 
-input[type="checkbox"]:disabled,
-input[type="radio"]:disabled {
+input[type="checkbox"] {
+  border: 1px solid grey;
+}
+
+input[type="checkbox"]:disabled {
   border-color: lightgrey;
 }
 
@@ -316,25 +327,46 @@ input[type="checkbox"]:indeterminate::before {
 
 input[type="radio"] {
   display: inline-block;
-  border-radius: 50%;
 
-  /* Radio buttons do not grow or shrink with their surrounding font size. */
+  /* TODO: According to https://wpt.fyi/results/css/css-grid/stretch-grid-item-radio-input.html,
+     radio buttons should be able to grow / shrink depending of the width/height of the input 
+     element. These values should probably be changed once `aspect-ratio` has been supported
+     for non-replaced elements.
+  */
   min-height: 14px;
   min-width: 14px;
-  max-height: 14px;
-  max-width: 14px;
   height: 14px;
   width: 14px;
-
-  /* Offset the outline a bit so that it doesn't just make the rounded border thicker. */
-  outline-offset: 0.4px;
 }
 
+/* This creates the ring of the radio input. TODO: It might be better to add a UA shadow tree instead of using pseudo elements. */
 input[type="radio"]::before {
   content: "";
   background: transparent;
 
-  /* Bullets have a fixed size regardless of the text surrounding them. */
+  /* TODO: The ring should be able to grow & shrink according to min(width, height). 
+    However, this is currently not possible to be implemented as `aspect-ratio` hasn't
+    been supported for non-replaced elements.
+  */
+  width: 10px;
+  height: 10px;
+
+  /* Center the bullet in the containing block. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid grey;
+  border-radius: 50%;
+}
+
+/* This creates the bullet of the radio input. TODO: It might be better to add a UA shadow tree instead of using pseudo elements.*/
+input[type="radio"]::after {
+  content: "";
+  background: transparent;
+
+  /* TODO:  The bullet should be able to grow & shrink according to min(width, height). 
+  However, this is currently not possible to be implemented as `aspect-ratio` hasn't been supported for non-replaced elements. */
   width: 8px;
   height: 8px;
 
@@ -346,11 +378,11 @@ input[type="radio"]::before {
   border-radius: 50%;
 }
 
-input[type="radio"]:checked::before {
+input[type="radio"]:checked::after {
   background: black;
 }
 
-input[type="radio"]:checked:disabled::before {
+input[type="radio"]:checked:disabled::after {
   background: grey;
 }
 
