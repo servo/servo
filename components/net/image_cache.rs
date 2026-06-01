@@ -484,6 +484,8 @@ impl ImageCacheStore {
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
+                // We can have concurrent sync and async loads for the same image, so if it's
+                // not pending anymore we early return since the async result will be ignored in that case.
                 if self.pending_loads.get_by_key_mut(&pending_id).is_none() {
                     return;
                 }
@@ -491,6 +493,14 @@ impl ImageCacheStore {
                 self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
             },
             PendingKey::Svg((pending_id, mut raster_image, requested_size)) => {
+                // We can have concurrent sync and async loads for the same image, so if it's
+                // not pending anymore we early return since the async result will be ignored in that case.
+                if !self
+                    .rasterized_vector_images
+                    .contains_key(&(pending_id, requested_size))
+                {
+                    return;
+                }
                 set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load_svg(raster_image, pending_id, requested_size);
             },
