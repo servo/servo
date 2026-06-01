@@ -129,6 +129,7 @@ use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
 };
 use crate::dom::customevent::CustomEvent;
+use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
@@ -657,6 +658,9 @@ pub(crate) struct Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
     css_styling_flag: Cell<bool>,
+
+    /// Data necessary for maintaining the accessibility tree.
+    accessibility_data: DomRefCell<AccessibilityData>,
 }
 
 impl Document {
@@ -3408,6 +3412,14 @@ impl Document {
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
+
+    pub(crate) fn accessibility_data_mut(&self) -> RefMut<'_, AccessibilityData> {
+        self.accessibility_data.borrow_mut()
+    }
+
+    pub(crate) fn accessibility_active(&self) -> bool {
+        self.window().layout().accessibility_active()
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3707,6 +3719,7 @@ impl Document {
             value_override: Default::default(),
             default_single_line_container_name: Default::default(),
             css_styling_flag: Default::default(),
+            accessibility_data: Default::default(),
         }
     }
 

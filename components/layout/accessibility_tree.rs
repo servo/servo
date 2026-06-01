@@ -63,7 +63,7 @@ pub struct AccessibilityTree {
     tree_id: accesskit::TreeId,
     /// Sent with each [`accesskit::TreeUpdate`] to identify the root node, and also used in
     /// [`Self::assert_integrity()`].
-    root_node_id: Option<accesskit::NodeId>,
+    root_node_id: Option<NodeId>,
     /// Sent to the embedder alongside each [`accesskit::TreeUpdate`], so that the embedder can
     /// drop updates from documents which have been navigated away from.
     embedder_epoch: Epoch,
@@ -129,27 +129,9 @@ impl AccessibilityTree {
         let root_node_id = root_node.borrow().id;
         self.root_node_id = Some(root_node_id);
 
-        let any_node_updated = self.update_node_and_descendants(root_dom_node, &mut update);
+        self.update_node_and_descendants(root_dom_node, &mut update);
 
-        if !any_node_updated {
-            assert!(update.tree_changes.is_empty());
-            return None;
-        }
-
-        let accesskit_update = update.finalize(self)?;
-
-        if self
-            .debug
-            .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
-        {
-            self.print();
-        }
-
-        if pref!(expensive_accessibility_test_assertions_enabled) {
-            self.assert_integrity();
-        }
-
-        Some(accesskit_update)
+        update.finalize(self)
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -223,14 +205,13 @@ impl AccessibilityTree {
         node.clone()
     }
 
-    /// Remove the node with the given ID from the cache, if it exists.
-    fn remove_node(&mut self, id: &NodeId) {
-        let Some(node) = self.nodes.remove(id) else {
-            return;
-        };
+    /// Remove the node with the given ID from the cache and return it, if it exists.
+    fn remove_node(&mut self, id: NodeId) -> Option<ArcRefCell<AccessibilityNode>> {
+        let node = self.nodes.remove(&id)?;
         if let Some(opaque_node) = node.borrow().opaque_node {
             self.opaque_node_to_id.remove(&opaque_node);
         }
+        Some(node)
     }
 
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
@@ -568,6 +549,15 @@ impl AccessibilityUpdate {
     }
 
     fn finalize(mut self, tree: &mut AccessibilityTree) -> Option<accesskit::TreeUpdate> {
+        let root_node_id = tree
+            .root_node_id
+            .expect("AccessibilityUpdate::finalize() called but no root_node_id set in tree");
+
+        if self.changed_nodes.is_empty() {
+            assert!(self.tree_changes.is_empty());
+            return None;
+        }
+
         for id in self
             .tree_changes
             .drain()
@@ -581,11 +571,11 @@ impl AccessibilityUpdate {
                 _ => None,
             })
         {
-            tree.remove_node(&id);
+            tree.remove_node(id);
         }
 
-        let accesskit_tree = accesskit::Tree::new(tree.root_node_id?);
-        Some(accesskit::TreeUpdate {
+        let accesskit_tree = accesskit::Tree::new(root_node_id);
+        let tree_update = accesskit::TreeUpdate {
             nodes: self
                 .changed_nodes
                 .into_iter()
@@ -597,9 +587,22 @@ impl AccessibilityUpdate {
                 })
                 .collect(),
             tree: Some(accesskit_tree),
-            focus: accesskit::NodeId(1),
+            focus: NodeId(1),
             tree_id: tree.tree_id,
-        })
+        };
+
+        if tree
+            .debug
+            .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
+        {
+            tree.print();
+        }
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            tree.assert_integrity();
+        }
+
+        Some(tree_update)
     }
 }
 
@@ -607,14 +610,14 @@ impl AccessibilityUpdate {
 #[test]
 fn test_accessibility_update_add_some_nodes_twice() {
     let mut tree = AccessibilityTree::new(accesskit::TreeId::ROOT, Epoch::default());
-    tree.root_node_id = Some(accesskit::NodeId(2));
+    tree.root_node_id = Some(NodeId(2));
 
     for (id, role) in [
         (3, Role::GenericContainer),
         (4, Role::Heading),
         (5, Role::Paragraph),
     ] {
-        let id = accesskit::NodeId(id);
+        let id = NodeId(id);
         tree.nodes.insert(
             id,
             ArcRefCell::new(AccessibilityNode::new_with_role(id, role)),
@@ -624,11 +627,11 @@ fn test_accessibility_update_add_some_nodes_twice() {
     let mut update = AccessibilityUpdate::new();
 
     {
-        let node_3 = tree.assert_node_for_id(accesskit::NodeId(3));
+        let node_3 = tree.assert_node_for_id(NodeId(3));
         let mut node_3 = node_3.borrow_mut();
-        let node_4 = tree.assert_node_for_id(accesskit::NodeId(4));
+        let node_4 = tree.assert_node_for_id(NodeId(4));
         let mut node_4 = node_4.borrow_mut();
-        let node_5 = tree.assert_node_for_id(accesskit::NodeId(5));
+        let node_5 = tree.assert_node_for_id(NodeId(5));
         let mut node_5 = node_5.borrow_mut();
 
         update.add(&mut node_5);

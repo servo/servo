@@ -409,6 +409,9 @@ pub trait Layout {
     /// This should be called by the embedder when accessibility is requested by the user.
     fn set_accessibility_active(&self, enabled: bool, epoch: Epoch);
 
+    /// Returns whether accessibility is active for this Layout.
+    fn accessibility_active(&self) -> bool;
+
     /// Whether the accessibility tree needs updating. This is set to true when
     /// - accessibility is activated; or
     /// - a page is loaded after accesibility is activated.
