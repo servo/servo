@@ -66,6 +66,7 @@ content-security-policy = { version = "0.8.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
 crossbeam-channel = "0.5"
+cshake = "0.2"
 cssparser = { version = "0.37", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
@@ -214,6 +215,7 @@ sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["b
 sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
 selectors = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
+seq-macro = "0.3.6"
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -222,7 +224,7 @@ serde_test = "1.0"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
 sha1 = "0.10"
 sha2 = "0.10"
-sha3 = "0.10"
+sha3 = "0.12"
 signal-hook-registry = "1.4.8"
 skrifa = "0.42.1"
 smallvec = { version = "1.15", features = ["serde", "union"] }
@@ -255,6 +257,7 @@ tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
 tungstenite = "0.29"
+turboshake = "0.7"
 unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
