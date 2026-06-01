@@ -2745,7 +2745,7 @@ class CGPrototypeJSClass(CGThing):
             slotCount += 1
         slotCountStr = f"{slotCount} & JSCLASS_RESERVED_SLOTS_MASK" if slotCount > 0 else "0"
         return f"""
-pub static PrototypeClass: JSClass = JSClass {{
+pub(crate) static PrototypeClass: JSClass = JSClass {{
     name: {name},
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS()
@@ -3623,7 +3623,7 @@ class PropertyArrays():
         for array in self.arrayNames():
             val = str(getattr(self, array))
             if val:
-                define += "pub " + str(getattr(self, array))
+                define += "pub(crate) " + str(getattr(self, array))
         return define
 
 
@@ -3732,7 +3732,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         if self.descriptor.interface.isNamespace():
             return CGGeneric(f"""
-                use crate::constructor::{{CreateInterfaceObjectsOptions, CreateInterfaceObjectsRust, ConstructorType, NamespaceInit }};
                 let init = NamespaceInit {{
                     is_proto_hack: {rust_bool(self.descriptor.interface.getExtendedAttribute("ProtoObjectHack") is not None)},
                     static_methods: {methods},
@@ -3741,24 +3740,17 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     constants: {constants},
                     name: c"{self.descriptor.interface.identifier.name}",
                 }};
-                let init = CreateInterfaceObjectsOptions {{
-                    constructor_type: ConstructorType::Namespace(init),
-                }};
-                CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
+                create_namespace_interface_objects::<D>(cx, init, global, cache);
                 """)
 
         elif self.descriptor.interface.isCallback():
             return CGGeneric(f"""
-                use crate::constructor::{{CreateInterfaceObjectsOptions, CreateInterfaceObjectsRust, ConstructorType, NamespaceInit, CallbackInit }};
                 let init = CallbackInit {{
                     constants: {constants},
                     name: c"{self.descriptor.interface.identifier.name}",
-                    p_name: PrototypeList::Constructor::{self.descriptor.interface.identifier.name},
+                    constructor_name: PrototypeList::Constructor::{self.descriptor.interface.identifier.name},
                 }};
-                let init = CreateInterfaceObjectsOptions {{
-                    constructor_type: ConstructorType::Callback(init),
-                }};
-                CreateInterfaceObjectsRust::<D>(cx, init, global, cache);
+                create_callback_interface_objects::<D>(cx, init, global, cache);
                 """)
 
 
