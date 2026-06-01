@@ -256,12 +256,13 @@ enum GPUTextureDimension {
 
 typedef [EnforceRange] unsigned long GPUTextureUsageFlags;
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUTextureUsage {
-    const GPUTextureUsageFlags COPY_SRC          = 0x01;
-    const GPUTextureUsageFlags COPY_DST          = 0x02;
-    const GPUTextureUsageFlags TEXTURE_BINDING   = 0x04;
-    const GPUTextureUsageFlags STORAGE_BINDING   = 0x08;
-    const GPUTextureUsageFlags RENDER_ATTACHMENT = 0x10;
+namespace GPUTextureUsage {
+    const GPUFlagsConstant COPY_SRC             = 0x01;
+    const GPUFlagsConstant COPY_DST             = 0x02;
+    const GPUFlagsConstant TEXTURE_BINDING      = 0x04;
+    const GPUFlagsConstant STORAGE_BINDING      = 0x08;
+    const GPUFlagsConstant RENDER_ATTACHMENT    = 0x10;
+    //const GPUFlagsConstant TRANSIENT_ATTACHMENT = 0x20;
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -450,7 +451,6 @@ enum GPUMipmapFilterMode {
     "linear",
 };
 
-
 enum GPUCompareFunction {
     "never",
     "less",
@@ -484,10 +484,10 @@ dictionary GPUBindGroupLayoutEntry {
 
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUShaderStage {
-    const GPUShaderStageFlags VERTEX = 1;
-    const GPUShaderStageFlags FRAGMENT = 2;
-    const GPUShaderStageFlags COMPUTE = 4;
+namespace GPUShaderStage {
+    const GPUFlagsConstant VERTEX   = 0x1;
+    const GPUFlagsConstant FRAGMENT = 0x2;
+    const GPUFlagsConstant COMPUTE  = 0x4;
 };
 
 enum GPUBufferBindingType {
@@ -513,11 +513,11 @@ dictionary GPUSamplerBindingLayout {
 };
 
 enum GPUTextureSampleType {
-  "float",
-  "unfilterable-float",
-  "depth",
-  "sint",
-  "uint",
+    "float",
+    "unfilterable-float",
+    "depth",
+    "sint",
+    "uint",
 };
 
 dictionary GPUTextureBindingLayout {
@@ -711,6 +711,7 @@ dictionary GPUFragmentState : GPUProgrammableStage {
 
 dictionary GPUColorTargetState {
     required GPUTextureFormat format;
+
     GPUBlendState blend;
     GPUColorWriteFlags writeMask = 0xF;  // GPUColorWrite.ALL
 };
@@ -722,12 +723,12 @@ dictionary GPUBlendState {
 
 typedef [EnforceRange] unsigned long GPUColorWriteFlags;
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
-interface GPUColorWrite {
-    const GPUColorWriteFlags RED   = 0x1;
-    const GPUColorWriteFlags GREEN = 0x2;
-    const GPUColorWriteFlags BLUE  = 0x4;
-    const GPUColorWriteFlags ALPHA = 0x8;
-    const GPUColorWriteFlags ALL   = 0xF;
+namespace GPUColorWrite {
+    const GPUFlagsConstant RED   = 0x1;
+    const GPUFlagsConstant GREEN = 0x2;
+    const GPUFlagsConstant BLUE  = 0x4;
+    const GPUFlagsConstant ALPHA = 0x8;
+    const GPUFlagsConstant ALL   = 0xF;
 };
 
 dictionary GPUBlendComponent {
@@ -855,6 +856,7 @@ dictionary GPUVertexBufferLayout {
 dictionary GPUVertexAttribute {
     required GPUVertexFormat format;
     required GPUSize64 offset;
+
     required GPUIndex32 shaderLocation;
 };
 
