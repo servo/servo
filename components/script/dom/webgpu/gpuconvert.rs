@@ -16,12 +16,12 @@ use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
-    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUTexelCopyBufferInfo,
-    GPUTexelCopyTextureInfo, GPUTexelCopyBufferLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
-    GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
-    GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
-    GPUStoreOp, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-    GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
+    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUIndexFormat,
+    GPULoadOp, GPUMipmapFilterMode, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState,
+    GPUPrimitiveTopology, GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation,
+    GPUStorageTextureAccess, GPUStoreOp, GPUTexelCopyBufferInfo, GPUTexelCopyBufferLayout,
+    GPUTexelCopyTextureInfo, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension,
+    GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUTextureOrGPUTextureView;
 use crate::dom::bindings::error::{Error, Fallible};

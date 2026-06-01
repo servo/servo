@@ -12,7 +12,7 @@ use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExtent3D, GPUTexelCopyTextureInfo, GPUTexelCopyBufferLayout, GPUQueueMethods, GPUSize64,
+    GPUExtent3D, GPUQueueMethods, GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};

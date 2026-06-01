@@ -14,8 +14,8 @@ use wgpu_core::command as wgpu_com;
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
-    GPUComputePassDescriptor, GPUExtent3D, GPUTexelCopyBufferInfo, GPUTexelCopyTextureInfo,
-    GPURenderPassDescriptor, GPUSize64,
+    GPUComputePassDescriptor, GPUExtent3D, GPURenderPassDescriptor, GPUSize64,
+    GPUTexelCopyBufferInfo, GPUTexelCopyTextureInfo,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
