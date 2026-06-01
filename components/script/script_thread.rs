@@ -3221,6 +3221,10 @@ impl ScriptThread {
                 window.discard_browsing_context();
             }
 
+            // Clear the image cache now, instead of waiting for the Window to be
+            // garbage collected. See servo/servo#45239.
+            window.image_cache().clear();
+
             debug!("{pipeline_id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
         }
