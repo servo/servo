@@ -15,7 +15,6 @@ native-tls = true
 
 [tool.pyrefly]
 search-path = ["."]
-python-interpreter-path = ".venv/bin/python"
 project-excludes = [
     "**/.venv/**",
 ]
