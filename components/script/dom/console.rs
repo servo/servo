@@ -338,7 +338,7 @@ fn console_object_from_handle_value(
             if !unsafe { JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) } {
                 continue;
             }
-            unsafe { handle_value_to_string(cx, key_value.handle()).to_string() }
+            handle_value_to_string(cx, key_value.handle()).to_string()
         } else {
             continue;
         };
@@ -715,8 +715,8 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
     ))
 }
 
-// https://console.spec.whatwg.org/#printer
-// The implementation’s job is simply to print the List.
+/// An implementation of <https://console.spec.whatwg.org/#printer>.
+/// This produces a string version of the argument that is printed to the console.
 fn stringify_debugger_value(value: &DebuggerValue) -> String {
     match value {
         DebuggerValue::VoidValue => "undefined".into(),
@@ -878,7 +878,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         // Step 2. Perform Printer("dir", « object », options).
         Console::send_to_devtools(
             global,
-            Self::build_message(cx, ConsoleLogLevel::Dir, vec![argument], None),
+            Self::build_message(cx, ConsoleLogLevel::Dir, vec![argument.clone()], None),
         );
         Self::send_to_embedder(
             global,
