@@ -244,7 +244,7 @@ impl ObjectActor {
             registry.register(actor);
             return name;
         };
-        if !registry.script_actor_registered(uuid.clone()) {
+        if !registry.script_actor_registered(&uuid) {
             let name = registry.new_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
@@ -259,7 +259,7 @@ impl ObjectActor {
 
             name
         } else {
-            registry.script_to_actor(uuid)
+            registry.script_to_actor(&uuid)
         }
     }
 }

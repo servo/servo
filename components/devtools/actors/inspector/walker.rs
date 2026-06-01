@@ -6,17 +6,16 @@
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
-use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
+use devtools_traits::DomMutation;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
-use servo_base::generic_channel::{self, GenericSender};
-use servo_base::id::PipelineId;
+use servo_base::generic_channel;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
-use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
+use crate::actors::inspector::node::{NodeActor, NodeActorMsg};
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
@@ -170,12 +169,9 @@ impl Actor for WalkerActor {
                     nodes: children
                         .into_iter()
                         .map(|child| {
-                            child.encode(
-                                registry,
-                                browsing_context_actor.script_chan(),
-                                browsing_context_actor.pipeline_id(),
-                                self.name(),
-                            )
+                            let node_name =
+                                NodeActor::register_or_update(registry, &self.name, child);
+                            registry.encode::<NodeActor, _>(&node_name)
                         })
                         .collect(),
                     from: self.name(),
@@ -194,16 +190,13 @@ impl Actor for WalkerActor {
                     .script_chan()
                     .send(GetDocumentElement(browsing_context_actor.pipeline_id(), tx))
                     .map_err(|_| ActorError::Internal)?;
-                let doc_elem_info = rx
+                let node_info = rx
                     .recv()
                     .map_err(|_| ActorError::Internal)?
                     .ok_or(ActorError::Internal)?;
-                let node = doc_elem_info.encode(
-                    registry,
-                    browsing_context_actor.script_chan(),
-                    browsing_context_actor.pipeline_id(),
-                    self.name(),
-                );
+
+                let node_name = NodeActor::register_or_update(registry, &self.name, node_info);
+                let node = registry.encode::<NodeActor, _>(&node_name);
 
                 let msg = DocumentElementReply {
                     from: self.name(),
@@ -242,15 +235,9 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::MissingParameter)?
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
-                let mut hierarchy = find_child(
-                    &browsing_context_actor.script_chan(),
-                    browsing_context_actor.pipeline_id(),
-                    &self.name,
-                    registry,
-                    node_name,
-                    vec![],
-                    |msg| msg.display_name == selector,
-                )
+                let mut hierarchy = find_child(&self.name, registry, node_name, vec![], |msg| {
+                    msg.display_name == selector
+                })
                 .map_err(|_| ActorError::Internal)?;
                 hierarchy.reverse();
                 let node = hierarchy.pop().ok_or(ActorError::Internal)?;
@@ -306,16 +293,13 @@ impl WalkerActor {
             .script_chan()
             .send(GetRootNode(pipeline, tx))
             .map_err(|_| ActorError::Internal)?;
-        let root_node = rx
+        let node_info = rx
             .recv()
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
-        Ok(root_node.encode(
-            registry,
-            browsing_context_actor.script_chan(),
-            pipeline,
-            self.name(),
-        ))
+
+        let node_name = NodeActor::register_or_update(registry, &self.name, node_info);
+        Ok(registry.encode::<NodeActor, _>(&node_name))
     }
 
     pub(crate) fn handle_dom_mutation(
@@ -370,7 +354,7 @@ impl WalkerActor {
                             attribute_name,
                             new_value,
                         },
-                        target: registry.script_to_actor(node),
+                        target: registry.script_to_actor(&node),
                         type_: "attributes".to_owned(),
                     },
                 })
@@ -385,14 +369,17 @@ impl WalkerActor {
 /// If it is found, returns a list with the child and all of its ancestors.
 /// TODO: Investigate how to cache this to some extent.
 pub fn find_child(
-    script_chan: &GenericSender<DevtoolScriptControlMsg>,
-    pipeline: PipelineId,
     walker_name: &str,
     registry: &ActorRegistry,
     node_name: &str,
     mut hierarchy: Vec<NodeActorMsg>,
     compare_fn: impl Fn(&NodeActorMsg) -> bool + Clone,
 ) -> Result<Vec<NodeActorMsg>, Vec<NodeActorMsg>> {
+    let walker = registry.find::<WalkerActor>(walker_name);
+    let browsing_context = walker.browsing_context_actor(registry);
+    let script_chan = browsing_context.script_chan();
+    let pipeline = browsing_context.pipeline_id();
+
     let (tx, rx) = generic_channel::channel().unwrap();
     script_chan
         .send(GetChildren(
@@ -404,7 +391,9 @@ pub fn find_child(
     let children = rx.recv().unwrap().ok_or(vec![])?;
 
     for child in children {
-        let msg = child.encode(registry, script_chan.clone(), pipeline, walker_name.into());
+        let node_name = NodeActor::register_or_update(registry, walker_name, child);
+        let msg = registry.encode::<NodeActor, _>(&node_name);
+
         if compare_fn(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);
@@ -415,8 +404,6 @@ pub fn find_child(
         }
 
         match find_child(
-            script_chan,
-            pipeline,
             walker_name,
             registry,
             &msg.actor,

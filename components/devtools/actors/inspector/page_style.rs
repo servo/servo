@@ -151,8 +151,6 @@ impl PageStyleActor {
         let walker = registry.find::<WalkerActor>(&node_actor.walker_name);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
-            &node_actor.script_chan,
-            node_actor.pipeline,
             &node_actor.walker_name,
             registry,
             &walker.root(registry)?.actor,
