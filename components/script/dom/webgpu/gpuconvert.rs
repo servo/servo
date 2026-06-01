@@ -16,7 +16,7 @@ use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
-    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
+    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUTexelCopyBufferInfo,
     GPUImageCopyTexture, GPUTexelCopyBufferLayout, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
     GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
     GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
@@ -458,7 +458,7 @@ impl Convert<wgpu_types::StencilOperation> for GPUStencilOperation {
     }
 }
 
-impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUImageCopyBuffer {
+impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo {
     fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
         wgpu_com::TexelCopyBufferInfo {
             buffer: self.buffer.id().0,

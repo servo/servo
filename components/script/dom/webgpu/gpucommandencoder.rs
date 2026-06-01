@@ -14,7 +14,7 @@ use wgpu_core::command as wgpu_com;
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
-    GPUComputePassDescriptor, GPUExtent3D, GPUImageCopyBuffer, GPUImageCopyTexture,
+    GPUComputePassDescriptor, GPUExtent3D, GPUTexelCopyBufferInfo, GPUImageCopyTexture,
     GPURenderPassDescriptor, GPUSize64,
 };
 use crate::dom::bindings::error::Fallible;
@@ -277,7 +277,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertotexture>
     fn CopyBufferToTexture(
         &self,
-        source: &GPUImageCopyBuffer,
+        source: &GPUTexelCopyBufferInfo,
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
@@ -300,7 +300,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     fn CopyTextureToBuffer(
         &self,
         source: &GPUImageCopyTexture,
-        destination: &GPUImageCopyBuffer,
+        destination: &GPUTexelCopyBufferInfo,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
         self.droppable

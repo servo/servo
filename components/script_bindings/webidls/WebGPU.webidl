@@ -864,7 +864,7 @@ dictionary GPUTexelCopyBufferLayout {
     GPUSize32 rowsPerImage;
 };
 
-dictionary GPUImageCopyBuffer : GPUTexelCopyBufferLayout {
+dictionary GPUTexelCopyBufferInfo : GPUTexelCopyBufferLayout {
     required GPUBuffer buffer;
 };
 
@@ -909,14 +909,14 @@ interface GPUCommandEncoder {
 
     [Throws]
     undefined copyBufferToTexture(
-        GPUImageCopyBuffer source,
+        GPUTexelCopyBufferInfo source,
         GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
     [Throws]
     undefined copyTextureToBuffer(
         GPUImageCopyTexture source,
-        GPUImageCopyBuffer destination,
+        GPUTexelCopyBufferInfo destination,
         GPUExtent3D copySize);
 
     [Throws]
