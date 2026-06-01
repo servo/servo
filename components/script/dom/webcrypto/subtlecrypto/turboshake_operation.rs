@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use digest::{ExtendableOutput, Update};
-use sha3::{TurboShake128, TurboShake128Core, TurboShake256, TurboShake256Core};
+use seq_macro::seq;
+use turboshake::digest::{ExtendableOutput, Update};
+use turboshake::{CTurboShake128, CTurboShake256};
 
 use crate::dom::bindings::error::Error;
 use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleTurboShakeParams};
@@ -47,18 +48,27 @@ pub(crate) fn digest(
     //     of [RFC9861] using message as the M input parameter, domainSeparation as the D input
     //     parameter, and outputLength divided by 8 as the L input parameter.
     // Step 6. If performing the operation results in an error, then throw an OperationError.
-    let result = match normalized_algorithm.name {
+    let mut result = vec![0u8; output_length as usize / 8];
+    match normalized_algorithm.name {
         CryptoAlgorithm::TurboShake128 => {
-            let core = TurboShake128Core::new(domain_separation);
-            let mut hasher = TurboShake128::from_core(core);
-            hasher.update(message);
-            hasher.finalize_boxed(output_length as usize / 8).to_vec()
+            seq!(DS in 0x01..=0x7f {
+                match domain_separation {
+                    #(
+                        DS => hash_message::<CTurboShake128<DS>>(message, &mut result),
+                    )*
+                    _ => unreachable!("Step 4 guarantees domainSeparation lies in 0x01..=0x7f"),
+                }
+            });
         },
         CryptoAlgorithm::TurboShake256 => {
-            let core = TurboShake256Core::new(domain_separation);
-            let mut hasher = TurboShake256::from_core(core);
-            hasher.update(message);
-            hasher.finalize_boxed(output_length as usize / 8).to_vec()
+            seq!(DS in 0x01..=0x7f {
+                match domain_separation {
+                    #(
+                        DS => hash_message::<CTurboShake256<DS>>(message, &mut result),
+                    )*
+                    _ => unreachable!("Step 4 guarantees domainSeparation lies in 0x01..=0x7f"),
+                }
+            });
         },
         algorithm_name => {
             return Err(Error::NotSupported(Some(format!(
@@ -66,8 +76,14 @@ pub(crate) fn digest(
                 algorithm_name.as_str()
             ))));
         },
-    };
+    }
 
     // Step 7. Return result.
     Ok(result)
+}
+
+fn hash_message<T: ExtendableOutput + Update + Default>(message: &[u8], result: &mut [u8]) {
+    let mut hasher = T::default();
+    hasher.update(message);
+    hasher.finalize_xof_into(result);
 }
