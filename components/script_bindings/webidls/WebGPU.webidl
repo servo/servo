@@ -868,14 +868,14 @@ dictionary GPUTexelCopyBufferInfo : GPUTexelCopyBufferLayout {
     required GPUBuffer buffer;
 };
 
-dictionary GPUImageCopyTexture {
+dictionary GPUTexelCopyTextureInfo {
     required GPUTexture texture;
     GPUIntegerCoordinate mipLevel = 0;
     GPUOrigin3D origin;
     GPUTextureAspect aspect = "all";
 };
 
-dictionary GPUImageCopyTextureTagged : GPUImageCopyTexture {
+dictionary GPUTexelCopyTextureInfoTagged : GPUTexelCopyTextureInfo {
     //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
     boolean premultipliedAlpha = false;
 };
@@ -910,25 +910,25 @@ interface GPUCommandEncoder {
     [Throws]
     undefined copyBufferToTexture(
         GPUTexelCopyBufferInfo source,
-        GPUImageCopyTexture destination,
+        GPUTexelCopyTextureInfo destination,
         GPUExtent3D copySize);
 
     [Throws]
     undefined copyTextureToBuffer(
-        GPUImageCopyTexture source,
+        GPUTexelCopyTextureInfo source,
         GPUTexelCopyBufferInfo destination,
         GPUExtent3D copySize);
 
     [Throws]
     undefined copyTextureToTexture(
-        GPUImageCopyTexture source,
-        GPUImageCopyTexture destination,
+        GPUTexelCopyTextureInfo source,
+        GPUTexelCopyTextureInfo destination,
         GPUExtent3D copySize);
 
     /*
     undefined copyImageBitmapToTexture(
         GPUImageBitmapCopyView source,
-        GPUImageCopyTexture destination,
+        GPUTexelCopyTextureInfo destination,
         GPUExtent3D copySize);
     */
 
@@ -1117,7 +1117,7 @@ interface GPUQueue {
 
     [Throws]
     undefined writeTexture(
-      GPUImageCopyTexture destination,
+      GPUTexelCopyTextureInfo destination,
       BufferSource data,
       GPUTexelCopyBufferLayout dataLayout,
       GPUExtent3D size);
@@ -1125,7 +1125,7 @@ interface GPUQueue {
     //[Throws]
     //undefined copyExternalImageToTexture(
     //  GPUImageCopyExternalImage source,
-    //  GPUImageCopyTextureTagged destination,
+    //  GPUTexelCopyTextureInfoTagged destination,
     //  GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;

@@ -12,7 +12,7 @@ use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExtent3D, GPUImageCopyTexture, GPUTexelCopyBufferLayout, GPUQueueMethods, GPUSize64,
+    GPUExtent3D, GPUTexelCopyTextureInfo, GPUTexelCopyBufferLayout, GPUQueueMethods, GPUSize64,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -167,7 +167,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
     fn WriteTexture(
         &self,
-        destination: &GPUImageCopyTexture,
+        destination: &GPUTexelCopyTextureInfo,
         data: BufferSource,
         data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
