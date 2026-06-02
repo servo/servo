@@ -49,6 +49,7 @@ ignore = [
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
 "**/tests/**/*.py" = ["ANN"]
+"python/servo/devtools_tests/**" = ["ANN"]
 
 [tool.pyrefly]
 search-path = [
@@ -74,6 +75,7 @@ project-excludes = [
     "**/test.py",
     "**/*_tests.py",
     "**/tests/**",
+    "python/servo/devtools_tests/**",
     "python/mach/**/*.py",
     "components/script_bindings/third_party/**",
 ]
