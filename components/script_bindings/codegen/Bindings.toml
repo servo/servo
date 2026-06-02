@@ -1,0 +1,1017 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# DOM Bindings Configuration.
+#
+# The WebIDL interfaces are defined in dom/webidls. For each such interface,
+# there is a corresponding entry in the configuration table below.
+# The configuration table maps each interface name to a |descriptor|.
+#
+# Valid fields for all descriptors:
+#   * outerObjectHook: string to use in place of default value for outerObject and thisObject
+#                      JS class hooks
+
+
+[DOMInterfaces]
+
+[DOMInterfaces.AbortController]
+realm = ["Abort"]
+
+[DOMInterfaces.AbortSignal]
+weakReferenceable = true
+canGc = ["Abort", "Any", "Timeout"]
+cx = ["ThrowIfAborted"]
+
+[DOMInterfaces.AbstractRange]
+weakReferenceable = true
+
+[DOMInterfaces.AnalyserNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.Attr]
+implicitCxSetters = true
+
+[DOMInterfaces.AudioBuffer]
+cx = ["Constructor", "CopyToChannel", "GetChannelData"]
+
+[DOMInterfaces.AudioBufferSourceNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.AudioContext]
+realm = ["Close", "Suspend"]
+cx = ["Constructor", "CreateMediaElementSource", "CreateMediaStreamDestination", "CreateMediaStreamSource", "CreateMediaStreamTrackSource"]
+
+[DOMInterfaces.BaseAudioContext]
+inRealms = ["DecodeAudioData", "Resume", "ParseFromString", "GetBounds", "GetClientRects"]
+canGc = ["Resume", "DecodeAudioData", "Destination"]
+cx = ["CreateBuffer", "CreateGain", "CreateOscillator", "CreatePanner", "CreateStereoPanner", "CreateBiquadFilter", "CreateIIRFilter", "CreateAnalyser", "CreateConstantSource", "CreateChannelMerger", "CreateChannelSplitter", "CreateBufferSource", "Listener"]
+
+[DOMInterfaces.BiquadFilterNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.Blob]
+weakReferenceable = true
+realm = ["ArrayBuffer", "Bytes", "Text"]
+cx = ["Stream", "Slice", "Constructor"]
+
+[DOMInterfaces.Bluetooth]
+realm = ["GetAvailability", "RequestDevice"]
+
+[DOMInterfaces.BluetoothAdvertisingEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.BluetoothDevice]
+realm = ["WatchAdvertisements"]
+cx = ["GetGatt"]
+
+[DOMInterfaces.BluetoothRemoteGATTCharacteristic]
+realm = ["ReadValue", "StartNotifications", "StopNotifications", "WriteValue", "GetDescriptor", "GetDescriptors"]
+
+[DOMInterfaces.BluetoothRemoteGATTDescriptor]
+realm = ["ReadValue", "WriteValue"]
+
+[DOMInterfaces.BluetoothRemoteGATTServer]
+realm = ["Connect", "GetPrimaryService", "GetPrimaryServices"]
+cx = ["Disconnect"]
+
+[DOMInterfaces.BluetoothRemoteGATTService]
+realm = ["GetCharacteristic", "GetCharacteristics", "GetIncludedService", "GetIncludedServices"]
+
+[DOMInterfaces.BroadcastChannel]
+cx = ["Constructor", "PostMessage"]
+
+[DOMInterfaces.ByteLengthQueuingStrategy]
+cx = ["GetSize"]
+
+[DOMInterfaces.CanvasRenderingContext2D]
+cx = ["GetTransform", "MeasureText", "CreateLinearGradient", "CreatePattern", "CreateRadialGradient"]
+canGc = ["CreateImageData", "GetImageData", "CreateImageData_"]
+
+[DOMInterfaces.ChannelMergerNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.ChannelSplitterNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.CharacterData]
+cx = ["After", "AppendData", "Before", "DeleteData", "InsertData", "Remove", "ReplaceData", "ReplaceWith", "SetData"]
+
+[DOMInterfaces.Client]
+cx = ["PostMessage", "PostMessage_"]
+
+[DOMInterfaces.Clipboard]
+realm = ["ReadText", "WriteText"]
+
+[DOMInterfaces.ClipboardItem]
+cx = ["Constructor", "Types"]
+realm = ["GetType"]
+
+[DOMInterfaces.Comment]
+cx = ["Constructor"]
+
+[DOMInterfaces.CompressionStream]
+cx = ["Constructor"]
+
+[DOMInterfaces.console]
+cx = ["Assert", "Count", "CountReset", "Debug", "Dir", "Error", "Group", "GroupCollapsed", "Info", "Log", "Time", "TimeEnd", "TimeLog", "Trace", "Warn"]
+
+[DOMInterfaces.ConstantSourceNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.CookieStore]
+cx = ["Set", "Set_", "Get", "Get_", "GetAll", "GetAll_", "Delete", "Delete_"]
+
+[DOMInterfaces.CountQueuingStrategy]
+cx = ["GetSize"]
+
+[DOMInterfaces.Credential]
+cx = ["IsConditionalMediationAvailable", "WillRequestConditionalCreation"]
+
+[DOMInterfaces.CSS]
+cx = ["PaintWorklet"]
+
+[DOMInterfaces.CSSGroupingRule]
+cx = ["CssRules", "InsertRule", "DeleteRule"]
+
+[DOMInterfaces.CSSKeyframeRule]
+cx = ["Style"]
+
+[DOMInterfaces.CSSKeyframesRule]
+cx = ["AppendRule", "CssRules", "DeleteRule", "FindRule"]
+
+[DOMInterfaces.CSSLayerStatementRule]
+canGc = ["NameList"]
+
+[DOMInterfaces.CSSMediaRule]
+cx = ["Media"]
+
+[DOMInterfaces.CSSNestedDeclarations]
+cx = ["Style"]
+
+[DOMInterfaces.CSSRuleList]
+cx = ["Item", "IndexedGetter"]
+
+[DOMInterfaces.CSSStyleRule]
+cx = ["Style"]
+
+[DOMInterfaces.CSSStyleSheet]
+realm = ["Replace"]
+cx = ["AddRule", "DeleteRule", "GetCssRules", "GetRules", "InsertRule", "RemoveRule"]
+
+[DOMInterfaces.Crypto]
+cx = ["Subtle"]
+
+[DOMInterfaces.CSSStyleDeclaration]
+implicitCxSetters = true
+cx = ["RemoveProperty", "SetProperty", "Style"]
+
+[DOMInterfaces.CustomElementRegistry]
+inRealms = ["WhenDefined"]
+canGc = ["Define", "WhenDefined"]
+
+[DOMInterfaces.DataTransfer]
+cx = ["Files", "Types"]
+
+[DOMInterfaces.DataTransferItem]
+cx = ["GetAsFile"]
+
+[DOMInterfaces.DataTransferItemList]
+cx = ["Add", "Add_", "IndexedGetter"]
+
+[DOMInterfaces.DebuggerGlobalScope]
+useSystemCompartment = true
+
+[DOMInterfaces.DecompressionStream]
+cx = ["Constructor"]
+
+[DOMInterfaces.DedicatedWorkerGlobalScope]
+cx = ["PostMessage", "PostMessage_"]
+
+[DOMInterfaces.Document]
+additionalTraits = ["crate::interfaces::DocumentHelpers"]
+canGc = ["CreateRange", "ExitFullscreen", "StyleSheets", "Implementation", "CreateNodeIterator", "GetElementsByName", "AdoptedStyleSheets", "SetAdoptedStyleSheets"]
+cx = ["AdoptNode", "Append", "Close", "CreateAttribute", "CreateAttributeNS", "CreateCDATASection", "CreateComment", "CreateDocumentFragment", "CreateElement", "CreateElementNS", "CreateEvent", "CreateExpression", "CreateNSResolver", "CreateProcessingInstruction", "CreateRange", "CreateTextNode", "ExecCommand", "Evaluate", "Fonts", "GetLocation", "ImportNode", "MoveBefore", "Open", "Open_", "ParseHTMLUnsafe", "ParseHTML", "Prepend", "QueryCommandEnabled", "QueryCommandIndeterm", "QueryCommandState", "QueryCommandValue", "ReplaceChildren", "SetBody", "SetTitle", "Write", "Writeln", "GetElementsByTagName", "GetElementsByTagNameNS", "GetElementsByClassName", "Images", "Embeds", "Plugins", "Links", "Forms", "Scripts", "Anchors", "Applets", "Children", "GetSelection", "NamedGetter", "SetBgColor", "SetFgColor"]
+
+[DOMInterfaces.DissimilarOriginWindow]
+canGc = ["Location"]
+cx = ["PostMessage", "PostMessage_", "SetOpener", "Opener"]
+
+[DOMInterfaces.DocumentFragment]
+cx = ["Append", "Children", "Constructor", "MoveBefore", "Prepend", "ReplaceChildren"]
+
+[DOMInterfaces.DocumentType]
+cx = ["After", "Before", "Remove", "ReplaceWith"]
+
+[DOMInterfaces.DOMImplementation]
+cx = ["CreateDocument", "CreateDocumentType", "CreateHTMLDocument"]
+
+[DOMInterfaces.DOMMatrix]
+canGc = ["FromMatrix", "FromFloat32Array", "FromFloat64Array"]
+
+[DOMInterfaces.DOMMatrixReadOnly]
+cx = ["TransformPoint"]
+canGc = ["Multiply", "Inverse", "Scale", "Translate", "Rotate", "RotateFromVector", "FlipY", "ScaleNonUniform", "Scale3d", "RotateAxisAngle", "SkewX", "SkewY", "FlipX", "FromFloat32Array", "FromFloat64Array", "FromMatrix", "ToFloat32Array", "ToFloat64Array"]
+
+[DOMInterfaces.DOMParser]
+cx = ["Constructor", "ParseFromString"]
+
+[DOMInterfaces.DOMPoint]
+cx = ["Constructor", "FromPoint"]
+
+[DOMInterfaces.DOMPointReadOnly]
+cx = ["Constructor", "FromPoint", "MatrixTransform"]
+
+[DOMInterfaces.DOMQuad]
+cx = ["Constructor", "FromRect", "FromQuad", "GetBounds"]
+
+[DOMInterfaces.DOMRect]
+cx = ["FromRect"]
+
+[DOMInterfaces.DOMRectReadOnly]
+cx = ["Constructor", "FromRect"]
+
+[DOMInterfaces.DOMStringMap]
+cx = ["NamedDeleter", "NamedSetter"]
+
+[DOMInterfaces.DOMTokenList]
+cx = ["SetValue", "Add", "Remove", "Toggle", "Replace"]
+
+[DOMInterfaces.Element]
+cx = ["GetHTML", "GetInnerHTML", "GetOuterHTML", "Part", "RemoveAttribute", "SetClassName", "SetHTMLUnsafe", "SetHTML", "SetId", "SetInnerHTML", "SetOuterHTML", "InsertAdjacentHTML", "ToggleAttribute", "SetAttribute", "SetAttributeNS", "SetAttributeNode", "SetAttributeNodeNS", "RemoveAttributeNS", "RemoveAttributeNode", "SetRole", "SetAriaAtomic", "SetAriaAutoComplete", "SetAriaBrailleLabel", "SetAriaBrailleRoleDescription", "SetAriaBusy", "SetAriaChecked", "SetAriaColCount", "SetAriaColIndex", "SetAriaColIndexText", "SetAriaColSpan", "SetAriaCurrent", "SetAriaDescription", "SetAriaDisabled", "SetAriaExpanded", "SetAriaHasPopup", "SetAriaHidden", "SetAriaInvalid", "SetAriaKeyShortcuts", "SetAriaLabel", "SetAriaLevel", "SetAriaLive", "SetAriaModal", "SetAriaMultiLine", "SetAriaMultiSelectable", "SetAriaOrientation", "SetAriaPlaceholder", "SetAriaPosInSet", "SetAriaPressed", "SetAriaReadOnly", "SetAriaRelevant", "SetAriaRequired", "SetAriaRoleDescription", "SetAriaRowCount", "SetAriaRowIndex", "SetAriaRowIndexText", "SetAriaRowSpan", "SetAriaSelected", "SetAriaSetSize", "SetAriaSort", "SetAriaValueMax", "SetAriaValueMin", "SetAriaValueNow", "SetAriaValueText", "ReplaceWith", "MoveBefore", "InsertAdjacentElement", "InsertAdjacentText", "Before", "After", "Prepend", "Remove", "ReplaceChildren", "Append", "AttachShadow", "GetElementsByTagName", "GetElementsByTagNameNS", "GetElementsByClassName", "Children", "GetClientRects", "GetBoundingClientRect", "ClassList", "GetAttributeNodeNS", "GetAttributeNS", "HasAttributeNS", "GetAttribute", "GetAttributeNode", "HasAttribute", "ScrollBy", "ScrollBy_", "Scroll", "Scroll_", "ScrollTo", "ScrollTo_", "SetScrollTop", "SetScrollLeft", "ScrollIntoView"]
+canGc = ["RequestFullscreen", "Attributes"]
+
+[DOMInterfaces.ElementInternals]
+canGc = ["GetLabels", "States"]
+cx = ["CheckValidity", "GetValidity", "ReportValidity", "SetValidity"]
+
+[DOMInterfaces.EventSource]
+weakReferenceable = true
+
+[DOMInterfaces.EventTarget]
+cx = ["DispatchEvent"]
+
+[DOMInterfaces.ExtendableMessageEvent]
+canGc = ["Ports"]
+
+[DOMInterfaces.FakeXRDevice]
+canGc = ["Disconnect"]
+
+[DOMInterfaces.File]
+weakReferenceable = true
+
+[DOMInterfaces.FileReader]
+cx = ["Abort", "ReadAsArrayBuffer", "ReadAsBinaryString", "ReadAsDataURL", "ReadAsText"]
+
+[DOMInterfaces.FileReaderSync]
+canGc = ["ReadAsArrayBuffer"]
+
+[DOMInterfaces.FontFaceSet]
+cx = ["Load"]
+
+[DOMInterfaces.FormData]
+cx = ["Constructor"]
+
+[DOMInterfaces.GainNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.Gamepad]
+cx = ["Axes", "Buttons"]
+
+[DOMInterfaces.GamepadHapticActuator]
+inRealms = ["PlayEffect", "Reset"]
+canGc = ["PlayEffect", "Reset", "Effects"]
+
+[DOMInterfaces.Geolocation]
+cx = ["GetCurrentPosition", "WatchPosition"]
+
+[DOMInterfaces.GlobalScope]
+additionalTraits = ["crate::interfaces::GlobalScopeHelpers<Self>"]
+
+[DOMInterfaces.GPU]
+inRealms = ["RequestAdapter"]
+canGc = ["RequestAdapter", "WgslLanguageFeatures"]
+
+[DOMInterfaces.GPUAdapter]
+inRealms = ["RequestDevice"]
+canGc = ["RequestDevice"]
+
+[DOMInterfaces.GPUBuffer]
+inRealms = ["MapAsync"]
+canGc = ["GetMappedRange", "MapAsync"]
+allowDropImpl = true
+
+[DOMInterfaces.GPUCanvasContext]
+weakReferenceable = true
+
+[DOMInterfaces.GPUCompilationInfo]
+canGc = ["Messages"]
+
+[DOMInterfaces.GPUDevice]
+inRealms = [
+    "CreateComputePipelineAsync",
+    "CreateRenderPipelineAsync",
+    "CreateShaderModule", # Creates promise for compilation info
+    "PopErrorScope",
+]
+canGc = ["CreateComputePipelineAsync", "CreateRenderPipelineAsync", "CreateShaderModule", "PopErrorScope"]
+weakReferenceable = true # for usage in GlobalScope https://github.com/servo/servo/issues/32519
+
+[DOMInterfaces.GPUQueue]
+canGc = ["OnSubmittedWorkDone"]
+
+[DOMInterfaces.History]
+cx = ["PushState", "ReplaceState", "GetState", "Go"]
+
+[DOMInterfaces.HTMLAnchorElement]
+cx = ["RelList"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLAreaElement]
+cx = ["RelList"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLAudioElement]
+cx = ["Audio"]
+weakReferenceable = true
+
+[DOMInterfaces.HTMLBodyElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLButtonElement]
+cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLCanvasElement]
+cx = ["CaptureStream", "GetContext", "TransferControlToOffscreen"]
+implicitCxSetters = true
+weakReferenceable = true
+
+[DOMInterfaces.HTMLDataListElement]
+cx = ["Options"]
+
+[DOMInterfaces.HTMLDialogElement]
+cx = ["Close", "Show", "ShowModal"]
+
+[DOMInterfaces.HTMLDocument]
+cx = ["GetLocation", "NamedGetter"]
+
+[DOMInterfaces.HTMLElement]
+canGc = ["AttachInternals", "Dataset", "GetOnblur", "GetOnerror", "GetOnfocus", "GetOnload", "GetOnresize", "GetOnscroll"]
+cx = ["Blur", "Click", "Focus", "Style"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLFieldSetElement]
+cx = ["CheckValidity", "Elements", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLFontElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLFormControlsCollection]
+cx = ["NamedGetter", "NamedItem"]
+
+[DOMInterfaces.HTMLFormElement]
+cx = ["CheckValidity", "ReportValidity", "RequestSubmit", "Submit", "Reset", "Elements", "IndexedGetter", "Length", "NamedGetter", "SetRel", "RelList"]
+
+[DOMInterfaces.HTMLFrameSetElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLIFrameElement]
+cx = ["Sandbox"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLHRElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLImageElement]
+cx = ["Decode", "Image", "ReportValidity", "SetCrossOrigin"]
+
+[DOMInterfaces.HTMLInputElement]
+cx = ["CheckValidity", "GetLabels", "ReportValidity", "SetChecked", "SetCustomValidity", "SetValue", "SetValueAsNumber", "SetValueAsDate", "StepUp", "StepDown", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLLIElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLLinkElement]
+canGc = ["GetSheet"]
+cx = ["Blocking", "RelList", "SetCrossOrigin", "SetRel"]
+
+[DOMInterfaces.HTMLMapElement]
+implicitCxSetters = true
+cx = ["Areas"]
+
+[DOMInterfaces.HTMLMediaElement]
+canGc = ["AddTextTrack", "AudioTracks", "Buffered", "Played", "Seekable", "TextTracks", "VideoTracks"]
+realm = ["Play"]
+weakReferenceable = true
+cx = ["SetCrossOrigin", "SetSrcObject", "Load", "Pause"]
+
+[DOMInterfaces.HTMLMeterElement]
+cx = ["CheckValidity", "ReportValidity", "SetHigh", "SetLow", "SetMax", "SetMin", "SetOptimum", "SetValue"]
+
+[DOMInterfaces.HTMLObjectElement]
+cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLOptionElement]
+canGc = ["SetSelected"]
+cx = ["Option", "SetText"]
+
+[DOMInterfaces.HTMLOptionsCollection]
+cx = ["Add", "IndexedSetter", "Remove", "SetLength", "SetSelectedIndex"]
+
+[DOMInterfaces.HTMLOutputElement]
+cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "SetDefaultValue", "SetValue", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLPreElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLProgressElement]
+cx = ["SetValue", "SetMax"]
+
+[DOMInterfaces.HTMLScriptElement]
+cx = ["Blocking", "SetAsync", "SetCrossOrigin", "SetInnerText", "SetSrc", "SetText", "SetTextContent"]
+
+[DOMInterfaces.HTMLSelectElement]
+cx = ["Add", "CheckValidity", "IndexedSetter", "Remove", "Remove_", "ReportValidity", "SelectedOptions", "SetCustomValidity", "SetLength", "SetSelectedIndex", "SetValue", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLSlotElement]
+cx_no_gc = ["AssignedNodes", "AssignedElements", "Assign"]
+
+[DOMInterfaces.HTMLStyleElement]
+cx = ["Blocking"]
+
+[DOMInterfaces.HTMLTableElement]
+cx = ["CreateCaption", "CreateTBody", "CreateTFoot", "CreateTHead", "DeleteCaption", "DeleteRow", "DeleteTFoot", "DeleteTHead", "InsertRow", "Rows", "TBodies"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLTableCellElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLTableColElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLTableRowElement]
+cx = ["Cells", "DeleteCell", "InsertCell", "RowIndex", "SectionRowIndex"]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLTableSectionElement]
+cx = ["DeleteRow", "InsertRow", "Rows"]
+
+[DOMInterfaces.HTMLTemplateElement]
+cx = ["Content"]
+
+[DOMInterfaces.HTMLTextAreaElement]
+cx = ["CheckValidity", "ReportValidity", "SetDefaultValue", "SetValue", "SetCustomValidity", "Validity", "ValidationMessage"]
+
+[DOMInterfaces.HTMLTitleElement]
+implicitCxSetters = true
+
+[DOMInterfaces.HTMLVideoElement]
+weakReferenceable = true
+
+[DOMInterfaces.IDBCursor]
+cx = ["Key", "PrimaryKey"]
+
+[DOMInterfaces.IDBDatabase]
+canGc = ["ObjectStoreNames"]
+cx = ["CreateObjectStore"]
+
+[DOMInterfaces.IDBFactory]
+cx = ["Cmp", "Databases"]
+
+[DOMInterfaces.IDBIndex]
+canGc = ["KeyPath"]
+
+[DOMInterfaces.IDBKeyRange]
+cx = ["Lower", "Upper", "Only", "LowerBound", "UpperBound", "Bound", "Includes"]
+
+[DOMInterfaces.IDBObjectStore]
+canGc = ["IndexNames"]
+cx = ["CreateIndex", "Put", "Add", "Delete", "Clear", "Get", "GetKey", "GetAll", "GetAllKeys", "Count", "OpenCursor", "OpenKeyCursor", "KeyPath"]
+
+[DOMInterfaces.IDBTransaction]
+canGc = ["ObjectStore"]
+
+[DOMInterfaces.IIRFilterNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.InputEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.IntersectionObserver]
+cx = ["Constructor", "Thresholds"]
+
+[DOMInterfaces.IntersectionObserverEntry]
+cx = ["Constructor"]
+
+[DOMInterfaces.KeyboardEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.LayoutResult]
+canGc = ["Phases"]
+
+[DOMInterfaces.Location]
+cx = ["Assign", "Reload", "Replace"]
+implicitCxSetters = true
+
+[DOMInterfaces.MediaDevices]
+realm = ["GetUserMedia"]
+cx = ["EnumerateDevices"]
+inRealms = ["GetUserMedia", "GetClientRects", "GetBoundingClientRect"]
+
+[DOMInterfaces.MediaElementAudioSourceNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.MediaStreamAudioSourceNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.MediaStreamAudioDestinationNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.MediaStreamTrackAudioSourceNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.MediaQueryList]
+weakReferenceable = true
+
+[DOMInterfaces.MediaSession]
+canGc = ["GetMetadata"]
+
+[DOMInterfaces.MediaStreamTrack]
+cx = ["Clone"]
+
+[DOMInterfaces.MediaStream]
+cx = ["Constructor", "Constructor_", "Constructor__", "Clone"]
+
+[DOMInterfaces.MessagePort]
+weakReferenceable = true
+canGc = ["GetOnmessage"]
+cx = ["Close", "PostMessage", "PostMessage_", "SetOnmessage", "Start"]
+
+[DOMInterfaces.MessageEvent]
+canGc = ["Ports"]
+
+[DOMInterfaces.MouseEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.NamedNodeMap]
+cx = ["GetNamedItem", "GetNamedItemNS", "Item", "IndexedGetter", "NamedGetter", "RemoveAttribute", "RemoveNamedItem", "RemoveNamedItemNS", "SetNamedItem", "SetNamedItemNS"]
+
+[DOMInterfaces.NavigationPreloadManager]
+inRealms = ["Disable", "Enable", "GetState", "SetHeaderValue"]
+canGc = ["Disable", "Enable", "GetState", "SetHeaderValue"]
+
+[DOMInterfaces.Navigator]
+inRealms = ["GetVRDisplays"]
+cx = ["Clipboard", "Languages", "SendBeacon", "Storage", "UserActivation", "WakeLock"]
+
+[DOMInterfaces.CredentialsContainer]
+realm = ["Get", "Store", "Create"]
+
+[DOMInterfaces.WakeLock]
+realm = ["Request"]
+
+[DOMInterfaces.Node]
+cx = ["AppendChild", "ChildNodes", "CloneNode", "InsertBefore", "Normalize", "RemoveChild", "ReplaceChild", "SetNodeValue", "SetTextContent"]
+
+[DOMInterfaces.NodeIterator]
+cx = ["NextNode", "PreviousNode"]
+
+[DOMInterfaces.Notification]
+cx = ["Actions", "Constructor", "RequestPermission", "Vibrate"]
+
+[DOMInterfaces.OfflineAudioContext]
+inRealms = ["StartRendering"]
+canGc = ["StartRendering"]
+
+[DOMInterfaces.OffscreenCanvas]
+cx = ["Constructor", "ConvertToBlob", "GetContext", "SetHeight", "SetWidth", "TransferToImageBitmap"]
+
+[DOMInterfaces.OffscreenCanvasRenderingContext2D]
+cx = ["CreateImageData", "CreateImageData_", "GetImageData", "GetTransform", "MeasureText", "CreateLinearGradient", "CreatePattern", "CreateRadialGradient"]
+
+[DOMInterfaces.OscillatorNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.PaintRenderingContext2D]
+cx = ["CreateLinearGradient", "CreatePattern", "CreateRadialGradient", "GetTransform"]
+
+[DOMInterfaces.PaintWorkletGlobalScope]
+cx = ["RegisterPaint"]
+
+[DOMInterfaces.PannerNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.Performance]
+cx = ["Mark", "Measure"]
+
+[DOMInterfaces.PerformanceMark]
+cx = ["Constructor"]
+
+[DOMInterfaces.PerformanceObserver]
+canGc = ["SupportedEntryTypes"]
+cx = ["Observe"]
+
+[DOMInterfaces.Permissions]
+cx = ["Query", "Request", "Revoke"]
+
+[DOMInterfaces.Promise]
+spiderMonkeyInterface = true
+additionalTraits = ["js::conversions::FromJSValConvertibleRc"]
+allowDropImpl = true
+
+[DOMInterfaces.RadioNodeList]
+cx = ["SetValue"]
+
+[DOMInterfaces.Range]
+weakReferenceable = true
+cx = ["CloneContents", "CloneRange", "CreateContextualFragment", "DeleteContents", "ExtractContents", "GetBoundingClientRect", "GetClientRects", "InsertNode", "SurroundContents"]
+
+[DOMInterfaces.Request]
+cx = ["Constructor", "Constructor", "Headers", "Clone", "Text", "Blob", "FormData", "Json", "ArrayBuffer", "Bytes"]
+
+[DOMInterfaces.Response]
+canGc = ["Headers"]
+cx = ["Constructor", "CreateFromJson", "Clone", "Error", "Redirect", "Text", "Blob", "FormData", "Json", "ArrayBuffer", "Bytes"]
+
+[DOMInterfaces.RTCPeerConnection]
+inRealms = ["AddIceCandidate", "CreateAnswer", "CreateOffer", "SetLocalDescription", "SetRemoteDescription"]
+canGc = ["AddIceCandidate", "CreateAnswer", "CreateOffer", "SetLocalDescription", "SetRemoteDescription"]
+cx = ["Close"]
+weakReferenceable = true
+
+[DOMInterfaces.RTCRtpSender]
+canGc = ["SetParameters"]
+
+[DOMInterfaces.RTCTrackEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.Sanitizer]
+cx = ["Constructor", "AllowElement"]
+
+[DOMInterfaces.Selection]
+cx = ["Collapse", "CollapseToEnd", "CollapseToStart", "DeleteFromDocument", "Extend", "SelectAllChildren", "SetBaseAndExtent", "SetPosition"]
+
+[DOMInterfaces.ServiceWorker]
+cx = ["PostMessage", "PostMessage_"]
+
+[DOMInterfaces.ServiceWorkerContainer]
+realm = ["GetRegistration", "Register"]
+
+[DOMInterfaces.ServiceWorkerRegistration]
+cx = ["Unregister"]
+
+[DOMInterfaces.ServoInternals]
+inRealms = ["ReportMemory"]
+canGc = ["ReportMemory"]
+additionalTraits = ["crate::interfaces::ServoInternalsHelpers"]
+
+[DOMInterfaces.ServoTestUtils]
+cx = ["ForceLayout", "ForceAccessibilityUpdate"]
+
+[DOMInterfaces.ShadowRoot]
+canGc = ["AdoptedStyleSheets", "SetAdoptedStyleSheets"]
+cx = ["GetHTML", "GetInnerHTML", "SetHTMLUnsafe", "SetHTML", "SetInnerHTML"]
+
+[DOMInterfaces.StaticRange]
+weakReferenceable = true
+
+[DOMInterfaces.StereoPannerNode]
+cx = ["Constructor"]
+
+[DOMInterfaces.StorageManager]
+inRealms = ["Persisted", "Persist", "Estimate"]
+canGc = ["Persisted", "Persist", "Estimate"]
+
+[DOMInterfaces.StyleSheet]
+cx = ["Media"]
+
+[DOMInterfaces.SubtleCrypto]
+realm = ["Encrypt", "Decrypt", "Sign", "Verify", "GenerateKey", "DeriveKey", "DeriveBits", "Digest", "ImportKey", "ExportKey", "WrapKey", "UnwrapKey", "EncapsulateKey", "EncapsulateBits", "DecapsulateKey", "DecapsulateBits", "GetPublicKey"]
+cx = ["Supports", "Supports_"]
+
+[DOMInterfaces.SVGElement]
+cx = ["Blur", "Focus", "SetAutofocus", "SetTabIndex", "Style"]
+
+#FIXME(jdm): This should be 'register': False, but then we don't generate enum typesP
+[DOMInterfaces.TestBinding]
+inRealms = ["PromiseAttribute"]
+canGc = ["PromiseAttribute", "PromiseResolveNative", "PromiseRejectNative", "PromiseRejectWithTypeError"]
+additionalTraits = ["crate::interfaces::TestBindingHelpers"]
+cx = ["Constructor", "Constructor_", "Constructor__", "GetInterfaceAttributeNullable", "InterfaceAttribute", "ReceiveInterface", "ReceiveInterfaceSequence", "ReceiveNullableInterface"]
+realm = ["PromiseNativeHandler"]
+
+[DOMInterfaces.TestWorklet]
+cx = ["Constructor"]
+realm = ["AddModule"]
+
+[DOMInterfaces.Text]
+cx = ["Constructor", "SplitText"]
+cx_no_gc = ["WholeText"]
+
+[DOMInterfaces.TextDecoderStream]
+cx = ["Constructor"]
+
+[DOMInterfaces.TextEncoder]
+canGc = ["Encode"]
+
+[DOMInterfaces.TextEncoderStream]
+cx = ["Constructor"]
+
+[DOMInterfaces.TransformStream]
+cx = ["Constructor"]
+
+[DOMInterfaces.TreeWalker]
+cx = ["ParentNode", "PreviousNode", "NextNode", "FirstChild", "LastChild", "PreviousSibling", "NextSibling"]
+
+[DOMInterfaces.TrustedTypePolicy]
+cx = ["CreateHTML", "CreateScript", "CreateScriptURL"]
+
+[DOMInterfaces.TrustedTypePolicyFactory]
+cx = ["CreatePolicy", "EmptyHTML", "EmptyScript"]
+
+[DOMInterfaces.URL]
+weakReferenceable = true
+cx = ["Constructor", "Parse", "SearchParams"]
+
+[DOMInterfaces.URLPattern]
+cx = ["Constructor", "Constructor_"]
+
+[DOMInterfaces.URLSearchParams]
+cx = ["Constructor"]
+
+[DOMInterfaces.WebGLRenderingContext]
+canGc = ["MakeXRCompatible"]
+weakReferenceable = true
+
+[DOMInterfaces.WebGL2RenderingContext]
+canGc = ["MakeXRCompatible"]
+additionalTraits = ["crate::interfaces::WebGL2RenderingContextHelpers"]
+
+[DOMInterfaces.WebGLShader]
+weakReferenceable = true
+
+[DOMInterfaces.WindowClient]
+cx = ["Focus", "Navigate"]
+
+[DOMInterfaces.Window]
+canGc = ["CookieStore", "GetVisualViewport", "Screen"]
+additionalTraits = ["crate::interfaces::WindowHelpers"]
+realm = ["CreateImageBitmap", "CreateImageBitmap_", "WebdriverCallback", "GetOpener", "Fetch"]
+cx = ["Focus", "FetchLater", "GetComputedStyle", "GetLocalStorage", "GetSelection", "GetSessionStorage", "Location", "NamedGetter", "Open", "PostMessage", "PostMessage_", "ReportError", "Scroll", "Scroll_", "ScrollBy", "ScrollBy_", "ScrollTo", "ScrollTo_", "SetInterval", "SetTimeout", "Stop", "StructuredClone", "TrustedTypes", "WebdriverException"]
+
+[DOMInterfaces.WindowProxy]
+path = "crate::dom::windowproxy::WindowProxy"
+register = false
+
+[DOMInterfaces.SharedWorker]
+cx = ["Constructor"]
+
+[DOMInterfaces.SharedWorkerGlobalScope]
+
+[DOMInterfaces.Worker]
+cx = ["Constructor", "PostMessage", "PostMessage_"]
+
+[DOMInterfaces.WorkerGlobalScope]
+cx = ["ImportScripts", "ReportError", "SetInterval", "SetTimeout", "TrustedTypes", "StructuredClone"]
+realm = ["CreateImageBitmap", "CreateImageBitmap_", "Fetch"]
+
+[DOMInterfaces.Worklet]
+realm = ["AddModule"]
+
+[DOMInterfaces.XMLDocument]
+cx = ["GetLocation", "NamedGetter"]
+
+[DOMInterfaces.XMLHttpRequest]
+cx = ["Abort", "Open", "Open_", "Send", "GetResponseXML", "Response"]
+
+[DOMInterfaces.XPathEvaluator]
+cx = ["Constructor", "CreateExpression", "Evaluate"]
+
+[DOMInterfaces.XPathExpression]
+cx = ["Evaluate"]
+
+[DOMInterfaces.XRBoundedReferenceSpace]
+cx = ["BoundsGeometry"]
+
+[DOMInterfaces.XRFrame]
+canGc = ["GetViewerPose", "GetPose", "GetJointPose"]
+
+[DOMInterfaces.XRHitTestResult]
+canGc = ["GetPose"]
+
+[DOMInterfaces.XRRay]
+cx = ["Origin", "Direction"]
+canGc = ["Matrix"]
+
+[DOMInterfaces.XRReferenceSpace]
+canGc = ["GetOffsetReferenceSpace"]
+
+[DOMInterfaces.XRRenderState]
+canGc = ["Layers"]
+
+[DOMInterfaces.XRRigidTransform]
+cx = ["Position", "Orientation"]
+canGc = ["Inverse", "Matrix"]
+
+[DOMInterfaces.XRSession]
+inRealms = ["RequestReferenceSpace", "UpdateRenderState", "UpdateTargetFrameRate"]
+canGc = ["End", "RequestReferenceSpace", "UpdateTargetFrameRate", "RequestHitTestSource", "GetSupportedFrameRates", "EnabledFeatures"]
+cx = ["End"]
+weakReferenceable = true
+
+[DOMInterfaces.XRSystem]
+inRealms = ["RequestSession"]
+canGc = ["RequestSession", "IsSessionSupported"]
+
+[DOMInterfaces.XRTest]
+canGc = ["SimulateDeviceConnection", "DisconnectAllDevices"]
+cx = ["SimulateUserActivation"]
+
+[DOMInterfaces.XRView]
+canGc = ["ProjectionMatrix"]
+
+[DOMInterfaces.ReadableStream]
+canGc = ["GetReader"]
+realm = ["PipeTo", "PipeThrough"]
+cx = ["Cancel", "Constructor", "Tee"]
+
+[DOMInterfaces.ReadableStreamDefaultController]
+cx = ["Close", "Enqueue", "Error"]
+
+[DOMInterfaces.ReadableByteStreamController]
+cx = ["Enqueue", "Close", "Error", "GetByobRequest"]
+
+[DOMInterfaces.ReadableStreamBYOBRequest]
+cx = ["Respond", "RespondWithNewView"]
+
+[DOMInterfaces.ReadableStreamBYOBReader]
+canGc = ["ReleaseLock"]
+cx = ["Read", "Cancel"]
+
+[DOMInterfaces.ReadableStreamDefaultReader]
+cx = ["Read", "Cancel", "ReleaseLock"]
+
+[DOMInterfaces.ResizeObserver]
+cx = ["Constructor"]
+
+[DOMInterfaces.ResizeObserverEntry]
+canGc = ["BorderBoxSize", "ContentBoxSize", "DevicePixelContentBoxSize"]
+
+[DOMInterfaces.SecurityPolicyViolationEvent]
+cx = ["Constructor"]
+
+[DOMInterfaces.WebSocket]
+weakReferenceable = true
+
+[DOMInterfaces.WritableStream]
+canGc = ["Close", "GetWriter"]
+cx = ["Constructor"]
+inRealms = ["GetWriter"]
+realm = ["Abort", "Close"]
+
+[DOMInterfaces.WritableStreamDefaultController]
+realm = ["Error"]
+
+[DOMInterfaces.WritableStreamDefaultWriter]
+canGc = ["ReleaseLock"]
+realm = ["Abort", "Close", "Write"]
+
+[DOMInterfaces.TransformStreamDefaultController]
+cx = ["Enqueue", "Error", "Terminate"]
+
+[DOMInterfaces.WorkerNavigator]
+canGc = ["Languages"]
+cx = ["Storage"]
+
+[Dictionaries]
+
+[Dictionaries.AudioNodeOptions]
+derives = ["Clone", "Copy"]
+
+[Dictionaries.ChannelMergerOptions]
+derives = ["Clone", "Copy"]
+
+[Dictionaries.ConstantSourceOptions]
+derives = ["Clone", "Copy"]
+
+[Dictionaries.CSPViolationReportBody]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.EventListenerOptions]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.FocusOptions]
+derives = ["Clone", "Copy", "MallocSizeOf"]
+
+[Dictionaries.FontFaceDescriptors]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.GainOptions]
+derives = ["Clone", "Copy"]
+
+[Dictionaries.GPUCanvasConfiguration]
+derives = ["Clone"]
+
+[Dictionaries.GPUExtent3DDict]
+derives = ["MallocSizeOf"]
+
+[Dictionaries.GPUObjectDescriptorBase]
+derives = ["MallocSizeOf"]
+
+[Dictionaries.GPUTextureDescriptor]
+derives = ["MallocSizeOf"]
+
+[Dictionaries.HeadersInit]
+derives = ["Clone"]
+
+[Dictionaries.IIRFilterOptions]
+derives = ["Clone"]
+
+[Dictionaries.JsonWebKey]
+derives = ["zeroize::Zeroize", "zeroize::ZeroizeOnDrop"]
+
+[Dictionaries.RecommendedBreakpointLocation]
+derives = ["Debug"]
+
+[Dictionaries.RsaOtherPrimesInfo]
+derives = ["zeroize::Zeroize", "zeroize::ZeroizeOnDrop"]
+
+[Dictionaries.PauseFrameResult]
+derives = ["Debug"]
+
+[Dictionaries.Report]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.ReportBody]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.SanitizerAttributeNamespace]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Dictionaries.SanitizerConfig]
+derives = ["Clone", "MallocSizeOf"]
+
+[Dictionaries.SanitizerElementNamespace]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Dictionaries.SanitizerElementNamespaceWithAttributes]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Dictionaries.SanitizerProcessingInstruction]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Dictionaries.ScrollOptions]
+derives = ["Clone"]
+
+[Dictionaries.ScrollToOptions]
+derives = ["Clone"]
+
+[Dictionaries.StereoPannerOptions]
+derives = ["Clone", "Copy"]
+
+[Dictionaries.URLPatternInit]
+derives = ["Clone"]
+
+[Dictionaries.XRWebGLLayerInit]
+derives = ["Clone", "Copy"]
+
+[Enums]
+
+[Enums.GPUFeatureName]
+derives = ["Eq", "Hash"]
+
+[Enums.PermissionName]
+derives = ["Eq", "Hash"]
+
+[Unions]
+
+[Unions.ByteStringSequenceSequenceOrByteStringByteStringRecord]
+derives = ["Clone"]
+
+[Unions.ElementOrDocument]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Unions.HTMLCanvasElementOrOffscreenCanvas]
+derives = ["Clone", "MallocSizeOf"]
+
+[Unions.SanitizerOrSanitizerConfigOrSanitizerPresets]
+derives = ["Clone"]
+
+[Unions.StringOrSanitizerAttributeNamespace]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Unions.StringOrSanitizerElementNamespace]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Unions.StringOrSanitizerElementNamespaceWithAttributes]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Unions.StringOrSanitizerProcessingInstruction]
+derives = ["Clone", "MallocSizeOf", "PartialEq"]
+
+[Unions.RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict]
+derives = ["MallocSizeOf"]
+
+[Unions.StringOrUnsignedLong]
+derives = ["Clone"]
